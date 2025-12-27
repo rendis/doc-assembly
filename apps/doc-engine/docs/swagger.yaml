@@ -3345,52 +3345,6 @@ paths:
       summary: Update tag
       tags:
       - Tags
-  /api/v1/workspaces:
-    get:
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_WorkspaceWithRoleResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: List user workspaces
-      tags:
-      - Workspaces
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Workspace data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Create workspace
-      tags:
-      - Workspaces
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token
