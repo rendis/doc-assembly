@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="workspace_members:table_creation" author="doc-assembly">
+        <comment>Create workspace_members table - defines access relationships</comment>
+        <createTable tableName="workspace_members" schemaName="identity">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="workspace_role">
+                <constraints nullable="false"/>
+            </column>
+            <column name="membership_status" type="membership_status" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="invited_by" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="joined_at" type="TIMESTAMPTZ">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="workspace_members:add_fk_constraint:workspace_id" author="doc-assembly">
+        <comment>FK to workspaces</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="identity"
+            baseTableName="workspace_members"
+            baseColumnNames="workspace_id"
+            constraintName="fk_workspace_members_workspace_id"
+            referencedTableSchemaName="tenancy"
+            referencedTableName="workspaces"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="workspace_members:add_fk_constraint:user_id" author="doc-assembly">
+        <comment>FK to users</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="identity"
+            baseTableName="workspace_members"
+            baseColumnNames="user_id"
+            constraintName="fk_workspace_members_user_id"
+            referencedTableSchemaName="identity"
+            referencedTableName="users"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="workspace_members:add_fk_constraint:invited_by" author="doc-assembly">
+        <comment>FK to users for inviter tracking</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="identity"
+            baseTableName="workspace_members"
+            baseColumnNames="invited_by"
+            constraintName="fk_workspace_members_invited_by"
+            referencedTableSchemaName="identity"
+            referencedTableName="users"
+            referencedColumnNames="id"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+    <!-- ========== UNIQUE CONSTRAINTS ========== -->
+
+    <changeSet id="workspace_members:add_unique_constraint:workspace_id_user_id" author="doc-assembly">
+        <comment>Prevent duplicate memberships</comment>
+        <addUniqueConstraint
+            schemaName="identity"
+            tableName="workspace_members"
+            columnNames="workspace_id, user_id"
+            constraintName="uq_workspace_members_workspace_user"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="workspace_members:index_creation:workspace_id" author="doc-assembly">
+        <comment>Index for workspace-based lookups</comment>
+        <createIndex indexName="idx_workspace_members_workspace_id" tableName="workspace_members" schemaName="identity">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="workspace_members:index_creation:user_id" author="doc-assembly">
+        <comment>Index for user-based lookups</comment>
+        <createIndex indexName="idx_workspace_members_user_id" tableName="workspace_members" schemaName="identity">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="workspace_members:index_creation:role" author="doc-assembly">
+        <comment>Index for role filtering</comment>
+        <createIndex indexName="idx_workspace_members_role" tableName="workspace_members" schemaName="identity">
+            <column name="role"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

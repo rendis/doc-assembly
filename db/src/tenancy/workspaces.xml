@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="workspaces:table_creation" author="doc-assembly">
+        <comment>Create workspaces table - the root operational entity</comment>
+        <createTable tableName="workspaces" schemaName="tenancy">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="workspace_type">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="workspace_status" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="settings" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="workspaces:add_fk_constraint:tenant_id" author="doc-assembly">
+        <comment>FK to tenants - nullable for global workspaces</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="tenancy"
+            baseTableName="workspaces"
+            baseColumnNames="tenant_id"
+            constraintName="fk_workspaces_tenant_id"
+            referencedTableSchemaName="tenancy"
+            referencedTableName="tenants"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <!-- ========== UNIQUE PARTIAL INDEXES ========== -->
+
+    <changeSet id="workspaces:unique_partial_index:global_system" author="doc-assembly">
+        <comment>Ensure only ONE global SYSTEM workspace exists (tenant_id IS NULL)</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_unique_global_system_workspace
+            ON tenancy.workspaces (type)
+            WHERE type = 'SYSTEM' AND tenant_id IS NULL;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_global_system_workspace;</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:unique_partial_index:tenant_system" author="doc-assembly">
+        <comment>Ensure only ONE SYSTEM workspace per tenant</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_unique_tenant_system_workspace
+            ON tenancy.workspaces (tenant_id, type)
+            WHERE type = 'SYSTEM' AND tenant_id IS NOT NULL;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_tenant_system_workspace;</rollback>
+    </changeSet>
+
+    <!-- ========== REGULAR INDEXES ========== -->
+
+    <changeSet id="workspaces:index_creation:tenant_id" author="doc-assembly">
+        <comment>Index for tenant-based workspace lookups</comment>
+        <createIndex indexName="idx_workspaces_tenant_id" tableName="workspaces" schemaName="tenancy">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="workspaces:index_creation:status" author="doc-assembly">
+        <comment>Index for status filtering</comment>
+        <createIndex indexName="idx_workspaces_status" tableName="workspaces" schemaName="tenancy">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="workspaces:index_creation:type" author="doc-assembly">
+        <comment>Index for type filtering</comment>
+        <createIndex indexName="idx_workspaces_type" tableName="workspaces" schemaName="tenancy">
+            <column name="type"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== TRIGGER ========== -->
+
+    <changeSet id="workspaces:trigger:updated_at" author="doc-assembly">
+        <comment>Trigger to auto-update updated_at on modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_workspaces_updated_at
+            BEFORE UPDATE ON tenancy.workspaces
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_workspaces_updated_at ON tenancy.workspaces;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

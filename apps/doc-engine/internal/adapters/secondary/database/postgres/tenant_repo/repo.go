@@ -1,0 +1,155 @@
+package tenantrepo
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
+)
+
+// New creates a new tenant repository.
+func New(pool *pgxpool.Pool) port.TenantRepository {
+	return &Repository{pool: pool}
+}
+
+// Repository implements the tenant repository using PostgreSQL.
+type Repository struct {
+	pool *pgxpool.Pool
+}
+
+// Create creates a new tenant.
+func (r *Repository) Create(ctx context.Context, tenant *entity.Tenant) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx, queryCreate,
+		tenant.ID,
+		tenant.Code,
+		tenant.Name,
+		tenant.Description,
+		tenant.Settings,
+		tenant.CreatedAt,
+	).Scan(&id)
+	if err != nil {
+		return "", fmt.Errorf("inserting tenant: %w", err)
+	}
+
+	return id, nil
+}
+
+// FindByID finds a tenant by ID.
+func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Tenant, error) {
+	var tenant entity.Tenant
+	err := r.pool.QueryRow(ctx, queryFindByID, id).Scan(
+		&tenant.ID,
+		&tenant.Code,
+		&tenant.Name,
+		&tenant.Description,
+		&tenant.Settings,
+		&tenant.CreatedAt,
+		&tenant.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrTenantNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying tenant: %w", err)
+	}
+
+	return &tenant, nil
+}
+
+// FindByCode finds a tenant by code.
+func (r *Repository) FindByCode(ctx context.Context, code string) (*entity.Tenant, error) {
+	var tenant entity.Tenant
+	err := r.pool.QueryRow(ctx, queryFindByCode, code).Scan(
+		&tenant.ID,
+		&tenant.Code,
+		&tenant.Name,
+		&tenant.Description,
+		&tenant.Settings,
+		&tenant.CreatedAt,
+		&tenant.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrTenantNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying tenant by code: %w", err)
+	}
+
+	return &tenant, nil
+}
+
+// FindAll lists all tenants.
+func (r *Repository) FindAll(ctx context.Context) ([]*entity.Tenant, error) {
+	rows, err := r.pool.Query(ctx, queryFindAll)
+	if err != nil {
+		return nil, fmt.Errorf("querying tenants: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*entity.Tenant
+	for rows.Next() {
+		var tenant entity.Tenant
+		err := rows.Scan(
+			&tenant.ID,
+			&tenant.Code,
+			&tenant.Name,
+			&tenant.Description,
+			&tenant.Settings,
+			&tenant.CreatedAt,
+			&tenant.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning tenant: %w", err)
+		}
+		result = append(result, &tenant)
+	}
+
+	return result, rows.Err()
+}
+
+// Update updates a tenant.
+func (r *Repository) Update(ctx context.Context, tenant *entity.Tenant) error {
+	_, err := r.pool.Exec(ctx, queryUpdate,
+		tenant.ID,
+		tenant.Name,
+		tenant.Description,
+		tenant.Settings,
+		tenant.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("updating tenant: %w", err)
+	}
+
+	return nil
+}
+
+// Delete deletes a tenant.
+func (r *Repository) Delete(ctx context.Context, id string) error {
+	result, err := r.pool.Exec(ctx, queryDelete, id)
+	if err != nil {
+		return fmt.Errorf("deleting tenant: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return entity.ErrTenantNotFound
+	}
+
+	return nil
+}
+
+// ExistsByCode checks if a tenant with the given code exists.
+func (r *Repository) ExistsByCode(ctx context.Context, code string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, queryExistsByCode, code).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking tenant existence: %w", err)
+	}
+
+	return exists, nil
+}

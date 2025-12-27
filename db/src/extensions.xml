@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== PostgreSQL Extensions ========== -->
+
+    <changeSet id="extension:pgcrypto" author="doc-assembly">
+        <comment>Enable pgcrypto extension for UUID generation (gen_random_uuid)</comment>
+        <sql splitStatements="false">
+            CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+        </sql>
+        <rollback>DROP EXTENSION IF EXISTS "pgcrypto";</rollback>
+    </changeSet>
+
+    <changeSet id="extension:pg_trgm" author="doc-assembly">
+        <comment>Enable pg_trgm extension for trigram-based text search</comment>
+        <sql splitStatements="false">
+            CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        </sql>
+        <rollback>DROP EXTENSION IF EXISTS "pg_trgm";</rollback>
+    </changeSet>
+
+    <!-- ========== Utility Functions ========== -->
+
+    <changeSet id="function:update_updated_at_column" author="doc-assembly">
+        <comment>Function to automatically update updated_at column on row modification</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION update_updated_at_column()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = CURRENT_TIMESTAMP;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS update_updated_at_column();</rollback>
+    </changeSet>
+
+</databaseChangeLog>

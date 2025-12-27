@@ -1,0 +1,68 @@
+package dto
+
+import "time"
+
+// TenantResponse represents a tenant in API responses.
+type TenantResponse struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Code        string                 `json:"code"`
+	Description string                 `json:"description,omitempty"`
+	Settings    map[string]interface{} `json:"settings,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   *time.Time             `json:"updatedAt,omitempty"`
+}
+
+// TenantWithRoleResponse represents a tenant with the user's role in API responses.
+type TenantWithRoleResponse struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Code        string                 `json:"code"`
+	Description string                 `json:"description,omitempty"`
+	Role        string                 `json:"role"`
+	Settings    map[string]interface{} `json:"settings,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   *time.Time             `json:"updatedAt,omitempty"`
+}
+
+// CreateTenantRequest represents a request to create a tenant.
+type CreateTenantRequest struct {
+	Name        string `json:"name" binding:"required,min=1,max=100"`
+	Code        string `json:"code" binding:"required,min=2,max=10"`
+	Description string `json:"description,omitempty" binding:"max=500"`
+}
+
+// UpdateTenantRequest represents a request to update a tenant.
+type UpdateTenantRequest struct {
+	Name        string                 `json:"name" binding:"required,min=1,max=100"`
+	Description string                 `json:"description,omitempty" binding:"max=500"`
+	Settings    map[string]interface{} `json:"settings,omitempty"`
+}
+
+// Validate validates the CreateTenantRequest.
+func (r *CreateTenantRequest) Validate() error {
+	if r.Name == "" {
+		return ErrNameRequired
+	}
+	if len(r.Name) > 100 {
+		return ErrNameTooLong
+	}
+	if r.Code == "" || len(r.Code) < 2 || len(r.Code) > 10 {
+		return ErrInvalidTenantCode
+	}
+	return nil
+}
+
+// Validate validates the UpdateTenantRequest.
+func (r *UpdateTenantRequest) Validate() error {
+	if r.Name == "" {
+		return ErrNameRequired
+	}
+	if len(r.Name) > 100 {
+		return ErrNameTooLong
+	}
+	return nil
+}
+
+// ErrInvalidTenantCode is returned when the tenant code is invalid.
+var ErrInvalidTenantCode = ErrIDRequired // Reuse or define a specific error

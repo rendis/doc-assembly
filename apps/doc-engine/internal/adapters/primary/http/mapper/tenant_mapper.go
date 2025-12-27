@@ -1,0 +1,125 @@
+package mapper
+
+import (
+	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
+	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+)
+
+// TenantMapper handles mapping between tenant entities and DTOs.
+type TenantMapper struct{}
+
+// NewTenantMapper creates a new tenant mapper.
+func NewTenantMapper() *TenantMapper {
+	return &TenantMapper{}
+}
+
+// ToResponse converts a Tenant entity to a response DTO.
+func (m *TenantMapper) ToResponse(t *entity.Tenant) *dto.TenantResponse {
+	if t == nil {
+		return nil
+	}
+	return TenantToResponse(t)
+}
+
+// --- Package-level functions for backward compatibility ---
+
+// TenantToResponse converts a Tenant entity to a response DTO.
+func TenantToResponse(t *entity.Tenant) *dto.TenantResponse {
+	if t == nil {
+		return nil
+	}
+
+	settings := map[string]interface{}{}
+	if t.Settings.Currency != "" {
+		settings["currency"] = t.Settings.Currency
+	}
+	if t.Settings.Timezone != "" {
+		settings["timezone"] = t.Settings.Timezone
+	}
+	if t.Settings.DateFormat != "" {
+		settings["dateFormat"] = t.Settings.DateFormat
+	}
+	if t.Settings.Locale != "" {
+		settings["locale"] = t.Settings.Locale
+	}
+
+	return &dto.TenantResponse{
+		ID:          t.ID,
+		Name:        t.Name,
+		Code:        t.Code,
+		Description: t.Description,
+		Settings:    settings,
+		CreatedAt:   t.CreatedAt,
+		UpdatedAt:   t.UpdatedAt,
+	}
+}
+
+// TenantsToResponses converts a slice of Tenant entities to response DTOs.
+func TenantsToResponses(tenants []*entity.Tenant) []*dto.TenantResponse {
+	result := make([]*dto.TenantResponse, len(tenants))
+	for i, t := range tenants {
+		result[i] = TenantToResponse(t)
+	}
+	return result
+}
+
+// TenantWithRoleToResponse converts a TenantWithRole entity to a response DTO.
+func TenantWithRoleToResponse(t *entity.TenantWithRole) *dto.TenantWithRoleResponse {
+	if t == nil || t.Tenant == nil {
+		return nil
+	}
+
+	settings := map[string]interface{}{}
+	if t.Tenant.Settings.Currency != "" {
+		settings["currency"] = t.Tenant.Settings.Currency
+	}
+	if t.Tenant.Settings.Timezone != "" {
+		settings["timezone"] = t.Tenant.Settings.Timezone
+	}
+	if t.Tenant.Settings.DateFormat != "" {
+		settings["dateFormat"] = t.Tenant.Settings.DateFormat
+	}
+	if t.Tenant.Settings.Locale != "" {
+		settings["locale"] = t.Tenant.Settings.Locale
+	}
+
+	return &dto.TenantWithRoleResponse{
+		ID:          t.Tenant.ID,
+		Name:        t.Tenant.Name,
+		Code:        t.Tenant.Code,
+		Description: t.Tenant.Description,
+		Role:        string(t.Role),
+		Settings:    settings,
+		CreatedAt:   t.Tenant.CreatedAt,
+		UpdatedAt:   t.Tenant.UpdatedAt,
+	}
+}
+
+// TenantsWithRoleToResponses converts a slice of TenantWithRole entities to response DTOs.
+func TenantsWithRoleToResponses(tenants []*entity.TenantWithRole) []*dto.TenantWithRoleResponse {
+	result := make([]*dto.TenantWithRoleResponse, len(tenants))
+	for i, t := range tenants {
+		result[i] = TenantWithRoleToResponse(t)
+	}
+	return result
+}
+
+// CreateTenantRequestToCommand converts a create request to a usecase command.
+func CreateTenantRequestToCommand(req dto.CreateTenantRequest) usecase.CreateTenantCommand {
+	return usecase.CreateTenantCommand{
+		Name:        req.Name,
+		Code:        req.Code,
+		Description: req.Description,
+	}
+}
+
+// UpdateTenantRequestToCommand converts an update request to a usecase command.
+func UpdateTenantRequestToCommand(id string, req dto.UpdateTenantRequest) usecase.UpdateTenantCommand {
+	return usecase.UpdateTenantCommand{
+		ID:          id,
+		Name:        req.Name,
+		Description: req.Description,
+		Settings:    req.Settings,
+	}
+}

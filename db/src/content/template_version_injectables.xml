@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="template_version_injectables:table_creation" author="doc-assembly">
+        <comment>Create template_version_injectables table - variable configuration per template version</comment>
+        <createTable tableName="template_version_injectables" schemaName="content">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="template_version_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="injectable_definition_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_required" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="default_value" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="template_version_injectables:add_fk_constraint:template_version_id" author="doc-assembly">
+        <comment>FK to template_versions</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="template_version_injectables"
+            baseColumnNames="template_version_id"
+            constraintName="fk_template_version_injectables_template_version_id"
+            referencedTableSchemaName="content"
+            referencedTableName="template_versions"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="template_version_injectables:add_fk_constraint:injectable_definition_id" author="doc-assembly">
+        <comment>FK to injectable_definitions</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="template_version_injectables"
+            baseColumnNames="injectable_definition_id"
+            constraintName="fk_template_version_injectables_injectable_definition_id"
+            referencedTableSchemaName="content"
+            referencedTableName="injectable_definitions"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <!-- ========== UNIQUE CONSTRAINTS ========== -->
+
+    <changeSet id="template_version_injectables:add_unique_constraint:version_injectable" author="doc-assembly">
+        <comment>Prevent duplicate injectable assignments per template version</comment>
+        <addUniqueConstraint
+            schemaName="content"
+            tableName="template_version_injectables"
+            columnNames="template_version_id, injectable_definition_id"
+            constraintName="uq_template_version_injectables_version_injectable"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="template_version_injectables:index_creation:template_version_id" author="doc-assembly">
+        <comment>Index for template version-based lookups</comment>
+        <createIndex indexName="idx_template_version_injectables_template_version_id" tableName="template_version_injectables" schemaName="content">
+            <column name="template_version_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="template_version_injectables:index_creation:injectable_definition_id" author="doc-assembly">
+        <comment>Index for injectable definition lookups</comment>
+        <createIndex indexName="idx_template_version_injectables_injectable_definition_id" tableName="template_version_injectables" schemaName="content">
+            <column name="injectable_definition_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

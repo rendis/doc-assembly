@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="folders:table_creation" author="doc-assembly">
+        <comment>Create folders table - hierarchical file system for organizing resources</comment>
+        <createTable tableName="folders" schemaName="organizer">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parent_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="folders:add_fk_constraint:workspace_id" author="doc-assembly">
+        <comment>FK to workspaces</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="organizer"
+            baseTableName="folders"
+            baseColumnNames="workspace_id"
+            constraintName="fk_folders_workspace_id"
+            referencedTableSchemaName="tenancy"
+            referencedTableName="workspaces"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="folders:add_fk_constraint:parent_id" author="doc-assembly">
+        <comment>Recursive FK for folder hierarchy</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="organizer"
+            baseTableName="folders"
+            baseColumnNames="parent_id"
+            constraintName="fk_folders_parent_id"
+            referencedTableSchemaName="organizer"
+            referencedTableName="folders"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="folders:index_creation:workspace_id" author="doc-assembly">
+        <comment>Index for workspace-based lookups</comment>
+        <createIndex indexName="idx_folders_workspace_id" tableName="folders" schemaName="organizer">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="folders:index_creation:parent_id" author="doc-assembly">
+        <comment>Index for hierarchical navigation</comment>
+        <createIndex indexName="idx_folders_parent_id" tableName="folders" schemaName="organizer">
+            <column name="parent_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="folders:add_unique_constraint:workspace_parent_name" author="doc-assembly">
+        <comment>Unique folder names within same parent in workspace</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_folders_unique_name
+            ON organizer.folders (workspace_id, COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid), name);
+        </sql>
+        <rollback>DROP INDEX IF EXISTS organizer.idx_folders_unique_name;</rollback>
+    </changeSet>
+
+    <!-- ========== TRIGGER ========== -->
+
+    <changeSet id="folders:trigger:updated_at" author="doc-assembly">
+        <comment>Trigger to auto-update updated_at on modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_folders_updated_at
+            BEFORE UPDATE ON organizer.folders
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_folders_updated_at ON organizer.folders;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

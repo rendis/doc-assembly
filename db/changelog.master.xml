@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ============================================ -->
+    <!-- Document Assembly System - Master Changelog -->
+    <!-- ============================================ -->
+
+    <!-- ============================================ -->
+    <!-- PHASE 1: Extensions and Types               -->
+    <!-- ============================================ -->
+
+    <!-- PostgreSQL extensions (pgcrypto, pg_trgm) and utility functions -->
+    <include file="src/extensions.xml"/>
+
+    <!-- All ENUM types used across the system -->
+    <include file="src/types/enums.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 2: Schema Creation                    -->
+    <!-- ============================================ -->
+
+    <!-- Tenancy: Infrastructure and environment separation -->
+    <include file="src/tenancy/schema.xml"/>
+
+    <!-- Identity: Users, authentication and permissions -->
+    <include file="src/identity/schema.xml"/>
+
+    <!-- Organizer: Resource classification utilities -->
+    <include file="src/organizer/schema.xml"/>
+
+    <!-- Content: Template engine and definitions -->
+    <include file="src/content/schema.xml"/>
+
+    <!-- Execution: Generated instances and audit -->
+    <include file="src/execution/schema.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 3: Tenancy Tables (Base of All)       -->
+    <!-- ============================================ -->
+
+    <!-- Tenants: Jurisdictions/countries/business units -->
+    <include file="src/tenancy/tenants.xml"/>
+
+    <!-- Workspaces: Root operational entities -->
+    <include file="src/tenancy/workspaces.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 4: Identity Tables                    -->
+    <!-- ============================================ -->
+
+    <!-- Users: Shadow users for internal management -->
+    <include file="src/identity/users.xml"/>
+
+    <!-- Workspace Members: Access relationships -->
+    <include file="src/identity/workspace_members.xml"/>
+
+    <!-- System Roles: Platform-level administrative roles -->
+    <include file="src/identity/system_roles.xml"/>
+
+    <!-- Tenant Members: Tenant-level access relationships -->
+    <include file="src/identity/tenant_members.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 5: Organizer Tables                   -->
+    <!-- ============================================ -->
+
+    <!-- Folders: Hierarchical file system -->
+    <include file="src/organizer/folders.xml"/>
+
+    <!-- Tags: Cross-cutting labels -->
+    <include file="src/organizer/tags.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 6: Content Tables                     -->
+    <!-- ============================================ -->
+
+    <!-- Injectable Definitions: Universe of variables -->
+    <include file="src/content/injectable_definitions.xml"/>
+
+    <!-- Templates: Document blueprints (metadata only) -->
+    <include file="src/content/templates.xml"/>
+
+    <!-- Template Versions: Versioned content for templates -->
+    <include file="src/content/template_versions.xml"/>
+
+    <!-- Template Version Injectables: Variable configuration per version -->
+    <include file="src/content/template_version_injectables.xml"/>
+
+    <!-- Template Version Signer Roles: Signing role configuration per version -->
+    <include file="src/content/template_version_signer_roles.xml"/>
+
+    <!-- Template Tags: Many-to-many pivot table (shared across versions) -->
+    <include file="src/content/template_tags.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 7: Execution Tables                   -->
+    <!-- ============================================ -->
+
+    <!-- Documents: Generated contract instances -->
+    <include file="src/execution/documents.xml"/>
+
+    <!-- Document Recipients: Participants/signers -->
+    <include file="src/execution/document_recipients.xml"/>
+
+    <!-- ============================================ -->
+    <!-- PHASE 8: Cache Tables                       -->
+    <!-- ============================================ -->
+
+    <!-- Workspace Tags Cache: Tags per workspace with auto-updating triggers -->
+    <include file="src/organizer/workspace_tags_cache.xml"/>
+
+</databaseChangeLog>

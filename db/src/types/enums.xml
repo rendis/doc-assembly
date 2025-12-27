@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TENANCY ENUMs ========== -->
+
+    <changeSet id="enum:workspace_type" author="doc-assembly">
+        <comment>Workspace type: SYSTEM for template owners, CLIENT for end users</comment>
+        <sql>CREATE TYPE workspace_type AS ENUM ('SYSTEM', 'CLIENT');</sql>
+        <rollback>DROP TYPE IF EXISTS workspace_type;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:workspace_status" author="doc-assembly">
+        <comment>Workspace lifecycle status</comment>
+        <sql>CREATE TYPE workspace_status AS ENUM ('ACTIVE', 'SUSPENDED', 'ARCHIVED');</sql>
+        <rollback>DROP TYPE IF EXISTS workspace_status;</rollback>
+    </changeSet>
+
+    <!-- ========== IDENTITY ENUMs ========== -->
+
+    <changeSet id="enum:system_role" author="doc-assembly">
+        <comment>System-level roles for platform administration</comment>
+        <sql>CREATE TYPE system_role AS ENUM ('SUPERADMIN', 'PLATFORM_ADMIN');</sql>
+        <rollback>DROP TYPE IF EXISTS system_role;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:tenant_role" author="doc-assembly">
+        <comment>Tenant-level roles for tenant administration</comment>
+        <sql>CREATE TYPE tenant_role AS ENUM ('TENANT_OWNER', 'TENANT_ADMIN');</sql>
+        <rollback>DROP TYPE IF EXISTS tenant_role;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:user_status" author="doc-assembly">
+        <comment>User account status for shadow users</comment>
+        <sql>CREATE TYPE user_status AS ENUM ('INVITED', 'ACTIVE', 'SUSPENDED');</sql>
+        <rollback>DROP TYPE IF EXISTS user_status;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:workspace_role" author="doc-assembly">
+        <comment>Role levels within a workspace</comment>
+        <sql>CREATE TYPE workspace_role AS ENUM ('OWNER', 'ADMIN', 'EDITOR', 'OPERATOR', 'VIEWER');</sql>
+        <rollback>DROP TYPE IF EXISTS workspace_role;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:membership_status" author="doc-assembly">
+        <comment>Workspace membership status</comment>
+        <sql>CREATE TYPE membership_status AS ENUM ('PENDING', 'ACTIVE');</sql>
+        <rollback>DROP TYPE IF EXISTS membership_status;</rollback>
+    </changeSet>
+
+    <!-- ========== CONTENT ENUMs ========== -->
+
+    <changeSet id="enum:injectable_data_type" author="doc-assembly">
+        <comment>Data types for injectable variables</comment>
+        <sql>CREATE TYPE injectable_data_type AS ENUM ('TEXT', 'NUMBER', 'DATE', 'CURRENCY', 'BOOLEAN', 'IMAGE', 'TABLE');</sql>
+        <rollback>DROP TYPE IF EXISTS injectable_data_type;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:version_status" author="doc-assembly">
+        <comment>Template version lifecycle status: DRAFT (editing), SCHEDULED (awaiting activation), PUBLISHED (active), ARCHIVED (historical)</comment>
+        <sql>CREATE TYPE version_status AS ENUM ('DRAFT', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED');</sql>
+        <rollback>DROP TYPE IF EXISTS version_status;</rollback>
+    </changeSet>
+
+    <!-- ========== EXECUTION ENUMs ========== -->
+
+    <changeSet id="enum:recipient_status" author="doc-assembly">
+        <comment>Document recipient signing status</comment>
+        <sql>CREATE TYPE recipient_status AS ENUM ('WAITING', 'SIGNED', 'REJECTED');</sql>
+        <rollback>DROP TYPE IF EXISTS recipient_status;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

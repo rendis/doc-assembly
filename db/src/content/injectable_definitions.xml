@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="injectable_definitions:table_creation" author="doc-assembly">
+        <comment>Create injectable_definitions table - the universe of variables</comment>
+        <createTable tableName="injectable_definitions" schemaName="content">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="key" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="data_type" type="injectable_data_type">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="injectable_definitions:add_fk_constraint:workspace_id" author="doc-assembly">
+        <comment>FK to workspaces - nullable for global scope</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="injectable_definitions"
+            baseColumnNames="workspace_id"
+            constraintName="fk_injectable_definitions_workspace_id"
+            referencedTableSchemaName="tenancy"
+            referencedTableName="workspaces"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- ========== UNIQUE CONSTRAINTS ========== -->
+
+    <changeSet id="injectable_definitions:add_unique_constraint:workspace_key" author="doc-assembly">
+        <comment>Unique key per scope (workspace or global)</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_injectable_definitions_unique_key
+            ON content.injectable_definitions (COALESCE(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid), key);
+        </sql>
+        <rollback>DROP INDEX IF EXISTS content.idx_injectable_definitions_unique_key;</rollback>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="injectable_definitions:index_creation:workspace_id" author="doc-assembly">
+        <comment>Index for workspace-based lookups</comment>
+        <createIndex indexName="idx_injectable_definitions_workspace_id" tableName="injectable_definitions" schemaName="content">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="injectable_definitions:index_creation:data_type" author="doc-assembly">
+        <comment>Index for data type filtering</comment>
+        <createIndex indexName="idx_injectable_definitions_data_type" tableName="injectable_definitions" schemaName="content">
+            <column name="data_type"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== TRIGGER ========== -->
+
+    <changeSet id="injectable_definitions:trigger:updated_at" author="doc-assembly">
+        <comment>Trigger to auto-update updated_at on modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_injectable_definitions_updated_at
+            BEFORE UPDATE ON content.injectable_definitions
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_injectable_definitions_updated_at ON content.injectable_definitions;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

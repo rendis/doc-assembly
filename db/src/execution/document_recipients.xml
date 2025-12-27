@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="document_recipients:table_creation" author="doc-assembly">
+        <comment>Create document_recipients table - document participants/signers</comment>
+        <createTable tableName="document_recipients" schemaName="execution">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="document_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="template_version_role_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="signer_recipient_id" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="status" type="recipient_status" defaultValue="WAITING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="document_recipients:add_fk_constraint:document_id" author="doc-assembly">
+        <comment>FK to documents</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="execution"
+            baseTableName="document_recipients"
+            baseColumnNames="document_id"
+            constraintName="fk_document_recipients_document_id"
+            referencedTableSchemaName="execution"
+            referencedTableName="documents"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="document_recipients:add_fk_constraint:template_version_role_id" author="doc-assembly">
+        <comment>FK to template_version_signer_roles</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="execution"
+            baseTableName="document_recipients"
+            baseColumnNames="template_version_role_id"
+            constraintName="fk_document_recipients_template_version_role_id"
+            referencedTableSchemaName="content"
+            referencedTableName="template_version_signer_roles"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <!-- ========== UNIQUE CONSTRAINTS ========== -->
+
+    <changeSet id="document_recipients:add_unique_constraint:document_role" author="doc-assembly">
+        <comment>Prevent duplicate role assignments per document</comment>
+        <addUniqueConstraint
+            schemaName="execution"
+            tableName="document_recipients"
+            columnNames="document_id, template_version_role_id"
+            constraintName="uq_document_recipients_document_role"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="document_recipients:index_creation:document_id" author="doc-assembly">
+        <comment>Index for document-based lookups</comment>
+        <createIndex indexName="idx_document_recipients_document_id" tableName="document_recipients" schemaName="execution">
+            <column name="document_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="document_recipients:index_creation:template_version_role_id" author="doc-assembly">
+        <comment>Index for role-based lookups</comment>
+        <createIndex indexName="idx_document_recipients_template_version_role_id" tableName="document_recipients" schemaName="execution">
+            <column name="template_version_role_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="document_recipients:index_creation:email" author="doc-assembly">
+        <comment>Index for email lookups</comment>
+        <createIndex indexName="idx_document_recipients_email" tableName="document_recipients" schemaName="execution">
+            <column name="email"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="document_recipients:index_creation:status" author="doc-assembly">
+        <comment>Index for status filtering</comment>
+        <createIndex indexName="idx_document_recipients_status" tableName="document_recipients" schemaName="execution">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== TRIGGER ========== -->
+
+    <changeSet id="document_recipients:trigger:updated_at" author="doc-assembly">
+        <comment>Trigger to auto-update updated_at on modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_document_recipients_updated_at
+            BEFORE UPDATE ON execution.document_recipients
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_document_recipients_updated_at ON execution.document_recipients;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

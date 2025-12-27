@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="tenants:table_creation" author="doc-assembly">
+        <comment>Create tenants table - represents a jurisdiction, country or major business unit</comment>
+        <createTable tableName="tenants" schemaName="tenancy">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(10)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="settings" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="tenants:index_creation:code" author="doc-assembly">
+        <comment>Index for tenant code lookups</comment>
+        <createIndex indexName="idx_tenants_code" tableName="tenants" schemaName="tenancy">
+            <column name="code"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== TRIGGER ========== -->
+
+    <changeSet id="tenants:trigger:updated_at" author="doc-assembly">
+        <comment>Trigger to auto-update updated_at on modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_tenants_updated_at
+            BEFORE UPDATE ON tenancy.tenants
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_tenants_updated_at ON tenancy.tenants;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

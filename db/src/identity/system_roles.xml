@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="system_roles:table_creation" author="doc-assembly">
+        <comment>Create system_roles table - platform-level administrative roles</comment>
+        <createTable tableName="system_roles" schemaName="identity">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="system_role">
+                <constraints nullable="false"/>
+            </column>
+            <column name="granted_by" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="system_roles:add_fk_constraint:user_id" author="doc-assembly">
+        <comment>FK to users</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="identity"
+            baseTableName="system_roles"
+            baseColumnNames="user_id"
+            constraintName="fk_system_roles_user_id"
+            referencedTableSchemaName="identity"
+            referencedTableName="users"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="system_roles:add_fk_constraint:granted_by" author="doc-assembly">
+        <comment>FK to users for granter tracking</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="identity"
+            baseTableName="system_roles"
+            baseColumnNames="granted_by"
+            constraintName="fk_system_roles_granted_by"
+            referencedTableSchemaName="identity"
+            referencedTableName="users"
+            referencedColumnNames="id"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+    <!-- ========== UNIQUE CONSTRAINTS ========== -->
+
+    <changeSet id="system_roles:add_unique_constraint:user_id" author="doc-assembly">
+        <comment>One system role per user</comment>
+        <addUniqueConstraint
+            schemaName="identity"
+            tableName="system_roles"
+            columnNames="user_id"
+            constraintName="uq_system_roles_user_id"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="system_roles:index_creation:user_id" author="doc-assembly">
+        <comment>Index for user-based lookups</comment>
+        <createIndex indexName="idx_system_roles_user_id" tableName="system_roles" schemaName="identity">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="system_roles:index_creation:role" author="doc-assembly">
+        <comment>Index for role filtering</comment>
+        <createIndex indexName="idx_system_roles_role" tableName="system_roles" schemaName="identity">
+            <column name="role"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

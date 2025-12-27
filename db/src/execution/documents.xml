@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="documents:table_creation" author="doc-assembly">
+        <comment>Create documents table - generated contract instances from template versions</comment>
+        <createTable tableName="documents" schemaName="execution">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="template_version_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="client_external_reference_id" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="signer_document_id" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="signer_provider" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="signer_status" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="injected_values_snapshot" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+            <column name="pdf_storage_path" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="completed_pdf_url" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="documents:add_fk_constraint:workspace_id" author="doc-assembly">
+        <comment>FK to workspaces</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="execution"
+            baseTableName="documents"
+            baseColumnNames="workspace_id"
+            constraintName="fk_documents_workspace_id"
+            referencedTableSchemaName="tenancy"
+            referencedTableName="workspaces"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <changeSet id="documents:add_fk_constraint:template_version_id" author="doc-assembly">
+        <comment>FK to template_versions - documents are generated from specific versions</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="execution"
+            baseTableName="documents"
+            baseColumnNames="template_version_id"
+            constraintName="fk_documents_template_version_id"
+            referencedTableSchemaName="content"
+            referencedTableName="template_versions"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="documents:index_creation:workspace_id" author="doc-assembly">
+        <comment>Index for workspace-based lookups</comment>
+        <createIndex indexName="idx_documents_workspace_id" tableName="documents" schemaName="execution">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:template_version_id" author="doc-assembly">
+        <comment>Index for template version-based lookups</comment>
+        <createIndex indexName="idx_documents_template_version_id" tableName="documents" schemaName="execution">
+            <column name="template_version_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:client_external_reference_id" author="doc-assembly">
+        <comment>Index for external reference lookups (CRM ID)</comment>
+        <createIndex indexName="idx_documents_client_external_reference_id" tableName="documents" schemaName="execution">
+            <column name="client_external_reference_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:signer_document_id" author="doc-assembly">
+        <comment>Index for signer provider lookups</comment>
+        <createIndex indexName="idx_documents_signer_document_id" tableName="documents" schemaName="execution">
+            <column name="signer_document_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:signer_status" author="doc-assembly">
+        <comment>Index for status filtering</comment>
+        <createIndex indexName="idx_documents_signer_status" tableName="documents" schemaName="execution">
+            <column name="signer_status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:created_at" author="doc-assembly">
+        <comment>Index for date-based queries and sorting</comment>
+        <createIndex indexName="idx_documents_created_at" tableName="documents" schemaName="execution">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== TRIGGER ========== -->
+
+    <changeSet id="documents:trigger:updated_at" author="doc-assembly">
+        <comment>Trigger to auto-update updated_at on modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_documents_updated_at
+            BEFORE UPDATE ON execution.documents
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_documents_updated_at ON execution.documents;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

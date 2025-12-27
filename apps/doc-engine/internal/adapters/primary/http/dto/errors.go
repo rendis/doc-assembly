@@ -1,0 +1,25 @@
+package dto
+
+import "errors"
+
+// Validation errors for DTOs.
+var (
+	// Common validation errors
+	ErrNameRequired = errors.New("name is required")
+	ErrNameTooLong  = errors.New("name exceeds maximum length of 255 characters")
+	ErrIDRequired   = errors.New("id is required")
+
+	// Workspace validation errors
+	ErrInvalidWorkspaceType = errors.New("type must be REGULAR or SYSTEM")
+
+	// Member validation errors
+	ErrEmailRequired     = errors.New("email is required")
+	ErrInvalidRole       = errors.New("role must be ADMIN, EDITOR, OPERATOR, or VIEWER")
+	ErrInvalidTenantRole = errors.New("role must be TENANT_OWNER or TENANT_ADMIN")
+
+	// Folder validation errors
+	ErrInvalidParentID = errors.New("invalid parent folder ID")
+
+	// Tag validation errors
+	ErrInvalidColorFormat = errors.New("color must be a valid hex color (e.g., #FF0000)")
+)

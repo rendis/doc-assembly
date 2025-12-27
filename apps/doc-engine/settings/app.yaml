@@ -1,0 +1,42 @@
+# Doc Engine Configuration
+# Override values using environment variables with prefix DOC_ENGINE_
+# Example: DOC_ENGINE_SERVER_PORT=9000
+
+environment: development
+
+server:
+  port: "8080"
+  read_timeout: 30    # seconds
+  write_timeout: 30   # seconds
+  shutdown_timeout: 10 # seconds
+
+database:
+  host: localhost             # Override via DOC_ENGINE_DATABASE_HOST
+  port: 5432                  # Override via DOC_ENGINE_DATABASE_PORT
+  user: postgres              # Override via DOC_ENGINE_DATABASE_USER
+  password: ""                # Override via DOC_ENGINE_DATABASE_PASSWORD
+  name: doc_assembly          # Override via DOC_ENGINE_DATABASE_NAME
+  ssl_mode: disable           # Override via DOC_ENGINE_DATABASE_SSL_MODE
+  max_pool_size: 10           # Override via DOC_ENGINE_DATABASE_MAX_POOL_SIZE_COUNT
+  min_pool_size: 2            # Override via DOC_ENGINE_DATABASE_MIN_POOL_SIZE_COUNT
+  max_idle_time_seconds: 300  # Override via DOC_ENGINE_DATABASE_MAX_IDLE_TIME_SECS
+
+auth:
+  jwks_url: ""   # DOC_ENGINE_AUTH_JWKS_URL - Keycloak JWKS endpoint
+  issuer: ""     # DOC_ENGINE_AUTH_ISSUER - Expected token issuer
+  audience: ""   # DOC_ENGINE_AUTH_AUDIENCE - Expected token audience
+
+# External services (deferred - interfaces only for now)
+documenso:
+  api_url: "https://app.documenso.com/api/v1"
+  api_key: ""          # DOC_ENGINE_DOCUMENSO_API_KEY
+  webhook_secret: ""   # DOC_ENGINE_DOCUMENSO_WEBHOOK_SECRET
+
+storage:
+  bucket: "contracts-bucket"
+  region: "us-east-1"
+  endpoint: ""  # For MinIO local development
+
+logging:
+  level: info   # debug, info, warn, error
+  format: json  # json, text

@@ -1,0 +1,1300 @@
+# Document Assembly System - Database Model Documentation
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [Architecture](#2-architecture)
+3. [Entity Relationship Diagram](#3-entity-relationship-diagram)
+4. [Schema Reference](#4-schema-reference)
+5. [Table Reference](#5-table-reference)
+6. [Cache Tables](#6-cache-tables)
+7. [Enum Types](#7-enum-types)
+8. [Indexes & Constraints](#8-indexes--constraints)
+9. [Usage Examples](#9-usage-examples)
+
+---
+
+## 1. Overview
+
+The Document Assembly System is a **multi-tenant document template builder** that manages document templates, injects dynamic data (variables), and prepares final documents to be sent to an external digital signature provider (PandaDoc, Documenso, DocuSign).
+
+### Key Capabilities
+
+- **Template Management**: Create, version, and organize document templates
+- **Variable Injection**: Define and inject dynamic data into documents
+- **Digital Signature Integration**: Prepare signature anchors for external providers (Documenso, DocuSign)
+- **Multi-Tenant Architecture**: Support for multiple organizations with hierarchical workspace structure
+
+### Design Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Multi-Tenant Hierarchy** | Three-level structure: Global → Tenant → Client workspaces |
+| **Shadow Users** | Authentication delegated to external IdP (Keycloak); database maintains shadow users for roles and audit |
+| **Hybrid Architecture** | Relational SQL for organizational structure + JSONB for dynamic document content |
+| **Signature Delegation** | System prepares PDF anchors; external provider handles actual signing |
+
+---
+
+## 2. Architecture
+
+### Multi-Tenant Hierarchy
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                     GLOBAL LEVEL                               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  System Workspace (tenant_id = NULL)                    │   │
+│  │  → Universal templates available to all tenants         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├────────────────────────────────────────────────────────────────┤
+│                     TENANT LEVEL                               │
+│  ┌──────────────────────┐  ┌──────────────────────┐            │
+│  │  Tenant: Chile (CL)  │  │  Tenant: Mexico (MX) │            │
+│  │  ┌────────────────┐  │  │  ┌────────────────┐  │            │
+│  │  │ System WS (CL) │  │  │  │ System WS (MX) │  │            │
+│  │  │ → Localized    │  │  │  │ → Localized    │  │            │
+│  │  │   templates    │  │  │  │   templates    │  │            │
+│  │  └────────────────┘  │  │  └────────────────┘  │            │
+│  └──────────────────────┘  └──────────────────────┘            │
+├────────────────────────────────────────────────────────────────┤
+│                     CLIENT LEVEL                               │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
+│  │ Client A   │ │ Client B   │ │ Client C   │ │ Client D   │   │
+│  │ (under CL) │ │ (under CL) │ │ (under MX) │ │ (under MX) │   │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Schema Organization
+
+| Schema | Responsibility |
+|--------|----------------|
+| `tenancy` | Infrastructure base: tenants and workspaces |
+| `identity` | Users, authentication shadows, and permissions |
+| `organizer` | Resource classification: folders and tags |
+| `content` | Template engine: templates, variables, signer roles |
+| `execution` | Generated documents and signature tracking |
+
+---
+
+## 3. Entity Relationship Diagram
+
+### High-Level Schema Relationships
+
+```mermaid
+graph TB
+    subgraph tenancy["TENANCY SCHEMA"]
+        T[tenants]
+        W[workspaces]
+    end
+
+    subgraph identity["IDENTITY SCHEMA"]
+        U[users]
+        WM[workspace_members]
+    end
+
+    subgraph organizer["ORGANIZER SCHEMA"]
+        F[folders]
+        TG[tags]
+    end
+
+    subgraph content["CONTENT SCHEMA"]
+        ID[injectable_definitions]
+        TP[templates]
+        TV[template_versions]
+        TVI[template_version_injectables]
+        TVSR[template_version_signer_roles]
+        TT[template_tags]
+    end
+
+    subgraph execution["EXECUTION SCHEMA"]
+        D[documents]
+        DR[document_recipients]
+    end
+
+    T -->|1:N| W
+    W -->|1:N| WM
+    U -->|1:N| WM
+    W -->|1:N| F
+    W -->|1:N| TG
+    W -->|1:N| ID
+    W -->|1:N| TP
+    F -->|1:N| TP
+    TP -->|1:N| TV
+    TV -->|1:N| TVI
+    ID -->|1:N| TVI
+    TV -->|1:N| TVSR
+    TP -->|N:M| TG
+    TT -.->|pivot| TP
+    TT -.->|pivot| TG
+    W -->|1:N| D
+    TV -->|1:N| D
+    D -->|1:N| DR
+    TVSR -->|1:N| DR
+```
+
+### Detailed Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    %% ===== TENANCY SCHEMA =====
+    tenants {
+        uuid id PK "gen_random_uuid()"
+        varchar_100 name "NOT NULL"
+        varchar_10 code "UNIQUE NOT NULL"
+        jsonb settings "Regional config"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    workspaces {
+        uuid id PK "gen_random_uuid()"
+        uuid tenant_id FK "NULL for global"
+        varchar_255 name "NOT NULL"
+        workspace_type type "NOT NULL"
+        workspace_status status "DEFAULT ACTIVE"
+        jsonb settings
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    tenants ||--o{ workspaces : "houses"
+
+    %% ===== IDENTITY SCHEMA =====
+    users {
+        uuid id PK "gen_random_uuid()"
+        varchar_255 email "UNIQUE NOT NULL"
+        varchar_255 external_identity_id "UNIQUE (Keycloak sub)"
+        varchar_255 full_name
+        user_status status "DEFAULT INVITED"
+        timestamptz created_at "NOT NULL"
+    }
+
+    workspace_members {
+        uuid id PK "gen_random_uuid()"
+        uuid workspace_id FK "NOT NULL"
+        uuid user_id FK "NOT NULL"
+        workspace_role role "NOT NULL"
+        membership_status membership_status "DEFAULT PENDING"
+        uuid invited_by FK
+        timestamptz joined_at
+        timestamptz created_at "NOT NULL"
+    }
+
+    workspaces ||--o{ workspace_members : "staffing"
+    users ||--o{ workspace_members : "membership"
+    users ||--o{ workspace_members : "invites"
+
+    %% ===== ORGANIZER SCHEMA =====
+    folders {
+        uuid id PK "gen_random_uuid()"
+        uuid workspace_id FK "NOT NULL"
+        uuid parent_id FK "Recursive"
+        varchar_255 name "NOT NULL"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    tags {
+        uuid id PK "gen_random_uuid()"
+        uuid workspace_id FK "NOT NULL"
+        varchar_50 name "NOT NULL"
+        varchar_7 color "HEX format"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    workspaces ||--o{ folders : "contains"
+    workspaces ||--o{ tags : "defines"
+    folders ||--o{ folders : "hierarchy"
+
+    %% ===== CONTENT SCHEMA =====
+    injectable_definitions {
+        uuid id PK "gen_random_uuid()"
+        uuid workspace_id FK "NULL for global"
+        varchar_100 key "NOT NULL"
+        varchar_255 label "NOT NULL"
+        text description
+        injectable_data_type data_type "NOT NULL"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    templates {
+        uuid id PK "gen_random_uuid()"
+        uuid workspace_id FK "NOT NULL"
+        uuid folder_id FK
+        varchar_255 title "NOT NULL"
+        boolean is_public_library "DEFAULT false"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    template_versions {
+        uuid id PK "gen_random_uuid()"
+        uuid template_id FK "NOT NULL"
+        int version_number "NOT NULL"
+        varchar_100 name "NOT NULL"
+        text description
+        jsonb content_structure "Editor nodes"
+        version_status status "DEFAULT DRAFT"
+        timestamptz scheduled_publish_at
+        timestamptz scheduled_archive_at
+        timestamptz published_at
+        timestamptz archived_at
+        uuid published_by FK
+        uuid archived_by FK
+        uuid created_by FK
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    template_version_injectables {
+        uuid id PK "gen_random_uuid()"
+        uuid template_version_id FK "NOT NULL"
+        uuid injectable_definition_id FK "NOT NULL"
+        boolean is_required "DEFAULT false"
+        text default_value
+        timestamptz created_at "NOT NULL"
+    }
+
+    template_version_signer_roles {
+        uuid id PK "gen_random_uuid()"
+        uuid template_version_id FK "NOT NULL"
+        varchar_100 role_name "NOT NULL"
+        varchar_100 anchor_string "NOT NULL"
+        int signer_order "NOT NULL"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    template_tags {
+        uuid template_id PK_FK "NOT NULL"
+        uuid tag_id PK_FK "NOT NULL"
+    }
+
+    workspaces ||--o{ injectable_definitions : "owns"
+    workspaces ||--o{ templates : "owns"
+    folders ||--o{ templates : "organizes"
+    templates ||--o{ template_versions : "has_versions"
+    template_versions ||--o{ template_version_injectables : "requires"
+    injectable_definitions ||--o{ template_version_injectables : "defined_by"
+    template_versions ||--o{ template_version_signer_roles : "defines_signers"
+    templates ||--o{ template_tags : "tagged_with"
+    tags ||--o{ template_tags : "applied_to"
+    users ||--o{ template_versions : "publishes"
+    users ||--o{ template_versions : "archives"
+    users ||--o{ template_versions : "creates"
+
+    %% ===== EXECUTION SCHEMA =====
+    documents {
+        uuid id PK "gen_random_uuid()"
+        uuid workspace_id FK "NOT NULL"
+        uuid template_version_id FK "NOT NULL"
+        varchar_255 client_external_reference_id "CRM ID"
+        varchar_255 signer_document_id "Provider ID"
+        varchar_255 signer_provider "DOCUMENSO, etc."
+        varchar_50 signer_status
+        jsonb injected_values_snapshot "Data snapshot"
+        varchar_500 pdf_storage_path "Pre-sign S3"
+        varchar_500 completed_pdf_url "Post-sign URL"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    document_recipients {
+        uuid id PK "gen_random_uuid()"
+        uuid document_id FK "NOT NULL"
+        uuid template_version_role_id FK "NOT NULL"
+        varchar_255 name "NOT NULL"
+        varchar_255 email "NOT NULL"
+        varchar_255 signer_recipient_id "Provider ID"
+        recipient_status status "DEFAULT WAITING"
+        timestamptz created_at "NOT NULL"
+        timestamptz updated_at
+    }
+
+    workspaces ||--o{ documents : "generates"
+    template_versions ||--o{ documents : "instantiates"
+    documents ||--o{ document_recipients : "involves"
+    template_version_signer_roles ||--o{ document_recipients : "role_mapping"
+```
+
+### Document Generation Flow
+
+```mermaid
+flowchart LR
+    subgraph PREPARATION
+        T[Template] --> |has| TV[Template Versions]
+        TV --> |select published| TVI[Version Injectables]
+        TV --> |defines| TVSR[Version Signer Roles]
+        ID[Injectable Definitions] --> |maps| TVI
+    end
+
+    subgraph GENERATION
+        TVI --> |inject values| D[Document]
+        TVSR --> |assign recipients| DR[Document Recipients]
+        D --> |includes| DR
+    end
+
+    subgraph EXECUTION
+        D --> |send to| SP[Signature Provider]
+        SP --> |callback| DR
+        DR --> |status update| D
+    end
+```
+
+---
+
+## 4. Schema Reference
+
+### 4.1 Schema: `tenancy`
+
+**Purpose**: Manages the foundational infrastructure for multi-tenant isolation and environment separation.
+
+**Why it exists**: The system needs to support multiple independent organizations (tenants) while allowing shared resources at different hierarchy levels. This schema provides the structural foundation that all other schemas depend on.
+
+| Table | Description |
+|-------|-------------|
+| `tenants` | Represents jurisdictions, countries, or major business units |
+| `workspaces` | The root operational entity where all work happens |
+
+---
+
+### 4.2 Schema: `identity`
+
+**Purpose**: Manages user identity, workspace membership, and role-based access control.
+
+**Why it exists**: Authentication is delegated to an external Identity Provider (Keycloak), but the system still needs to track users internally for audit trails, role management, and workspace access. Shadow users solve this by mirroring external identities.
+
+| Table | Description |
+|-------|-------------|
+| `users` | Shadow user records synced from external IdP |
+| `workspace_members` | Maps users to workspaces with specific roles |
+
+---
+
+### 4.3 Schema: `organizer`
+
+**Purpose**: Provides utilities for organizing and classifying resources within workspaces.
+
+**Why it exists**: As workspaces grow with many templates, users need ways to organize content (folders) and categorize it for easy discovery (tags). This schema provides workspace-scoped organizational tools.
+
+| Table | Description |
+|-------|-------------|
+| `folders` | Hierarchical file system for organizing templates |
+| `tags` | Cross-cutting labels for flexible categorization |
+| `workspace_tags_cache` | Auto-updated cache of tags with template counts (trigger-maintained) |
+
+---
+
+### 4.4 Schema: `content`
+
+**Purpose**: The core template engine that defines document blueprints, injectable variables, and signature configurations with full versioning support.
+
+**Why it exists**: This is the heart of the document assembly system. Templates define document metadata, template versions contain the actual content with lifecycle states, injectables define what data can be inserted per version, and signer roles define who needs to sign and where.
+
+| Table | Description |
+|-------|-------------|
+| `injectable_definitions` | The universe of available variables |
+| `templates` | Document blueprint metadata (title, folder, workspace) |
+| `template_versions` | Versioned content with lifecycle states (DRAFT, SCHEDULED, PUBLISHED, ARCHIVED) |
+| `template_version_injectables` | Configuration of which variables a version uses |
+| `template_version_signer_roles` | Defines signature roles and their PDF anchors per version |
+| `template_tags` | Many-to-many relationship between templates and tags (shared across versions) |
+
+---
+
+### 4.5 Schema: `execution`
+
+**Purpose**: Tracks generated document instances, their recipients, and signature status throughout the workflow.
+
+**Why it exists**: When a template is instantiated with actual data and sent for signatures, we need to track the entire lifecycle. This schema captures the runtime state of documents and their participants.
+
+| Table | Description |
+|-------|-------------|
+| `documents` | Generated contract instances with injected data |
+| `document_recipients` | Participants who need to sign the document |
+
+---
+
+## 5. Table Reference
+
+### 5.1 `tenancy.tenants`
+
+**Purpose**: Represents a jurisdiction, country, or major business unit that groups multiple workspaces together.
+
+**Why it exists**: Multi-tenant systems need a way to isolate organizations at the highest level. Tenants provide regional/jurisdictional separation with their own settings (currency, timezone, legal formats).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier, auto-generated |
+| `name` | VARCHAR(100) | NOT NULL | Display name (e.g., "Chile Operations") |
+| `code` | VARCHAR(10) | UNIQUE, NOT NULL | Short code (e.g., `CL`, `MX`, `EU`) |
+| `settings` | JSONB | - | Regional configuration (currency, timezone, formats) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification (auto-updated via trigger) |
+
+**Indexes**:
+- `idx_tenants_code` - Fast lookup by tenant code
+
+**Triggers**:
+- `trigger_tenants_updated_at` - Auto-updates `updated_at` on modification
+
+---
+
+### 5.2 `tenancy.workspaces`
+
+**Purpose**: The root operational entity where all work happens. Every resource (templates, documents, users) belongs to a workspace.
+
+**Why it exists**: Workspaces provide the primary unit of isolation and organization. They can be either:
+- **SYSTEM workspaces**: Own master templates (one per tenant, one global)
+- **CLIENT workspaces**: End-user workspaces that use/copy templates from system workspaces
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `tenant_id` | UUID | FK → tenants, NULLABLE | NULL = global workspace; otherwise belongs to tenant |
+| `name` | VARCHAR(255) | NOT NULL | Workspace display name |
+| `type` | workspace_type | NOT NULL | `SYSTEM` or `CLIENT` |
+| `status` | workspace_status | NOT NULL, DEFAULT 'ACTIVE' | `ACTIVE`, `SUSPENDED`, `ARCHIVED` |
+| `settings` | JSONB | - | Visual/behavioral configuration |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_workspaces_tenant_id` - Filter workspaces by tenant
+- `idx_workspaces_status` - Filter by status
+- `idx_workspaces_type` - Filter by type
+
+**Special Partial Unique Indexes**:
+- `idx_unique_global_system_workspace` - Ensures only ONE global SYSTEM workspace exists
+- `idx_unique_tenant_system_workspace` - Ensures only ONE SYSTEM workspace per tenant
+
+**Business Rules**:
+- A tenant can have exactly one SYSTEM workspace
+- There can be exactly one global SYSTEM workspace (tenant_id = NULL)
+- CLIENT workspaces must belong to a tenant
+
+---
+
+### 5.3 `identity.users`
+
+**Purpose**: Shadow user records that mirror external Identity Provider (IdP) accounts for internal role management and audit.
+
+**Why it exists**: The system delegates authentication to Keycloak but needs internal user records for:
+- Assigning workspace roles
+- Tracking who performed actions (audit)
+- Managing invitation workflows before IdP registration
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Internal immutable identifier |
+| `email` | VARCHAR(255) | UNIQUE, NOT NULL | Natural key for user lookup |
+| `external_identity_id` | VARCHAR(255) | UNIQUE, NULLABLE | IdP subject ID (Keycloak `sub`). NULL until first login |
+| `full_name` | VARCHAR(255) | - | Display name |
+| `status` | user_status | NOT NULL, DEFAULT 'INVITED' | `INVITED`, `ACTIVE`, `SUSPENDED` |
+| `created_at` | TIMESTAMPTZ | NOT NULL | When user was invited/created |
+
+**Indexes**:
+- `idx_users_email` - Email lookup
+- `idx_users_external_identity_id` - IdP lookup
+- `idx_users_status` - Filter by status
+- `idx_users_full_name_trgm` - Trigram index for fuzzy name search
+
+**User Lifecycle**:
+1. Admin invites user → status = `INVITED`, external_identity_id = NULL
+2. User authenticates via Keycloak → status = `ACTIVE`, external_identity_id = Keycloak sub
+
+---
+
+### 5.4 `identity.workspace_members`
+
+**Purpose**: Defines which users have access to which workspaces and with what role.
+
+**Why it exists**: A user can belong to multiple workspaces with different roles in each. This table manages the many-to-many relationship with role context.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NOT NULL | Target workspace |
+| `user_id` | UUID | FK → users, NOT NULL | Member user |
+| `role` | workspace_role | NOT NULL | `OWNER`, `ADMIN`, `EDITOR`, `OPERATOR`, `VIEWER` |
+| `membership_status` | membership_status | NOT NULL, DEFAULT 'PENDING' | `PENDING`, `ACTIVE` |
+| `invited_by` | UUID | FK → users | Who sent the invitation |
+| `joined_at` | TIMESTAMPTZ | - | When membership became active |
+| `created_at` | TIMESTAMPTZ | NOT NULL | When invitation was sent |
+
+**Indexes**:
+- `idx_workspace_members_workspace_id` - List members of a workspace
+- `idx_workspace_members_user_id` - List workspaces a user belongs to
+- `idx_workspace_members_role` - Filter by role
+
+**Unique Constraints**:
+- `uq_workspace_members_workspace_user` - A user can only have one membership per workspace
+
+**Role Capabilities**:
+
+| Role | CLIENT Workspace | SYSTEM Workspace |
+|------|------------------|------------------|
+| OWNER | Full control, billing, invite admins | Create client workspaces, tenant config |
+| ADMIN | Manage users, settings, audit | Manage internal staff |
+| EDITOR | Create/edit templates, injectables, tags | Create/edit master templates |
+| OPERATOR | Generate documents, send for signature | N/A (typically) |
+| VIEWER | Read-only access, basic audit | Audit master templates |
+
+---
+
+### 5.5 `organizer.folders`
+
+**Purpose**: Hierarchical file system for organizing templates within a workspace.
+
+**Why it exists**: As the number of templates grows, users need a way to organize them into logical groups. Folders provide a familiar tree structure for navigation.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NOT NULL | Owning workspace |
+| `parent_id` | UUID | FK → folders (self), NULLABLE | Parent folder (NULL = root) |
+| `name` | VARCHAR(255) | NOT NULL | Folder display name |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_folders_workspace_id` - List folders in a workspace
+- `idx_folders_parent_id` - Navigate folder hierarchy
+- `idx_folders_unique_name` - Unique folder names within same parent
+
+**Recursive Hierarchy**:
+- Root folders have `parent_id = NULL`
+- Nested folders reference their parent
+- Deleting a folder cascades to child folders
+
+---
+
+### 5.6 `organizer.tags`
+
+**Purpose**: Cross-cutting labels that can be applied to templates for flexible categorization.
+
+**Why it exists**: Unlike folders which provide a single hierarchy, tags allow multiple independent categorizations (e.g., by department, document type, compliance level).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NOT NULL | Owning workspace |
+| `name` | VARCHAR(50) | NOT NULL | Tag display name |
+| `color` | VARCHAR(7) | - | HEX color code (#RRGGBB) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_tags_workspace_id` - List tags in a workspace
+
+**Unique Constraints**:
+- `uq_tags_workspace_name` - Tag names are unique per workspace
+
+**Check Constraints**:
+- `chk_tags_color_format` - Validates HEX color format (`^#[0-9A-Fa-f]{6}$`)
+
+---
+
+### 5.7 `content.injectable_definitions`
+
+**Purpose**: Defines the universe of available variables that can be injected into templates.
+
+**Why it exists**: Variables need to be defined once with their type and metadata, then reused across multiple templates. This provides a single source of truth for variable definitions.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NULLABLE | Scope: NULL = global, otherwise workspace-specific |
+| `key` | VARCHAR(100) | NOT NULL | Technical key (e.g., `customer_name`, `contract_date`) |
+| `label` | VARCHAR(255) | NOT NULL | Human-readable name |
+| `description` | TEXT | - | Detailed description for users |
+| `data_type` | injectable_data_type | NOT NULL | `TEXT`, `NUMBER`, `DATE`, `CURRENCY`, `BOOLEAN`, `IMAGE`, `TABLE` |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_injectable_definitions_workspace_id` - List definitions by workspace
+- `idx_injectable_definitions_data_type` - Filter by type
+- `idx_injectable_definitions_unique_key` - Unique key per scope
+
+**Scope Inheritance**:
+- Global definitions (workspace_id = NULL) are available to all workspaces
+- Workspace-specific definitions override or extend globals
+
+---
+
+### 5.8 `content.templates`
+
+**Purpose**: The document blueprint metadata that groups multiple versions together.
+
+**Why it exists**: Templates provide a stable identifier for document blueprints while versions contain the actual evolving content. This separation allows multiple versions to coexist under one template identity.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NOT NULL | Owning workspace |
+| `folder_id` | UUID | FK → folders, NULLABLE | Organizational folder |
+| `title` | VARCHAR(255) | NOT NULL | Template title |
+| `is_public_library` | BOOLEAN | NOT NULL, DEFAULT false | Visible for copying (SYSTEM workspaces only) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_templates_workspace_id` - List templates by workspace
+- `idx_templates_folder_id` - List templates in folder
+- `idx_templates_is_public_library` - Find public templates
+- `idx_templates_title_trgm` - Fuzzy title search
+
+**Relationship to Versions**:
+- A template can have multiple versions (1:N)
+- Only ONE version can be PUBLISHED at a time (enforced by exclusion constraint)
+- Tags are shared across all versions of a template
+
+---
+
+### 5.9 `content.template_versions`
+
+**Purpose**: Versioned content for templates with lifecycle states and scheduling support.
+
+**Why it exists**: Templates need to evolve over time while maintaining the ability to:
+- Keep one version published while preparing the next
+- Schedule version activations/deactivations
+- Track who published/archived each version (audit)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `template_id` | UUID | FK → templates, NOT NULL | Parent template |
+| `version_number` | INT | NOT NULL | Sequential version number |
+| `name` | VARCHAR(100) | NOT NULL | Human-readable version name (e.g., "v2.0 - Simplified") |
+| `description` | TEXT | - | Optional description of changes |
+| `content_structure` | JSONB | - | Editor node tree (document structure) |
+| `status` | version_status | NOT NULL, DEFAULT 'DRAFT' | `DRAFT`, `SCHEDULED`, `PUBLISHED`, `ARCHIVED` |
+| `scheduled_publish_at` | TIMESTAMPTZ | - | When to auto-publish (for SCHEDULED versions) |
+| `scheduled_archive_at` | TIMESTAMPTZ | - | When to auto-archive (for PUBLISHED versions) |
+| `published_at` | TIMESTAMPTZ | - | When version was published |
+| `archived_at` | TIMESTAMPTZ | - | When version was archived |
+| `published_by` | UUID | FK → users, NULLABLE | Who published this version |
+| `archived_by` | UUID | FK → users, NULLABLE | Who archived this version |
+| `created_by` | UUID | FK → users, NULLABLE | Who created this version |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_template_versions_template_id` - List versions for a template
+- `idx_template_versions_status` - Filter by status
+- `idx_template_versions_published` - Partial index for published versions
+- `idx_template_versions_scheduled` - Partial index for scheduled versions
+- `idx_template_versions_to_archive` - Partial index for versions to archive
+
+**Unique Constraints**:
+- `uq_template_versions_template_version_number` - Unique version number per template
+- `uq_template_versions_template_name` - Unique version name per template
+
+**Exclusion Constraint**:
+- `chk_template_versions_single_published` - Only ONE PUBLISHED version per template
+
+**Version Status Flow**:
+```
+DRAFT → PUBLISHED → ARCHIVED
+  │         ▲           ▲
+  └→ SCHEDULED ─┘       │
+         └──────────────┘
+```
+
+---
+
+### 5.10 `content.template_version_injectables`
+
+**Purpose**: Configures which injectable variables a specific template version uses and how.
+
+**Why it exists**: Each version may use different variables with different requirements. This allows versions to evolve their variable requirements independently.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `template_version_id` | UUID | FK → template_versions, NOT NULL | Version using this variable |
+| `injectable_definition_id` | UUID | FK → injectable_definitions, NOT NULL | Variable definition |
+| `is_required` | BOOLEAN | NOT NULL, DEFAULT false | Whether value must be provided |
+| `default_value` | TEXT | - | Default value if none provided |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+
+**Indexes**:
+- `idx_template_version_injectables_template_version_id` - List variables for a version
+- `idx_template_version_injectables_injectable_definition_id` - Find versions using a variable
+
+**Unique Constraints**:
+- `uq_template_version_injectables_version_injectable` - A variable can only be added once per version
+
+---
+
+### 5.11 `content.template_version_signer_roles`
+
+**Purpose**: Defines the signature roles for a template version and their corresponding PDF anchors.
+
+**Why it exists**: Different versions may have different signing requirements. This allows each version to define its own signer configuration.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `template_version_id` | UUID | FK → template_versions, NOT NULL | Parent version |
+| `role_name` | VARCHAR(100) | NOT NULL | Role display name (e.g., "Client", "Company Representative") |
+| `anchor_string` | VARCHAR(100) | NOT NULL | PDF anchor (e.g., `__sig_client__`, `__sig_company__`) |
+| `signer_order` | INT | NOT NULL | Signing sequence (1 = first) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_template_version_signer_roles_template_version_id` - List roles for a version
+
+**Unique Constraints**:
+- `uq_template_version_signer_roles_version_role_name` - Unique role names per version
+- `uq_template_version_signer_roles_version_anchor` - Unique anchors per version
+- `uq_template_version_signer_roles_version_order` - Unique order per version
+
+**Anchor Format**:
+- Anchors are text strings embedded invisibly in the document
+- External signature provider searches for these anchors to place signature fields
+- Convention: `__sig_{role}__` (e.g., `__sig_client__`)
+
+---
+
+### 5.12 `content.template_tags`
+
+**Purpose**: Many-to-many relationship table linking templates to tags.
+
+**Why it exists**: Templates can have multiple tags and tags can be applied to multiple templates. This pivot table enables that relationship.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `template_id` | UUID | PK, FK → templates, NOT NULL | Tagged template |
+| `tag_id` | UUID | PK, FK → tags, NOT NULL | Applied tag |
+
+**Indexes**:
+- `idx_template_tags_template_id` - List tags for a template
+- `idx_template_tags_tag_id` - List templates with a tag
+
+**Primary Key**: Composite (`template_id`, `tag_id`)
+
+---
+
+### 5.13 `execution.documents`
+
+**Purpose**: Represents a generated document instance with all injected data and signature tracking.
+
+**Why it exists**: When a template version is filled with actual data and sent for signatures, we need to track the entire lifecycle: the snapshot of injected values, storage locations, and signature status.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NOT NULL | Owning workspace |
+| `template_version_id` | UUID | FK → template_versions, NOT NULL | Source template version |
+| `client_external_reference_id` | VARCHAR(255) | - | External reference (CRM ID) |
+| `signer_document_id` | VARCHAR(255) | - | ID from signature provider |
+| `signer_provider` | VARCHAR(255) | - | `DOCUMENSO`, `DOCUSIGN`, `MOCK` |
+| `signer_status` | VARCHAR(50) | - | `DRAFT`, `PENDING`, `COMPLETED`, etc. |
+| `injected_values_snapshot` | JSONB | - | Frozen copy of all injected data |
+| `pdf_storage_path` | VARCHAR(500) | - | S3 path for pre-signature PDF |
+| `completed_pdf_url` | VARCHAR(500) | - | URL for signed final document |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last modification |
+
+**Indexes**:
+- `idx_documents_workspace_id` - List documents in workspace
+- `idx_documents_template_version_id` - Documents created from version
+- `idx_documents_client_external_reference_id` - Lookup by CRM ID
+- `idx_documents_signer_document_id` - Lookup by provider ID
+- `idx_documents_signer_status` - Filter by status
+- `idx_documents_created_at` - Date-based queries
+
+**Why Snapshot?**:
+The `injected_values_snapshot` freezes all data at generation time. Even if source data changes later, the document reflects what was true when it was created.
+
+**Version Reference**:
+Documents reference a specific `template_version_id`, not just the template. This ensures documents maintain a connection to the exact version used, even if the template later gets new versions.
+
+---
+
+### 5.14 `execution.document_recipients`
+
+**Purpose**: Tracks individual participants (signers) of a document and their signature status.
+
+**Why it exists**: Each document has multiple recipients corresponding to the template's signer roles. We need to track each recipient's identity and signing progress independently.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `document_id` | UUID | FK → documents, NOT NULL | Parent document |
+| `template_role_id` | UUID | FK → template_signer_roles, NOT NULL | Role they're filling |
+| `name` | VARCHAR(255) | NOT NULL | Recipient display name |
+| `email` | VARCHAR(255) | NOT NULL | Recipient email for notifications |
+| `signer_recipient_id` | VARCHAR(255) | - | ID from signature provider |
+| `status` | recipient_status | NOT NULL, DEFAULT 'WAITING' | `WAITING`, `SIGNED`, `REJECTED` |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | - | Last status change |
+
+**Indexes**:
+- `idx_document_recipients_document_id` - List recipients for document
+- `idx_document_recipients_template_role_id` - Usage analytics
+- `idx_document_recipients_email` - Find documents by signer email
+- `idx_document_recipients_status` - Filter by signing status
+
+**Unique Constraints**:
+- `uq_document_recipients_document_role` - One recipient per role per document
+
+---
+
+## 6. Cache Tables
+
+### 6.1 `organizer.workspace_tags_cache`
+
+**Purpose**: Cache table that lists all tags available per workspace with template usage statistics. Automatically maintained via database triggers.
+
+**Why it exists**: When displaying tag filter dropdowns in the UI, we need fast access to all tags within a workspace along with their usage count. Unlike a materialized view that requires manual refresh (O(n) full recalculation), this cache table uses triggers for O(1) incremental updates on every change.
+
+**Type**: Regular Table with Trigger-Based Synchronization
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `tag_id` | UUID | PK, FK → tags | Tag unique identifier |
+| `workspace_id` | UUID | FK → workspaces, NOT NULL | Workspace the tag belongs to |
+| `tag_name` | VARCHAR(50) | NOT NULL | Denormalized tag name for fast access |
+| `tag_color` | VARCHAR(7) | NOT NULL | Denormalized tag color in HEX format |
+| `template_count` | INT | NOT NULL, DEFAULT 0 | Number of templates using this tag |
+| `tag_created_at` | TIMESTAMPTZ | NOT NULL | When the tag was created |
+
+**Indexes**:
+
+| Index | Type | Purpose |
+|-------|------|---------|
+| `idx_workspace_tags_cache_workspace_id` | B-TREE | Fast filtering by workspace |
+| `idx_workspace_tags_cache_tag_name_trgm` | GIN Trigram | Fuzzy search on tag names |
+
+**Automatic Synchronization Triggers**:
+
+| Source Table | Event | Action |
+|--------------|-------|--------|
+| `organizer.tags` | INSERT | Inserts new cache row with `template_count = 0` |
+| `organizer.tags` | UPDATE | Updates `tag_name` and `tag_color` in cache |
+| `organizer.tags` | DELETE | Cascaded via FK (no explicit trigger needed) |
+| `content.template_tags` | INSERT | Increments `template_count` by 1 |
+| `content.template_tags` | DELETE | Decrements `template_count` by 1 |
+
+**Trigger Functions**:
+
+```sql
+-- Called on tags INSERT
+organizer.on_tag_insert()
+
+-- Called on tags UPDATE (only if name or color changed)
+organizer.on_tag_update()
+
+-- Called on template_tags INSERT
+organizer.on_template_tag_insert()
+
+-- Called on template_tags DELETE
+organizer.on_template_tag_delete()
+```
+
+**Manual Rebuild Function**:
+
+If the cache ever gets out of sync (should not happen under normal operation), you can rebuild it:
+
+```sql
+-- Truncates and repopulates the entire cache from source tables
+SELECT organizer.populate_workspace_tags_cache();
+```
+
+**Usage Examples**:
+
+```sql
+-- List all tags for a workspace (for filter dropdown)
+SELECT tag_id, tag_name, tag_color, template_count
+FROM organizer.workspace_tags_cache
+WHERE workspace_id = 'your-workspace-uuid'
+ORDER BY tag_name;
+
+-- Find tags with fuzzy search
+SELECT tag_id, tag_name, tag_color
+FROM organizer.workspace_tags_cache
+WHERE workspace_id = 'your-workspace-uuid'
+  AND tag_name ILIKE '%contract%';
+
+-- Get most used tags
+SELECT tag_id, tag_name, template_count
+FROM organizer.workspace_tags_cache
+WHERE workspace_id = 'your-workspace-uuid'
+ORDER BY template_count DESC
+LIMIT 10;
+```
+
+**Advantages over Materialized View**:
+
+| Aspect | Materialized View | Cache Table with Triggers |
+|--------|-------------------|---------------------------|
+| Update complexity | O(n) - recalculates everything | O(1) - only affected row updates |
+| Manual intervention | Requires explicit REFRESH | Fully automatic |
+| Consistency | Stale until refreshed | Always consistent |
+| Concurrent access | May block during refresh | Never blocks |
+| Scalability | Degrades with data volume | Constant performance |
+
+**When to Use Manual Rebuild**:
+- After bulk data imports that bypass triggers
+- After restoring from backup
+- If data inconsistency is suspected (rare edge cases)
+
+---
+
+## 7. Enum Types
+
+### 7.1 `workspace_type`
+
+**Purpose**: Distinguishes between system-level and client-level workspaces.
+
+| Value | Description |
+|-------|-------------|
+| `SYSTEM` | Template owner workspace (one global + one per tenant) |
+| `CLIENT` | End-user workspace that consumes templates |
+
+---
+
+### 7.2 `workspace_status`
+
+**Purpose**: Lifecycle status of a workspace.
+
+| Value | Description |
+|-------|-------------|
+| `ACTIVE` | Normal operational state |
+| `SUSPENDED` | Temporarily disabled (e.g., payment issue) |
+| `ARCHIVED` | Soft-deleted, read-only |
+
+---
+
+### 7.3 `user_status`
+
+**Purpose**: Shadow user account status.
+
+| Value | Description |
+|-------|-------------|
+| `INVITED` | User invited but hasn't completed IdP registration |
+| `ACTIVE` | User has logged in via IdP |
+| `SUSPENDED` | Account disabled |
+
+---
+
+### 7.4 `workspace_role`
+
+**Purpose**: Role-based access control within workspaces.
+
+| Value | Description |
+|-------|-------------|
+| `OWNER` | Full control including billing and admin invites |
+| `ADMIN` | User management and configuration |
+| `EDITOR` | Create and modify templates |
+| `OPERATOR` | Generate documents and send for signature |
+| `VIEWER` | Read-only access |
+
+---
+
+### 7.5 `membership_status`
+
+**Purpose**: Status of a user's workspace membership.
+
+| Value | Description |
+|-------|-------------|
+| `PENDING` | Invitation sent, not yet accepted |
+| `ACTIVE` | Membership confirmed and active |
+
+---
+
+### 7.6 `injectable_data_type`
+
+**Purpose**: Data types for injectable variables.
+
+| Value | Description |
+|-------|-------------|
+| `TEXT` | Plain text strings |
+| `NUMBER` | Numeric values |
+| `DATE` | Date values |
+| `CURRENCY` | Monetary amounts |
+| `BOOLEAN` | True/false values |
+| `IMAGE` | Image references |
+| `TABLE` | Tabular data structures |
+
+---
+
+### 7.7 `version_status`
+
+**Purpose**: Lifecycle status of template versions.
+
+| Value | Description |
+|-------|-------------|
+| `DRAFT` | Work in progress, editable, not usable for document generation |
+| `SCHEDULED` | Ready and scheduled for future publication |
+| `PUBLISHED` | Active version, ready for document generation (only ONE per template) |
+| `ARCHIVED` | Historical version, read-only, no new documents |
+
+**Status Flow**:
+- `DRAFT` → `PUBLISHED` (direct publish)
+- `DRAFT` → `SCHEDULED` → `PUBLISHED` (scheduled publish)
+- `PUBLISHED` → `ARCHIVED` (manual or scheduled archive)
+- `SCHEDULED` → `ARCHIVED` (cancelled before publish)
+
+---
+
+### 7.8 `recipient_status`
+
+**Purpose**: Individual signer's progress.
+
+| Value | Description |
+|-------|-------------|
+| `WAITING` | Awaiting their turn or action |
+| `SIGNED` | Successfully signed |
+| `REJECTED` | Declined to sign |
+
+---
+
+## 8. Indexes & Constraints
+
+### Special Indexes
+
+| Table | Index | Type | Purpose |
+|-------|-------|------|---------|
+| `workspaces` | `idx_unique_global_system_workspace` | Unique Partial | Only ONE global SYSTEM workspace |
+| `workspaces` | `idx_unique_tenant_system_workspace` | Unique Partial | Only ONE SYSTEM workspace per tenant |
+| `folders` | `idx_folders_unique_name` | Unique Composite | Unique names within same parent |
+| `injectable_definitions` | `idx_injectable_definitions_unique_key` | Unique Composite | Unique key per scope |
+| `users` | `idx_users_full_name_trgm` | GIN Trigram | Fuzzy name search |
+| `templates` | `idx_templates_title_trgm` | GIN Trigram | Fuzzy title search |
+
+### Check Constraints
+
+| Table | Constraint | Rule |
+|-------|------------|------|
+| `tags` | `chk_tags_color_format` | Color must match `^#[0-9A-Fa-f]{6}$` |
+
+### Auto-Update Triggers
+
+All tables with `updated_at` columns have triggers that automatically set the value on UPDATE:
+
+- `trigger_tenants_updated_at`
+- `trigger_workspaces_updated_at`
+- `trigger_folders_updated_at`
+- `trigger_tags_updated_at`
+- `trigger_injectable_definitions_updated_at`
+- `trigger_templates_updated_at`
+- `trigger_template_signer_roles_updated_at`
+- `trigger_documents_updated_at`
+- `trigger_document_recipients_updated_at`
+
+---
+
+## 9. Usage Examples
+
+### 9.1 Create a New Tenant with System Workspace
+
+```sql
+-- Create tenant
+INSERT INTO tenancy.tenants (name, code, settings)
+VALUES ('Chile Operations', 'CL', '{"currency": "CLP", "timezone": "America/Santiago"}')
+RETURNING id;
+
+-- Create system workspace for tenant
+INSERT INTO tenancy.workspaces (tenant_id, name, type)
+VALUES ('uuid-from-above', 'Chile System Templates', 'SYSTEM');
+```
+
+### 9.2 Invite User to Workspace
+
+```sql
+-- Create shadow user
+INSERT INTO identity.users (email, full_name)
+VALUES ('john@example.com', 'John Doe')
+RETURNING id;
+
+-- Add to workspace with role
+INSERT INTO identity.workspace_members (workspace_id, user_id, role, invited_by)
+VALUES ('workspace-uuid', 'user-uuid', 'EDITOR', 'admin-user-uuid');
+```
+
+### 9.3 Create Template with Version, Variables and Signer Roles
+
+```sql
+-- Create template (metadata only)
+INSERT INTO content.templates (workspace_id, title)
+VALUES ('workspace-uuid', 'Employment Contract')
+RETURNING id;
+
+-- Create first version
+INSERT INTO content.template_versions (
+    template_id, version_number, name, description, status
+)
+VALUES (
+    'template-uuid', 1, 'Initial Version', 'First draft of employment contract', 'DRAFT'
+)
+RETURNING id;
+
+-- Add injectable to version
+INSERT INTO content.template_version_injectables (template_version_id, injectable_definition_id, is_required)
+VALUES ('version-uuid', 'employee-name-def-uuid', true);
+
+-- Add signer roles to version
+INSERT INTO content.template_version_signer_roles (template_version_id, role_name, anchor_string, signer_order)
+VALUES ('version-uuid', 'Employee', '__sig_employee__', 1);
+
+INSERT INTO content.template_version_signer_roles (template_version_id, role_name, anchor_string, signer_order)
+VALUES ('version-uuid', 'HR Manager', '__sig_hr__', 2);
+
+-- Publish the version
+UPDATE content.template_versions
+SET status = 'PUBLISHED', published_at = NOW(), published_by = 'user-uuid'
+WHERE id = 'version-uuid';
+```
+
+### 9.4 Generate Document from Published Version
+
+```sql
+-- Find the published version of a template
+SELECT id FROM content.template_versions
+WHERE template_id = 'template-uuid' AND status = 'PUBLISHED';
+
+-- Create document from version
+INSERT INTO execution.documents (
+    workspace_id, template_version_id,
+    client_external_reference_id,
+    injected_values_snapshot,
+    signer_provider, signer_status
+)
+VALUES (
+    'workspace-uuid', 'version-uuid',
+    'CRM-12345',
+    '{"employee_name": "Jane Smith", "start_date": "2025-01-15"}',
+    'DOCUMENSO', 'PENDING'
+)
+RETURNING id;
+
+-- Add recipients (referencing version signer roles)
+INSERT INTO execution.document_recipients (document_id, template_role_id, name, email)
+VALUES
+    ('document-uuid', 'employee-role-uuid', 'Jane Smith', 'jane@example.com'),
+    ('document-uuid', 'hr-role-uuid', 'Mike Johnson', 'mike.hr@company.com');
+```
+
+### 9.5 Query: Find All Pending Documents for a User
+
+```sql
+SELECT
+    d.id,
+    d.created_at,
+    t.title as template_title,
+    tv.name as version_name,
+    dr.status as recipient_status
+FROM execution.documents d
+JOIN content.template_versions tv ON d.template_version_id = tv.id
+JOIN content.templates t ON tv.template_id = t.id
+JOIN execution.document_recipients dr ON dr.document_id = d.id
+WHERE dr.email = 'jane@example.com'
+  AND dr.status = 'WAITING'
+ORDER BY d.created_at DESC;
+```
+
+### 9.6 Query: Template Usage Analytics (by Version)
+
+```sql
+SELECT
+    t.title,
+    tv.name as version_name,
+    tv.version_number,
+    tv.status as version_status,
+    COUNT(d.id) as document_count,
+    COUNT(CASE WHEN d.signer_status = 'COMPLETED' THEN 1 END) as completed_count
+FROM content.templates t
+JOIN content.template_versions tv ON tv.template_id = t.id
+LEFT JOIN execution.documents d ON d.template_version_id = tv.id
+WHERE t.workspace_id = 'workspace-uuid'
+GROUP BY t.id, t.title, tv.id, tv.name, tv.version_number, tv.status
+ORDER BY t.title, tv.version_number DESC;
+```
+
+### 9.7 Query: Schedule a Version for Publication
+
+```sql
+-- Schedule a version to be published at a specific time
+UPDATE content.template_versions
+SET
+    status = 'SCHEDULED',
+    scheduled_publish_at = '2025-02-01 00:00:00+00'
+WHERE id = 'version-uuid' AND status = 'DRAFT';
+```
+
+### 9.8 Query: Find Published Version of a Template
+
+```sql
+-- Get the currently published version
+SELECT tv.*
+FROM content.template_versions tv
+WHERE tv.template_id = 'template-uuid'
+  AND tv.status = 'PUBLISHED';
+
+-- Get all versions ordered by version number
+SELECT tv.*, t.title
+FROM content.template_versions tv
+JOIN content.templates t ON t.id = tv.template_id
+WHERE tv.template_id = 'template-uuid'
+ORDER BY tv.version_number DESC;
+```
+
+### 9.9 Query: Workspace Members with Roles
+
+```sql
+SELECT
+    u.email,
+    u.full_name,
+    wm.role,
+    wm.membership_status,
+    wm.joined_at
+FROM identity.workspace_members wm
+JOIN identity.users u ON wm.user_id = u.id
+WHERE wm.workspace_id = 'workspace-uuid'
+  AND wm.membership_status = 'ACTIVE'
+ORDER BY
+    CASE wm.role
+        WHEN 'OWNER' THEN 1
+        WHEN 'ADMIN' THEN 2
+        WHEN 'EDITOR' THEN 3
+        WHEN 'OPERATOR' THEN 4
+        ELSE 5
+    END;
+```
+
+---
+
+## Appendix: Quick Reference
+
+### Table Count by Schema
+
+| Schema | Tables |
+|--------|--------|
+| tenancy | 2 |
+| identity | 2 |
+| organizer | 3 (includes cache table) |
+| content | 6 (templates, template_versions, template_version_injectables, template_version_signer_roles, template_tags, injectable_definitions) |
+| execution | 2 |
+| **Total** | **15** |
+
+### PostgreSQL Extensions Required
+
+| Extension | Purpose |
+|-----------|---------|
+| `pgcrypto` | UUID generation (`gen_random_uuid()`) |
+| `pg_trgm` | Trigram-based fuzzy text search |
+
+### Liquibase Changelog
+
+Database schema is managed via Liquibase. See:
+- `changelog.master.xml` - Master changelog
+- `liquibase-*.properties` - Environment configurations

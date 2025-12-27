@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="users:table_creation" author="doc-assembly">
+        <comment>Create users table - identity agnostic shadow users</comment>
+        <createTable tableName="users" schemaName="identity">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="external_identity_id" type="VARCHAR(255)">
+                <constraints nullable="true" unique="true"/>
+            </column>
+            <column name="full_name" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="status" type="user_status" defaultValue="INVITED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="users:index_creation:email" author="doc-assembly">
+        <comment>Index for email lookups (unique constraint creates implicit index)</comment>
+        <createIndex indexName="idx_users_email" tableName="users" schemaName="identity">
+            <column name="email"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="users:index_creation:external_identity_id" author="doc-assembly">
+        <comment>Index for IdP lookups</comment>
+        <createIndex indexName="idx_users_external_identity_id" tableName="users" schemaName="identity">
+            <column name="external_identity_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="users:index_creation:status" author="doc-assembly">
+        <comment>Index for status filtering</comment>
+        <createIndex indexName="idx_users_status" tableName="users" schemaName="identity">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="users:trgm_index_creation:full_name" author="doc-assembly">
+        <comment>Trigram index for fuzzy name search</comment>
+        <sql>
+            CREATE INDEX idx_users_full_name_trgm
+            ON identity.users USING GIN (full_name gin_trgm_ops);
+        </sql>
+        <rollback>DROP INDEX IF EXISTS identity.idx_users_full_name_trgm;</rollback>
+    </changeSet>
+
+</databaseChangeLog>

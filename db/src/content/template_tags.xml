@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========== TABLE CREATION ========== -->
+
+    <changeSet id="template_tags:table_creation" author="doc-assembly">
+        <comment>Create template_tags pivot table - many-to-many between templates and tags</comment>
+        <createTable tableName="template_tags" schemaName="content">
+            <column name="template_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tag_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ========== PRIMARY KEY ========== -->
+
+    <changeSet id="template_tags:add_pk" author="doc-assembly">
+        <comment>Composite primary key</comment>
+        <addPrimaryKey
+            schemaName="content"
+            tableName="template_tags"
+            columnNames="template_id, tag_id"
+            constraintName="pk_template_tags"/>
+    </changeSet>
+
+    <!-- ========== FOREIGN KEYS ========== -->
+
+    <changeSet id="template_tags:add_fk_constraint:template_id" author="doc-assembly">
+        <comment>FK to templates</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="template_tags"
+            baseColumnNames="template_id"
+            constraintName="fk_template_tags_template_id"
+            referencedTableSchemaName="content"
+            referencedTableName="templates"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="template_tags:add_fk_constraint:tag_id" author="doc-assembly">
+        <comment>FK to tags</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="template_tags"
+            baseColumnNames="tag_id"
+            constraintName="fk_template_tags_tag_id"
+            referencedTableSchemaName="organizer"
+            referencedTableName="tags"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- ========== INDEXES ========== -->
+
+    <changeSet id="template_tags:index_creation:template_id" author="doc-assembly">
+        <comment>Index for template-based lookups</comment>
+        <createIndex indexName="idx_template_tags_template_id" tableName="template_tags" schemaName="content">
+            <column name="template_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="template_tags:index_creation:tag_id" author="doc-assembly">
+        <comment>Index for tag-based lookups</comment>
+        <createIndex indexName="idx_template_tags_tag_id" tableName="template_tags" schemaName="content">
+            <column name="tag_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
