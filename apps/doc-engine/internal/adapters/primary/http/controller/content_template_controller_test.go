@@ -1452,3 +1452,67 @@ func TestContentTemplateController_RemoveTemplateTag(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 	})
 }
+
+// =============================================================================
+// Additional Coverage Tests
+// =============================================================================
+
+// TestContentTemplateController_CloneTemplate_PreservesTags tests that cloning preserves tags.
+func TestContentTemplateController_CloneTemplate_PreservesTags(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Clone Tags Tenant", "CTST09")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Clone Tags Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	editor := testhelper.CreateTestUser(t, pool, "editor-clt@test.com", "Editor User", nil)
+	defer testhelper.CleanupUser(t, pool, editor.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+	// Create source template with published version
+	sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source With Tags", nil)
+	defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
+	testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+
+	// Add tags to source template
+	tag1 := testhelper.CreateTestTag(t, pool, workspaceID, "Contract", "#FF0000")
+	defer testhelper.CleanupTag(t, pool, tag1)
+	tag2 := testhelper.CreateTestTag(t, pool, workspaceID, "Legal", "#00FF00")
+	defer testhelper.CleanupTag(t, pool, tag2)
+	testhelper.CreateTestTemplateTag(t, pool, sourceTemplateID, tag1)
+	testhelper.CreateTestTemplateTag(t, pool, sourceTemplateID, tag2)
+
+	// Clone the template
+	cloneResp, cloneBody := client.
+		WithAuth(editor.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
+			"newTitle": "Cloned With Tags",
+		})
+
+	assert.Equal(t, http.StatusCreated, cloneResp.StatusCode)
+
+	var createResp dto.TemplateCreateResponse
+	err := json.Unmarshal(cloneBody, &createResp)
+	require.NoError(t, err)
+	defer testhelper.CleanupTemplate(t, pool, createResp.Template.ID)
+
+	// Get the cloned template details to verify tags
+	getResp, getBody := client.
+		WithAuth(editor.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		GET(fmt.Sprintf("/api/v1/content/templates/%s", createResp.Template.ID))
+
+	assert.Equal(t, http.StatusOK, getResp.StatusCode)
+
+	var tplResp dto.TemplateWithDetailsResponse
+	err = json.Unmarshal(getBody, &tplResp)
+	require.NoError(t, err)
+
+	// Verify tags were preserved
+	assert.GreaterOrEqual(t, len(tplResp.Tags), 2, "cloned template should have at least 2 tags")
+}

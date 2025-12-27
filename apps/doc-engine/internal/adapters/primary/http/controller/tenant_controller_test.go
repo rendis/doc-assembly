@@ -812,3 +812,75 @@ func TestTenantController_RemoveTenantMember(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 }
+
+// =============================================================================
+// Additional Coverage Tests
+// =============================================================================
+
+// TestTenantController_UpdateTenant_WithSettings tests updating tenant with full settings.
+func TestTenantController_UpdateTenant_WithSettings(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Settings Tenant", "SETT01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	owner := testhelper.CreateTestUser(t, pool, "owner-settings@test.com", "Owner User", nil)
+	defer testhelper.CleanupUser(t, pool, owner.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
+
+	t.Run("success with full settings", func(t *testing.T) {
+		req := map[string]interface{}{
+			"name":        "Updated Tenant With Settings",
+			"description": "Updated description with settings",
+			"settings": map[string]interface{}{
+				"currency":   "USD",
+				"timezone":   "America/New_York",
+				"dateFormat": "MM/DD/YYYY",
+				"locale":     "en-US",
+			},
+		}
+
+		resp, body := client.
+			WithAuth(owner.BearerHeader).
+			WithTenantID(tenantID).
+			PUT("/api/v1/tenant", req)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var tenant dto.TenantResponse
+		err := json.Unmarshal(body, &tenant)
+		require.NoError(t, err)
+
+		assert.Equal(t, "Updated Tenant With Settings", tenant.Name)
+	})
+}
+
+// TestTenantController_UpdateMemberRole_LastOwner tests demoting the last owner fails.
+func TestTenantController_UpdateMemberRole_LastOwner(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Last Owner Tenant", "LOWN01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	// Create single owner
+	owner := testhelper.CreateTestUser(t, pool, "only-owner@test.com", "Only Owner", nil)
+	defer testhelper.CleanupUser(t, pool, owner.ID)
+	ownerMemberID := testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
+
+	// Try to demote last owner to admin
+	req := dto.UpdateTenantMemberRoleRequest{
+		Role: "TENANT_ADMIN",
+	}
+
+	resp, _ := client.
+		WithAuth(owner.BearerHeader).
+		WithTenantID(tenantID).
+		PUT("/api/v1/tenant/members/"+ownerMemberID, req)
+
+	// Should fail because this is the last owner
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}

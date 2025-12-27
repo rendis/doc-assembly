@@ -430,3 +430,23 @@ func CleanupSignerRole(t *testing.T, pool *pgxpool.Pool, roleID string) {
 	ctx := context.Background()
 	_, _ = pool.Exec(ctx, "DELETE FROM content.template_version_signer_roles WHERE id = $1", roleID)
 }
+
+// UpdateWorkspaceStatus updates a workspace's status directly in the database.
+func UpdateWorkspaceStatus(t *testing.T, pool *pgxpool.Pool, workspaceID string, status entity.WorkspaceStatus) {
+	t.Helper()
+	ctx := context.Background()
+
+	_, err := pool.Exec(ctx, `UPDATE tenancy.workspaces SET status = $1 WHERE id = $2`, status, workspaceID)
+	require.NoError(t, err, "failed to update workspace status")
+}
+
+// CreateTestTemplateTag creates a template-tag relationship in the database.
+func CreateTestTemplateTag(t *testing.T, pool *pgxpool.Pool, templateID, tagID string) {
+	t.Helper()
+	ctx := context.Background()
+
+	_, err := pool.Exec(ctx, `
+		INSERT INTO content.template_tags (template_id, tag_id)
+		VALUES ($1, $2)`, templateID, tagID)
+	require.NoError(t, err, "failed to create template tag")
+}

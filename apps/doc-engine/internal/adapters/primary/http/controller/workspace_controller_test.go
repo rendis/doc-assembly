@@ -1424,3 +1424,217 @@ func TestWorkspaceController_UpdateMemberRole_Validation(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 }
+
+// =============================================================================
+// Additional Coverage Tests
+// =============================================================================
+
+// TestWorkspaceController_CreateTag_Duplicate tests creating a tag with duplicate name.
+func TestWorkspaceController_CreateTag_Duplicate(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Dup Tag Tenant", "DTGT01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Dup Tag Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	editor := testhelper.CreateTestUser(t, pool, "editor-dtg@test.com", "Editor User", nil)
+	defer testhelper.CleanupUser(t, pool, editor.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+	// Create first tag
+	existingTag := testhelper.CreateTestTag(t, pool, workspaceID, "Duplicate Tag", "#FF0000")
+	defer testhelper.CleanupTag(t, pool, existingTag)
+
+	// Try to create tag with same name
+	resp, _ := client.
+		WithAuth(editor.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		POST("/api/v1/workspace/tags", map[string]interface{}{
+			"name":  "Duplicate Tag",
+			"color": "#00FF00",
+		})
+
+	assert.Equal(t, http.StatusConflict, resp.StatusCode)
+}
+
+// TestWorkspaceController_MoveFolder_CircularReference tests moving a folder to its own descendant.
+func TestWorkspaceController_MoveFolder_CircularReference(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Circular Ref Tenant", "CRFT01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Circular Ref Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	editor := testhelper.CreateTestUser(t, pool, "editor-crf@test.com", "Editor User", nil)
+	defer testhelper.CleanupUser(t, pool, editor.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+	// Create parent -> child -> grandchild hierarchy
+	parentFolder := testhelper.CreateTestFolder(t, pool, workspaceID, "Parent", nil)
+	defer testhelper.CleanupFolder(t, pool, parentFolder)
+
+	childFolder := testhelper.CreateTestFolder(t, pool, workspaceID, "Child", &parentFolder)
+	defer testhelper.CleanupFolder(t, pool, childFolder)
+
+	grandchildFolder := testhelper.CreateTestFolder(t, pool, workspaceID, "Grandchild", &childFolder)
+	defer testhelper.CleanupFolder(t, pool, grandchildFolder)
+
+	// Try to move parent under grandchild (circular reference)
+	resp, _ := client.
+		WithAuth(editor.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		PATCH(fmt.Sprintf("/api/v1/workspace/folders/%s/move", parentFolder), map[string]interface{}{
+			"newParentId": grandchildFolder,
+		})
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestWorkspaceController_DeleteFolder_WithTemplates tests deleting a folder that contains templates.
+func TestWorkspaceController_DeleteFolder_WithTemplates(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Del Folder Tmpl Tenant", "DFTT01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Del Folder Tmpl Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	admin := testhelper.CreateTestUser(t, pool, "admin-dft@test.com", "Admin User", nil)
+	defer testhelper.CleanupUser(t, pool, admin.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, admin.ID, entity.WorkspaceRoleAdmin, nil)
+
+	// Create folder with a template inside
+	folderID := testhelper.CreateTestFolder(t, pool, workspaceID, "Folder With Template", nil)
+	defer testhelper.CleanupFolder(t, pool, folderID)
+
+	templateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template in Folder", &folderID)
+	defer testhelper.CleanupTemplate(t, pool, templateID)
+
+	// Try to delete folder with template
+	resp, _ := client.
+		WithAuth(admin.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		DELETE(fmt.Sprintf("/api/v1/workspace/folders/%s", folderID))
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestWorkspaceController_DeleteTag_InUse tests deleting a tag that is used by templates.
+func TestWorkspaceController_DeleteTag_InUse(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Del Tag Use Tenant", "DTUT01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Del Tag Use Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	admin := testhelper.CreateTestUser(t, pool, "admin-dtu@test.com", "Admin User", nil)
+	defer testhelper.CleanupUser(t, pool, admin.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, admin.ID, entity.WorkspaceRoleAdmin, nil)
+
+	// Create tag
+	tagID := testhelper.CreateTestTag(t, pool, workspaceID, "Used Tag", "#FF0000")
+	defer testhelper.CleanupTag(t, pool, tagID)
+
+	// Create template and link to tag
+	templateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Tagged Template", nil)
+	defer testhelper.CleanupTemplate(t, pool, templateID)
+	testhelper.CreateTestTemplateTag(t, pool, templateID, tagID)
+
+	// Try to delete tag that is in use
+	resp, _ := client.
+		WithAuth(admin.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		DELETE(fmt.Sprintf("/api/v1/workspace/tags/%s", tagID))
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestWorkspaceController_CreateFolder_Nested tests creating a nested folder hierarchy.
+func TestWorkspaceController_CreateFolder_Nested(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Nested Folder Tenant", "NFST01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Nested Folder Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	editor := testhelper.CreateTestUser(t, pool, "editor-nf@test.com", "Editor User", nil)
+	defer testhelper.CleanupUser(t, pool, editor.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+	// Create parent folder
+	parentFolder := testhelper.CreateTestFolder(t, pool, workspaceID, "Parent Folder", nil)
+	defer testhelper.CleanupFolder(t, pool, parentFolder)
+
+	// Create child folder via API
+	resp, body := client.
+		WithAuth(editor.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		POST("/api/v1/workspace/folders", map[string]interface{}{
+			"name":     "Child Folder",
+			"parentId": parentFolder,
+		})
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var folderResp dto.FolderResponse
+	err := json.Unmarshal(body, &folderResp)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Child Folder", folderResp.Name)
+	require.NotNil(t, folderResp.ParentID)
+	assert.Equal(t, parentFolder, *folderResp.ParentID)
+	defer testhelper.CleanupFolder(t, pool, folderResp.ID)
+}
+
+// TestWorkspaceController_UpdateFolder_DuplicateName tests updating folder with duplicate name at same level.
+func TestWorkspaceController_UpdateFolder_DuplicateName(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Dup Folder Tenant", "DPFT01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Dup Folder Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	editor := testhelper.CreateTestUser(t, pool, "editor-dpf@test.com", "Editor User", nil)
+	defer testhelper.CleanupUser(t, pool, editor.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+	// Create two folders at root level
+	folder1 := testhelper.CreateTestFolder(t, pool, workspaceID, "Folder One", nil)
+	defer testhelper.CleanupFolder(t, pool, folder1)
+
+	folder2 := testhelper.CreateTestFolder(t, pool, workspaceID, "Folder Two", nil)
+	defer testhelper.CleanupFolder(t, pool, folder2)
+
+	// Try to rename folder2 to folder1's name
+	resp, _ := client.
+		WithAuth(editor.BearerHeader).
+		WithWorkspaceID(workspaceID).
+		PUT(fmt.Sprintf("/api/v1/workspace/folders/%s", folder2), map[string]interface{}{
+			"name": "Folder One",
+		})
+
+	assert.Equal(t, http.StatusConflict, resp.StatusCode)
+}
