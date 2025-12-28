@@ -9,112 +9,168 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SelectTenantRouteImport } from './routes/select-tenant'
 import { Route as EditorTestRouteImport } from './routes/editor-test'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as WorkspaceWorkspaceIdRouteImport } from './routes/workspace/$workspaceId'
-import { Route as SystemTenantsRouteImport } from './routes/system/tenants'
-import { Route as WorkspaceWorkspaceIdIndexRouteImport } from './routes/workspace/$workspaceId/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminTenantsRouteImport } from './routes/admin/tenants'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminAuditRouteImport } from './routes/admin/audit'
+import { Route as AppSelectTenantRouteImport } from './routes/_app/select-tenant'
+import { Route as AppWorkspaceWorkspaceIdRouteImport } from './routes/_app/workspace/$workspaceId'
+import { Route as AppWorkspaceWorkspaceIdIndexRouteImport } from './routes/_app/workspace/$workspaceId/index'
 
-const SelectTenantRoute = SelectTenantRouteImport.update({
-  id: '/select-tenant',
-  path: '/select-tenant',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EditorTestRoute = EditorTestRouteImport.update({
   id: '/editor-test',
   path: '/editor-test',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AdminRouteRoute,
 } as any)
-const WorkspaceWorkspaceIdRoute = WorkspaceWorkspaceIdRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminTenantsRoute = AdminTenantsRouteImport.update({
+  id: '/tenants',
+  path: '/tenants',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AppSelectTenantRoute = AppSelectTenantRouteImport.update({
+  id: '/select-tenant',
+  path: '/select-tenant',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWorkspaceWorkspaceIdRoute = AppWorkspaceWorkspaceIdRouteImport.update({
   id: '/workspace/$workspaceId',
   path: '/workspace/$workspaceId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const SystemTenantsRoute = SystemTenantsRouteImport.update({
-  id: '/system/tenants',
-  path: '/system/tenants',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkspaceWorkspaceIdIndexRoute =
-  WorkspaceWorkspaceIdIndexRouteImport.update({
+const AppWorkspaceWorkspaceIdIndexRoute =
+  AppWorkspaceWorkspaceIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => WorkspaceWorkspaceIdRoute,
+    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/editor-test': typeof EditorTestRoute
-  '/select-tenant': typeof SelectTenantRoute
-  '/system/tenants': typeof SystemTenantsRoute
-  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRouteWithChildren
-  '/workspace/$workspaceId/': typeof WorkspaceWorkspaceIdIndexRoute
+  '/select-tenant': typeof AppSelectTenantRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tenants': typeof AdminTenantsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/': typeof AppIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdRouteWithChildren
+  '/workspace/$workspaceId/': typeof AppWorkspaceWorkspaceIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/editor-test': typeof EditorTestRoute
-  '/select-tenant': typeof SelectTenantRoute
-  '/system/tenants': typeof SystemTenantsRoute
-  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdIndexRoute
+  '/select-tenant': typeof AppSelectTenantRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tenants': typeof AdminTenantsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/': typeof AppIndexRoute
+  '/admin': typeof AdminIndexRoute
+  '/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/_app': typeof AppRouteWithChildren
   '/editor-test': typeof EditorTestRoute
-  '/select-tenant': typeof SelectTenantRoute
-  '/system/tenants': typeof SystemTenantsRoute
-  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRouteWithChildren
-  '/workspace/$workspaceId/': typeof WorkspaceWorkspaceIdIndexRoute
+  '/_app/select-tenant': typeof AppSelectTenantRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tenants': typeof AdminTenantsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/_app/': typeof AppIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/_app/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdRouteWithChildren
+  '/_app/workspace/$workspaceId/': typeof AppWorkspaceWorkspaceIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
+    | '/admin'
     | '/editor-test'
     | '/select-tenant'
-    | '/system/tenants'
+    | '/admin/audit'
+    | '/admin/settings'
+    | '/admin/tenants'
+    | '/admin/users'
+    | '/'
+    | '/admin/'
     | '/workspace/$workspaceId'
     | '/workspace/$workspaceId/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/editor-test'
     | '/select-tenant'
-    | '/system/tenants'
+    | '/admin/audit'
+    | '/admin/settings'
+    | '/admin/tenants'
+    | '/admin/users'
+    | '/'
+    | '/admin'
     | '/workspace/$workspaceId'
   id:
     | '__root__'
-    | '/'
+    | '/admin'
+    | '/_app'
     | '/editor-test'
-    | '/select-tenant'
-    | '/system/tenants'
-    | '/workspace/$workspaceId'
-    | '/workspace/$workspaceId/'
+    | '/_app/select-tenant'
+    | '/admin/audit'
+    | '/admin/settings'
+    | '/admin/tenants'
+    | '/admin/users'
+    | '/_app/'
+    | '/admin/'
+    | '/_app/workspace/$workspaceId'
+    | '/_app/workspace/$workspaceId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
   EditorTestRoute: typeof EditorTestRoute
-  SelectTenantRoute: typeof SelectTenantRoute
-  SystemTenantsRoute: typeof SystemTenantsRoute
-  WorkspaceWorkspaceIdRoute: typeof WorkspaceWorkspaceIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/select-tenant': {
-      id: '/select-tenant'
-      path: '/select-tenant'
-      fullPath: '/select-tenant'
-      preLoaderRoute: typeof SelectTenantRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/editor-test': {
       id: '/editor-test'
       path: '/editor-test'
@@ -122,54 +178,138 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditorTestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/workspace/$workspaceId': {
-      id: '/workspace/$workspaceId'
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/tenants': {
+      id: '/admin/tenants'
+      path: '/tenants'
+      fullPath: '/admin/tenants'
+      preLoaderRoute: typeof AdminTenantsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_app/select-tenant': {
+      id: '/_app/select-tenant'
+      path: '/select-tenant'
+      fullPath: '/select-tenant'
+      preLoaderRoute: typeof AppSelectTenantRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/workspace/$workspaceId': {
+      id: '/_app/workspace/$workspaceId'
       path: '/workspace/$workspaceId'
       fullPath: '/workspace/$workspaceId'
-      preLoaderRoute: typeof WorkspaceWorkspaceIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppWorkspaceWorkspaceIdRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/system/tenants': {
-      id: '/system/tenants'
-      path: '/system/tenants'
-      fullPath: '/system/tenants'
-      preLoaderRoute: typeof SystemTenantsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/workspace/$workspaceId/': {
-      id: '/workspace/$workspaceId/'
+    '/_app/workspace/$workspaceId/': {
+      id: '/_app/workspace/$workspaceId/'
       path: '/'
       fullPath: '/workspace/$workspaceId/'
-      preLoaderRoute: typeof WorkspaceWorkspaceIdIndexRouteImport
-      parentRoute: typeof WorkspaceWorkspaceIdRoute
+      preLoaderRoute: typeof AppWorkspaceWorkspaceIdIndexRouteImport
+      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
     }
   }
 }
 
-interface WorkspaceWorkspaceIdRouteChildren {
-  WorkspaceWorkspaceIdIndexRoute: typeof WorkspaceWorkspaceIdIndexRoute
+interface AdminRouteRouteChildren {
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminTenantsRoute: typeof AdminTenantsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
-const WorkspaceWorkspaceIdRouteChildren: WorkspaceWorkspaceIdRouteChildren = {
-  WorkspaceWorkspaceIdIndexRoute: WorkspaceWorkspaceIdIndexRoute,
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAuditRoute: AdminAuditRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminTenantsRoute: AdminTenantsRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
-const WorkspaceWorkspaceIdRouteWithChildren =
-  WorkspaceWorkspaceIdRoute._addFileChildren(WorkspaceWorkspaceIdRouteChildren)
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
+interface AppWorkspaceWorkspaceIdRouteChildren {
+  AppWorkspaceWorkspaceIdIndexRoute: typeof AppWorkspaceWorkspaceIdIndexRoute
+}
+
+const AppWorkspaceWorkspaceIdRouteChildren: AppWorkspaceWorkspaceIdRouteChildren =
+  {
+    AppWorkspaceWorkspaceIdIndexRoute: AppWorkspaceWorkspaceIdIndexRoute,
+  }
+
+const AppWorkspaceWorkspaceIdRouteWithChildren =
+  AppWorkspaceWorkspaceIdRoute._addFileChildren(
+    AppWorkspaceWorkspaceIdRouteChildren,
+  )
+
+interface AppRouteChildren {
+  AppSelectTenantRoute: typeof AppSelectTenantRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppWorkspaceWorkspaceIdRoute: typeof AppWorkspaceWorkspaceIdRouteWithChildren
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppSelectTenantRoute: AppSelectTenantRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppWorkspaceWorkspaceIdRoute: AppWorkspaceWorkspaceIdRouteWithChildren,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
   EditorTestRoute: EditorTestRoute,
-  SelectTenantRoute: SelectTenantRoute,
-  SystemTenantsRoute: SystemTenantsRoute,
-  WorkspaceWorkspaceIdRoute: WorkspaceWorkspaceIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

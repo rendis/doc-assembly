@@ -24,11 +24,21 @@ export type WorkspaceRole = typeof WorkspaceRole[keyof typeof WorkspaceRole];
 
 // --- Definición de "Capacidades" (Permissions) ---
 export const Permission = {
+  // System/Admin Console Access
+  ADMIN_ACCESS: 'admin:access',
+  SYSTEM_TENANTS_VIEW: 'system:tenants:view',
+  SYSTEM_TENANTS_MANAGE: 'system:tenants:manage',
+  SYSTEM_USERS_VIEW: 'system:users:view',
+  SYSTEM_USERS_MANAGE: 'system:users:manage',
+  SYSTEM_SETTINGS_VIEW: 'system:settings:view',
+  SYSTEM_SETTINGS_MANAGE: 'system:settings:manage',
+  SYSTEM_AUDIT_VIEW: 'system:audit:view',
+
   // Workspace Management
   WORKSPACE_VIEW: 'workspace:view',
   WORKSPACE_UPDATE: 'workspace:update',
   WORKSPACE_ARCHIVE: 'workspace:archive',
-  
+
   // Member Management
   MEMBERS_VIEW: 'members:view',
   MEMBERS_INVITE: 'members:invite',
@@ -40,14 +50,14 @@ export const Permission = {
   CONTENT_CREATE: 'content:create',
   CONTENT_EDIT: 'content:edit',
   CONTENT_DELETE: 'content:delete',
-  
+
   // Template Versioning
   VERSION_VIEW: 'version:view',
   VERSION_CREATE: 'version:create',
   VERSION_EDIT_DRAFT: 'version:edit_draft',
   VERSION_DELETE_DRAFT: 'version:delete_draft',
   VERSION_PUBLISH: 'version:publish',
-  
+
   // Tenant Management
   TENANT_CREATE: 'tenant:create',
   TENANT_MANAGE_SETTINGS: 'tenant:manage_settings',
@@ -110,10 +120,37 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
 
 export const TENANT_RULES: Record<TenantRole, Permission[]> = {
   [TenantRole.OWNER]: [
-    Permission.TENANT_MANAGE_SETTINGS, 
+    Permission.TENANT_MANAGE_SETTINGS,
     Permission.TENANT_MANAGE_WORKSPACES
   ],
   [TenantRole.ADMIN]: [
     Permission.TENANT_MANAGE_WORKSPACES
+  ]
+};
+
+// --- Reglas para Roles de Sistema (Admin Console) ---
+export const SYSTEM_RULES: Record<SystemRole, Permission[]> = {
+  [SystemRole.SUPERADMIN]: [
+    // Acceso completo a Admin Console
+    Permission.ADMIN_ACCESS,
+    Permission.SYSTEM_TENANTS_VIEW,
+    Permission.SYSTEM_TENANTS_MANAGE,
+    Permission.SYSTEM_USERS_VIEW,
+    Permission.SYSTEM_USERS_MANAGE,
+    Permission.SYSTEM_SETTINGS_VIEW,
+    Permission.SYSTEM_SETTINGS_MANAGE,
+    Permission.SYSTEM_AUDIT_VIEW,
+    // También tiene permisos de tenant por elevación automática
+    Permission.TENANT_CREATE,
+    Permission.TENANT_MANAGE_SETTINGS,
+    Permission.TENANT_MANAGE_WORKSPACES
+  ],
+  [SystemRole.PLATFORM_ADMIN]: [
+    // Acceso limitado a Admin Console
+    Permission.ADMIN_ACCESS,
+    Permission.SYSTEM_TENANTS_VIEW,
+    Permission.SYSTEM_TENANTS_MANAGE,
+    Permission.SYSTEM_AUDIT_VIEW
+    // No puede gestionar usuarios ni crear tenants
   ]
 };

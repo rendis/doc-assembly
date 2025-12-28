@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/workspace/$workspaceId/')({
+export const Route = createFileRoute('/_app/workspace/$workspaceId/')({
   component: WorkspaceIndex,
-})
+});
 
 function WorkspaceIndex() {
   return (
@@ -12,5 +12,5 @@ function WorkspaceIndex() {
         <p>Aquí irá el explorador de archivos (File Explorer)</p>
       </div>
     </div>
-  )
+  );
 }

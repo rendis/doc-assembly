@@ -14,6 +14,9 @@ interface AuthState {
   setSystemRoles: (roles: UserRole[]) => void;
   isAuthenticated: () => boolean;
   isSuperAdmin: () => boolean;
+  isPlatformAdmin: () => boolean;
+  canAccessAdmin: () => boolean;
+  getSystemRole: () => string | null;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -26,6 +29,20 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: () => !!get().token,
       isSuperAdmin: () => {
         return get().systemRoles.some(r => r.type === 'SYSTEM' && r.role === 'SUPERADMIN');
+      },
+      isPlatformAdmin: () => {
+        return get().systemRoles.some(r => r.type === 'SYSTEM' && r.role === 'PLATFORM_ADMIN');
+      },
+      canAccessAdmin: () => {
+        const roles = get().systemRoles;
+        return roles.some(r =>
+          r.type === 'SYSTEM' &&
+          (r.role === 'SUPERADMIN' || r.role === 'PLATFORM_ADMIN')
+        );
+      },
+      getSystemRole: () => {
+        const systemRole = get().systemRoles.find(r => r.type === 'SYSTEM');
+        return systemRole?.role ?? null;
       }
     }),
     {

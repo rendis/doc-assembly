@@ -14,9 +14,9 @@ export const CreateWorkspaceDialog = ({ onWorkspaceCreated }: CreateWorkspaceDia
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{ name: string; type: 'CLIENT' | 'SYSTEM' }>({
     name: '',
-    type: 'CLIENT' as const,
+    type: 'CLIENT',
   });
 
   // Lock body scroll when modal is open

@@ -12,12 +12,12 @@ export const tenantApi = {
    */
   getMyTenants: async (): Promise<Tenant[]> => {
     if (import.meta.env.VITE_USE_MOCK_AUTH === 'true') {
-        return new Promise(resolve => setTimeout(() => resolve(MOCK_TENANTS), 500));
+      return new Promise((resolve) => setTimeout(() => resolve(MOCK_TENANTS), 500));
     }
     const response = await apiClient.get('/me/tenants/list');
-    // Manejar respuesta { data: [...], count: ... } o array directo por compatibilidad
-    // @ts-expect-error - provisional typing
-    return Array.isArray(response) ? response : (response.data || []);
+    return Array.isArray(response)
+      ? response
+      : ((response as { data?: Tenant[] }).data || []);
   },
 
   /**
@@ -34,17 +34,23 @@ export const tenantApi = {
    */
   searchSystemTenants: async (query: string): Promise<Tenant[]> => {
     const response = await apiClient.get('/system/tenants/search', { params: { q: query } });
-    // @ts-expect-error - provisional typing
-    return Array.isArray(response) ? response : (response.data || []);
+    return Array.isArray(response)
+      ? response
+      : ((response as { data?: Tenant[] }).data || []);
   },
 
   /**
    * Lista tenants de forma paginada (System Admin).
    * GET /api/v1/system/tenants/list?limit=20&offset=0
    */
-  listSystemTenants: async (limit = 20, offset = 0): Promise<{ items: Tenant[], total: number }> => {
-    const response = await apiClient.get('/system/tenants/list', { params: { limit, offset } });
-    // @ts-expect-error - provisional typing until types are updated
-    return { items: response.data || [], total: response.count || 0 };
+  listSystemTenants: async (
+    limit = 20,
+    offset = 0
+  ): Promise<{ items: Tenant[]; total: number }> => {
+    const response = await apiClient.get('/system/tenants/list', {
+      params: { limit, offset },
+    });
+    const typed = response as { data?: Tenant[]; count?: number };
+    return { items: typed.data || [], total: typed.count || 0 };
   }
 };
