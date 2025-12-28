@@ -158,6 +158,13 @@ func GetWorkspaceID(c *gin.Context) (string, bool) {
 	return "", false
 }
 
+// GetWorkspaceIDFromHeader retrieves the workspace ID directly from the X-Workspace-ID header.
+// Use this when you need to check the header without requiring full WorkspaceContext middleware.
+func GetWorkspaceIDFromHeader(c *gin.Context) (string, bool) {
+	workspaceID := c.GetHeader(WorkspaceIDHeader)
+	return workspaceID, workspaceID != ""
+}
+
 // GetWorkspaceRole retrieves the user's role in the current workspace.
 func GetWorkspaceRole(c *gin.Context) (entity.WorkspaceRole, bool) {
 	if val, exists := c.Get(workspaceRoleKey); exists {

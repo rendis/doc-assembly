@@ -439,6 +439,25 @@ definitions:
       newParentId:
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MyRolesResponse:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry'
+        type: array
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry:
+    properties:
+      resourceId:
+        description: null for SYSTEM, UUID for TENANT/WORKSPACE
+        type: string
+      role:
+        description: The specific role (e.g., SUPERADMIN, TENANT_OWNER, ADMIN)
+        type: string
+      type:
+        description: SYSTEM, TENANT, or WORKSPACE
+        type: string
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ScheduleArchiveRequest:
     properties:
       archiveAt:
@@ -1923,6 +1942,39 @@ paths:
       summary: Create version from existing
       tags:
       - Template Versions
+  /api/v1/me/roles:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the current user's roles. Always includes system role if assigned.
+        Optionally includes tenant role if X-Tenant-ID header is provided.
+        Optionally includes workspace role if X-Workspace-ID header is provided.
+      parameters:
+      - description: Tenant ID to check role for
+        in: header
+        name: X-Tenant-ID
+        type: string
+      - description: Workspace ID to check role for
+        in: header
+        name: X-Workspace-ID
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MyRolesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get my roles
+      tags:
+      - Me
   /api/v1/me/tenants:
     get:
       consumes:

@@ -1481,6 +1481,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/me/roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the current user's roles. Always includes system role if assigned.\nOptionally includes tenant role if X-Tenant-ID header is provided.\nOptionally includes workspace role if X-Workspace-ID header is provided.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Me"
+                ],
+                "summary": "Get my roles",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID to check role for",
+                        "name": "X-Tenant-ID",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Workspace ID to check role for",
+                        "name": "X-Workspace-ID",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MyRolesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/me/tenants": {
             "get": {
                 "security": [
@@ -4331,6 +4379,34 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "newParentId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MyRolesResponse": {
+            "type": "object",
+            "properties": {
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry"
+                    }
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry": {
+            "type": "object",
+            "properties": {
+                "resourceId": {
+                    "description": "null for SYSTEM, UUID for TENANT/WORKSPACE",
+                    "type": "string"
+                },
+                "role": {
+                    "description": "The specific role (e.g., SUPERADMIN, TENANT_OWNER, ADMIN)",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "SYSTEM, TENANT, or WORKSPACE",
                     "type": "string"
                 }
             }

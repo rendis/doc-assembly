@@ -188,6 +188,33 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 | Método | Endpoint | Descripción | Cualquier usuario autenticado |
 |--------|----------|-------------|:-----------------------------:|
 | GET | `/me/tenants` | Lista los tenants a los que pertenece el usuario actual | ✅ |
+| GET | `/me/roles` | Obtiene los roles del usuario actual (ver detalles abajo) | ✅ |
+
+### Endpoint `/me/roles` - Detalle
+
+Este endpoint retorna los roles del usuario autenticado de forma condicional:
+
+| Header | Comportamiento |
+|--------|----------------|
+| *(ninguno)* | Retorna solo el rol de sistema si existe |
+| `X-Tenant-ID` | Agrega el rol del tenant si el usuario es miembro |
+| `X-Workspace-ID` | Agrega el rol del workspace si el usuario es miembro |
+
+**Ejemplo de respuesta:**
+```json
+{
+  "roles": [
+    { "type": "SYSTEM", "role": "SUPERADMIN", "resourceId": null },
+    { "type": "TENANT", "role": "TENANT_OWNER", "resourceId": "uuid-tenant" },
+    { "type": "WORKSPACE", "role": "ADMIN", "resourceId": "uuid-workspace" }
+  ]
+}
+```
+
+**Notas:**
+- Si el usuario no tiene roles asignados, retorna `{"roles": []}`
+- Si el usuario no es miembro del tenant/workspace indicado, ese rol no se incluye (sin error)
+- Los headers `X-Tenant-ID` y `X-Workspace-ID` son opcionales e independientes
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/me_controller.go`
 

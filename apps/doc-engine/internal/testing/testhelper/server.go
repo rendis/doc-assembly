@@ -99,7 +99,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Create controllers - Admin, Me, Tenant, Workspace
 	adminController := controller.NewAdminController(tenantService, workspaceService, systemRoleService)
-	meController := controller.NewMeController(tenantService)
+	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo)
 	tenantController := controller.NewTenantController(tenantService, workspaceService, tenantMemberService)
 	workspaceController := controller.NewWorkspaceController(workspaceService, folderService, tagService, workspaceMemberService)
 

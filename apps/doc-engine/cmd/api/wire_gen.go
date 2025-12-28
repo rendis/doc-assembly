@@ -77,7 +77,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	tenantUseCase := service.NewTenantService(tenantRepository, workspaceRepository, tenantMemberRepository)
 	systemRoleUseCase := service.NewSystemRoleService(systemRoleRepository, userRepository)
 	adminController := controller.NewAdminController(tenantUseCase, workspaceUseCase, systemRoleUseCase)
-	meController := controller.NewMeController(tenantUseCase)
+	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository)
 	tenantMemberUseCase := service.NewTenantMemberService(tenantMemberRepository, userRepository)
 	tenantController := controller.NewTenantController(tenantUseCase, workspaceUseCase, tenantMemberUseCase)
 	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController)

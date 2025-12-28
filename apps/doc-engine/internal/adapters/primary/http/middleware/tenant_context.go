@@ -92,6 +92,13 @@ func GetTenantID(c *gin.Context) (string, bool) {
 	return "", false
 }
 
+// GetTenantIDFromHeader retrieves the tenant ID directly from the X-Tenant-ID header.
+// Use this when you need to check the header without requiring full TenantContext middleware.
+func GetTenantIDFromHeader(c *gin.Context) (string, bool) {
+	tenantID := c.GetHeader(TenantIDHeader)
+	return tenantID, tenantID != ""
+}
+
 // GetTenantRole retrieves the user's role in the current tenant.
 func GetTenantRole(c *gin.Context) (entity.TenantRole, bool) {
 	if val, exists := c.Get(tenantRoleKey); exists {
