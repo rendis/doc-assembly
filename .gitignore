@@ -19,6 +19,7 @@ dist/
 coverage.html
 coverage.txt
 coverage-all.html
+__debug_bin*
 
 # Go workspace file
 go.work.sum
