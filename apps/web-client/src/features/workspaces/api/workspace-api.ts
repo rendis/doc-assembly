@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import type { Workspace, CreateWorkspaceRequest } from '../types';
+import type { CreateWorkspaceRequest, Workspace } from '../types';
 
 const MOCK_WORKSPACES: Workspace[] = [
     {
@@ -22,20 +22,6 @@ const MOCK_WORKSPACES: Workspace[] = [
 
 export const workspaceApi = {
   /**
-   * Obtiene los workspaces del tenant actual visibles para el usuario.
-   * Basado en GET /api/v1/tenant/my-workspaces
-   * Requiere X-Tenant-ID (manejado automáticamente por el interceptor).
-   */
-  getMyWorkspaces: async (): Promise<Workspace[]> => {
-    if (import.meta.env.VITE_USE_MOCK_AUTH === 'true') {
-        return new Promise(resolve => setTimeout(() => resolve(MOCK_WORKSPACES), 500));
-    }
-    const response = await apiClient.get('/tenant/my-workspaces');
-    // @ts-expect-error - provisional typing
-    return Array.isArray(response) ? response : (response.data || []);
-  },
-
-  /**
    * Lista todos los workspaces del tenant actual de forma paginada.
    * GET /api/v1/tenant/workspaces/list
    */
@@ -51,7 +37,6 @@ export const workspaceApi = {
    */
   searchWorkspaces: async (query: string): Promise<Workspace[]> => {
     const response = await apiClient.get('/tenant/workspaces/search', { params: { q: query } });
-    // @ts-expect-error - provisional typing
     return Array.isArray(response) ? response : (response.data || []);
   },
 

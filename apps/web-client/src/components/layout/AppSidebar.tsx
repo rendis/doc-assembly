@@ -22,7 +22,7 @@ export const AppSidebar = () => {
   const menuItems = [
     {
       icon: Building,
-      label: t('auth.select_tenant', { defaultValue: 'Organization' }),
+      label: t('auth.organizations', { defaultValue: 'Organizations' }),
       to: '/select-tenant',
       permission: null
     },
@@ -37,12 +37,6 @@ export const AppSidebar = () => {
       label: 'Members', 
       to: '/members', 
       permission: Permission.MEMBERS_VIEW
-    },
-    {
-      icon: Building,
-      label: 'Manage Orgs',
-      to: '/system/tenants',
-      permission: Permission.TENANT_CREATE // Visible solo para SuperAdmin
     },
     {
       icon: Settings,
