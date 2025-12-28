@@ -34,13 +34,13 @@ export const AppSidebar = () => {
     },
     {
       icon: Users,
-      label: 'Members', 
-      to: '/members', 
+      label: t('common.members'),
+      to: '/members',
       permission: Permission.MEMBERS_VIEW
     },
     {
       icon: Settings,
-      label: 'Settings',
+      label: t('common.settings'),
       to: '/settings', // Placeholder route
       permission: Permission.TENANT_MANAGE_SETTINGS // Example
     }

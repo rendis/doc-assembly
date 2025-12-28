@@ -5,14 +5,35 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
-    "logout": "Cerrar Sesión",
+    "logout": "Cerrar Sesion",
     "welcome": "Bienvenido",
-    "settings": "Configuración"
+    "settings": "Configuracion",
+    "create": "Crear",
+    "edit": "Editar",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "search": "Buscar",
+    "noResults": "No se encontraron resultados.",
+    "actions": "Acciones",
+    "name": "Nombre",
+    "code": "Codigo",
+    "description": "Descripcion",
+    "createdAt": "Fecha de creacion",
+    "type": "Tipo",
+    "status": "Estado",
+    "members": "Miembros",
+    "creating": "Creando...",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "yes": "Si",
+    "no": "No"
   },
   "auth": {
-    "select_tenant": "Selecciona una Organización",
-    "no_tenants": "No tienes acceso a ninguna organización.",
-    "loading_tenants": "Cargando organizaciones..."
+    "select_tenant": "Selecciona una Organizacion",
+    "no_tenants": "No tienes acceso a ninguna organizacion.",
+    "loading_tenants": "Cargando organizaciones...",
+    "organizations": "Organizaciones",
+    "selectOrManage": "Selecciona o gestiona organizaciones."
   },
   "workspace": {
     "title": "Espacios de Trabajo",
@@ -21,8 +42,145 @@
     "no_workspaces": "No hay espacios de trabajo disponibles.",
     "documents": "Documentos",
     "templates": "Plantillas",
-    "configuration": "Configuración",
-    "type_system": "Configuración del Sistema y Plantillas",
-    "type_client": "Espacio de Gestión Documental"
+    "configuration": "Configuracion",
+    "type_system": "Configuracion del Sistema y Plantillas",
+    "type_client": "Espacio de Gestion Documental",
+    "searchPlaceholder": "Buscar espacios de trabajo...",
+    "name": "Nombre del Espacio",
+    "type": "Tipo de Espacio",
+    "typeClient": "Espacio de Cliente",
+    "typeSystem": "Espacio del Sistema",
+    "createTitle": "Nuevo Espacio de Trabajo",
+    "createButton": "Crear Espacio",
+    "errorCreating": "Error al crear el espacio de trabajo.",
+    "namePlaceholder": "ej., Documentos Legales",
+    "documentsExplorer": "Explorador de documentos",
+    "templatesManager": "Gestor de plantillas",
+    "settings": {
+      "title": "Configuracion del Workspace",
+      "options": "Opciones de configuracion",
+      "noPermission": "Sin permisos para acceder a esta seccion"
+    }
+  },
+  "pagination": {
+    "showing": "Mostrando {{from}} a {{to}} de {{total}} resultados",
+    "page": "Pagina {{page}} de {{totalPages}}"
+  },
+  "navigation": {
+    "admin": "Admin",
+    "app": "App",
+    "adminConsole": "Consola de Administracion"
+  },
+  "userMenu": {
+    "theme": "Tema",
+    "language": "Idioma"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "tenant": {
+    "createTitle": "Crear Organizacion",
+    "createButton": "Crear",
+    "name": "Nombre",
+    "code": "Codigo (Slug)",
+    "codeHelp": "Identificador corto (ej., ACME), max 10 caracteres.",
+    "description": "Descripcion",
+    "namePlaceholder": "Acme Corp",
+    "codePlaceholder": "ACME",
+    "errorCreating": "Error al crear la organizacion. Verifica permisos o codigo duplicado.",
+    "searchPlaceholder": "Buscar organizaciones...",
+    "noTenants": "No se encontraron organizaciones.",
+    "system": "SISTEMA"
+  },
+  "admin": {
+    "dashboard": "Panel de Control",
+    "dashboardDescription": "Vista general de la plataforma y acciones rapidas",
+    "currentRole": "Tu rol:",
+    "quickActions": "Acciones Rapidas",
+    "manageTenants": "Gestionar Organizaciones",
+    "manageTenantsDesc": "Ver y administrar organizaciones",
+    "manageUsers": "Usuarios del Sistema",
+    "manageUsersDesc": "Gestionar roles a nivel de sistema",
+    "viewAudit": "Registros de Auditoria",
+    "viewAuditDesc": "Revisar actividad de la plataforma",
+    "tenants": "Organizaciones",
+    "systemUsers": "Usuarios del Sistema",
+    "platformSettings": "Configuracion de Plataforma",
+    "auditLogs": "Registros de Auditoria",
+    "stats": {
+      "tenants": "Total de Organizaciones",
+      "tenantsDesc": "Organizaciones activas",
+      "users": "Usuarios del Sistema",
+      "usersDesc": "Usuarios con roles de sistema",
+      "settings": "Configuracion de Plataforma",
+      "settingsDesc": "Elementos de configuracion",
+      "activity": "Actividad Reciente",
+      "activityDesc": "Ultimas 24 horas"
+    },
+    "tenantsPage": {
+      "title": "Gestion de Organizaciones",
+      "description": "Administrar todas las organizaciones en la plataforma",
+      "searchPlaceholder": "Buscar organizaciones...",
+      "totalCount": "{{count}} organizaciones",
+      "name": "Nombre",
+      "code": "Codigo",
+      "createdAt": "Creado",
+      "actions": "Acciones",
+      "noResults": "No se encontraron organizaciones.",
+      "pagination": "Pagina {{page}} de {{totalPages}}"
+    },
+    "users": {
+      "title": "Usuarios del Sistema",
+      "description": "Gestionar usuarios con roles a nivel de sistema",
+      "addUser": "Agregar Usuario del Sistema",
+      "infoTitle": "Acerca de los Roles del Sistema",
+      "infoDescription": "Los roles de sistema otorgan acceso a toda la plataforma. SUPERADMIN tiene acceso completo a todas las funciones y organizaciones. PLATFORM_ADMIN puede gestionar organizaciones pero no puede asignar roles de sistema.",
+      "user": "Usuario",
+      "role": "Rol",
+      "assignedAt": "Asignado",
+      "actions": "Acciones",
+      "noResults": "No se encontraron usuarios del sistema.",
+      "revokeRole": "Revocar Rol",
+      "confirmRevoke": "Esta seguro de que desea revocar el rol de sistema de este usuario?",
+      "errorRevoke": "Error al revocar el rol. Intente nuevamente.",
+      "errorLoad": "Error al cargar usuarios del sistema. Es posible que no tenga permisos.",
+      "roleSuperadmin": "SUPERADMIN - Acceso completo a la plataforma",
+      "rolePlatformAdmin": "PLATFORM_ADMIN - Acceso administrativo limitado"
+    },
+    "settings": {
+      "title": "Configuracion de Plataforma",
+      "description": "Configurar ajustes y preferencias de toda la plataforma",
+      "comingSoon": "Proximamente",
+      "comingSoonDescription": "La funcionalidad de configuracion de plataforma aun no esta disponible. Esta caracteristica te permitira configurar ajustes globales, marca e integraciones.",
+      "noApiTitle": "API No Disponible",
+      "noApiDescription": "La API de backend para configuracion de plataforma aun no ha sido implementada. Una vez disponible, podras configurar varias opciones de plataforma desde esta pagina."
+    },
+    "audit": {
+      "title": "Registros de Auditoria",
+      "description": "Ver actividad de la plataforma y eventos de seguridad",
+      "comingSoon": "Proximamente",
+      "comingSoonDescription": "La funcionalidad de registros de auditoria aun no esta disponible. Esta caracteristica proporcionara una vista completa de todas las actividades de la plataforma, acciones de usuarios y eventos de seguridad.",
+      "noApiTitle": "API No Disponible",
+      "noApiDescription": "La API de backend para registros de auditoria aun no ha sido implementada. Una vez disponible, podras buscar, filtrar y exportar datos de auditoria.",
+      "featureActivity": "Actividad de Usuario",
+      "featureActivityDesc": "Rastrear inicios de sesion, cierres de sesion y sesiones de usuario en toda la plataforma.",
+      "featureChanges": "Cambios de Datos",
+      "featureChangesDesc": "Monitorear operaciones de creacion, actualizacion y eliminacion en todos los recursos.",
+      "featureSecurity": "Eventos de Seguridad",
+      "featureSecurityDesc": "Revisar cambios de roles, actualizaciones de permisos e intentos de acceso."
+    }
+  },
+  "editor": {
+    "bold": "Negrita",
+    "italic": "Cursiva",
+    "heading1": "Encabezado 1",
+    "heading2": "Encabezado 2",
+    "bulletList": "Lista con vinetas",
+    "orderedList": "Lista numerada",
+    "quote": "Cita",
+    "undo": "Deshacer",
+    "redo": "Rehacer"
   }
 }

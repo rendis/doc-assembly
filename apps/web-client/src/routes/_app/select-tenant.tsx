@@ -137,7 +137,7 @@ function SelectTenantPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             {t('auth.select_tenant')}
           </h1>
-          <p className="text-muted-foreground">Select or manage organizations.</p>
+          <p className="text-muted-foreground">{t('auth.selectOrManage')}</p>
         </div>
         <CreateTenantDialog onTenantCreated={handleTenantCreated} />
       </div>
@@ -146,7 +146,7 @@ function SelectTenantPage() {
         <div className="relative w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
-            placeholder="Search organizations..."
+            placeholder={t('tenant.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -169,16 +169,16 @@ function SelectTenantPage() {
           <thead>
             <tr className="border-b bg-muted/50 transition-colors">
               <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                Name
+                {t('common.name')}
               </th>
               <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                Code
+                {t('common.code')}
               </th>
               <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                Created At
+                {t('common.createdAt')}
               </th>
               <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">
-                Actions
+                {t('common.actions')}
               </th>
             </tr>
           </thead>
@@ -187,7 +187,7 @@ function SelectTenantPage() {
               <tr>
                 <td colSpan={4} className="h-24 text-center">
                   <div className="flex justify-center items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}
                   </div>
                 </td>
               </tr>
@@ -197,7 +197,7 @@ function SelectTenantPage() {
                   colSpan={4}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No tenants found.
+                  {t('tenant.noTenants')}
                 </td>
               </tr>
             ) : (
@@ -212,7 +212,7 @@ function SelectTenantPage() {
                       {tenant.name}
                       {tenant.code === 'SYS' && (
                         <span className="text-[10px] bg-primary/10 text-primary px-1 rounded">
-                          SYSTEM
+                          {t('tenant.system')}
                         </span>
                       )}
                     </div>
@@ -246,21 +246,21 @@ function SelectTenantPage() {
 
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="text-xs text-muted-foreground">
-          {total > 0 ? `Page ${page} of ${Math.ceil(total / LIMIT)}` : ''}
+          {total > 0 ? t('pagination.page', { page, totalPages: Math.ceil(total / LIMIT) }) : ''}
         </div>
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1 || loading}
           className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-4 disabled:opacity-50"
         >
-          Previous
+          {t('common.previous')}
         </button>
         <button
           onClick={() => setPage((p) => p + 1)}
           disabled={page * LIMIT >= total || loading || total === 0}
           className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-4 disabled:opacity-50"
         >
-          Next
+          {t('common.next')}
         </button>
       </div>
     </div>

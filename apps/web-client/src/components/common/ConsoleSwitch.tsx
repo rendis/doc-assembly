@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { useCanAccessAdmin } from '@/features/auth/hooks/useCanAccessAdmin';
 import { Shield, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -6,6 +7,7 @@ import { cn } from '@/lib/utils';
 type ConsoleMode = 'admin' | 'app';
 
 export const ConsoleSwitch = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { canAccessAdmin } = useCanAccessAdmin();
@@ -39,7 +41,7 @@ export const ConsoleSwitch = () => {
         )}
       >
         <Shield className="h-4 w-4" />
-        <span className="hidden sm:inline">Admin</span>
+        <span className="hidden sm:inline">{t('navigation.admin')}</span>
       </button>
       <button
         onClick={() => handleSwitch('app')}
@@ -51,7 +53,7 @@ export const ConsoleSwitch = () => {
         )}
       >
         <LayoutGrid className="h-4 w-4" />
-        <span className="hidden sm:inline">App</span>
+        <span className="hidden sm:inline">{t('navigation.app')}</span>
       </button>
     </div>
   );

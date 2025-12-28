@@ -1,9 +1,12 @@
 import { Outlet } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { AdminSidebar } from './AdminSidebar';
 import { ConsoleSwitch } from '@/components/common/ConsoleSwitch';
 import { UserMenu } from '@/components/common/UserMenu';
 
 export const AdminLayout = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex h-screen bg-background text-foreground transition-colors">
       {/* Admin Sidebar */}
@@ -16,7 +19,7 @@ export const AdminLayout = () => {
             <ConsoleSwitch />
             <div className="h-6 w-px bg-border" />
             <span className="text-sm font-medium text-muted-foreground">
-              Admin Console
+              {t('navigation.adminConsole')}
             </span>
           </div>
 

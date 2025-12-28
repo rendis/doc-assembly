@@ -60,7 +60,7 @@ export const UserMenu = () => {
           >
             <div className="flex items-center gap-2">
                 {currentThemeIcon}
-                <span>Tema: <span className="capitalize">{theme}</span></span>
+                <span>{t('userMenu.theme')}: <span className="capitalize">{t(`theme.${theme}`)}</span></span>
             </div>
           </button>
 
@@ -68,7 +68,7 @@ export const UserMenu = () => {
           <div className="flex items-center justify-between px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
             <div className="flex items-center gap-2">
               <Languages className="h-4 w-4 text-slate-500" />
-              <span>Idioma</span>
+              <span>{t('userMenu.language')}</span>
             </div>
             <div className="flex bg-slate-100 dark:bg-slate-800 rounded p-0.5">
               <button

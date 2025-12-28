@@ -28,7 +28,7 @@ function AdminUsersPage() {
         setUsers(data);
       } catch (err) {
         console.error('Failed to fetch system users', err);
-        setError('Failed to load system users. You may not have permission.');
+        setError(t('admin.users.errorLoad'));
       } finally {
         setLoading(false);
       }
@@ -38,7 +38,7 @@ function AdminUsersPage() {
   }, []);
 
   const handleRevokeRole = async (userId: string) => {
-    if (!confirm('Are you sure you want to revoke this user\'s system role?')) {
+    if (!confirm(t('admin.users.confirmRevoke'))) {
       return;
     }
 
@@ -47,7 +47,7 @@ function AdminUsersPage() {
       setUsers(users.filter((u) => u.id !== userId));
     } catch (err) {
       console.error('Failed to revoke role', err);
-      alert('Failed to revoke role. Please try again.');
+      alert(t('admin.users.errorRevoke'));
     }
   };
 
@@ -203,11 +203,11 @@ function AdminUsersPage() {
       <div className="flex items-center gap-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-red-500" />
-          <span>SUPERADMIN - Full platform access</span>
+          <span>{t('admin.users.roleSuperadmin')}</span>
         </div>
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-purple-500" />
-          <span>PLATFORM_ADMIN - Limited admin access</span>
+          <span>{t('admin.users.rolePlatformAdmin')}</span>
         </div>
       </div>
     </div>

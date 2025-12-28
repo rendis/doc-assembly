@@ -67,7 +67,7 @@ export const AdminSidebar = () => {
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             <span className="font-bold text-lg tracking-tight truncate text-purple-700 dark:text-purple-300">
-              Admin
+              {t('navigation.admin')}
             </span>
           </div>
         )}
@@ -109,7 +109,7 @@ export const AdminSidebar = () => {
 
       {/* Footer */}
       <div className="border-t p-2 text-xs text-muted-foreground text-center">
-        {!isCollapsed && <span>Admin Console</span>}
+        {!isCollapsed && <span>{t('navigation.adminConsole')}</span>}
       </div>
     </aside>
   );

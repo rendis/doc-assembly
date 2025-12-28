@@ -13,28 +13,28 @@ function AdminDashboard() {
 
   const stats = [
     {
-      label: t('admin.stats.tenants', { defaultValue: 'Total Tenants' }),
+      label: t('admin.stats.tenants'),
       value: '-',
       icon: Building,
-      description: 'Active organizations',
+      description: t('admin.stats.tenantsDesc'),
     },
     {
-      label: t('admin.stats.users', { defaultValue: 'System Users' }),
+      label: t('admin.stats.users'),
       value: '-',
       icon: Users,
-      description: 'Users with system roles',
+      description: t('admin.stats.usersDesc'),
     },
     {
-      label: t('admin.stats.settings', { defaultValue: 'Platform Settings' }),
+      label: t('admin.stats.settings'),
       value: '-',
       icon: Settings,
-      description: 'Configuration items',
+      description: t('admin.stats.settingsDesc'),
     },
     {
-      label: t('admin.stats.activity', { defaultValue: 'Recent Activity' }),
+      label: t('admin.stats.activity'),
       value: '-',
       icon: Activity,
-      description: 'Last 24 hours',
+      description: t('admin.stats.activityDesc'),
     },
   ];
 

@@ -91,7 +91,7 @@ function DashboardIndex() {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              placeholder="Search workspaces..."
+              placeholder={t('workspace.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -126,7 +126,7 @@ function DashboardIndex() {
         ) : workspaces.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-muted-foreground/25 bg-muted/5">
             <p className="text-muted-foreground">
-              {search ? 'No results found.' : t('workspace.no_workspaces')}
+              {search ? t('common.noResults') : t('workspace.no_workspaces')}
             </p>
           </div>
         ) : (
@@ -182,9 +182,7 @@ function DashboardIndex() {
             {!debouncedSearch && total > LIMIT && (
               <div className="flex items-center justify-between border-t border-muted/50 py-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium">{(page - 1) * LIMIT + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(page * LIMIT, total)}</span> of{' '}
-                  <span className="font-medium">{total}</span> results
+                  {t('pagination.showing', { from: (page - 1) * LIMIT + 1, to: Math.min(page * LIMIT, total), total })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -192,14 +190,14 @@ function DashboardIndex() {
                     disabled={page === 1}
                     className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-card px-3 text-sm font-medium hover:bg-accent disabled:opacity-50 transition-colors"
                   >
-                    <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                    <ChevronLeft className="h-4 w-4 mr-1" /> {t('common.previous')}
                   </button>
                   <button
                     onClick={() => setPage((p) => p + 1)}
                     disabled={page * LIMIT >= total}
                     className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-card px-3 text-sm font-medium hover:bg-accent disabled:opacity-50 transition-colors"
                   >
-                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                    {t('common.next')} <ChevronRight className="h-4 w-4 ml-1" />
                   </button>
                 </div>
               </div>

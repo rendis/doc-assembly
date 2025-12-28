@@ -7,12 +7,33 @@
     "delete": "Delete",
     "logout": "Logout",
     "welcome": "Welcome",
-    "settings": "Settings"
+    "settings": "Settings",
+    "create": "Create",
+    "edit": "Edit",
+    "previous": "Previous",
+    "next": "Next",
+    "search": "Search",
+    "noResults": "No results found.",
+    "actions": "Actions",
+    "name": "Name",
+    "code": "Code",
+    "description": "Description",
+    "createdAt": "Created At",
+    "type": "Type",
+    "status": "Status",
+    "members": "Members",
+    "creating": "Creating...",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
   },
   "auth": {
     "select_tenant": "Select an Organization",
     "no_tenants": "You do not have access to any organization.",
-    "loading_tenants": "Loading organizations..."
+    "loading_tenants": "Loading organizations...",
+    "organizations": "Organizations",
+    "selectOrManage": "Select or manage organizations."
   },
   "workspace": {
     "title": "Workspaces",
@@ -23,6 +44,143 @@
     "templates": "Templates",
     "configuration": "Configuration",
     "type_system": "System Configuration & Templates",
-    "type_client": "Document Management Workspace"
+    "type_client": "Document Management Workspace",
+    "searchPlaceholder": "Search workspaces...",
+    "name": "Workspace Name",
+    "type": "Workspace Type",
+    "typeClient": "Client Workspace",
+    "typeSystem": "System Workspace",
+    "createTitle": "New Workspace",
+    "createButton": "Create Workspace",
+    "errorCreating": "Error creating workspace.",
+    "namePlaceholder": "e.g., Legal Documents",
+    "documentsExplorer": "Document explorer",
+    "templatesManager": "Template manager",
+    "settings": {
+      "title": "Workspace Settings",
+      "options": "Configuration options",
+      "noPermission": "You do not have permission to access this section"
+    }
+  },
+  "pagination": {
+    "showing": "Showing {{from}} to {{to}} of {{total}} results",
+    "page": "Page {{page}} of {{totalPages}}"
+  },
+  "navigation": {
+    "admin": "Admin",
+    "app": "App",
+    "adminConsole": "Admin Console"
+  },
+  "userMenu": {
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "tenant": {
+    "createTitle": "Create Organization",
+    "createButton": "Create",
+    "name": "Name",
+    "code": "Code (Slug)",
+    "codeHelp": "Short identifier (e.g., ACME), max 10 chars.",
+    "description": "Description",
+    "namePlaceholder": "Acme Corp",
+    "codePlaceholder": "ACME",
+    "errorCreating": "Error creating organization. Check permissions or duplicate code.",
+    "searchPlaceholder": "Search organizations...",
+    "noTenants": "No tenants found.",
+    "system": "SYSTEM"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "dashboardDescription": "Platform overview and quick actions",
+    "currentRole": "Your role:",
+    "quickActions": "Quick Actions",
+    "manageTenants": "Manage Tenants",
+    "manageTenantsDesc": "View and manage organizations",
+    "manageUsers": "System Users",
+    "manageUsersDesc": "Manage system-level roles",
+    "viewAudit": "Audit Logs",
+    "viewAuditDesc": "Review platform activity",
+    "tenants": "Tenants",
+    "systemUsers": "System Users",
+    "platformSettings": "Platform Settings",
+    "auditLogs": "Audit Logs",
+    "stats": {
+      "tenants": "Total Tenants",
+      "tenantsDesc": "Active organizations",
+      "users": "System Users",
+      "usersDesc": "Users with system roles",
+      "settings": "Platform Settings",
+      "settingsDesc": "Configuration items",
+      "activity": "Recent Activity",
+      "activityDesc": "Last 24 hours"
+    },
+    "tenantsPage": {
+      "title": "Tenant Management",
+      "description": "Manage all organizations in the platform",
+      "searchPlaceholder": "Search tenants...",
+      "totalCount": "{{count}} tenants",
+      "name": "Name",
+      "code": "Code",
+      "createdAt": "Created",
+      "actions": "Actions",
+      "noResults": "No tenants found.",
+      "pagination": "Page {{page}} of {{totalPages}}"
+    },
+    "users": {
+      "title": "System Users",
+      "description": "Manage users with system-level roles",
+      "addUser": "Add System User",
+      "infoTitle": "About System Roles",
+      "infoDescription": "System roles grant platform-wide access. SUPERADMIN has full access to all features and tenants. PLATFORM_ADMIN can manage tenants but cannot assign system roles.",
+      "user": "User",
+      "role": "Role",
+      "assignedAt": "Assigned",
+      "actions": "Actions",
+      "noResults": "No system users found.",
+      "revokeRole": "Revoke Role",
+      "confirmRevoke": "Are you sure you want to revoke this user's system role?",
+      "errorRevoke": "Failed to revoke role. Please try again.",
+      "errorLoad": "Failed to load system users. You may not have permission.",
+      "roleSuperadmin": "SUPERADMIN - Full platform access",
+      "rolePlatformAdmin": "PLATFORM_ADMIN - Limited admin access"
+    },
+    "settings": {
+      "title": "Platform Settings",
+      "description": "Configure platform-wide settings and preferences",
+      "comingSoon": "Coming Soon",
+      "comingSoonDescription": "Platform settings functionality is not yet available. This feature will allow you to configure global settings, branding, and integrations.",
+      "noApiTitle": "API Not Available",
+      "noApiDescription": "The backend API for platform settings has not been implemented yet. Once available, you will be able to configure various platform options from this page."
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "description": "View platform activity and security events",
+      "comingSoon": "Coming Soon",
+      "comingSoonDescription": "Audit logs functionality is not yet available. This feature will provide a comprehensive view of all platform activities, user actions, and security events.",
+      "noApiTitle": "API Not Available",
+      "noApiDescription": "The backend API for audit logs has not been implemented yet. Once available, you will be able to search, filter, and export audit data.",
+      "featureActivity": "User Activity",
+      "featureActivityDesc": "Track logins, logouts, and user sessions across the platform.",
+      "featureChanges": "Data Changes",
+      "featureChangesDesc": "Monitor create, update, and delete operations on all resources.",
+      "featureSecurity": "Security Events",
+      "featureSecurityDesc": "Review role changes, permission updates, and access attempts."
+    }
+  },
+  "editor": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "bulletList": "Bullet List",
+    "orderedList": "Ordered List",
+    "quote": "Quote",
+    "undo": "Undo",
+    "redo": "Redo"
   }
 }

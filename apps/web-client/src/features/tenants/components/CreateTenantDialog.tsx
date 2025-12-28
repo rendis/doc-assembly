@@ -32,7 +32,7 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
       setFormData({ name: '', code: '', description: '' });
     } catch (err) {
       console.error(err);
-      setError('Error creating organization. Check permissions or duplicate code.');
+      setError(t('tenant.errorCreating'));
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
         className="mt-4 flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         <Plus className="h-4 w-4" />
-        {t('common.create', { defaultValue: 'Create' })} Organization
+        {t('tenant.createTitle')}
       </button>
     );
   }
@@ -54,7 +54,7 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg text-card-foreground">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Create Organization</h2>
+          <h2 className="text-lg font-semibold">{t('tenant.createTitle')}</h2>
           <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
@@ -68,33 +68,33 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">Name</label>
+            <label className="mb-1 block text-sm font-medium">{t('tenant.name')}</label>
             <input
               required
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Acme Corp"
+              placeholder={t('tenant.namePlaceholder')}
             />
           </div>
           
           <div>
-            <label className="mb-1 block text-sm font-medium">Code (Slug)</label>
+            <label className="mb-1 block text-sm font-medium">{t('tenant.code')}</label>
             <input
               required
               type="text"
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="ACME"
+              placeholder={t('tenant.codePlaceholder')}
               maxLength={10}
             />
-            <p className="mt-1 text-xs text-muted-foreground">Short identifier (e.g., ACME), max 10 chars.</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('tenant.codeHelp')}</p>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Description</label>
+            <label className="mb-1 block text-sm font-medium">{t('tenant.description')}</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -109,14 +109,14 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
               onClick={() => setIsOpen(false)}
               className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? t('common.creating') : t('common.create')}
             </button>
           </div>
         </form>

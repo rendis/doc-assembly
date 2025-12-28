@@ -1,4 +1,5 @@
 import { Link, useMatchRoute } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { PermissionGuard } from '@/components/common/PermissionGuard';
 import { Permission } from '@/features/auth/rbac/rules';
 import { cn } from '@/lib/utils';
@@ -14,12 +15,13 @@ interface WorkspaceTabsProps {
 }
 
 export const WorkspaceTabs = ({ workspaceId }: WorkspaceTabsProps) => {
+  const { t } = useTranslation();
   const matchRoute = useMatchRoute();
 
   const tabs: Tab[] = [
-    { label: 'Documentos', to: `/workspace/${workspaceId}/documents` },
-    { label: 'Plantillas', to: `/workspace/${workspaceId}/templates` },
-    { label: 'Configuracion', to: `/workspace/${workspaceId}/settings`, permission: Permission.WORKSPACE_UPDATE },
+    { label: t('workspace.documents'), to: `/workspace/${workspaceId}/documents` },
+    { label: t('workspace.templates'), to: `/workspace/${workspaceId}/templates` },
+    { label: t('workspace.configuration'), to: `/workspace/${workspaceId}/settings`, permission: Permission.WORKSPACE_UPDATE },
   ];
 
   return (
