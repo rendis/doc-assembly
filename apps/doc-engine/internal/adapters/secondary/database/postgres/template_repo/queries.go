@@ -60,7 +60,6 @@ const (
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
 			t.created_at, t.updated_at,
-			(SELECT COUNT(*) FROM content.template_tags WHERE template_id = t.id) as tag_count,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
 		FROM content.templates t
@@ -70,7 +69,6 @@ const (
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
 			t.created_at, t.updated_at,
-			(SELECT COUNT(*) FROM content.template_tags WHERE template_id = t.id) as tag_count,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
 		FROM content.templates t
@@ -81,7 +79,6 @@ const (
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
 			t.created_at, t.updated_at,
-			(SELECT COUNT(*) FROM content.template_tags WHERE template_id = t.id) as tag_count,
 			true as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
 		FROM content.templates t
@@ -101,4 +98,11 @@ const (
 	queryExistsByTitleExcluding = `SELECT EXISTS(SELECT 1 FROM content.templates WHERE workspace_id = $1 AND title = $2 AND id != $3)`
 
 	queryCountByFolder = `SELECT COUNT(*) FROM content.templates WHERE folder_id = $1`
+
+	queryTemplateTagsBatch = `
+		SELECT tt.template_id, t.id, t.name, t.color
+		FROM content.template_tags tt
+		JOIN organizer.tags t ON t.id = tt.tag_id
+		WHERE tt.template_id = ANY($1)
+		ORDER BY t.name`
 )

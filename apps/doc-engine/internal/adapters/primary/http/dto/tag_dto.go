@@ -23,13 +23,13 @@ type TagWithCountResponse struct {
 
 // CreateTagRequest represents a request to create a tag.
 type CreateTagRequest struct {
-	Name  string `json:"name" binding:"required,min=1,max=50"`
+	Name  string `json:"name" binding:"required,min=3,max=50"`
 	Color string `json:"color" binding:"required"`
 }
 
 // UpdateTagRequest represents a request to update a tag.
 type UpdateTagRequest struct {
-	Name  string `json:"name" binding:"required,min=1,max=50"`
+	Name  string `json:"name" binding:"required,min=3,max=50"`
 	Color string `json:"color" binding:"required"`
 }
 
@@ -40,6 +40,9 @@ var hexColorRegex = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 func (r *CreateTagRequest) Validate() error {
 	if r.Name == "" {
 		return ErrNameRequired
+	}
+	if len(r.Name) < 3 {
+		return ErrNameTooShort
 	}
 	if len(r.Name) > 50 {
 		return ErrNameTooLong
@@ -54,6 +57,9 @@ func (r *CreateTagRequest) Validate() error {
 func (r *UpdateTagRequest) Validate() error {
 	if r.Name == "" {
 		return ErrNameRequired
+	}
+	if len(r.Name) < 3 {
+		return ErrNameTooShort
 	}
 	if len(r.Name) > 50 {
 		return ErrNameTooLong

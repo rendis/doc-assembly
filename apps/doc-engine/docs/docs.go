@@ -3991,7 +3991,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "maxLength": 50,
-                    "minLength": 1
+                    "minLength": 3
                 }
             }
         },
@@ -4626,6 +4626,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagWithCountResponse": {
             "type": "object",
             "properties": {
@@ -4681,8 +4695,11 @@ const docTemplate = `{
                 "isPublicLibrary": {
                     "type": "boolean"
                 },
-                "tagCount": {
-                    "type": "integer"
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse"
+                    }
                 },
                 "title": {
                     "type": "string"
@@ -5117,7 +5134,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "maxLength": 50,
-                    "minLength": 1
+                    "minLength": 3
                 }
             }
         },

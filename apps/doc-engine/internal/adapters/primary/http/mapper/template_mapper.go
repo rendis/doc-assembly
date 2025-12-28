@@ -53,10 +53,27 @@ func (m *TemplateMapper) ToListItemResponse(item *entity.TemplateListItem) *dto.
 		Title:               item.Title,
 		IsPublicLibrary:     item.IsPublicLibrary,
 		HasPublishedVersion: item.HasPublishedVersion,
-		TagCount:            item.TagCount,
+		Tags:                m.toSimpleTagList(item.Tags),
 		CreatedAt:           item.CreatedAt,
 		UpdatedAt:           item.UpdatedAt,
 	}
+}
+
+// toSimpleTagList converts a list of tag entities to simplified tag responses.
+func (m *TemplateMapper) toSimpleTagList(tags []*entity.Tag) []*dto.TagSimpleResponse {
+	if tags == nil {
+		return []*dto.TagSimpleResponse{}
+	}
+
+	result := make([]*dto.TagSimpleResponse, len(tags))
+	for i, tag := range tags {
+		result[i] = &dto.TagSimpleResponse{
+			ID:    tag.ID,
+			Name:  tag.Name,
+			Color: tag.Color,
+		}
+	}
+	return result
 }
 
 // ToListItemResponseList converts a list of template list items to response DTOs.

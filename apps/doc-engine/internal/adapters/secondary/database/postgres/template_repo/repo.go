@@ -296,6 +296,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 		args = append(args, *filters.FolderID)
 		argPos++
 	}
+	// If folderId is nil, no filter is applied (returns all templates)
 
 	if filters.HasPublishedVersion != nil {
 		if *filters.HasPublishedVersion {
@@ -320,7 +321,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 		argPos += 2
 	}
 
-	query += " ORDER BY t.created_at DESC"
+	query += " ORDER BY (t.folder_id IS NULL) DESC, t.created_at DESC"
 
 	if filters.Limit > 0 {
 		query += fmt.Sprintf(" LIMIT $%d", argPos)
@@ -350,7 +351,6 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 			&item.IsPublicLibrary,
 			&item.CreatedAt,
 			&item.UpdatedAt,
-			&item.TagCount,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
 		); err != nil {
@@ -361,6 +361,11 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating templates: %w", err)
+	}
+
+	// Load tags in batch for all templates
+	if err := r.loadTagsForTemplates(ctx, templates); err != nil {
+		return nil, err
 	}
 
 	return templates, nil
@@ -385,7 +390,6 @@ func (r *Repository) FindByFolder(ctx context.Context, folderID string) ([]*enti
 			&item.IsPublicLibrary,
 			&item.CreatedAt,
 			&item.UpdatedAt,
-			&item.TagCount,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
 		); err != nil {
@@ -396,6 +400,11 @@ func (r *Repository) FindByFolder(ctx context.Context, folderID string) ([]*enti
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating templates: %w", err)
+	}
+
+	// Load tags in batch for all templates
+	if err := r.loadTagsForTemplates(ctx, templates); err != nil {
+		return nil, err
 	}
 
 	return templates, nil
@@ -420,7 +429,6 @@ func (r *Repository) FindPublicLibrary(ctx context.Context, workspaceID string) 
 			&item.IsPublicLibrary,
 			&item.CreatedAt,
 			&item.UpdatedAt,
-			&item.TagCount,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
 		); err != nil {
@@ -433,7 +441,58 @@ func (r *Repository) FindPublicLibrary(ctx context.Context, workspaceID string) 
 		return nil, fmt.Errorf("iterating templates: %w", err)
 	}
 
+	// Load tags in batch for all templates
+	if err := r.loadTagsForTemplates(ctx, templates); err != nil {
+		return nil, err
+	}
+
 	return templates, nil
+}
+
+// loadTagsForTemplates loads tags for multiple templates in a single batch query.
+func (r *Repository) loadTagsForTemplates(ctx context.Context, templates []*entity.TemplateListItem) error {
+	if len(templates) == 0 {
+		return nil
+	}
+
+	// Collect template IDs
+	templateIDs := make([]string, len(templates))
+	templateMap := make(map[string]*entity.TemplateListItem, len(templates))
+	for i, t := range templates {
+		templateIDs[i] = t.ID
+		templateMap[t.ID] = t
+		t.Tags = []*entity.Tag{} // Initialize empty slice
+	}
+
+	// Query all tags for these templates in one batch
+	rows, err := r.pool.Query(ctx, queryTemplateTagsBatch, templateIDs)
+	if err != nil {
+		return fmt.Errorf("querying template tags batch: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var templateID string
+		tag := &entity.Tag{}
+		if err := rows.Scan(
+			&templateID,
+			&tag.ID,
+			&tag.Name,
+			&tag.Color,
+		); err != nil {
+			return fmt.Errorf("scanning template tag: %w", err)
+		}
+
+		if template, ok := templateMap[templateID]; ok {
+			template.Tags = append(template.Tags, tag)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterating template tags: %w", err)
+	}
+
+	return nil
 }
 
 // Update updates a template.

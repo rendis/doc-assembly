@@ -53,7 +53,7 @@ type TemplateListItem struct {
 	FolderID            *string    `json:"folderId,omitempty"`
 	Title               string     `json:"title"`
 	IsPublicLibrary     bool       `json:"isPublicLibrary"`
-	TagCount            int        `json:"tagCount"`
+	Tags                []*Tag     `json:"tags"`
 	HasPublishedVersion bool       `json:"hasPublishedVersion"`
 	VersionCount        int        `json:"versionCount"`
 	CreatedAt           time.Time  `json:"createdAt"`

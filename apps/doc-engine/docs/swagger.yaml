@@ -119,7 +119,7 @@ definitions:
         type: string
       name:
         maxLength: 50
-        minLength: 1
+        minLength: 3
         type: string
     required:
     - color
@@ -542,6 +542,15 @@ definitions:
       workspaceId:
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse:
+    properties:
+      color:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagWithCountResponse:
     properties:
       color:
@@ -578,8 +587,10 @@ definitions:
         type: string
       isPublicLibrary:
         type: boolean
-      tagCount:
-        type: integer
+      tags:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse'
+        type: array
       title:
         type: string
       updatedAt:
@@ -863,7 +874,7 @@ definitions:
         type: string
       name:
         maxLength: 50
-        minLength: 1
+        minLength: 3
         type: string
     required:
     - color

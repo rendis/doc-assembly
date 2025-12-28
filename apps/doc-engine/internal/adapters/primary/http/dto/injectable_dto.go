@@ -51,17 +51,24 @@ type TemplateResponse struct {
 	UpdatedAt       *time.Time `json:"updatedAt,omitempty"`
 }
 
+// TagSimpleResponse represents a simplified tag for list views.
+type TagSimpleResponse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
 // TemplateListItemResponse represents a template in list views.
 type TemplateListItemResponse struct {
-	ID                  string     `json:"id"`
-	WorkspaceID         string     `json:"workspaceId"`
-	FolderID            *string    `json:"folderId,omitempty"`
-	Title               string     `json:"title"`
-	IsPublicLibrary     bool       `json:"isPublicLibrary"`
-	HasPublishedVersion bool       `json:"hasPublishedVersion"`
-	TagCount            int        `json:"tagCount"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	UpdatedAt           *time.Time `json:"updatedAt,omitempty"`
+	ID                  string               `json:"id"`
+	WorkspaceID         string               `json:"workspaceId"`
+	FolderID            *string              `json:"folderId,omitempty"`
+	Title               string               `json:"title"`
+	IsPublicLibrary     bool                 `json:"isPublicLibrary"`
+	HasPublishedVersion bool                 `json:"hasPublishedVersion"`
+	Tags                []*TagSimpleResponse `json:"tags"`
+	CreatedAt           time.Time            `json:"createdAt"`
+	UpdatedAt           *time.Time           `json:"updatedAt,omitempty"`
 }
 
 // TemplateWithDetailsResponse represents a template with published version and metadata.

@@ -27,8 +27,11 @@ type TagService struct {
 
 // CreateTag creates a new tag.
 func (s *TagService) CreateTag(ctx context.Context, cmd usecase.CreateTagCommand) (*entity.Tag, error) {
+	// Normalize tag name
+	normalizedName := entity.NormalizeTagName(cmd.Name)
+
 	// Check for duplicate name
-	exists, err := s.tagRepo.ExistsByName(ctx, cmd.WorkspaceID, cmd.Name)
+	exists, err := s.tagRepo.ExistsByName(ctx, cmd.WorkspaceID, normalizedName)
 	if err != nil {
 		return nil, fmt.Errorf("checking tag existence: %w", err)
 	}
@@ -39,7 +42,7 @@ func (s *TagService) CreateTag(ctx context.Context, cmd usecase.CreateTagCommand
 	tag := &entity.Tag{
 		ID:          uuid.NewString(),
 		WorkspaceID: cmd.WorkspaceID,
-		Name:        cmd.Name,
+		Name:        normalizedName,
 		Color:       cmd.Color,
 		CreatedAt:   time.Now().UTC(),
 	}
@@ -97,9 +100,12 @@ func (s *TagService) UpdateTag(ctx context.Context, cmd usecase.UpdateTagCommand
 		return nil, fmt.Errorf("finding tag: %w", err)
 	}
 
+	// Normalize tag name
+	normalizedName := entity.NormalizeTagName(cmd.Name)
+
 	// Check for duplicate name if name changed
-	if tag.Name != cmd.Name {
-		exists, err := s.tagRepo.ExistsByNameExcluding(ctx, tag.WorkspaceID, cmd.Name, tag.ID)
+	if tag.Name != normalizedName {
+		exists, err := s.tagRepo.ExistsByNameExcluding(ctx, tag.WorkspaceID, normalizedName, tag.ID)
 		if err != nil {
 			return nil, fmt.Errorf("checking tag name: %w", err)
 		}
@@ -108,7 +114,7 @@ func (s *TagService) UpdateTag(ctx context.Context, cmd usecase.UpdateTagCommand
 		}
 	}
 
-	tag.Name = cmd.Name
+	tag.Name = normalizedName
 	tag.Color = cmd.Color
 	now := time.Now().UTC()
 	tag.UpdatedAt = &now
