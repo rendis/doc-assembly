@@ -48,6 +48,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Tenant, e
 		&tenant.Code,
 		&tenant.Name,
 		&tenant.Description,
+		&tenant.IsSystem,
 		&tenant.Settings,
 		&tenant.CreatedAt,
 		&tenant.UpdatedAt,
@@ -70,6 +71,7 @@ func (r *Repository) FindByCode(ctx context.Context, code string) (*entity.Tenan
 		&tenant.Code,
 		&tenant.Name,
 		&tenant.Description,
+		&tenant.IsSystem,
 		&tenant.Settings,
 		&tenant.CreatedAt,
 		&tenant.UpdatedAt,
@@ -100,6 +102,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]*entity.Tenant, error) {
 			&tenant.Code,
 			&tenant.Name,
 			&tenant.Description,
+			&tenant.IsSystem,
 			&tenant.Settings,
 			&tenant.CreatedAt,
 			&tenant.UpdatedAt,
@@ -152,4 +155,27 @@ func (r *Repository) ExistsByCode(ctx context.Context, code string) (bool, error
 	}
 
 	return exists, nil
+}
+
+// FindSystemTenant finds the system tenant.
+func (r *Repository) FindSystemTenant(ctx context.Context) (*entity.Tenant, error) {
+	var tenant entity.Tenant
+	err := r.pool.QueryRow(ctx, queryFindSystemTenant).Scan(
+		&tenant.ID,
+		&tenant.Code,
+		&tenant.Name,
+		&tenant.Description,
+		&tenant.IsSystem,
+		&tenant.Settings,
+		&tenant.CreatedAt,
+		&tenant.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrTenantNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying system tenant: %w", err)
+	}
+
+	return &tenant, nil
 }

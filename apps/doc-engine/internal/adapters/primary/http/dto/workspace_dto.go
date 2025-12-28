@@ -61,20 +61,3 @@ func (r *UpdateWorkspaceRequest) Validate() error {
 	}
 	return nil
 }
-
-// CreateSystemWorkspaceRequest represents a request to create a system workspace.
-type CreateSystemWorkspaceRequest struct {
-	Name     string         `json:"name" binding:"required,min=1,max=255"`
-	Settings map[string]any `json:"settings,omitempty"`
-}
-
-// Validate validates the CreateSystemWorkspaceRequest.
-func (r *CreateSystemWorkspaceRequest) Validate() error {
-	if r.Name == "" {
-		return ErrNameRequired
-	}
-	if len(r.Name) > 255 {
-		return ErrNameTooLong
-	}
-	return nil
-}

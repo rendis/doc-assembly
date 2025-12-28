@@ -4,11 +4,13 @@ import "time"
 
 // Tenant represents a jurisdiction, country, or major business unit.
 // It groups multiple workspaces together and provides regional configuration.
+// The system tenant (IsSystem=true) is a special tenant that holds global templates.
 type Tenant struct {
 	ID          string         `json:"id"`
 	Name        string         `json:"name"`
 	Code        string         `json:"code"`
 	Description string         `json:"description,omitempty"`
+	IsSystem    bool           `json:"isSystem"`
 	Settings    TenantSettings `json:"settings"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   *time.Time     `json:"updatedAt,omitempty"`

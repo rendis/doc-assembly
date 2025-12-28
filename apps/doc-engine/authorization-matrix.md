@@ -38,8 +38,6 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 | GET | `/system/tenants/{tenantId}` | Obtiene información de un tenant específico | ✅ | ✅ |
 | PUT | `/system/tenants/{tenantId}` | Actualiza la información de un tenant | ✅ | ✅ |
 | DELETE | `/system/tenants/{tenantId}` | Elimina un tenant y todos sus datos | ✅ | ❌ |
-| POST | `/system/workspaces` | Crea un workspace global del sistema (sin tenant) | ✅ | ❌ |
-| POST | `/system/tenants/{tenantId}/system-workspace` | Crea un workspace de sistema para un tenant específico | ✅ | ❌ |
 | GET | `/system/users` | Lista usuarios con roles de sistema asignados | ✅ | ❌ |
 | POST | `/system/users/{userId}/role` | Asigna un rol de sistema a un usuario | ✅ | ❌ |
 | DELETE | `/system/users/{userId}/role` | Revoca el rol de sistema de un usuario | ✅ | ❌ |

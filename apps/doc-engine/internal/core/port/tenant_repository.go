@@ -28,4 +28,7 @@ type TenantRepository interface {
 
 	// ExistsByCode checks if a tenant with the given code exists.
 	ExistsByCode(ctx context.Context, code string) (bool, error)
+
+	// FindSystemTenant finds the system tenant (is_system = true).
+	FindSystemTenant(ctx context.Context) (*entity.Tenant, error)
 }

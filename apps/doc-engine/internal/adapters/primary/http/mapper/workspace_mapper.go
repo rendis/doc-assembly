@@ -94,27 +94,3 @@ func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) 
 		Settings: settings,
 	}
 }
-
-// CreateSystemWorkspaceRequestToCommand converts a system workspace request to a command.
-// tenantID can be nil for global system workspace.
-func CreateSystemWorkspaceRequestToCommand(tenantID *string, req dto.CreateSystemWorkspaceRequest, createdBy string) usecase.CreateWorkspaceCommand {
-	settings := entity.WorkspaceSettings{}
-	if req.Settings != nil {
-		if theme, ok := req.Settings["theme"].(string); ok {
-			settings.Theme = theme
-		}
-		if logoURL, ok := req.Settings["logoUrl"].(string); ok {
-			settings.LogoURL = logoURL
-		}
-		if primaryColor, ok := req.Settings["primaryColor"].(string); ok {
-			settings.PrimaryColor = primaryColor
-		}
-	}
-	return usecase.CreateWorkspaceCommand{
-		TenantID:  tenantID,
-		Name:      req.Name,
-		Type:      entity.WorkspaceTypeSystem,
-		Settings:  settings,
-		CreatedBy: createdBy,
-	}
-}

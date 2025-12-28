@@ -8,19 +8,24 @@ const (
 		RETURNING id`
 
 	queryFindByID = `
-		SELECT id, code, name, description, settings, created_at, updated_at
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.tenants
 		WHERE id = $1`
 
 	queryFindByCode = `
-		SELECT id, code, name, description, settings, created_at, updated_at
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.tenants
 		WHERE code = $1`
 
 	queryFindAll = `
-		SELECT id, code, name, description, settings, created_at, updated_at
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.tenants
 		ORDER BY name`
+
+	queryFindSystemTenant = `
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
+		FROM tenancy.tenants
+		WHERE is_system = TRUE`
 
 	queryUpdate = `
 		UPDATE tenancy.tenants

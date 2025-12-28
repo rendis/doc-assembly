@@ -126,78 +126,7 @@ Configuration is loaded from `settings/app.yaml` and can be overridden with envi
 
 ## API Endpoints
 
-### Health & Status
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Service health check |
-| GET | `/ready` | Readiness check |
-
-### Organization Module (`/api/v1/org`)
-
-**Without X-Workspace-ID header:**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/workspaces` | List user's workspaces |
-| POST | `/workspaces` | Create workspace |
-
-**With X-Workspace-ID header:**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/workspace` | Get current workspace details |
-| PUT | `/workspace` | Update current workspace |
-| DELETE | `/workspace` | Archive current workspace |
-| GET | `/workspace/folders` | List folders |
-| GET | `/workspace/folders/tree` | Get folder tree |
-| POST | `/workspace/folders` | Create folder |
-| GET | `/workspace/folders/:folderId` | Get folder |
-| PUT | `/workspace/folders/:folderId` | Update folder |
-| PATCH | `/workspace/folders/:folderId/move` | Move folder |
-| DELETE | `/workspace/folders/:folderId` | Delete folder |
-| GET | `/workspace/tags` | List tags |
-| POST | `/workspace/tags` | Create tag |
-| GET | `/workspace/tags/:tagId` | Get tag |
-| PUT | `/workspace/tags/:tagId` | Update tag |
-| DELETE | `/workspace/tags/:tagId` | Delete tag |
-
-### Content Module (`/api/v1/content`)
-
-Requires `X-Workspace-ID` header.
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/injectables` | List injectable definitions |
-| POST | `/injectables` | Create injectable |
-| GET | `/injectables/:id` | Get injectable |
-| PUT | `/injectables/:id` | Update injectable |
-| DELETE | `/injectables/:id` | Delete injectable |
-| GET | `/templates` | List templates (with filters) |
-| POST | `/templates` | Create template |
-| GET | `/templates/:id` | Get template with details |
-| PUT | `/templates/:id` | Update template |
-| DELETE | `/templates/:id` | Delete template |
-| POST | `/templates/:id/clone` | Clone template |
-| POST | `/templates/:id/publish` | Publish template |
-| POST | `/templates/:id/archive` | Archive template |
-| POST | `/templates/:id/injectables` | Add injectable to template |
-| DELETE | `/templates/:id/injectables/:tiId` | Remove injectable |
-| POST | `/templates/:id/signer-roles` | Add signer role |
-| PUT | `/templates/:id/signer-roles/:roleId` | Update signer role |
-| DELETE | `/templates/:id/signer-roles/:roleId` | Remove signer role |
-| POST | `/templates/:id/tags` | Add tags to template |
-| DELETE | `/templates/:id/tags/:tagId` | Remove tag |
-
-### Authentication
-
-All `/api/v1/*` endpoints require a valid JWT token in the `Authorization` header:
-
-```
-Authorization: Bearer <token>
-```
-
-The token is validated against the configured Keycloak JWKS endpoint.
+For a complete list of API endpoints, authentication requirements, roles, and required headers, see **[authorization-matrix.md](authorization-matrix.md)**.
 
 ## Development
 

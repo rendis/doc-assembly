@@ -48,10 +48,6 @@ func (c *AdminController) RegisterRoutes(rg *gin.RouterGroup) {
 		system.PUT("/tenants/:tenantId", c.UpdateTenant)
 		system.DELETE("/tenants/:tenantId", middleware.RequireSuperAdmin(), c.DeleteTenant)
 
-		// System workspace routes (SUPERADMIN only)
-		system.POST("/workspaces", middleware.RequireSuperAdmin(), c.CreateGlobalSystemWorkspace)
-		system.POST("/tenants/:tenantId/system-workspace", middleware.RequireSuperAdmin(), c.CreateTenantSystemWorkspace)
-
 		// System roles management (SUPERADMIN only)
 		system.GET("/users", middleware.RequireSuperAdmin(), c.ListSystemUsers)
 		system.POST("/users/:userId/role", middleware.RequireSuperAdmin(), c.AssignSystemRole)
@@ -201,102 +197,6 @@ func (c *AdminController) DeleteTenant(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
-}
-
-// --- System Workspace Handlers ---
-
-// CreateGlobalSystemWorkspace creates a global system workspace (tenant_id = NULL).
-// Requires SUPERADMIN role.
-// @Summary Create global system workspace
-// @Tags System - Workspaces
-// @Accept json
-// @Produce json
-// @Param request body dto.CreateSystemWorkspaceRequest true "Workspace data"
-// @Success 201 {object} dto.WorkspaceResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 403 {object} dto.ErrorResponse
-// @Failure 409 {object} dto.ErrorResponse
-// @Router /api/v1/system/workspaces [post]
-// @Security BearerAuth
-func (c *AdminController) CreateGlobalSystemWorkspace(ctx *gin.Context) {
-	userID, ok := middleware.GetInternalUserID(ctx)
-	if !ok {
-		respondError(ctx, http.StatusUnauthorized, entity.ErrUnauthorized)
-		return
-	}
-
-	var req dto.CreateSystemWorkspaceRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	cmd := mapper.CreateSystemWorkspaceRequestToCommand(nil, req, userID)
-	workspace, err := c.workspaceUC.CreateWorkspace(ctx.Request.Context(), cmd)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, mapper.WorkspaceToResponse(workspace))
-}
-
-// CreateTenantSystemWorkspace creates a system workspace for a specific tenant.
-// Requires SUPERADMIN role.
-// @Summary Create tenant system workspace
-// @Tags System - Workspaces
-// @Accept json
-// @Produce json
-// @Param tenantId path string true "Tenant ID"
-// @Param request body dto.CreateSystemWorkspaceRequest true "Workspace data"
-// @Success 201 {object} dto.WorkspaceResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 403 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 409 {object} dto.ErrorResponse
-// @Router /api/v1/system/tenants/{tenantId}/system-workspace [post]
-// @Security BearerAuth
-func (c *AdminController) CreateTenantSystemWorkspace(ctx *gin.Context) {
-	tenantID := ctx.Param("tenantId")
-
-	userID, ok := middleware.GetInternalUserID(ctx)
-	if !ok {
-		respondError(ctx, http.StatusUnauthorized, entity.ErrUnauthorized)
-		return
-	}
-
-	// Verify tenant exists
-	if _, err := c.tenantUC.GetTenant(ctx.Request.Context(), tenantID); err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	var req dto.CreateSystemWorkspaceRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	cmd := mapper.CreateSystemWorkspaceRequestToCommand(&tenantID, req, userID)
-	workspace, err := c.workspaceUC.CreateWorkspace(ctx.Request.Context(), cmd)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, mapper.WorkspaceToResponse(workspace))
 }
 
 // --- System Role Handlers ---

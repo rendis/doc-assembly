@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -179,50 +180,22 @@ func runLiquibaseMigrations(ctx context.Context, nw *testcontainers.DockerNetwor
 }
 
 func findDBDir() string {
-	// Try environment variable first
+	// Allow override via environment variable (useful for CI/CD)
 	if envDir := os.Getenv("DB_CHANGELOG_DIR"); envDir != "" {
 		if _, err := os.Stat(filepath.Join(envDir, "changelog.master.xml")); err == nil {
 			return envDir
 		}
 	}
 
-	// Relative paths from various possible working directories
-	// Tests may run from: module root (apps/doc-engine), test package dir, or project root
-	candidates := []string{
-		"../../db",                // from apps/doc-engine
-		"../../../../../../../db", // from apps/doc-engine/internal/adapters/secondary/database/postgres
-		"../../../../../../db",    // one less level
-		"../../../../../db",       // from apps/doc-engine/internal/adapters/secondary
-		"db",                      // from project root
-		"./db",                    // from project root (explicit)
+	// Known path: this file is at internal/testing/testhelper/container.go
+	// db/ is at doc-assembly/db/ (5 levels up, then "db")
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
 	}
-
-	cwd, _ := os.Getwd()
-
-	for _, candidate := range candidates {
-		var abs string
-		if filepath.IsAbs(candidate) {
-			abs = candidate
-		} else {
-			abs = filepath.Join(cwd, candidate)
-		}
-		if _, err := os.Stat(filepath.Join(abs, "changelog.master.xml")); err == nil {
-			return abs
-		}
-	}
-
-	// Fallback: try to find by walking up from current directory
-	dir := cwd
-	for i := 0; i < 10; i++ { // max 10 levels up
-		candidate := filepath.Join(dir, "db")
-		if _, err := os.Stat(filepath.Join(candidate, "changelog.master.xml")); err == nil {
-			return candidate
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
+	dbDir := filepath.Join(filepath.Dir(filename), "..", "..", "..", "..", "..", "db")
+	if _, err := os.Stat(filepath.Join(dbDir, "changelog.master.xml")); err == nil {
+		return dbDir
 	}
 
 	return ""

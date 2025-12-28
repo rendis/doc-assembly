@@ -113,18 +113,6 @@ definitions:
     - key
     - label
     type: object
-  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateSystemWorkspaceRequest:
-    properties:
-      name:
-        maxLength: 255
-        minLength: 1
-        type: string
-      settings:
-        additionalProperties: {}
-        type: object
-    required:
-    - name
-    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTagRequest:
     properties:
       color:
@@ -2165,54 +2153,6 @@ paths:
       summary: Update tenant
       tags:
       - System - Tenants
-  /api/v1/system/tenants/{tenantId}/system-workspace:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenantId
-        required: true
-        type: string
-      - description: Workspace data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateSystemWorkspaceRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create tenant system workspace
-      tags:
-      - System - Workspaces
   /api/v1/system/users:
     get:
       consumes:
@@ -2312,45 +2252,6 @@ paths:
       summary: Assign system role
       tags:
       - System - Users
-  /api/v1/system/workspaces:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Workspace data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateSystemWorkspaceRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create global system workspace
-      tags:
-      - System - Workspaces
   /api/v1/tenant:
     get:
       consumes:
