@@ -2,6 +2,10 @@
 
 This file provides guidance to IA Agents when working with code in this repository.
 
+## UI Reference
+
+> **IMPORTANTE**: Antes de trabajar en la UI, consulta **[docs/UI-MAP.md](./docs/UI-MAP.md)** para entender la estructura de rutas, layouts, componentes y permisos.
+
 ## Commands
 
 ```bash

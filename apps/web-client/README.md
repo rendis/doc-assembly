@@ -101,6 +101,19 @@ La especificación Swagger/OpenAPI de las APIs del backend está disponible en:
 
 Consulta este archivo para obtener información detallada sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
 
+## 🗺 UI Map
+
+Para una referencia rapida de la estructura UI del proyecto, consulta:
+
+**[docs/UI-MAP.md](./docs/UI-MAP.md)**
+
+Incluye:
+- Sitemap visual (diagrama Mermaid)
+- Tabla de rutas con permisos
+- Inventario de componentes y layouts
+- Features y stores
+- Sistema RBAC
+
 ---
 
 ## 🚀 Comandos Disponibles
