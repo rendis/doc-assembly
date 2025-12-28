@@ -91,6 +91,18 @@ Mantén el código lo más cerca posible de donde se utiliza.
     *   ✅ `import { Button } from "@/components/ui/button"`
     *   ❌ `import { Button } from "../../../components/ui/button"`
 
+## 📡 API Documentation
+
+La especificación Swagger/OpenAPI de las APIs del backend está disponible en:
+
+```
+../doc-engine/docs/swagger.json
+```
+
+Consulta este archivo para obtener información detallada sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
+
+---
+
 ## 🚀 Comandos Disponibles
 
 *   `pnpm dev`: Inicia el servidor de desarrollo.
