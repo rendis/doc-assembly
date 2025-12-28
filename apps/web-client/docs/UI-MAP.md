@@ -36,7 +36,7 @@ graph TD
 | `/select-tenant` | - | Auth | OK |
 | `/workspace/$id` | AppLayout > WorkspaceLayout | Auth | OK |
 | `/workspace/$id/documents` | WorkspaceLayout | Auth | Placeholder |
-| `/workspace/$id/templates` | WorkspaceLayout | Auth | Placeholder |
+| `/workspace/$id/templates` | WorkspaceLayout | CONTENT_VIEW | **OK** |
 | `/workspace/$id/settings` | WorkspaceLayout | WORKSPACE_UPDATE | Placeholder |
 | `/admin` | AdminLayout | ADMIN_ACCESS | Placeholder |
 | `/admin/tenants` | AdminLayout | SYSTEM_TENANTS_VIEW | OK |
@@ -119,6 +119,7 @@ graph TD
 | auth | `features/auth/` | AuthProvider | recordAccess |
 | tenants | `features/tenants/` | TenantSelector, CreateTenantDialog | list, search, create |
 | workspaces | `features/workspaces/` | CreateWorkspaceDialog | list, search, get, create |
+| templates | `features/templates/` | TemplatesPage, TemplateCard, FolderTree, FilterBar, dialogs | templates, versions, folders, tags CRUD |
 | editor | `features/editor/` | Editor, EditorToolbar | - |
 | admin | `features/admin/` | - | listSystemUsers, revokeRole |
 | documents | `features/documents/` | - (types only) | - |
@@ -226,6 +227,82 @@ VITE_USE_MOCK_AUTH=true   # Bypass Keycloak (dev only)
 ## Path Aliases
 
 `@/` --> `./src/`
+
+---
+
+## Templates Feature (Gestion de Plantillas)
+
+### Layout Principal
+```
++------------------+-----------------------------------------------+
+| TemplatesSidebar | Header: "Plantillas" + [Nueva Plantilla]      |
+|                  +-----------------------------------------------+
+| CARPETAS         | Breadcrumb: Raiz / Contratos / Ventas         |
+| + Root           +-----------------------------------------------+
+|   + Contratos    | FilterBar: [Buscar...] [Tags] [Estado]        |
+|     + Ventas     +-----------------------------------------------+
+|   + RRHH         |                                               |
+|                  |  TemplatesGrid (Cards 4 columnas)             |
+| TAGS             |  +--------+ +--------+ +--------+ +--------+  |
+| [Legal]          |  | Card 1 | | Card 2 | | Card 3 | | Card 4 |  |
+| [2024]           |  +--------+ +--------+ +--------+ +--------+  |
+|                  |                                               |
+| [Gestionar Tags] |  Pagination: Page 1 of 5                      |
++------------------+-----------------------------------------------+
+```
+
+### Componentes de Templates
+
+| Componente | Proposito |
+|------------|-----------|
+| TemplatesPage | Pagina principal con sidebar, filtros y grid |
+| TemplatesSidebar | Arbol de carpetas + lista de tags |
+| TemplatesGrid | Grid responsive de cards + paginacion |
+| TemplateCard | Card individual con titulo, estado, tags |
+| TemplateDetailPanel | Panel lateral con versiones y acciones |
+| FilterBar | Busqueda, filtro por tags y estado |
+| FolderTree | Arbol navegable de carpetas |
+| Breadcrumb | Navegacion de carpetas |
+| StatusBadge | Badge de estado (DRAFT/PUBLISHED/ARCHIVED) |
+| TagBadge | Badge de tag con color |
+| VersionsList | Lista de versiones en panel de detalle |
+
+### Dialogs
+
+| Dialog | Proposito |
+|--------|-----------|
+| CreateTemplateDialog | Crear nueva plantilla |
+| CreateFolderDialog | Crear nueva carpeta |
+| ManageTagsDialog | CRUD de tags |
+| ContextMenu | Menu contextual para plantillas/carpetas |
+
+### Hooks
+
+| Hook | Proposito |
+|------|-----------|
+| useTemplates | Lista, filtrado, paginacion de plantillas |
+| useFolders | CRUD de carpetas + arbol |
+| useTags | CRUD de tags |
+
+### APIs de Templates
+
+```
+/content/templates          GET, POST
+/content/templates/{id}     GET, PUT, DELETE
+/content/templates/{id}/clone             POST
+/content/templates/{id}/tags              POST
+/content/templates/{id}/tags/{tagId}      DELETE
+/content/templates/{id}/versions          GET, POST
+/content/templates/{id}/versions/{vId}    GET, PUT, DELETE
+/content/templates/{id}/versions/{vId}/publish    POST
+/content/templates/{id}/versions/{vId}/archive    POST
+/workspace/folders          GET, POST
+/workspace/folders/tree     GET
+/workspace/folders/{id}     GET, PUT, DELETE
+/workspace/folders/{id}/move              POST
+/workspace/tags             GET, POST
+/workspace/tags/{id}        GET, PUT, DELETE
+```
 
 ---
 

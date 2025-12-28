@@ -182,5 +182,182 @@
     "quote": "Cita",
     "undo": "Deshacer",
     "redo": "Rehacer"
+  },
+  "templates": {
+    "title": "Plantillas",
+    "subtitle": "Gestiona plantillas de contratos y versiones",
+    "new": "Nueva Plantilla",
+    "noTemplates": "No se encontraron plantillas",
+    "noTemplatesDescription": "Crea tu primera plantilla para comenzar",
+    "searchPlaceholder": "Buscar plantillas...",
+    "filterByTags": "Filtrar por etiquetas",
+    "filterByStatus": "Filtrar por estado",
+    "clearFilters": "Limpiar filtros",
+    "allStatuses": "Todos los estados",
+    "withPublished": "Con version publicada",
+    "withoutPublished": "Sin version publicada",
+    "template": "Plantilla",
+    "version": "Version",
+    "versions": "Versiones",
+    "tags": "Etiquetas",
+    "noTags": "Sin etiquetas",
+    "folder": "Carpeta",
+    "rootFolder": "Raiz",
+    "modified": "Modificado",
+    "created": "Creado",
+    "status": {
+      "draft": "Borrador",
+      "published": "Publicado",
+      "archived": "Archivado"
+    },
+    "actions": {
+      "edit": "Editar",
+      "clone": "Clonar",
+      "move": "Mover a carpeta",
+      "delete": "Eliminar",
+      "viewVersions": "Ver versiones"
+    },
+    "create": {
+      "title": "Nueva Plantilla",
+      "titleLabel": "Titulo",
+      "titlePlaceholder": "ej., Contrato de Trabajo",
+      "folderLabel": "Carpeta",
+      "folderPlaceholder": "Seleccionar carpeta (opcional)",
+      "tagsLabel": "Etiquetas",
+      "tagsPlaceholder": "Seleccionar etiquetas (opcional)",
+      "button": "Crear Plantilla",
+      "success": "Plantilla creada exitosamente",
+      "error": "Error al crear la plantilla"
+    },
+    "edit": {
+      "title": "Editar Plantilla",
+      "button": "Guardar Cambios",
+      "success": "Plantilla actualizada exitosamente",
+      "error": "Error al actualizar la plantilla"
+    },
+    "clone": {
+      "title": "Clonar Plantilla",
+      "newTitleLabel": "Nuevo titulo",
+      "newTitlePlaceholder": "ej., Contrato de Trabajo (Copia)",
+      "targetFolderLabel": "Carpeta destino",
+      "button": "Clonar Plantilla",
+      "success": "Plantilla clonada exitosamente",
+      "error": "Error al clonar la plantilla"
+    },
+    "delete": {
+      "title": "Eliminar Plantilla",
+      "message": "Estas seguro de que deseas eliminar esta plantilla? Esta accion no se puede deshacer.",
+      "button": "Eliminar",
+      "success": "Plantilla eliminada exitosamente",
+      "error": "Error al eliminar la plantilla"
+    },
+    "detail": {
+      "title": "Detalles de Plantilla",
+      "info": "Informacion",
+      "versionsTitle": "Versiones",
+      "noVersions": "Sin versiones aun",
+      "createVersion": "Crear Version",
+      "latestVersion": "Ultima"
+    },
+    "versionActions": {
+      "publish": "Publicar",
+      "archive": "Archivar",
+      "schedulePublish": "Programar Publicacion",
+      "scheduleArchive": "Programar Archivado",
+      "cancelSchedule": "Cancelar Programacion",
+      "createFromThis": "Crear desde esta version",
+      "delete": "Eliminar Version"
+    },
+    "versionCreate": {
+      "title": "Nueva Version",
+      "nameLabel": "Nombre de version",
+      "namePlaceholder": "ej., v2.0 - Clausulas actualizadas",
+      "descriptionLabel": "Descripcion",
+      "descriptionPlaceholder": "Que cambio en esta version?",
+      "button": "Crear Version",
+      "success": "Version creada exitosamente",
+      "error": "Error al crear la version"
+    },
+    "schedule": {
+      "publishTitle": "Programar Publicacion",
+      "archiveTitle": "Programar Archivado",
+      "dateLabel": "Fecha y hora programada",
+      "button": "Programar",
+      "cancelSuccess": "Programacion cancelada",
+      "scheduledFor": "Programado para"
+    }
+  },
+  "folders": {
+    "title": "Carpetas",
+    "new": "Nueva Carpeta",
+    "newSubfolder": "Nueva Subcarpeta",
+    "root": "Raiz",
+    "noFolders": "Sin carpetas",
+    "create": {
+      "title": "Nueva Carpeta",
+      "nameLabel": "Nombre de carpeta",
+      "namePlaceholder": "ej., Contratos",
+      "parentLabel": "Carpeta padre",
+      "parentPlaceholder": "Seleccionar padre (opcional)",
+      "button": "Crear Carpeta",
+      "success": "Carpeta creada exitosamente",
+      "error": "Error al crear la carpeta",
+      "duplicateName": "Ya existe una carpeta con este nombre"
+    },
+    "edit": {
+      "title": "Renombrar Carpeta",
+      "button": "Guardar",
+      "success": "Carpeta renombrada exitosamente",
+      "error": "Error al renombrar la carpeta"
+    },
+    "move": {
+      "title": "Mover Carpeta",
+      "confirmTitle": "Confirmar Movimiento",
+      "confirmMessage": "Mover '{{source}}' a '{{target}}'?",
+      "moving": "Moviendo carpeta",
+      "targetLabel": "Mover a",
+      "toRoot": "Raiz (sin padre)",
+      "sameLocation": "La carpeta ya esta en esta ubicacion",
+      "button": "Mover",
+      "success": "Carpeta movida exitosamente",
+      "error": "Error al mover la carpeta"
+    },
+    "delete": {
+      "title": "Eliminar Carpeta",
+      "message": "Estas seguro de que deseas eliminar esta carpeta? La carpeta debe estar vacia.",
+      "button": "Eliminar",
+      "success": "Carpeta eliminada exitosamente",
+      "error": "Error al eliminar la carpeta. Asegurate de que este vacia."
+    }
+  },
+  "tagManager": {
+    "title": "Gestionar Etiquetas",
+    "new": "Nueva Etiqueta",
+    "noTags": "Sin etiquetas aun",
+    "noTagsDescription": "Crea etiquetas para organizar tus plantillas",
+    "searchPlaceholder": "Buscar etiquetas...",
+    "templatesCount": "{{count}} plantillas",
+    "create": {
+      "title": "Nueva Etiqueta",
+      "nameLabel": "Nombre de etiqueta",
+      "namePlaceholder": "ej., Legal",
+      "colorLabel": "Color",
+      "button": "Crear Etiqueta",
+      "success": "Etiqueta creada exitosamente",
+      "error": "Error al crear la etiqueta"
+    },
+    "edit": {
+      "title": "Editar Etiqueta",
+      "button": "Guardar",
+      "success": "Etiqueta actualizada exitosamente",
+      "error": "Error al actualizar la etiqueta"
+    },
+    "delete": {
+      "title": "Eliminar Etiqueta",
+      "message": "Estas seguro de que deseas eliminar esta etiqueta? Se removera de todas las plantillas.",
+      "button": "Eliminar",
+      "success": "Etiqueta eliminada exitosamente",
+      "error": "Error al eliminar la etiqueta"
+    }
   }
 }

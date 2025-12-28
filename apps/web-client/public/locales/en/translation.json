@@ -182,5 +182,182 @@
     "quote": "Quote",
     "undo": "Undo",
     "redo": "Redo"
+  },
+  "templates": {
+    "title": "Templates",
+    "subtitle": "Manage contract templates and versions",
+    "new": "New Template",
+    "noTemplates": "No templates found",
+    "noTemplatesDescription": "Create your first template to get started",
+    "searchPlaceholder": "Search templates...",
+    "filterByTags": "Filter by tags",
+    "filterByStatus": "Filter by status",
+    "clearFilters": "Clear filters",
+    "allStatuses": "All statuses",
+    "withPublished": "With published version",
+    "withoutPublished": "Without published version",
+    "template": "Template",
+    "version": "Version",
+    "versions": "Versions",
+    "tags": "Tags",
+    "noTags": "No tags",
+    "folder": "Folder",
+    "rootFolder": "Root",
+    "modified": "Modified",
+    "created": "Created",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "actions": {
+      "edit": "Edit",
+      "clone": "Clone",
+      "move": "Move to folder",
+      "delete": "Delete",
+      "viewVersions": "View versions"
+    },
+    "create": {
+      "title": "New Template",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g., Employment Contract",
+      "folderLabel": "Folder",
+      "folderPlaceholder": "Select folder (optional)",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Select tags (optional)",
+      "button": "Create Template",
+      "success": "Template created successfully",
+      "error": "Error creating template"
+    },
+    "edit": {
+      "title": "Edit Template",
+      "button": "Save Changes",
+      "success": "Template updated successfully",
+      "error": "Error updating template"
+    },
+    "clone": {
+      "title": "Clone Template",
+      "newTitleLabel": "New title",
+      "newTitlePlaceholder": "e.g., Employment Contract (Copy)",
+      "targetFolderLabel": "Target folder",
+      "button": "Clone Template",
+      "success": "Template cloned successfully",
+      "error": "Error cloning template"
+    },
+    "delete": {
+      "title": "Delete Template",
+      "message": "Are you sure you want to delete this template? This action cannot be undone.",
+      "button": "Delete",
+      "success": "Template deleted successfully",
+      "error": "Error deleting template"
+    },
+    "detail": {
+      "title": "Template Details",
+      "info": "Information",
+      "versionsTitle": "Versions",
+      "noVersions": "No versions yet",
+      "createVersion": "Create Version",
+      "latestVersion": "Latest"
+    },
+    "versionActions": {
+      "publish": "Publish",
+      "archive": "Archive",
+      "schedulePublish": "Schedule Publish",
+      "scheduleArchive": "Schedule Archive",
+      "cancelSchedule": "Cancel Schedule",
+      "createFromThis": "Create from this version",
+      "delete": "Delete Version"
+    },
+    "versionCreate": {
+      "title": "New Version",
+      "nameLabel": "Version name",
+      "namePlaceholder": "e.g., v2.0 - Updated clauses",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What changed in this version?",
+      "button": "Create Version",
+      "success": "Version created successfully",
+      "error": "Error creating version"
+    },
+    "schedule": {
+      "publishTitle": "Schedule Publication",
+      "archiveTitle": "Schedule Archival",
+      "dateLabel": "Schedule date and time",
+      "button": "Schedule",
+      "cancelSuccess": "Schedule cancelled",
+      "scheduledFor": "Scheduled for"
+    }
+  },
+  "folders": {
+    "title": "Folders",
+    "new": "New Folder",
+    "newSubfolder": "New Subfolder",
+    "root": "Root",
+    "noFolders": "No folders",
+    "create": {
+      "title": "New Folder",
+      "nameLabel": "Folder name",
+      "namePlaceholder": "e.g., Contracts",
+      "parentLabel": "Parent folder",
+      "parentPlaceholder": "Select parent (optional)",
+      "button": "Create Folder",
+      "success": "Folder created successfully",
+      "error": "Error creating folder",
+      "duplicateName": "A folder with this name already exists"
+    },
+    "edit": {
+      "title": "Rename Folder",
+      "button": "Save",
+      "success": "Folder renamed successfully",
+      "error": "Error renaming folder"
+    },
+    "move": {
+      "title": "Move Folder",
+      "confirmTitle": "Confirm Move",
+      "confirmMessage": "Move '{{source}}' to '{{target}}'?",
+      "moving": "Moving folder",
+      "targetLabel": "Move to",
+      "toRoot": "Root (no parent)",
+      "sameLocation": "Folder is already in this location",
+      "button": "Move",
+      "success": "Folder moved successfully",
+      "error": "Error moving folder"
+    },
+    "delete": {
+      "title": "Delete Folder",
+      "message": "Are you sure you want to delete this folder? The folder must be empty.",
+      "button": "Delete",
+      "success": "Folder deleted successfully",
+      "error": "Error deleting folder. Make sure it's empty."
+    }
+  },
+  "tagManager": {
+    "title": "Manage Tags",
+    "new": "New Tag",
+    "noTags": "No tags yet",
+    "noTagsDescription": "Create tags to organize your templates",
+    "searchPlaceholder": "Search tags...",
+    "templatesCount": "{{count}} templates",
+    "create": {
+      "title": "New Tag",
+      "nameLabel": "Tag name",
+      "namePlaceholder": "e.g., Legal",
+      "colorLabel": "Color",
+      "button": "Create Tag",
+      "success": "Tag created successfully",
+      "error": "Error creating tag"
+    },
+    "edit": {
+      "title": "Edit Tag",
+      "button": "Save",
+      "success": "Tag updated successfully",
+      "error": "Error updating tag"
+    },
+    "delete": {
+      "title": "Delete Tag",
+      "message": "Are you sure you want to delete this tag? It will be removed from all templates.",
+      "button": "Delete",
+      "success": "Tag deleted successfully",
+      "error": "Error deleting tag"
+    }
   }
 }
