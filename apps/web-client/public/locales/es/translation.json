@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "logout": "Cerrar Sesión",
+    "welcome": "Bienvenido",
+    "settings": "Configuración"
+  },
+  "auth": {
+    "select_tenant": "Selecciona una Organización",
+    "no_tenants": "No tienes acceso a ninguna organización.",
+    "loading_tenants": "Cargando organizaciones..."
+  },
+  "workspace": {
+    "title": "Espacios de Trabajo",
+    "subtitle": "Gestiona tus documentos y plantillas en {{tenantName}}",
+    "new": "Nuevo Espacio",
+    "no_workspaces": "No hay espacios de trabajo disponibles.",
+    "documents": "Documentos",
+    "templates": "Plantillas",
+    "configuration": "Configuración",
+    "type_system": "Configuración del Sistema y Plantillas",
+    "type_client": "Espacio de Gestión Documental"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "logout": "Logout",
+    "welcome": "Welcome",
+    "settings": "Settings"
+  },
+  "auth": {
+    "select_tenant": "Select an Organization",
+    "no_tenants": "You do not have access to any organization.",
+    "loading_tenants": "Loading organizations..."
+  },
+  "workspace": {
+    "title": "Workspaces",
+    "subtitle": "Manage your documents and templates in {{tenantName}}",
+    "new": "New Workspace",
+    "no_workspaces": "No workspaces available.",
+    "documents": "Documents",
+    "templates": "Templates",
+    "configuration": "Configuration",
+    "type_system": "System Configuration & Templates",
+    "type_client": "Document Management Workspace"
+  }
+}
