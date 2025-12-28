@@ -54,6 +54,24 @@
         <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_system_tenant;</rollback>
     </changeSet>
 
+    <changeSet id="tenants:trgm_index_creation:name" author="doc-assembly">
+        <comment>Trigram index for fuzzy tenant name search</comment>
+        <sql>
+            CREATE INDEX idx_tenants_name_trgm
+            ON tenancy.tenants USING GIN (name gin_trgm_ops);
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_tenants_name_trgm;</rollback>
+    </changeSet>
+
+    <changeSet id="tenants:trgm_index_creation:code" author="doc-assembly">
+        <comment>Trigram index for fuzzy tenant code search</comment>
+        <sql>
+            CREATE INDEX idx_tenants_code_trgm
+            ON tenancy.tenants USING GIN (code gin_trgm_ops);
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_tenants_code_trgm;</rollback>
+    </changeSet>
+
     <!-- ========== TRIGGERS ========== -->
 
     <changeSet id="tenants:trigger:updated_at" author="doc-assembly">

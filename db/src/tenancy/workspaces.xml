@@ -85,6 +85,15 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="workspaces:trgm_index_creation:name" author="doc-assembly">
+        <comment>Trigram index for fuzzy workspace name search</comment>
+        <sql>
+            CREATE INDEX idx_workspaces_name_trgm
+            ON tenancy.workspaces USING GIN (name gin_trgm_ops);
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_workspaces_name_trgm;</rollback>
+    </changeSet>
+
     <!-- ========== TRIGGERS ========== -->
 
     <changeSet id="workspaces:trigger:updated_at" author="doc-assembly">
