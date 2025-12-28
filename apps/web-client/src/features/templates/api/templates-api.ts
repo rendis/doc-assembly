@@ -19,26 +19,31 @@ export const templatesApi = {
    * GET /api/v1/content/templates
    */
   list: async (params: TemplateListParams = {}): Promise<ListResponse<TemplateListItem>> => {
-    const queryParams: Record<string, string | number | boolean> = {};
+    const searchParams = new URLSearchParams();
 
-    if (params.folderId) queryParams.folderId = params.folderId;
-    if (params.hasPublishedVersion !== undefined) queryParams.hasPublishedVersion = params.hasPublishedVersion;
-    if (params.tagIds?.length) queryParams.tagIds = params.tagIds.join(',');
-    if (params.search) queryParams.search = params.search;
-    if (params.limit) queryParams.limit = params.limit;
-    if (params.offset !== undefined) queryParams.offset = params.offset;
+    if (params.folderId) searchParams.append('folderId', params.folderId);
+    if (params.hasPublishedVersion !== undefined) searchParams.append('hasPublishedVersion', String(params.hasPublishedVersion));
+    if (params.tagIds?.length) {
+      params.tagIds.forEach((id) => searchParams.append('tagIds', id));
+    }
+    if (params.search) searchParams.append('search', params.search);
+    if (params.limit) searchParams.append('limit', String(params.limit));
+    if (params.offset !== undefined) searchParams.append('offset', String(params.offset));
 
-    const response = await apiClient.get('/content/templates', { params: queryParams }) as
+    const queryString = searchParams.toString();
+    const url = queryString ? `/content/templates?${queryString}` : '/content/templates';
+
+    const response = await apiClient.get(url) as
       | TemplateListItem[]
-      | { data: TemplateListItem[]; count: number };
+      | { items: TemplateListItem[]; total: number };
 
-    // Normalize response - API might return different formats
+    // Normalize response - API returns { items, total, limit, offset }
     if (Array.isArray(response)) {
       return { data: response, count: response.length };
     }
     return {
-      data: response?.data ?? [],
-      count: response?.count ?? 0,
+      data: response?.items ?? [],
+      count: response?.total ?? 0,
     };
   },
 

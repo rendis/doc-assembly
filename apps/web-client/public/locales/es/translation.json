@@ -199,15 +199,25 @@
     "template": "Plantilla",
     "version": "Version",
     "versions": "Versiones",
-    "tags": "Etiquetas",
+    "tags": {
+      "label": "Etiquetas",
+      "edit": "Editar etiquetas",
+      "editTitle": "Gestionar Etiquetas",
+      "noTagsAssigned": "Sin etiquetas asignadas",
+      "searchOrCreate": "Buscar o crear etiqueta...",
+      "createNew": "Crear etiqueta",
+      "willBeCreatedAs": "Se creara como",
+      "noMatchingTags": "No hay etiquetas coincidentes"
+    },
     "noTags": "Sin etiquetas",
     "folder": "Carpeta",
     "rootFolder": "Raiz",
     "modified": "Modificado",
     "created": "Creado",
     "status": {
-      "draft": "Borrador",
-      "published": "Publicado",
+      "all": "Todos",
+      "draft": "Borradores",
+      "published": "Publicados",
       "archived": "Archivado"
     },
     "actions": {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TemplatesSidebar } from './TemplatesSidebar';
@@ -95,14 +95,13 @@ export function TemplatesPage() {
   const debouncedSearch = useDebounce(searchInput, 300);
 
   // Sync debounced search with filters
-  useState(() => {
+  useEffect(() => {
     setSearch(debouncedSearch);
-  });
+  }, [debouncedSearch, setSearch]);
 
   // Handlers
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
-    setSearch(value);
   };
 
   const handleFolderSelect = (folderId: string | null) => {
@@ -213,7 +212,16 @@ export function TemplatesPage() {
 
   const handleRefreshAll = useCallback(async () => {
     await Promise.all([refreshTemplates(), refreshFolders(), refreshTags()]);
-  }, [refreshTemplates, refreshFolders, refreshTags]);
+    // Also refresh the selected template if one is open
+    if (selectedTemplate) {
+      try {
+        const updated = await templatesApi.getWithAllVersions(selectedTemplate.id);
+        setSelectedTemplate(updated);
+      } catch (error) {
+        console.error('Failed to refresh selected template:', error);
+      }
+    }
+  }, [refreshTemplates, refreshFolders, refreshTags, selectedTemplate]);
 
   const getFolderName = (folderId: string | undefined): string | undefined => {
     if (!folderId) return undefined;
@@ -290,6 +298,9 @@ export function TemplatesPage() {
             onTemplateClick={handleTemplateClick}
             onTemplateMenu={handleTemplateMenu}
             getFolderName={getFolderName}
+            filterTagIds={filters.tagIds}
+            isRootView={!filters.folderId}
+            onFolderClick={handleFolderSelect}
             page={page}
             totalPages={totalPages}
             totalCount={totalCount}

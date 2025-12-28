@@ -56,7 +56,7 @@ export function TemplatesSidebar({
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
           <Tags className="w-3.5 h-3.5" />
-          {t('templates.tags')}
+          {t('templates.tags.label')}
         </h3>
 
         {isTagsLoading ? (

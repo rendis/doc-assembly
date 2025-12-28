@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { FileText, MoreVertical, FolderOpen, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TemplateListItem, Tag } from '../types';
@@ -5,9 +6,23 @@ import { StatusBadge } from './StatusBadge';
 import { TagBadgeList } from './TagBadge';
 import { formatDistanceToNow } from '@/lib/date-utils';
 
+/**
+ * Prioritizes tags: first those matching the filter, then the rest
+ */
+function prioritizeTags(tags: Tag[], filterTagIds?: string[]): Tag[] {
+  if (!filterTagIds?.length || !tags.length) return tags;
+
+  const filterSet = new Set(filterTagIds);
+  const matching = tags.filter((t) => filterSet.has(t.id));
+  const others = tags.filter((t) => !filterSet.has(t.id));
+
+  return [...matching, ...others];
+}
+
 interface TemplateCardProps {
   template: TemplateListItem;
   tags?: Tag[];
+  priorityTagIds?: string[];
   folderName?: string;
   onClick?: () => void;
   onMenuClick?: (e: React.MouseEvent) => void;
@@ -16,6 +31,7 @@ interface TemplateCardProps {
 export function TemplateCard({
   template,
   tags = [],
+  priorityTagIds,
   folderName,
   onClick,
   onMenuClick,
@@ -23,6 +39,12 @@ export function TemplateCard({
   const { t } = useTranslation();
 
   const status = template.hasPublishedVersion ? 'PUBLISHED' : 'DRAFT';
+
+  // Prioritize tags matching the filter
+  const orderedTags = useMemo(
+    () => prioritizeTags(tags, priorityTagIds),
+    [tags, priorityTagIds]
+  );
 
   return (
     <div
@@ -78,9 +100,9 @@ export function TemplateCard({
       </div>
 
       {/* Tags */}
-      {tags.length > 0 && (
+      {orderedTags.length > 0 && (
         <div className="mb-3">
-          <TagBadgeList tags={tags} maxVisible={3} />
+          <TagBadgeList tags={orderedTags} maxVisible={2} size="sm" />
         </div>
       )}
 

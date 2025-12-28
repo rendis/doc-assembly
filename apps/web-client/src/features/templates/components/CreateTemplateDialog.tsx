@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Loader2, ChevronDown } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { templatesApi } from '../api/templates-api';
 import { TagBadge } from './TagBadge';
@@ -25,7 +25,6 @@ export function CreateTemplateDialog({
   const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
-  const [folderId, setFolderId] = useState<string | undefined>(currentFolderId);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +39,7 @@ export function CreateTemplateDialog({
     try {
       const result = await templatesApi.create({
         title: title.trim(),
-        folderId,
+        folderId: currentFolderId,
       });
 
       // Assign tags if any selected
@@ -60,7 +59,6 @@ export function CreateTemplateDialog({
 
   const handleClose = () => {
     setTitle('');
-    setFolderId(currentFolderId);
     setSelectedTagIds([]);
     setError(null);
     onClose();
@@ -136,30 +134,15 @@ export function CreateTemplateDialog({
               />
             </div>
 
-            {/* Folder */}
+            {/* Folder (readonly) */}
             <div>
-              <label htmlFor="folder" className="block text-sm font-medium mb-1.5">
+              <label className="block text-sm font-medium mb-1.5">
                 {t('templates.create.folderLabel')}
               </label>
-              <div className="relative">
-                <select
-                  id="folder"
-                  value={folderId ?? ''}
-                  onChange={(e) => setFolderId(e.target.value || undefined)}
-                  className="
-                    w-full px-3 py-2 text-sm appearance-none
-                    border rounded-md bg-background
-                    focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
-                  "
-                >
-                  <option value="">{t('folders.root')}</option>
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <div className="px-3 py-2 text-sm border rounded-md bg-muted/50 text-muted-foreground">
+                {currentFolderId
+                  ? folders.find((f) => f.id === currentFolderId)?.name
+                  : t('folders.root')}
               </div>
             </div>
 

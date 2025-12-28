@@ -1,15 +1,115 @@
-import { FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
+import { FileText, ChevronLeft, ChevronRight, Folder, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TemplateCard, TemplateCardSkeleton } from './TemplateCard';
-import type { TemplateListItem, Tag } from '../types';
+import type { TemplateListItem } from '../types';
+
+// Types for folder grouping
+interface TemplateGroup {
+  folderId: string | undefined;
+  folderName: string | undefined;
+  templates: TemplateListItem[];
+}
+
+/**
+ * Groups templates by folder, respecting the original order from the API.
+ * Does NOT reorder - templates stay in their original sequence.
+ */
+function groupTemplatesByFolder(
+  templates: TemplateListItem[],
+  getFolderName?: (folderId: string | undefined) => string | undefined
+): TemplateGroup[] {
+  const groups: TemplateGroup[] = [];
+  let currentGroup: TemplateGroup | null = null;
+
+  for (const template of templates) {
+    if (!currentGroup || currentGroup.folderId !== template.folderId) {
+      currentGroup = {
+        folderId: template.folderId,
+        folderName: getFolderName?.(template.folderId),
+        templates: [],
+      };
+      groups.push(currentGroup);
+    }
+    currentGroup.templates.push(template);
+  }
+
+  return groups;
+}
+
+/**
+ * Divider component that separates template groups by folder
+ */
+function FolderDivider({
+  folderName,
+  onClick,
+  isCollapsed,
+  onToggleCollapse,
+  templateCount,
+}: {
+  folderName: string;
+  onClick: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  templateCount: number;
+}) {
+  return (
+    <div className="col-span-full flex items-center gap-3 py-3 my-2 relative">
+      <div className="flex-1 border-t border-dashed border-muted-foreground/30" />
+      <button
+        type="button"
+        onClick={onClick}
+        className="
+          flex items-center gap-2 px-3 py-1.5
+          text-sm text-muted-foreground
+          hover:text-foreground hover:bg-muted
+          rounded-full transition-colors
+        "
+      >
+        <Folder className="w-4 h-4" />
+        <span>{folderName}</span>
+        <ArrowUpRight className="w-3 h-3" />
+      </button>
+      <div className="flex-1 border-t border-dashed border-muted-foreground/30" />
+      <div className="flex items-center gap-3 w-16 justify-end">
+        <span
+          className={`
+            text-xs font-medium text-primary bg-primary/15
+            w-6 h-6 rounded-full
+            flex items-center justify-center
+            transition-all duration-200
+            ${isCollapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}
+          `}
+        >
+          {templateCount}
+        </span>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="p-1 rounded hover:bg-muted transition-colors"
+          title={isCollapsed ? 'Expandir' : 'Colapsar'}
+        >
+          <ChevronDown
+            className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+              isCollapsed ? '-rotate-90' : ''
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface TemplatesGridProps {
   templates: TemplateListItem[];
   isLoading: boolean;
   onTemplateClick: (template: TemplateListItem) => void;
   onTemplateMenu: (template: TemplateListItem, e: React.MouseEvent) => void;
-  getTemplateTags?: (templateId: string) => Tag[];
   getFolderName?: (folderId: string | undefined) => string | undefined;
+  filterTagIds?: string[];
+  isRootView?: boolean;
+  onFolderClick?: (folderId: string) => void;
 
   // Pagination
   page: number;
@@ -23,14 +123,37 @@ export function TemplatesGrid({
   isLoading,
   onTemplateClick,
   onTemplateMenu,
-  getTemplateTags,
   getFolderName,
+  filterTagIds,
+  isRootView = false,
+  onFolderClick,
   page,
   totalPages,
   totalCount,
   onPageChange,
 }: TemplatesGridProps) {
   const { t } = useTranslation();
+
+  // Track which folders are collapsed (by folderId)
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+
+  const toggleFolderCollapse = (folderId: string) => {
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  // Group templates by folder when in root view
+  const groups = useMemo(() => {
+    if (!isRootView) return null;
+    return groupTemplatesByFolder(templates, getFolderName);
+  }, [templates, getFolderName, isRootView]);
 
   if (isLoading) {
     return (
@@ -58,20 +181,62 @@ export function TemplatesGrid({
     );
   }
 
+  // Render a single template card
+  const renderTemplateCard = (template: TemplateListItem) => (
+    <TemplateCard
+      key={template.id}
+      template={template}
+      tags={template.tags}
+      priorityTagIds={filterTagIds}
+      folderName={!isRootView ? getFolderName?.(template.folderId) : undefined}
+      onClick={() => onTemplateClick(template)}
+      onMenuClick={(e) => onTemplateMenu(template, e)}
+    />
+  );
+
   return (
     <div className="space-y-4">
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {templates.map((template) => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            tags={getTemplateTags?.(template.id)}
-            folderName={getFolderName?.(template.folderId)}
-            onClick={() => onTemplateClick(template)}
-            onMenuClick={(e) => onTemplateMenu(template, e)}
-          />
-        ))}
+        {isRootView && groups ? (
+          // Grouped view with folder dividers
+          groups.map((group, groupIndex) => {
+            const isCollapsed = group.folderId ? collapsedFolders.has(group.folderId) : false;
+
+            return (
+              <Fragment key={group.folderId ?? 'root'}>
+                {/* Show divider for folders (not for root templates, not for first group) */}
+                {groupIndex > 0 && group.folderId && (
+                  <FolderDivider
+                    folderName={group.folderName ?? t('folders.root')}
+                    onClick={() => onFolderClick?.(group.folderId!)}
+                    isCollapsed={isCollapsed}
+                    onToggleCollapse={() => toggleFolderCollapse(group.folderId!)}
+                    templateCount={group.templates.length}
+                  />
+                )}
+                {/* Templates in this group */}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed &&
+                    group.templates.map((template) => (
+                      <motion.div
+                        key={template.id}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        {renderTemplateCard(template)}
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
+              </Fragment>
+            );
+          })
+        ) : (
+          // Flat view (when viewing a specific folder)
+          templates.map(renderTemplateCard)
+        )}
       </div>
 
       {/* Pagination */}

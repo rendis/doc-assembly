@@ -1,9 +1,11 @@
-import { X, FileText, FolderOpen, Calendar, Clock, Plus, MoreVertical } from 'lucide-react';
+import { useState } from 'react';
+import { X, FileText, FolderOpen, Calendar, Clock, Plus, MoreVertical, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TemplateWithAllVersions, TagWithCount } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { TagBadge } from './TagBadge';
 import { VersionsList } from './VersionsList';
+import { EditTemplateTagsDialog } from './EditTemplateTagsDialog';
 import { formatDate, formatDistanceToNow } from '@/lib/date-utils';
 
 interface TemplateDetailPanelProps {
@@ -19,10 +21,10 @@ export function TemplateDetailPanel({
   isOpen,
   onClose,
   onRefresh,
-  tags: _tags,
+  tags,
 }: TemplateDetailPanelProps) {
-  void _tags; // Will be used for tag management
   const { t } = useTranslation();
+  const [isEditTagsOpen, setIsEditTagsOpen] = useState(false);
 
   if (!isOpen || !template) return null;
 
@@ -94,16 +96,30 @@ export function TemplateDetailPanel({
             </div>
 
             {/* Tags */}
-            {template.tags && template.tags.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-muted-foreground mb-1.5">{t('templates.tags')}</p>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs text-muted-foreground">{t('templates.tags.label')}</p>
+                <button
+                  type="button"
+                  onClick={() => setIsEditTagsOpen(true)}
+                  className="p-1 rounded hover:bg-muted transition-colors"
+                  title={t('templates.tags.edit')}
+                >
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </div>
+              {template.tags && template.tags.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {template.tags.map((tag) => (
                     <TagBadge key={tag.id} tag={tag} size="sm" />
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  {t('templates.tags.noTagsAssigned')}
+                </p>
+              )}
+            </div>
 
             {/* Metadata */}
             <div className="space-y-2 text-sm">
@@ -181,6 +197,16 @@ export function TemplateDetailPanel({
           </div>
         </footer>
       </aside>
+
+      {/* Edit Tags Dialog */}
+      <EditTemplateTagsDialog
+        isOpen={isEditTagsOpen}
+        onClose={() => setIsEditTagsOpen(false)}
+        templateId={template.id}
+        currentTags={template.tags ?? []}
+        availableTags={tags}
+        onSaved={onRefresh}
+      />
     </>
   );
 }

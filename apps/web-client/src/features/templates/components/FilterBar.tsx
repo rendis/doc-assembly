@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, X, ChevronDown, Check } from 'lucide-react';
+import { Search, X, ChevronDown, Check, SlidersHorizontal, FilterX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TagWithCount } from '../types';
 import { TagBadge } from './TagBadge';
@@ -31,6 +31,40 @@ export function FilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {/* Filter indicator / Clear button */}
+      <button
+        type="button"
+        onClick={hasActiveFilters ? onClearFilters : undefined}
+        disabled={!hasActiveFilters}
+        className={`
+          p-2 rounded-md transition-all
+          ${hasActiveFilters
+            ? 'text-primary hover:bg-primary/10 cursor-pointer'
+            : 'text-muted-foreground/50 cursor-default'
+          }
+        `}
+        title={hasActiveFilters ? t('templates.clearFilters') : undefined}
+      >
+        {hasActiveFilters ? (
+          <FilterX className="w-4 h-4" />
+        ) : (
+          <SlidersHorizontal className="w-4 h-4" />
+        )}
+      </button>
+
+      {/* Tags filter */}
+      <TagsDropdown
+        tags={availableTags}
+        selectedIds={selectedTagIds}
+        onChange={onTagsChange}
+      />
+
+      {/* Status filter */}
+      <StatusSegmentedControl
+        value={publishedFilter}
+        onChange={onPublishedFilterChange}
+      />
+
       {/* Search input */}
       <div className="relative flex-1 min-w-[200px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -56,36 +90,6 @@ export function FilterBar({
           </button>
         )}
       </div>
-
-      {/* Tags filter */}
-      <TagsDropdown
-        tags={availableTags}
-        selectedIds={selectedTagIds}
-        onChange={onTagsChange}
-      />
-
-      {/* Status filter */}
-      <StatusDropdown
-        value={publishedFilter}
-        onChange={onPublishedFilterChange}
-      />
-
-      {/* Clear filters */}
-      {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={onClearFilters}
-          className="
-            flex items-center gap-1.5 px-3 py-2
-            text-sm text-muted-foreground
-            hover:text-foreground hover:bg-muted
-            rounded-md transition-colors
-          "
-        >
-          <X className="w-3.5 h-3.5" />
-          {t('templates.clearFilters')}
-        </button>
-      )}
     </div>
   );
 }
@@ -137,7 +141,7 @@ function TagsDropdown({ tags, selectedIds, onChange }: TagsDropdownProps) {
       >
         {selectedIds.length > 0 ? (
           <span className="flex items-center gap-1">
-            {t('templates.tags')}
+            {t('templates.tags.label')}
             <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
               {selectedIds.length}
             </span>
@@ -203,78 +207,38 @@ function TagsDropdown({ tags, selectedIds, onChange }: TagsDropdownProps) {
   );
 }
 
-interface StatusDropdownProps {
+interface StatusSegmentedControlProps {
   value: boolean | undefined;
   onChange: (value: boolean | undefined) => void;
 }
 
-function StatusDropdown({ value, onChange }: StatusDropdownProps) {
+function StatusSegmentedControl({ value, onChange }: StatusSegmentedControlProps) {
   const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const options = [
-    { value: undefined, label: t('templates.allStatuses') },
-    { value: true, label: t('templates.withPublished') },
-    { value: false, label: t('templates.withoutPublished') },
+  const options: { value: boolean | undefined; label: string }[] = [
+    { value: undefined, label: t('templates.status.all') },
+    { value: true, label: t('templates.status.published') },
+    { value: false, label: t('templates.status.draft') },
   ];
 
-  const selectedOption = options.find((opt) => opt.value === value) ?? options[0];
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`
-          flex items-center gap-2 px-3 py-2 text-sm
-          border rounded-md transition-colors
-          ${value !== undefined
-            ? 'border-primary bg-primary/5 text-primary'
-            : 'hover:bg-muted'
-          }
-        `}
-      >
-        {selectedOption.label}
-        <ChevronDown className="w-4 h-4" />
-      </button>
-
-      {isOpen && (
-        <div className="
-          absolute z-50 mt-1 w-48 p-1
-          bg-popover border rounded-md shadow-lg
-          animate-in fade-in-0 zoom-in-95
-        ">
-          {options.map((option) => (
-            <button
-              key={String(option.value)}
-              type="button"
-              onClick={() => {
-                onChange(option.value);
-                setIsOpen(false);
-              }}
-              className={`
-                flex items-center justify-between w-full px-3 py-2
-                text-sm rounded-md transition-colors
-                ${option.value === value ? 'bg-primary/10' : 'hover:bg-muted'}
-              `}
-            >
-              {option.label}
-              {option.value === value && <Check className="w-4 h-4 text-primary" />}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="inline-flex rounded-md border bg-muted/50 p-0.5">
+      {options.map((option) => (
+        <button
+          key={String(option.value)}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`
+            px-3 py-1.5 text-xs font-medium rounded-sm transition-all
+            ${option.value === value
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+            }
+          `}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

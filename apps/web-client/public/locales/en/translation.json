@@ -199,13 +199,23 @@
     "template": "Template",
     "version": "Version",
     "versions": "Versions",
-    "tags": "Tags",
+    "tags": {
+      "label": "Tags",
+      "edit": "Edit tags",
+      "editTitle": "Manage Tags",
+      "noTagsAssigned": "No tags assigned",
+      "searchOrCreate": "Search or create tag...",
+      "createNew": "Create tag",
+      "willBeCreatedAs": "Will be created as",
+      "noMatchingTags": "No matching tags"
+    },
     "noTags": "No tags",
     "folder": "Folder",
     "rootFolder": "Root",
     "modified": "Modified",
     "created": "Created",
     "status": {
+      "all": "All",
       "draft": "Draft",
       "published": "Published",
       "archived": "Archived"

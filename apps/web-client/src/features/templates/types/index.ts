@@ -21,7 +21,7 @@ export interface TemplateListItem {
   title: string;
   isPublicLibrary: boolean;
   hasPublishedVersion: boolean;
-  tagCount: number;
+  tags?: Tag[];
   createdAt: string;
   updatedAt?: string;
 }
