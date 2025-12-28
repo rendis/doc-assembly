@@ -93,6 +93,7 @@ graph TB
     subgraph identity["IDENTITY SCHEMA"]
         U[users]
         WM[workspace_members]
+        UAH[user_access_history]
     end
 
     subgraph organizer["ORGANIZER SCHEMA"]
@@ -117,6 +118,7 @@ graph TB
     T -->|1:N| W
     W -->|1:N| WM
     U -->|1:N| WM
+    U -->|1:N| UAH
     W -->|1:N| F
     W -->|1:N| TG
     W -->|1:N| ID
@@ -184,9 +186,18 @@ erDiagram
         timestamptz created_at "NOT NULL"
     }
 
+    user_access_history {
+        uuid id PK "gen_random_uuid()"
+        uuid user_id FK "NOT NULL"
+        varchar_20 entity_type "NOT NULL CHECK"
+        uuid entity_id "NOT NULL"
+        timestamptz accessed_at "NOT NULL DEFAULT NOW"
+    }
+
     workspaces ||--o{ workspace_members : "staffing"
     users ||--o{ workspace_members : "membership"
     users ||--o{ workspace_members : "invites"
+    users ||--o{ user_access_history : "tracks"
 
     %% ===== ORGANIZER SCHEMA =====
     folders {
@@ -374,6 +385,7 @@ flowchart LR
 |-------|-------------|
 | `users` | Shadow user records synced from external IdP |
 | `workspace_members` | Maps users to workspaces with specific roles |
+| `user_access_history` | Tracks recent tenant/workspace access for quick navigation |
 
 ---
 
@@ -566,7 +578,40 @@ flowchart LR
 
 ---
 
-### 5.5 `organizer.folders`
+### 5.5 `identity.user_access_history`
+
+**Purpose**: Tracks the most recent tenant and workspace accesses per user for quick navigation UI.
+
+**Why it exists**: When a user belongs to many tenants or workspaces, the UI needs to show a "quick access" list of recently used resources. This table stores up to 10 most recent accesses per user per entity type, enabling fast retrieval without scanning all memberships.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier, auto-generated |
+| `user_id` | UUID | FK → users, NOT NULL | User who accessed the resource |
+| `entity_type` | VARCHAR(20) | NOT NULL, CHECK | Type of resource: `TENANT` or `WORKSPACE` |
+| `entity_id` | UUID | NOT NULL | ID of the accessed tenant or workspace |
+| `accessed_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW | When the access occurred |
+
+**Indexes**:
+- `idx_user_access_history_user_entity_accessed` - Composite index on (user_id, entity_type, accessed_at DESC) for efficient recent access lookups
+
+**Unique Constraints**:
+- `uq_user_access_history_user_entity` - One entry per (user_id, entity_type, entity_id) - enables UPSERT semantics
+
+**Check Constraints**:
+- `chk_user_access_history_entity_type` - Validates entity_type is `TENANT` or `WORKSPACE`
+
+**Foreign Keys**:
+- `fk_user_access_history_user_id` → `identity.users(id)` with `ON DELETE CASCADE`
+
+**Design Decisions**:
+- **No FK to tenant/workspace**: Allows graceful degradation if a tenant or workspace is deleted
+- **UPSERT pattern**: Recording an access updates the timestamp if entry already exists
+- **Cleanup limit**: Application maintains max 10 entries per user per entity type
+
+---
+
+### 5.6 `organizer.folders`
 
 **Purpose**: Hierarchical file system for organizing templates within a workspace.
 
@@ -593,7 +638,7 @@ flowchart LR
 
 ---
 
-### 5.6 `organizer.tags`
+### 5.7 `organizer.tags`
 
 **Purpose**: Cross-cutting labels that can be applied to templates for flexible categorization.
 
@@ -619,7 +664,7 @@ flowchart LR
 
 ---
 
-### 5.7 `content.injectable_definitions`
+### 5.8 `content.injectable_definitions`
 
 **Purpose**: Defines the universe of available variables that can be injected into templates.
 
@@ -647,7 +692,7 @@ flowchart LR
 
 ---
 
-### 5.8 `content.templates`
+### 5.9 `content.templates`
 
 **Purpose**: The document blueprint metadata that groups multiple versions together.
 
@@ -676,7 +721,7 @@ flowchart LR
 
 ---
 
-### 5.9 `content.template_versions`
+### 5.10 `content.template_versions`
 
 **Purpose**: Versioned content for templates with lifecycle states and scheduling support.
 
@@ -728,7 +773,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.10 `content.template_version_injectables`
+### 5.11 `content.template_version_injectables`
 
 **Purpose**: Configures which injectable variables a specific template version uses and how.
 
@@ -752,7 +797,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.11 `content.template_version_signer_roles`
+### 5.12 `content.template_version_signer_roles`
 
 **Purpose**: Defines the signature roles for a template version and their corresponding PDF anchors.
 
@@ -783,7 +828,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.12 `content.template_tags`
+### 5.13 `content.template_tags`
 
 **Purpose**: Many-to-many relationship table linking templates to tags.
 
@@ -802,7 +847,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.13 `execution.documents`
+### 5.14 `execution.documents`
 
 **Purpose**: Represents a generated document instance with all injected data and signature tracking.
 
@@ -839,7 +884,7 @@ Documents reference a specific `template_version_id`, not just the template. Thi
 
 ---
 
-### 5.14 `execution.document_recipients`
+### 5.15 `execution.document_recipients`
 
 **Purpose**: Tracks individual participants (signers) of a document and their signature status.
 
@@ -1096,6 +1141,7 @@ LIMIT 10;
 | Table | Constraint | Rule |
 |-------|------------|------|
 | `tags` | `chk_tags_color_format` | Color must match `^#[0-9A-Fa-f]{6}$` |
+| `user_access_history` | `chk_user_access_history_entity_type` | entity_type must be `TENANT` or `WORKSPACE` |
 
 ### Auto-Update Triggers
 
@@ -1378,6 +1424,54 @@ DELETE FROM identity.system_roles
 WHERE user_id = 'user-uuid';
 ```
 
+### 9.11 Record and Retrieve User Access History
+
+```sql
+-- Record a tenant access (UPSERT - updates timestamp if already exists)
+INSERT INTO identity.user_access_history (user_id, entity_type, entity_id)
+VALUES ('user-uuid', 'TENANT', 'tenant-uuid')
+ON CONFLICT (user_id, entity_type, entity_id)
+DO UPDATE SET accessed_at = CURRENT_TIMESTAMP;
+
+-- Record a workspace access
+INSERT INTO identity.user_access_history (user_id, entity_type, entity_id)
+VALUES ('user-uuid', 'WORKSPACE', 'workspace-uuid')
+ON CONFLICT (user_id, entity_type, entity_id)
+DO UPDATE SET accessed_at = CURRENT_TIMESTAMP;
+
+-- Get 10 most recently accessed tenants for a user
+SELECT entity_id, accessed_at
+FROM identity.user_access_history
+WHERE user_id = 'user-uuid'
+  AND entity_type = 'TENANT'
+ORDER BY accessed_at DESC
+LIMIT 10;
+
+-- Get recent tenants with full tenant details and user's role
+SELECT t.id, t.name, t.code, tm.role, uah.accessed_at
+FROM identity.user_access_history uah
+JOIN tenancy.tenants t ON uah.entity_id = t.id
+JOIN identity.tenant_members tm ON tm.tenant_id = t.id AND tm.user_id = uah.user_id
+WHERE uah.user_id = 'user-uuid'
+  AND uah.entity_type = 'TENANT'
+ORDER BY uah.accessed_at DESC
+LIMIT 10;
+
+-- Cleanup: keep only 10 most recent entries per user per entity type
+DELETE FROM identity.user_access_history
+WHERE id IN (
+    SELECT id FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                   PARTITION BY user_id, entity_type
+                   ORDER BY accessed_at DESC
+               ) as rn
+        FROM identity.user_access_history
+    ) ranked
+    WHERE rn > 10
+);
+```
+
 ---
 
 ## Appendix: Quick Reference
@@ -1387,11 +1481,11 @@ WHERE user_id = 'user-uuid';
 | Schema | Tables |
 |--------|--------|
 | tenancy | 2 |
-| identity | 2 |
+| identity | 3 (users, workspace_members, user_access_history) |
 | organizer | 3 (includes cache table) |
 | content | 6 (templates, template_versions, template_version_injectables, template_version_signer_roles, template_tags, injectable_definitions) |
 | execution | 2 |
-| **Total** | **15** |
+| **Total** | **16** |
 
 ### PostgreSQL Extensions Required
 

@@ -434,6 +434,16 @@ definitions:
           $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry'
         type: array
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest:
+    properties:
+      entityId:
+        type: string
+      entityType:
+        type: string
+    required:
+    - entityId
+    - entityType
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry:
     properties:
       resourceId:
@@ -1930,6 +1940,41 @@ paths:
       summary: Create version from existing
       tags:
       - Template Versions
+  /api/v1/me/access:
+    post:
+      consumes:
+      - application/json
+      description: Records that the user accessed a tenant or workspace for quick
+        access history
+      parameters:
+      - description: Access details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Access recorded
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Record resource access
+      tags:
+      - Me
   /api/v1/me/roles:
     get:
       consumes:
@@ -1980,7 +2025,7 @@ paths:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List my tenants
+      summary: List my recently accessed tenants
       tags:
       - Me
   /api/v1/system/tenants:

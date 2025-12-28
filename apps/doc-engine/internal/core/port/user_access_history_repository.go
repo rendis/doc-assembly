@@ -1,0 +1,29 @@
+package port
+
+import (
+	"context"
+
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
+)
+
+// UserAccessHistoryRepository defines the interface for user access history data access.
+type UserAccessHistoryRepository interface {
+	// RecordAccess records or updates an access entry using UPSERT semantics.
+	// If the entry exists, updates accessed_at. Returns the record ID.
+	RecordAccess(ctx context.Context, userID string, entityType entity.AccessEntityType, entityID string) (string, error)
+
+	// GetRecentAccessIDs returns the IDs of recently accessed entities of a given type.
+	// Returns up to `limit` entity IDs, ordered by most recent first.
+	GetRecentAccessIDs(ctx context.Context, userID string, entityType entity.AccessEntityType, limit int) ([]string, error)
+
+	// GetRecentAccesses returns full access records for a user and entity type.
+	GetRecentAccesses(ctx context.Context, userID string, entityType entity.AccessEntityType, limit int) ([]*entity.UserAccessHistory, error)
+
+	// DeleteOldAccesses removes entries beyond the most recent N for cleanup.
+	// This is called after recording access to maintain the limit.
+	DeleteOldAccesses(ctx context.Context, userID string, entityType entity.AccessEntityType, keepCount int) error
+
+	// DeleteByEntity removes all access history for a specific entity.
+	// Useful when entity is deleted.
+	DeleteByEntity(ctx context.Context, entityType entity.AccessEntityType, entityID string) error
+}

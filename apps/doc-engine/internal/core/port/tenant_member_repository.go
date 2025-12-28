@@ -37,4 +37,8 @@ type TenantMemberRepository interface {
 
 	// CountByRole counts members with a specific role in a tenant.
 	CountByRole(ctx context.Context, tenantID string, role entity.TenantRole) (int, error)
+
+	// FindTenantsWithRoleByUserAndIDs lists tenants by specific IDs that the user belongs to with their roles.
+	// Returns tenants in the same order as the provided IDs.
+	FindTenantsWithRoleByUserAndIDs(ctx context.Context, userID string, tenantIDs []string) ([]*entity.TenantWithRole, error)
 }

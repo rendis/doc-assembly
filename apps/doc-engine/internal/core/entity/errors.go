@@ -162,3 +162,8 @@ var (
 	ErrOptimisticLock     = errors.New("optimistic lock conflict - record was modified")
 	ErrRecordNotFound     = errors.New("record not found")
 )
+
+// Access History errors.
+var (
+	ErrInvalidAccessEntityType = errors.New("invalid access entity type")
+)

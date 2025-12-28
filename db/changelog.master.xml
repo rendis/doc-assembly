@@ -64,6 +64,9 @@
     <!-- Tenant Members: Tenant-level access relationships -->
     <include file="src/identity/tenant_members.xml"/>
 
+    <!-- User Access History: Recent resource access tracking -->
+    <include file="src/identity/user_access_history.xml"/>
+
     <!-- ============================================ -->
     <!-- PHASE 5: Organizer Tables                   -->
     <!-- ============================================ -->

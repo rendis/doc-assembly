@@ -246,3 +246,41 @@ func (r *Repository) CountByRole(ctx context.Context, tenantID string, role enti
 
 	return count, nil
 }
+
+// FindTenantsWithRoleByUserAndIDs lists tenants by specific IDs that the user belongs to.
+// Returns tenants in the same order as the provided IDs.
+func (r *Repository) FindTenantsWithRoleByUserAndIDs(ctx context.Context, userID string, tenantIDs []string) ([]*entity.TenantWithRole, error) {
+	if len(tenantIDs) == 0 {
+		return []*entity.TenantWithRole{}, nil
+	}
+
+	rows, err := r.pool.Query(ctx, queryFindTenantsWithRoleByUserAndIDs, userID, tenantIDs)
+	if err != nil {
+		return nil, fmt.Errorf("querying tenants by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*entity.TenantWithRole
+	for rows.Next() {
+		var tenant entity.Tenant
+		var role entity.TenantRole
+		err := rows.Scan(
+			&tenant.ID,
+			&tenant.Name,
+			&tenant.Code,
+			&tenant.Settings,
+			&tenant.CreatedAt,
+			&tenant.UpdatedAt,
+			&role,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning tenant with role: %w", err)
+		}
+		result = append(result, &entity.TenantWithRole{
+			Tenant: &tenant,
+			Role:   role,
+		})
+	}
+
+	return result, rows.Err()
+}

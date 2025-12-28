@@ -51,4 +51,14 @@ const (
 		SELECT COUNT(*)
 		FROM identity.tenant_members
 		WHERE tenant_id = $1 AND role = $2 AND membership_status = 'ACTIVE'`
+
+	// queryFindTenantsWithRoleByUserAndIDs uses unnest to preserve the order of input IDs.
+	// The ord column from unnest maintains the original order of the provided tenant IDs.
+	queryFindTenantsWithRoleByUserAndIDs = `
+		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
+		FROM unnest($2::uuid[]) WITH ORDINALITY AS input(id, ord)
+		INNER JOIN tenancy.tenants t ON t.id = input.id
+		INNER JOIN identity.tenant_members m ON m.tenant_id = t.id
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		ORDER BY input.ord`
 )

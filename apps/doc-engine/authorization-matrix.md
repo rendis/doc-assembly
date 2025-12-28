@@ -185,8 +185,79 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 
 | Método | Endpoint | Descripción | Cualquier usuario autenticado |
 |--------|----------|-------------|:-----------------------------:|
-| GET | `/me/tenants` | Lista los tenants a los que pertenece el usuario actual | ✅ |
+| GET | `/me/tenants` | Lista los 10 tenants accedidos recientemente (ver detalles abajo) | ✅ |
 | GET | `/me/roles` | Obtiene los roles del usuario actual (ver detalles abajo) | ✅ |
+| POST | `/me/access` | Registra acceso a un tenant o workspace para historial rápido | ✅ |
+
+### Endpoint `/me/tenants` - Detalle
+
+Retorna hasta **10 tenants** priorizando los accedidos recientemente.
+
+**Lógica de selección:**
+1. Obtiene hasta 10 IDs del historial de acceso (`user_access_history`)
+2. Si hay menos de 10, completa con tenants de las membresías del usuario
+3. Elimina duplicados (prioriza los del historial)
+
+**Casos de uso:**
+| Situación | Resultado |
+|-----------|-----------|
+| Usuario nuevo sin historial | Retorna hasta 10 tenants de sus membresías (ordenados por nombre) |
+| Usuario con 3 accesos recientes | Retorna esos 3 + hasta 7 más de sus membresías |
+| Usuario con 10+ accesos | Retorna solo los 10 más recientes |
+
+**Ejemplo de respuesta:**
+```json
+{
+  "items": [
+    {
+      "id": "uuid-tenant-1",
+      "name": "Chile Operations",
+      "code": "CL",
+      "role": "TENANT_OWNER"
+    },
+    {
+      "id": "uuid-tenant-2",
+      "name": "Mexico Operations",
+      "code": "MX",
+      "role": "TENANT_ADMIN"
+    }
+  ]
+}
+```
+
+---
+
+### Endpoint `/me/access` - Detalle
+
+Registra que el usuario accedió a un tenant o workspace, actualizando el historial de accesos rápidos.
+
+**Request body:**
+```json
+{
+  "entityType": "TENANT",
+  "entityId": "uuid-del-tenant"
+}
+```
+
+| Campo | Tipo | Valores válidos | Descripción |
+|-------|------|-----------------|-------------|
+| `entityType` | string | `TENANT`, `WORKSPACE` | Tipo de recurso accedido |
+| `entityId` | UUID | - | ID del tenant o workspace |
+
+**Comportamiento:**
+- Si ya existe un registro para ese usuario/tipo/entidad, actualiza el timestamp
+- El sistema mantiene automáticamente máximo 10 registros por usuario por tipo
+- Verifica que el usuario sea miembro del recurso antes de registrar
+
+**Respuestas:**
+| Código | Descripción |
+|--------|-------------|
+| 204 | Acceso registrado exitosamente |
+| 400 | entityType inválido o entityId faltante |
+| 401 | Usuario no autenticado |
+| 403 | Usuario no es miembro del tenant/workspace |
+
+---
 
 ### Endpoint `/me/roles` - Detalle
 

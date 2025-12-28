@@ -21,6 +21,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_version_signer_role_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_member_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
@@ -77,7 +78,9 @@ func InitializeApp() (*infra.Initializer, error) {
 	tenantUseCase := service.NewTenantService(tenantRepository, workspaceRepository, tenantMemberRepository)
 	systemRoleUseCase := service.NewSystemRoleService(systemRoleRepository, userRepository)
 	adminController := controller.NewAdminController(tenantUseCase, workspaceUseCase, systemRoleUseCase)
-	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository)
+	userAccessHistoryRepository := useraccesshistoryrepo.New(pool)
+	userAccessHistoryUseCase := service.NewUserAccessHistoryService(userAccessHistoryRepository, tenantMemberRepository, workspaceMemberRepository)
+	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository, userAccessHistoryUseCase)
 	tenantMemberUseCase := service.NewTenantMemberService(tenantMemberRepository, userRepository)
 	tenantController := controller.NewTenantController(tenantUseCase, workspaceUseCase, tenantMemberUseCase)
 	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController)

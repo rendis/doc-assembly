@@ -23,6 +23,7 @@ import (
 	templateversionsignerrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_version_signer_role_repo"
 	tenantmemberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_member_repo"
 	tenantrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_repo"
+	useraccesshistoryrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
@@ -53,6 +54,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	tenantMemberRepo := tenantmemberrepo.New(pool)
 	folderRepo := folderrepo.New(pool)
 	tagRepo := tagrepo.New(pool)
+	userAccessHistoryRepo := useraccesshistoryrepo.New(pool)
 
 	// Create repositories - Content
 	injectableRepo := injectablerepo.New(pool)
@@ -70,6 +72,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	folderService := service.NewFolderService(folderRepo)
 	tagService := service.NewTagService(tagRepo)
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
+	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo, tenantMemberRepo, workspaceMemberRepo)
 
 	// Create services - Content
 	injectableService := service.NewInjectableService(injectableRepo)
@@ -99,7 +102,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Create controllers - Admin, Me, Tenant, Workspace
 	adminController := controller.NewAdminController(tenantService, workspaceService, systemRoleService)
-	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo)
+	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo, userAccessHistoryService)
 	tenantController := controller.NewTenantController(tenantService, workspaceService, tenantMemberService)
 	workspaceController := controller.NewWorkspaceController(workspaceService, folderService, tagService, workspaceMemberService)
 

@@ -22,4 +22,7 @@ var (
 
 	// Tag validation errors
 	ErrInvalidColorFormat = errors.New("color must be a valid hex color (e.g., #FF0000)")
+
+	// Access History validation errors
+	ErrInvalidEntityType = errors.New("entityType must be TENANT or WORKSPACE")
 )

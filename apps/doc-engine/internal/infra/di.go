@@ -14,6 +14,7 @@ import (
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	systemrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tag_repo"
+	useraccesshistoryrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	templaterepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_repo"
 	templatetagrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_tag_repo"
 	templateversioninjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_version_injectable_repo"
@@ -49,6 +50,7 @@ var ProviderSet = wire.NewSet(
 	workspacememberrepo.New,
 	tenantmemberrepo.New,
 	systemrolerepo.New,
+	useraccesshistoryrepo.New,
 
 	// Repositories - Content
 	injectablerepo.New,
@@ -66,6 +68,7 @@ var ProviderSet = wire.NewSet(
 	service.NewTenantService,
 	service.NewTenantMemberService,
 	service.NewSystemRoleService,
+	service.NewUserAccessHistoryService,
 
 	// Services - Content
 	service.NewInjectableService,

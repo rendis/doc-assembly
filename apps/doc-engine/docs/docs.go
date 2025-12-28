@@ -1481,6 +1481,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/me/access": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records that the user accessed a tenant or workspace for quick access history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Me"
+                ],
+                "summary": "Record resource access",
+                "parameters": [
+                    {
+                        "description": "Access details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Access recorded"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/me/roles": {
             "get": {
                 "security": [
@@ -1545,7 +1599,7 @@ const docTemplate = `{
                 "tags": [
                     "Me"
                 ],
-                "summary": "List my tenants",
+                "summary": "List my recently accessed tenants",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -4237,6 +4291,21 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry"
                     }
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest": {
+            "type": "object",
+            "required": [
+                "entityId",
+                "entityType"
+            ],
+            "properties": {
+                "entityId": {
+                    "type": "string"
+                },
+                "entityType": {
+                    "type": "string"
                 }
             }
         },
