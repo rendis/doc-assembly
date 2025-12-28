@@ -29,7 +29,7 @@ The Document Assembly System is a **multi-tenant document template builder** tha
 
 | Principle | Description |
 |-----------|-------------|
-| **Multi-Tenant Hierarchy** | Three-level structure: Global → Tenant → Client workspaces |
+| **Multi-Tenant Hierarchy** | Two-level structure: System Tenant (global templates) → Regular Tenants (with SYSTEM + CLIENT workspaces) |
 | **Shadow Users** | Authentication delegated to external IdP (Keycloak); database maintains shadow users for roles and audit |
 | **Hybrid Architecture** | Relational SQL for organizational structure + JSONB for dynamic document content |
 | **Signature Delegation** | System prepares PDF anchors; external provider handles actual signing |
@@ -41,29 +41,30 @@ The Document Assembly System is a **multi-tenant document template builder** tha
 ### Multi-Tenant Hierarchy
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                     GLOBAL LEVEL                               │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  System Workspace (tenant_id = NULL)                    │   │
-│  │  → Universal templates available to all tenants         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-├────────────────────────────────────────────────────────────────┤
-│                     TENANT LEVEL                               │
-│  ┌──────────────────────┐  ┌──────────────────────┐            │
-│  │  Tenant: Chile (CL)  │  │  Tenant: Mexico (MX) │            │
-│  │  ┌────────────────┐  │  │  ┌────────────────┐  │            │
-│  │  │ System WS (CL) │  │  │  │ System WS (MX) │  │            │
-│  │  │ → Localized    │  │  │  │ → Localized    │  │            │
-│  │  │   templates    │  │  │  │   templates    │  │            │
-│  │  └────────────────┘  │  │  └────────────────┘  │            │
-│  └──────────────────────┘  └──────────────────────┘            │
-├────────────────────────────────────────────────────────────────┤
-│                     CLIENT LEVEL                               │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
-│  │ Client A   │ │ Client B   │ │ Client C   │ │ Client D   │   │
-│  │ (under CL) │ │ (under CL) │ │ (under MX) │ │ (under MX) │   │
-│  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
-└────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    SYSTEM TENANT (is_system = TRUE)             │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Tenant: System (code = 'SYS')                            │  │
+│  │  ┌─────────────────────────────────────────────────────┐  │  │
+│  │  │  System Workspace (type = 'SYSTEM')                 │  │  │
+│  │  │  → Universal templates available to all tenants     │  │  │
+│  │  └─────────────────────────────────────────────────────┘  │  │
+│  │  Only 1 workspace allowed (type=SYSTEM only)              │  │
+│  └───────────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                    REGULAR TENANTS (is_system = FALSE)          │
+│  ┌──────────────────────┐  ┌──────────────────────┐             │
+│  │  Tenant: Chile (CL)  │  │  Tenant: Mexico (MX) │             │
+│  │  ┌────────────────┐  │  │  ┌────────────────┐  │             │
+│  │  │ System WS      │  │  │  │ System WS      │  │             │
+│  │  │ → Localized    │  │  │  │ → Localized    │  │             │
+│  │  │   templates    │  │  │  │   templates    │  │             │
+│  │  └────────────────┘  │  │  └────────────────┘  │             │
+│  │  ┌────────────────┐  │  │  ┌────────────────┐  │             │
+│  │  │ Client WS 1..N │  │  │  │ Client WS 1..N │  │             │
+│  │  └────────────────┘  │  │  └────────────────┘  │             │
+│  └──────────────────────┘  └──────────────────────┘             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Schema Organization
@@ -143,6 +144,7 @@ erDiagram
         uuid id PK "gen_random_uuid()"
         varchar_100 name "NOT NULL"
         varchar_10 code "UNIQUE NOT NULL"
+        boolean is_system "NOT NULL DEFAULT false"
         jsonb settings "Regional config"
         timestamptz created_at "NOT NULL"
         timestamptz updated_at
@@ -150,7 +152,7 @@ erDiagram
 
     workspaces {
         uuid id PK "gen_random_uuid()"
-        uuid tenant_id FK "NULL for global"
+        uuid tenant_id FK "NOT NULL"
         varchar_255 name "NOT NULL"
         workspace_type type "NOT NULL"
         workspace_status status "DEFAULT ACTIVE"
@@ -423,24 +425,36 @@ flowchart LR
 
 ### 5.1 `tenancy.tenants`
 
-**Purpose**: Represents a jurisdiction, country, or major business unit that groups multiple workspaces together.
+**Purpose**: Represents a jurisdiction, country, or major business unit that groups multiple workspaces together. One special tenant with `is_system = TRUE` serves as the system tenant for global templates.
 
-**Why it exists**: Multi-tenant systems need a way to isolate organizations at the highest level. Tenants provide regional/jurisdictional separation with their own settings (currency, timezone, legal formats).
+**Why it exists**: Multi-tenant systems need a way to isolate organizations at the highest level. Tenants provide regional/jurisdictional separation with their own settings (currency, timezone, legal formats). The system tenant (code = 'SYS') holds universal templates available to all other tenants.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, NOT NULL | Unique identifier, auto-generated |
 | `name` | VARCHAR(100) | NOT NULL | Display name (e.g., "Chile Operations") |
-| `code` | VARCHAR(10) | UNIQUE, NOT NULL | Short code (e.g., `CL`, `MX`, `EU`) |
+| `code` | VARCHAR(10) | UNIQUE, NOT NULL | Short code (e.g., `CL`, `MX`, `SYS`) |
+| `description` | VARCHAR(500) | - | Optional description |
+| `is_system` | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE = system tenant for global templates |
 | `settings` | JSONB | - | Regional configuration (currency, timezone, formats) |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | - | Last modification (auto-updated via trigger) |
 
 **Indexes**:
 - `idx_tenants_code` - Fast lookup by tenant code
+- `idx_unique_system_tenant` - Partial unique index ensuring only ONE system tenant exists
 
 **Triggers**:
 - `trigger_tenants_updated_at` - Auto-updates `updated_at` on modification
+- `trigger_protect_system_tenant` - Protects system tenant from DELETE and protected field UPDATE
+
+**Business Rules**:
+- Only ONE tenant can have `is_system = TRUE` (enforced by partial unique index)
+- The system tenant cannot be deleted
+- The system tenant's `name`, `code`, and `is_system` fields cannot be modified
+
+**Seed Data**:
+- A system tenant with code = 'SYS' is created by default during database initialization
 
 ---
 
@@ -449,13 +463,13 @@ flowchart LR
 **Purpose**: The root operational entity where all work happens. Every resource (templates, documents, users) belongs to a workspace.
 
 **Why it exists**: Workspaces provide the primary unit of isolation and organization. They can be either:
-- **SYSTEM workspaces**: Own master templates (one per tenant, one global)
+- **SYSTEM workspaces**: Own master templates (one per tenant, including system tenant)
 - **CLIENT workspaces**: End-user workspaces that use/copy templates from system workspaces
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, NOT NULL | Unique identifier |
-| `tenant_id` | UUID | FK → tenants, NULLABLE | NULL = global workspace; otherwise belongs to tenant |
+| `tenant_id` | UUID | FK → tenants, NOT NULL | Every workspace must belong to a tenant |
 | `name` | VARCHAR(255) | NOT NULL | Workspace display name |
 | `type` | workspace_type | NOT NULL | `SYSTEM` or `CLIENT` |
 | `status` | workspace_status | NOT NULL, DEFAULT 'ACTIVE' | `ACTIVE`, `SUSPENDED`, `ARCHIVED` |
@@ -469,13 +483,19 @@ flowchart LR
 - `idx_workspaces_type` - Filter by type
 
 **Special Partial Unique Indexes**:
-- `idx_unique_global_system_workspace` - Ensures only ONE global SYSTEM workspace exists
 - `idx_unique_tenant_system_workspace` - Ensures only ONE SYSTEM workspace per tenant
 
+**Triggers**:
+- `trigger_workspaces_updated_at` - Auto-updates `updated_at` on modification
+- `trigger_validate_system_tenant_workspace` - Validates that system tenant can only have one SYSTEM workspace
+- `trigger_protect_system_tenant_workspace` - Prevents deletion of system tenant's workspace
+
 **Business Rules**:
-- A tenant can have exactly one SYSTEM workspace
-- There can be exactly one global SYSTEM workspace (tenant_id = NULL)
-- CLIENT workspaces must belong to a tenant
+- Every workspace must belong to a tenant (`tenant_id` is NOT NULL)
+- Each tenant can have exactly one SYSTEM workspace
+- The system tenant (is_system = TRUE) can only have ONE workspace of type SYSTEM
+- The system tenant cannot have CLIENT workspaces
+- The system tenant's workspace cannot be deleted
 
 ---
 
@@ -1064,7 +1084,7 @@ LIMIT 10;
 
 | Table | Index | Type | Purpose |
 |-------|-------|------|---------|
-| `workspaces` | `idx_unique_global_system_workspace` | Unique Partial | Only ONE global SYSTEM workspace |
+| `tenants` | `idx_unique_system_tenant` | Unique Partial | Only ONE system tenant (is_system = TRUE) |
 | `workspaces` | `idx_unique_tenant_system_workspace` | Unique Partial | Only ONE SYSTEM workspace per tenant |
 | `folders` | `idx_folders_unique_name` | Unique Composite | Unique names within same parent |
 | `injectable_definitions` | `idx_injectable_definitions_unique_key` | Unique Composite | Unique key per scope |
@@ -1091,6 +1111,40 @@ All tables with `updated_at` columns have triggers that automatically set the va
 - `trigger_documents_updated_at`
 - `trigger_document_recipients_updated_at`
 
+### Protection Triggers
+
+Triggers that protect system tenant and its workspace:
+
+| Trigger | Table | Events | Purpose |
+|---------|-------|--------|---------|
+| `trigger_protect_system_tenant` | `tenants` | UPDATE, DELETE | Prevents modification/deletion of system tenant |
+| `trigger_validate_system_tenant_workspace` | `workspaces` | INSERT, UPDATE | Ensures system tenant has only 1 SYSTEM workspace |
+| `trigger_protect_system_tenant_workspace` | `workspaces` | DELETE | Prevents deletion of system tenant's workspace |
+
+### Synchronization Triggers
+
+Triggers that automatically synchronize data across tables:
+
+| Trigger | Table | Events | Purpose |
+|---------|-------|--------|---------|
+| `trigger_sync_system_role_memberships` | `system_roles` | INSERT, UPDATE, DELETE | Auto-syncs system roles to tenant/workspace memberships |
+
+#### System Role Membership Sync
+
+When a user is assigned a system role (`SUPERADMIN` or `PLATFORM_ADMIN`), they automatically receive membership in the **system tenant** and its **system workspace** with mapped roles:
+
+| System Role | Tenant Role | Workspace Role |
+|-------------|-------------|----------------|
+| `SUPERADMIN` | `TENANT_OWNER` | `OWNER` |
+| `PLATFORM_ADMIN` | `TENANT_ADMIN` | `ADMIN` |
+
+**Behavior:**
+- **INSERT**: Creates entries in `tenant_members` and `workspace_members` for the system tenant/workspace
+- **UPDATE**: Updates the role mapping if the system role changes (uses UPSERT)
+- **DELETE**: Removes the membership entries from both tables
+
+**Function**: `identity.sync_system_role_memberships()`
+
 ---
 
 ## 9. Usage Examples
@@ -1098,7 +1152,7 @@ All tables with `updated_at` columns have triggers that automatically set the va
 ### 9.1 Create a New Tenant with System Workspace
 
 ```sql
--- Create tenant
+-- Create a regular tenant (is_system defaults to FALSE)
 INSERT INTO tenancy.tenants (name, code, settings)
 VALUES ('Chile Operations', 'CL', '{"currency": "CLP", "timezone": "America/Santiago"}')
 RETURNING id;
@@ -1106,6 +1160,25 @@ RETURNING id;
 -- Create system workspace for tenant
 INSERT INTO tenancy.workspaces (tenant_id, name, type)
 VALUES ('uuid-from-above', 'Chile System Templates', 'SYSTEM');
+
+-- Create client workspaces for end-users
+INSERT INTO tenancy.workspaces (tenant_id, name, type)
+VALUES ('uuid-from-above', 'Client ABC', 'CLIENT');
+```
+
+### 9.1.1 Query the System Tenant
+
+```sql
+-- Find the system tenant (for global templates)
+SELECT id, name, code
+FROM tenancy.tenants
+WHERE is_system = TRUE;
+
+-- Find the system tenant's workspace
+SELECT w.id, w.name, w.type
+FROM tenancy.workspaces w
+JOIN tenancy.tenants t ON w.tenant_id = t.id
+WHERE t.is_system = TRUE;
 ```
 
 ### 9.2 Invite User to Workspace
@@ -1269,6 +1342,40 @@ ORDER BY
         WHEN 'OPERATOR' THEN 4
         ELSE 5
     END;
+```
+
+### 9.10 Assign System Role (Auto-Creates Memberships)
+
+```sql
+-- Assign SUPERADMIN role to a user
+-- This automatically creates:
+--   1. tenant_members entry for system tenant with TENANT_OWNER role
+--   2. workspace_members entry for system workspace with OWNER role
+INSERT INTO identity.system_roles (user_id, role, granted_by)
+VALUES ('user-uuid', 'SUPERADMIN', 'admin-uuid');
+
+-- Verify the auto-created memberships
+SELECT 'tenant_members' as table_name, tm.role, t.code as tenant_code
+FROM identity.tenant_members tm
+JOIN tenancy.tenants t ON tm.tenant_id = t.id
+WHERE tm.user_id = 'user-uuid' AND t.is_system = TRUE
+UNION ALL
+SELECT 'workspace_members', wm.role::text, 'SYSTEM'
+FROM identity.workspace_members wm
+JOIN tenancy.workspaces w ON wm.workspace_id = w.id
+JOIN tenancy.tenants t ON w.tenant_id = t.id
+WHERE wm.user_id = 'user-uuid' AND t.is_system = TRUE;
+
+-- Change role from SUPERADMIN to PLATFORM_ADMIN
+-- This automatically updates both memberships
+UPDATE identity.system_roles
+SET role = 'PLATFORM_ADMIN'
+WHERE user_id = 'user-uuid';
+
+-- Remove system role
+-- This automatically removes both memberships
+DELETE FROM identity.system_roles
+WHERE user_id = 'user-uuid';
 ```
 
 ---

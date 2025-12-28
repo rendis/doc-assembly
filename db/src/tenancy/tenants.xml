@@ -22,6 +22,9 @@
             <column name="description" type="VARCHAR(500)">
                 <constraints nullable="true"/>
             </column>
+            <column name="is_system" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
             <column name="settings" type="JSONB">
                 <constraints nullable="true"/>
             </column>
@@ -41,7 +44,17 @@
         </createIndex>
     </changeSet>
 
-    <!-- ========== TRIGGER ========== -->
+    <changeSet id="tenants:unique_partial_index:system_tenant" author="doc-assembly">
+        <comment>Ensure only ONE system tenant exists (is_system = TRUE)</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_unique_system_tenant
+            ON tenancy.tenants (is_system)
+            WHERE is_system = TRUE;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_system_tenant;</rollback>
+    </changeSet>
+
+    <!-- ========== TRIGGERS ========== -->
 
     <changeSet id="tenants:trigger:updated_at" author="doc-assembly">
         <comment>Trigger to auto-update updated_at on modification</comment>
@@ -51,6 +64,56 @@
             FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
         </sql>
         <rollback>DROP TRIGGER IF EXISTS trigger_tenants_updated_at ON tenancy.tenants;</rollback>
+    </changeSet>
+
+    <changeSet id="tenants:function:protect_system_tenant" author="doc-assembly">
+        <comment>Function to protect system tenant from DELETE and protected field UPDATE</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION tenancy.protect_system_tenant()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'DELETE' THEN
+                    IF OLD.is_system = TRUE THEN
+                        RAISE EXCEPTION 'Cannot delete system tenant';
+                    END IF;
+                    RETURN OLD;
+                ELSIF TG_OP = 'UPDATE' THEN
+                    IF OLD.is_system = TRUE THEN
+                        IF NEW.is_system != OLD.is_system OR
+                           NEW.code != OLD.code OR
+                           NEW.name != OLD.name THEN
+                            RAISE EXCEPTION 'Cannot modify protected fields of system tenant';
+                        END IF;
+                    END IF;
+                    RETURN NEW;
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS tenancy.protect_system_tenant();</rollback>
+    </changeSet>
+
+    <changeSet id="tenants:trigger:protect_system_tenant" author="doc-assembly">
+        <comment>Trigger to protect system tenant</comment>
+        <sql>
+            CREATE TRIGGER trigger_protect_system_tenant
+            BEFORE UPDATE OR DELETE ON tenancy.tenants
+            FOR EACH ROW EXECUTE FUNCTION tenancy.protect_system_tenant();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_protect_system_tenant ON tenancy.tenants;</rollback>
+    </changeSet>
+
+    <!-- ========== SEED DATA ========== -->
+
+    <changeSet id="tenants:seed:system_tenant" author="doc-assembly">
+        <comment>Insert default system tenant</comment>
+        <insert tableName="tenants" schemaName="tenancy">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="name" value="System"/>
+            <column name="code" value="SYS"/>
+            <column name="description" value="System tenant for global templates"/>
+            <column name="is_system" valueBoolean="true"/>
+        </insert>
     </changeSet>
 
 </databaseChangeLog>

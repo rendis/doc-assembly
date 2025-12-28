@@ -14,7 +14,7 @@
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="tenant_id" type="uuid">
-                <constraints nullable="true"/>
+                <constraints nullable="false"/>
             </column>
             <column name="name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
@@ -38,7 +38,7 @@
     <!-- ========== FOREIGN KEYS ========== -->
 
     <changeSet id="workspaces:add_fk_constraint:tenant_id" author="doc-assembly">
-        <comment>FK to tenants - nullable for global workspaces</comment>
+        <comment>FK to tenants - all workspaces must belong to a tenant</comment>
         <addForeignKeyConstraint
             baseTableSchemaName="tenancy"
             baseTableName="workspaces"
@@ -52,22 +52,12 @@
 
     <!-- ========== UNIQUE PARTIAL INDEXES ========== -->
 
-    <changeSet id="workspaces:unique_partial_index:global_system" author="doc-assembly">
-        <comment>Ensure only ONE global SYSTEM workspace exists (tenant_id IS NULL)</comment>
-        <sql>
-            CREATE UNIQUE INDEX idx_unique_global_system_workspace
-            ON tenancy.workspaces (type)
-            WHERE type = 'SYSTEM' AND tenant_id IS NULL;
-        </sql>
-        <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_global_system_workspace;</rollback>
-    </changeSet>
-
     <changeSet id="workspaces:unique_partial_index:tenant_system" author="doc-assembly">
         <comment>Ensure only ONE SYSTEM workspace per tenant</comment>
         <sql>
             CREATE UNIQUE INDEX idx_unique_tenant_system_workspace
             ON tenancy.workspaces (tenant_id, type)
-            WHERE type = 'SYSTEM' AND tenant_id IS NOT NULL;
+            WHERE type = 'SYSTEM';
         </sql>
         <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_tenant_system_workspace;</rollback>
     </changeSet>
@@ -95,7 +85,7 @@
         </createIndex>
     </changeSet>
 
-    <!-- ========== TRIGGER ========== -->
+    <!-- ========== TRIGGERS ========== -->
 
     <changeSet id="workspaces:trigger:updated_at" author="doc-assembly">
         <comment>Trigger to auto-update updated_at on modification</comment>
@@ -105,6 +95,116 @@
             FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
         </sql>
         <rollback>DROP TRIGGER IF EXISTS trigger_workspaces_updated_at ON tenancy.workspaces;</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:function:validate_system_tenant_workspace" author="doc-assembly">
+        <comment>Function to validate workspaces for system tenant</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION tenancy.validate_system_tenant_workspace()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                v_is_system_tenant BOOLEAN;
+                v_workspace_count INTEGER;
+            BEGIN
+                SELECT is_system INTO v_is_system_tenant
+                FROM tenancy.tenants
+                WHERE id = NEW.tenant_id;
+
+                IF v_is_system_tenant = TRUE THEN
+                    IF NEW.type != 'SYSTEM' THEN
+                        RAISE EXCEPTION 'System tenant can only have SYSTEM type workspaces';
+                    END IF;
+
+                    SELECT COUNT(*) INTO v_workspace_count
+                    FROM tenancy.workspaces
+                    WHERE tenant_id = NEW.tenant_id
+                      AND (TG_OP = 'INSERT' OR id != NEW.id);
+
+                    IF v_workspace_count >= 1 THEN
+                        RAISE EXCEPTION 'System tenant can only have one workspace';
+                    END IF;
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS tenancy.validate_system_tenant_workspace();</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:trigger:validate_system_tenant_workspace" author="doc-assembly">
+        <comment>Trigger to validate workspaces for system tenant</comment>
+        <sql>
+            CREATE TRIGGER trigger_validate_system_tenant_workspace
+            BEFORE INSERT OR UPDATE ON tenancy.workspaces
+            FOR EACH ROW EXECUTE FUNCTION tenancy.validate_system_tenant_workspace();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_validate_system_tenant_workspace ON tenancy.workspaces;</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:function:protect_system_tenant_workspace" author="doc-assembly">
+        <comment>Function to protect system tenant workspace from deletion and protected field modification</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION tenancy.protect_system_tenant_workspace()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                v_is_system_tenant BOOLEAN;
+            BEGIN
+                SELECT is_system INTO v_is_system_tenant
+                FROM tenancy.tenants
+                WHERE id = OLD.tenant_id;
+
+                IF v_is_system_tenant = TRUE THEN
+                    IF TG_OP = 'DELETE' THEN
+                        RAISE EXCEPTION 'Cannot delete system tenant workspace';
+                    ELSIF TG_OP = 'UPDATE' THEN
+                        IF NEW.name != OLD.name OR
+                           NEW.type != OLD.type OR
+                           NEW.tenant_id != OLD.tenant_id THEN
+                            RAISE EXCEPTION 'Cannot modify protected fields of system tenant workspace';
+                        END IF;
+                    END IF;
+                END IF;
+
+                IF TG_OP = 'DELETE' THEN
+                    RETURN OLD;
+                ELSE
+                    RETURN NEW;
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS tenancy.protect_system_tenant_workspace();</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:trigger:protect_system_tenant_workspace" author="doc-assembly">
+        <comment>Trigger to protect system tenant workspace from deletion and protected field modification</comment>
+        <sql>
+            CREATE TRIGGER trigger_protect_system_tenant_workspace
+            BEFORE UPDATE OR DELETE ON tenancy.workspaces
+            FOR EACH ROW EXECUTE FUNCTION tenancy.protect_system_tenant_workspace();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_protect_system_tenant_workspace ON tenancy.workspaces;</rollback>
+    </changeSet>
+
+    <!-- ========== SEED DATA ========== -->
+
+    <changeSet id="workspaces:seed:system_tenant_workspace" author="doc-assembly">
+        <comment>Insert default workspace for system tenant</comment>
+        <sql>
+            INSERT INTO tenancy.workspaces (id, tenant_id, name, type, status)
+            SELECT gen_random_uuid(),
+                   t.id,
+                   'System Workspace',
+                   'SYSTEM',
+                   'ACTIVE'
+            FROM tenancy.tenants t
+            WHERE t.is_system = TRUE;
+        </sql>
+        <rollback>
+            DELETE FROM tenancy.workspaces
+            WHERE tenant_id IN (SELECT id FROM tenancy.tenants WHERE is_system = TRUE);
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>
