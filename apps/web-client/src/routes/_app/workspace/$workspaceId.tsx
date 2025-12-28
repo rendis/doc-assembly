@@ -24,9 +24,9 @@ function WorkspaceLayout() {
   }, [workspace, setWorkspace]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-57px)]">
+    <div className="flex flex-col h-full">
       {/* Workspace Header */}
-      <div className="bg-card border-b border-border px-6 py-4">
+      <div className="flex-shrink-0 bg-card border-b border-border px-6 py-4">
         <h1 className="text-xl font-bold text-foreground">{workspace.name}</h1>
         <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
           {workspace.type}
@@ -34,10 +34,12 @@ function WorkspaceLayout() {
       </div>
 
       {/* Horizontal Tabs */}
-      <WorkspaceTabs workspaceId={workspaceId} />
+      <div className="flex-shrink-0">
+        <WorkspaceTabs workspaceId={workspaceId} />
+      </div>
 
       {/* Content Area */}
-      <main className="flex-1 overflow-auto bg-background p-6">
+      <main className="flex-1 overflow-hidden bg-background">
         <Outlet />
       </main>
     </div>

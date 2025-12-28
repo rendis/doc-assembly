@@ -35,7 +35,7 @@ export function TemplatesSidebar({
   const { t } = useTranslation();
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r bg-muted/30 p-4 space-y-6 overflow-y-auto">
+    <aside className="w-64 flex-shrink-0 border-r bg-muted/30 p-4 space-y-6 overflow-y-auto h-full">
       {/* Folders Section */}
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">

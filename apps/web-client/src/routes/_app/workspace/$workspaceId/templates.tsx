@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_app/workspace/$workspaceId/templates')({
 
 function TemplatesPageRoute() {
   return (
-    <div className="h-[calc(100vh-8rem)]">
+    <div className="h-full">
       <TemplatesPage />
     </div>
   );
