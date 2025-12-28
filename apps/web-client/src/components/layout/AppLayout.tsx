@@ -23,7 +23,7 @@ export const AppLayout = () => {
 
             {currentWorkspace && (
               <>
-                <span className="text-slate-300 dark:text-slate-700 text-lg font-light">/</span>
+                <span className="text-muted-foreground text-lg font-light">/</span>
                 <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border border-transparent">
                   <span className="text-sm font-bold tracking-tight text-foreground truncate max-w-[200px]">
                     {currentWorkspace.name}
