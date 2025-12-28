@@ -32,7 +32,7 @@ const (
 		ORDER BY created_at DESC`
 
 	queryFindTenantsWithRoleByUser = `
-		SELECT t.id, t.name, t.code, t.settings, t.created_at, t.updated_at, m.role
+		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
 		FROM identity.tenant_members m
 		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
 		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
