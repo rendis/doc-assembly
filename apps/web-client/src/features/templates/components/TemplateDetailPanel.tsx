@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, FileText, FolderOpen, Calendar, Clock, Plus, MoreVertical, Pencil } from 'lucide-react';
+import { X, FileText, FolderOpen, Calendar, Clock, Plus, Pencil, Copy, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TemplateWithAllVersions, TagWithCount } from '../types';
 import { StatusBadge } from './StatusBadge';
@@ -14,6 +14,7 @@ interface TemplateDetailPanelProps {
   onClose: () => void;
   onRefresh: () => void;
   tags: TagWithCount[];
+  onRenameTemplate?: (template: { id: string; title: string }) => void;
 }
 
 export function TemplateDetailPanel({
@@ -22,6 +23,7 @@ export function TemplateDetailPanel({
   onClose,
   onRefresh,
   tags,
+  onRenameTemplate,
 }: TemplateDetailPanelProps) {
   const { t } = useTranslation();
   const [isEditTagsOpen, setIsEditTagsOpen] = useState(false);
@@ -69,9 +71,19 @@ export function TemplateDetailPanel({
                 <FileText className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-lg truncate" title={template.title}>
-                  {template.title}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-lg truncate" title={template.title}>
+                    {template.title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => onRenameTemplate?.(template)}
+                    className="p-1 rounded hover:bg-muted transition-colors flex-shrink-0"
+                    title={t('templates.actions.edit')}
+                  >
+                    <Pencil className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
                 {template.folder && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
                     <FolderOpen className="w-3.5 h-3.5" />
@@ -168,31 +180,26 @@ export function TemplateDetailPanel({
             <button
               type="button"
               className="
-                flex-1 px-3 py-2 text-sm font-medium
+                flex-1 flex items-center justify-center gap-2
+                px-3 py-2 text-sm font-medium
                 border rounded-md
                 hover:bg-muted transition-colors
               "
             >
-              {t('templates.actions.edit')}
-            </button>
-            <button
-              type="button"
-              className="
-                flex-1 px-3 py-2 text-sm font-medium
-                border rounded-md
-                hover:bg-muted transition-colors
-              "
-            >
+              <Copy className="w-4 h-4" />
               {t('templates.actions.clone')}
             </button>
             <button
               type="button"
               className="
-                p-2 border rounded-md
-                hover:bg-muted transition-colors
+                flex-1 flex items-center justify-center gap-2
+                px-3 py-2 text-sm font-medium
+                text-destructive border border-destructive/30 rounded-md
+                hover:bg-destructive/10 transition-colors
               "
             >
-              <MoreVertical className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" />
+              {t('templates.actions.delete')}
             </button>
           </div>
         </footer>

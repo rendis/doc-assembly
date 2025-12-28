@@ -245,6 +245,14 @@
       "success": "Plantilla actualizada exitosamente",
       "error": "Error al actualizar la plantilla"
     },
+    "rename": {
+      "title": "Renombrar Plantilla",
+      "titleLabel": "Nombre de plantilla",
+      "button": "Guardar",
+      "success": "Plantilla renombrada exitosamente",
+      "error": "Error al renombrar la plantilla",
+      "duplicateName": "Ya existe una plantilla con este nombre"
+    },
     "clone": {
       "title": "Clonar Plantilla",
       "newTitleLabel": "Nuevo titulo",

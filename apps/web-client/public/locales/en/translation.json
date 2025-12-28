@@ -245,6 +245,14 @@
       "success": "Template updated successfully",
       "error": "Error updating template"
     },
+    "rename": {
+      "title": "Rename Template",
+      "titleLabel": "Template name",
+      "button": "Save",
+      "success": "Template renamed successfully",
+      "error": "Error renaming template",
+      "duplicateName": "A template with this name already exists"
+    },
     "clone": {
       "title": "Clone Template",
       "newTitleLabel": "New title",

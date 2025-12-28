@@ -15,9 +15,10 @@ interface ContextMenuProps {
   onMoveFolder?: (folder: FolderTree) => void;
   onCreateSubfolder?: (parentId: string) => void;
   onRenameFolder?: (folder: FolderTree) => void;
+  onRenameTemplate?: (template: { id: string; title: string }) => void;
 }
 
-export function ContextMenu({ type, item, x, y, onClose, onRefresh, onMoveFolder, onCreateSubfolder, onRenameFolder }: ContextMenuProps) {
+export function ContextMenu({ type, item, x, y, onClose, onRefresh, onMoveFolder, onCreateSubfolder, onRenameFolder, onRenameTemplate }: ContextMenuProps) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   // Adjust position to keep menu in viewport
@@ -123,7 +124,12 @@ export function ContextMenu({ type, item, x, y, onClose, onRefresh, onMoveFolder
           <MenuItem
             icon={<Pencil className="w-4 h-4" />}
             label={t('templates.actions.edit')}
-            onClick={onClose}
+            onClick={() => {
+              if (onRenameTemplate) {
+                onRenameTemplate(item as TemplateListItem);
+              }
+              onClose();
+            }}
           />
           <MenuItem
             icon={<Copy className="w-4 h-4" />}

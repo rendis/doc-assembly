@@ -8,7 +8,7 @@ import { tagsApi } from '../api/tags-api';
 import { TAG_COLORS } from '../hooks/useTags';
 import { TagBadge } from './TagBadge';
 import { normalizeTagName } from '@/lib/normalize-tag';
-import { fadeSlideDown, fadeHeight, fade, scaleFade, quickTransition, smoothTransition } from '@/lib/animations';
+import { fadeSlideDown, fade, scaleFade, quickTransition, smoothTransition } from '@/lib/animations';
 import type { Tag, TagWithCount } from '../types';
 
 // Color picker component with portal

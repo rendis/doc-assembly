@@ -13,6 +13,7 @@ import { ContextMenu } from './ContextMenu';
 import { ConfirmMoveDialog } from './ConfirmMoveDialog';
 import { MoveFolderDialog } from './MoveFolderDialog';
 import { RenameFolderDialog } from './RenameFolderDialog';
+import { RenameTemplateDialog } from './RenameTemplateDialog';
 import { useTemplates } from '../hooks/useTemplates';
 import { useFolders } from '../hooks/useFolders';
 import { useTags } from '../hooks/useTags';
@@ -90,6 +91,11 @@ export function TemplatesPage() {
     isOpen: boolean;
     folder: Folder | null;
   }>({ isOpen: false, folder: null });
+
+  const [renameTemplateDialog, setRenameTemplateDialog] = useState<{
+    isOpen: boolean;
+    template: { id: string; title: string } | null;
+  }>({ isOpen: false, template: null });
 
   // Debounced search
   const debouncedSearch = useDebounce(searchInput, 300);
@@ -223,6 +229,20 @@ export function TemplatesPage() {
     }
   }, [refreshTemplates, refreshFolders, refreshTags, selectedTemplate]);
 
+  // Rename template handlers
+  const handleRenameTemplate = useCallback((template: { id: string; title: string }) => {
+    setRenameTemplateDialog({
+      isOpen: true,
+      template,
+    });
+  }, []);
+
+  const handleConfirmRenameTemplate = useCallback(async (templateId: string, newTitle: string) => {
+    await templatesApi.update(templateId, { title: newTitle });
+    setRenameTemplateDialog({ isOpen: false, template: null });
+    await handleRefreshAll();
+  }, [handleRefreshAll]);
+
   const getFolderName = (folderId: string | undefined): string | undefined => {
     if (!folderId) return undefined;
     return getFolderById(folderId)?.name;
@@ -316,6 +336,7 @@ export function TemplatesPage() {
         onClose={handleCloseDetail}
         onRefresh={handleRefreshAll}
         tags={tags}
+        onRenameTemplate={handleRenameTemplate}
       />
 
       {/* Dialogs */}
@@ -354,6 +375,7 @@ export function TemplatesPage() {
           onMoveFolder={handleContextMenuMoveFolder}
           onCreateSubfolder={handleCreateFolder}
           onRenameFolder={handleContextMenuRenameFolder}
+          onRenameTemplate={handleRenameTemplate}
         />
       )}
 
@@ -380,6 +402,13 @@ export function TemplatesPage() {
         folder={renameFolderDialog.folder}
         onConfirm={handleConfirmRenameFolder}
         onCancel={() => setRenameFolderDialog({ isOpen: false, folder: null })}
+      />
+
+      <RenameTemplateDialog
+        isOpen={renameTemplateDialog.isOpen}
+        template={renameTemplateDialog.template}
+        onConfirm={handleConfirmRenameTemplate}
+        onCancel={() => setRenameTemplateDialog({ isOpen: false, template: null })}
       />
     </div>
   );
