@@ -72,7 +72,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	folderService := service.NewFolderService(folderRepo)
 	tagService := service.NewTagService(tagRepo)
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
-	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo, tenantMemberRepo, workspaceMemberRepo)
+	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo)
 
 	// Create services - Content
 	injectableService := service.NewInjectableService(injectableRepo)

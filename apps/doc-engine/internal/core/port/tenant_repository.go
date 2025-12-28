@@ -6,6 +6,12 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 )
 
+// TenantFilters defines filters for paginated tenant listing.
+type TenantFilters struct {
+	Limit  int
+	Offset int
+}
+
 // TenantRepository defines the interface for tenant data access.
 type TenantRepository interface {
 	// Create creates a new tenant.
@@ -19,6 +25,12 @@ type TenantRepository interface {
 
 	// FindAll lists all tenants.
 	FindAll(ctx context.Context) ([]*entity.Tenant, error)
+
+	// FindAllPaginated lists tenants with pagination and returns total count.
+	FindAllPaginated(ctx context.Context, filters TenantFilters) ([]*entity.Tenant, int64, error)
+
+	// SearchByNameOrCode searches tenants by name or code similarity using trigram.
+	SearchByNameOrCode(ctx context.Context, query string, limit int) ([]*entity.Tenant, error)
 
 	// Update updates a tenant.
 	Update(ctx context.Context, tenant *entity.Tenant) error

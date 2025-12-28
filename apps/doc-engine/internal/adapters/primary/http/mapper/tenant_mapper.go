@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 )
 
@@ -121,5 +122,71 @@ func UpdateTenantRequestToCommand(id string, req dto.UpdateTenantRequest) usecas
 		Name:        req.Name,
 		Description: req.Description,
 		Settings:    req.Settings,
+	}
+}
+
+// TenantListRequestToFilters converts a list request to port filters.
+func TenantListRequestToFilters(req dto.TenantListRequest) port.TenantFilters {
+	return port.TenantFilters{
+		Limit:  req.Limit,
+		Offset: req.Offset,
+	}
+}
+
+// TenantsToPaginatedResponse converts tenants to a paginated response.
+func TenantsToPaginatedResponse(tenants []*entity.Tenant, total int64, limit, offset int) *dto.PaginatedTenantsResponse {
+	responses := TenantsToResponses(tenants)
+
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
+	}
+
+	page := 1
+	if limit > 0 {
+		page = (offset / limit) + 1
+	}
+
+	return &dto.PaginatedTenantsResponse{
+		Data: responses,
+		Pagination: dto.PaginationMeta{
+			Page:       page,
+			PerPage:    limit,
+			Total:      total,
+			TotalPages: totalPages,
+		},
+	}
+}
+
+// TenantMemberListRequestToFilters converts a list request to tenant member filters.
+func TenantMemberListRequestToFilters(req dto.TenantListRequest) port.TenantMemberFilters {
+	return port.TenantMemberFilters{
+		Limit:  req.Limit,
+		Offset: req.Offset,
+	}
+}
+
+// TenantsWithRoleToPaginatedResponse converts tenants with roles to a paginated response.
+func TenantsWithRoleToPaginatedResponse(tenants []*entity.TenantWithRole, total int64, limit, offset int) *dto.PaginatedTenantsWithRoleResponse {
+	responses := TenantsWithRoleToResponses(tenants)
+
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
+	}
+
+	page := 1
+	if limit > 0 {
+		page = (offset / limit) + 1
+	}
+
+	return &dto.PaginatedTenantsWithRoleResponse{
+		Data: responses,
+		Pagination: dto.PaginationMeta{
+			Page:       page,
+			PerPage:    limit,
+			Total:      total,
+			TotalPages: totalPages,
+		},
 	}
 }

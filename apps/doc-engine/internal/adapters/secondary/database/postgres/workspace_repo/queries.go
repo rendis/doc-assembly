@@ -12,11 +12,22 @@ const (
 		FROM tenancy.workspaces
 		WHERE id = $1`
 
-	queryFindByTenant = `
+	queryFindByTenantPaginated = `
 		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.workspaces
 		WHERE tenant_id = $1
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3`
+
+	queryCountByTenant = `
+		SELECT COUNT(*) FROM tenancy.workspaces WHERE tenant_id = $1`
+
+	querySearchByNameInTenant = `
+		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'), created_at, updated_at
+		FROM tenancy.workspaces
+		WHERE tenant_id = $1 AND name ILIKE '%' || $2 || '%'
+		ORDER BY similarity(name, $2) DESC, name
+		LIMIT $3`
 
 	queryFindByUser = `
 		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'), w.created_at, w.updated_at, m.role

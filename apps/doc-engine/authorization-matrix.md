@@ -33,7 +33,8 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 
 | Método | Endpoint | Descripción | SUPERADMIN | PLATFORM_ADMIN |
 |--------|----------|-------------|:----------:|:--------------:|
-| GET | `/system/tenants` | Lista todos los tenants de la plataforma | ✅ | ✅ |
+| GET | `/system/tenants/search?q={query}` | Busca tenants por similitud de nombre o código (máx 10 resultados, pg_trgm) | ✅ | ✅ |
+| GET | `/system/tenants/list?limit=20&offset=0` | Lista tenants con paginación | ✅ | ✅ |
 | POST | `/system/tenants` | Crea un nuevo tenant | ✅ | ❌ |
 | GET | `/system/tenants/{tenantId}` | Obtiene información de un tenant específico | ✅ | ✅ |
 | PUT | `/system/tenants/{tenantId}` | Actualiza la información de un tenant | ✅ | ✅ |
@@ -56,7 +57,8 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 |--------|----------|-------------|:------------:|:------------:|
 | GET | `/tenant` | Obtiene información del tenant actual | ✅ | ✅ |
 | PUT | `/tenant` | Actualiza la información del tenant actual | ✅ | ❌ |
-| GET | `/tenant/workspaces` | Lista todos los workspaces del tenant | ✅ | ✅ |
+| GET | `/tenant/workspaces/search?q={query}` | Busca workspaces por similitud de nombre (máx 20, pg_trgm) | ✅ | ✅ |
+| GET | `/tenant/workspaces/list?limit=20&offset=0` | Lista workspaces del tenant con paginación | ✅ | ✅ |
 | GET | `/tenant/my-workspaces` | Lista los workspaces a los que el usuario tiene acceso en el tenant | ✅ | ✅ |
 | POST | `/tenant/workspaces` | Crea un nuevo workspace en el tenant | ✅ | ❌ |
 | DELETE | `/tenant/workspaces/{workspaceId}` | Elimina (archiva) un workspace del tenant | ✅ | ❌ |
@@ -67,6 +69,77 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 | DELETE | `/tenant/members/{memberId}` | Elimina un miembro del tenant | ✅ | ❌ |
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/tenant_controller.go`
+
+### Endpoint `/tenant/workspaces/search` - Detalle
+
+Busca workspaces dentro del tenant actual por similitud de nombre usando pg_trgm.
+
+**Parámetros:**
+| Param | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `q` | string | ✅ | Texto de búsqueda (mínimo 1 caracter) |
+
+**Comportamiento:**
+- Retorna máximo **20 workspaces** ordenados por similitud
+- Solo busca workspaces del tenant indicado en el header `X-Tenant-ID`
+- Usa índice trigram de PostgreSQL para búsqueda fuzzy
+- Busca por nombre del workspace
+
+**Ejemplo de respuesta:**
+```json
+{
+  "count": 2,
+  "data": [
+    {
+      "id": "uuid-workspace-1",
+      "tenantId": "uuid-tenant",
+      "name": "Marketing Team",
+      "type": "CLIENT",
+      "status": "ACTIVE",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### Endpoint `/tenant/workspaces/list` - Detalle
+
+Lista workspaces del tenant actual con soporte de paginación.
+
+**Parámetros:**
+| Param | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `limit` | int | 20 | Cantidad de items por página |
+| `offset` | int | 0 | Posición inicial |
+
+**Comportamiento:**
+- Solo retorna workspaces del tenant indicado en el header `X-Tenant-ID`
+- Ordenados por fecha de creación (más recientes primero)
+- Incluye metadata de paginación
+
+**Ejemplo de respuesta:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid-workspace-1",
+      "tenantId": "uuid-tenant",
+      "name": "Marketing Team",
+      "type": "CLIENT",
+      "status": "ACTIVE",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "perPage": 20,
+    "total": 5,
+    "totalPages": 1
+  }
+}
+```
 
 ---
 
@@ -185,43 +258,77 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 
 | Método | Endpoint | Descripción | Cualquier usuario autenticado |
 |--------|----------|-------------|:-----------------------------:|
-| GET | `/me/tenants` | Lista los 10 tenants accedidos recientemente (ver detalles abajo) | ✅ |
+| GET | `/me/tenants/search?q={query}` | Busca tenants del usuario por similitud de nombre o código (máx 10, pg_trgm) | ✅ |
+| GET | `/me/tenants/list?limit=20&offset=0` | Lista tenants del usuario con paginación | ✅ |
 | GET | `/me/roles` | Obtiene los roles del usuario actual (ver detalles abajo) | ✅ |
 | POST | `/me/access` | Registra acceso a un tenant o workspace para historial rápido | ✅ |
 
-### Endpoint `/me/tenants` - Detalle
+### Endpoint `/me/tenants/search` - Detalle
 
-Retorna hasta **10 tenants** priorizando los accedidos recientemente.
+Busca tenants donde el usuario es miembro activo por similitud de nombre o código usando pg_trgm.
 
-**Lógica de selección:**
-1. Obtiene hasta 10 IDs del historial de acceso (`user_access_history`)
-2. Si hay menos de 10, completa con tenants de las membresías del usuario
-3. Elimina duplicados (prioriza los del historial)
+**Parámetros:**
+| Param | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `q` | string | ✅ | Texto de búsqueda (mínimo 1 caracter) |
 
-**Casos de uso:**
-| Situación | Resultado |
-|-----------|-----------|
-| Usuario nuevo sin historial | Retorna hasta 10 tenants de sus membresías (ordenados por nombre) |
-| Usuario con 3 accesos recientes | Retorna esos 3 + hasta 7 más de sus membresías |
-| Usuario con 10+ accesos | Retorna solo los 10 más recientes |
+**Comportamiento:**
+- Retorna máximo **10 tenants** ordenados por similitud
+- Solo busca en tenants donde el usuario tiene membresía ACTIVE
+- Usa índice trigram de PostgreSQL para búsqueda fuzzy
+- Busca tanto por nombre como por código del tenant
 
 **Ejemplo de respuesta:**
 ```json
 {
-  "items": [
+  "count": 2,
+  "data": [
     {
       "id": "uuid-tenant-1",
       "name": "Chile Operations",
       "code": "CL",
-      "role": "TENANT_OWNER"
-    },
-    {
-      "id": "uuid-tenant-2",
-      "name": "Mexico Operations",
-      "code": "MX",
-      "role": "TENANT_ADMIN"
+      "role": "TENANT_OWNER",
+      "createdAt": "2024-01-15T10:00:00Z"
     }
   ]
+}
+```
+
+---
+
+### Endpoint `/me/tenants/list` - Detalle
+
+Lista tenants donde el usuario es miembro activo con soporte de paginación.
+
+**Parámetros:**
+| Param | Tipo | Default | Descripción |
+|-------|------|---------|-------------|
+| `limit` | int | 20 | Cantidad de items por página |
+| `offset` | int | 0 | Posición inicial |
+
+**Comportamiento:**
+- Solo retorna tenants donde el usuario tiene membresía ACTIVE
+- Ordenados alfabéticamente por nombre
+- Incluye metadata de paginación
+
+**Ejemplo de respuesta:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid-tenant-1",
+      "name": "Chile Operations",
+      "code": "CL",
+      "role": "TENANT_OWNER",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "perPage": 20,
+    "total": 5,
+    "totalPages": 1
+  }
 }
 ```
 

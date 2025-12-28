@@ -113,13 +113,22 @@ func (s *WorkspaceService) ListUserWorkspacesInTenant(ctx context.Context, userI
 	return workspaces, nil
 }
 
-// ListTenantWorkspaces lists all workspaces for a tenant.
-func (s *WorkspaceService) ListTenantWorkspaces(ctx context.Context, tenantID string) ([]*entity.Workspace, error) {
-	workspaces, err := s.workspaceRepo.FindByTenant(ctx, tenantID)
+// SearchWorkspaces searches workspaces by name within a tenant.
+func (s *WorkspaceService) SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error) {
+	workspaces, err := s.workspaceRepo.SearchByNameInTenant(ctx, tenantID, query, 20)
 	if err != nil {
-		return nil, fmt.Errorf("listing tenant workspaces: %w", err)
+		return nil, fmt.Errorf("searching workspaces: %w", err)
 	}
 	return workspaces, nil
+}
+
+// ListWorkspacesPaginated lists workspaces for a tenant with pagination.
+func (s *WorkspaceService) ListWorkspacesPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
+	workspaces, total, err := s.workspaceRepo.FindByTenantPaginated(ctx, tenantID, filters)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing workspaces paginated: %w", err)
+	}
+	return workspaces, total, nil
 }
 
 // UpdateWorkspace updates a workspace's details.

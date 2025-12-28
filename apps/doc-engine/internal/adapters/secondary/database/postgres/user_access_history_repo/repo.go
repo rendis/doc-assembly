@@ -2,8 +2,10 @@ package useraccesshistoryrepo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
@@ -86,4 +88,30 @@ func (r *Repository) DeleteByEntity(ctx context.Context, entityType entity.Acces
 		return fmt.Errorf("deleting access history by entity: %w", err)
 	}
 	return nil
+}
+
+// RecordTenantAccessIfAllowed records tenant access only if user has membership or system role.
+func (r *Repository) RecordTenantAccessIfAllowed(ctx context.Context, userID, tenantID string) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx, queryRecordTenantAccessIfAllowed, userID, tenantID).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", entity.ErrForbidden
+		}
+		return "", fmt.Errorf("recording tenant access: %w", err)
+	}
+	return id, nil
+}
+
+// RecordWorkspaceAccessIfAllowed records workspace access only if user has membership or system role.
+func (r *Repository) RecordWorkspaceAccessIfAllowed(ctx context.Context, userID, workspaceID string) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx, queryRecordWorkspaceAccessIfAllowed, userID, workspaceID).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", entity.ErrForbidden
+		}
+		return "", fmt.Errorf("recording workspace access: %w", err)
+	}
+	return id, nil
 }

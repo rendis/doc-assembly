@@ -35,4 +35,32 @@ const (
 	queryDeleteByEntity = `
 		DELETE FROM identity.user_access_history
 		WHERE entity_type = $1 AND entity_id = $2`
+
+	// queryRecordTenantAccessIfAllowed inserts only if user has tenant membership OR system role
+	queryRecordTenantAccessIfAllowed = `
+		INSERT INTO identity.user_access_history (user_id, entity_type, entity_id, accessed_at)
+		SELECT $1, 'TENANT', $2, CURRENT_TIMESTAMP
+		WHERE EXISTS (
+			SELECT 1 FROM identity.tenant_members
+			WHERE user_id = $1 AND tenant_id = $2 AND membership_status = 'ACTIVE'
+		) OR EXISTS (
+			SELECT 1 FROM identity.system_roles WHERE user_id = $1
+		)
+		ON CONFLICT (user_id, entity_type, entity_id)
+		DO UPDATE SET accessed_at = CURRENT_TIMESTAMP
+		RETURNING id`
+
+	// queryRecordWorkspaceAccessIfAllowed inserts only if user has workspace membership OR system role
+	queryRecordWorkspaceAccessIfAllowed = `
+		INSERT INTO identity.user_access_history (user_id, entity_type, entity_id, accessed_at)
+		SELECT $1, 'WORKSPACE', $2, CURRENT_TIMESTAMP
+		WHERE EXISTS (
+			SELECT 1 FROM identity.workspace_members
+			WHERE user_id = $1 AND workspace_id = $2 AND membership_status = 'ACTIVE'
+		) OR EXISTS (
+			SELECT 1 FROM identity.system_roles WHERE user_id = $1
+		)
+		ON CONFLICT (user_id, entity_type, entity_id)
+		DO UPDATE SET accessed_at = CURRENT_TIMESTAMP
+		RETURNING id`
 )

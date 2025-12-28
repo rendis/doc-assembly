@@ -12,25 +12,22 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 )
 
-// AdminController handles admin-related HTTP requests.
-// All routes require system-level roles (SUPERADMIN or PLATFORM_ADMIN).
-type AdminController struct {
-	tenantUC     usecase.TenantUseCase
-	workspaceUC  usecase.WorkspaceUseCase
-	systemRoleUC usecase.SystemRoleUseCase
-}
-
 // NewAdminController creates a new admin controller.
 func NewAdminController(
 	tenantUC usecase.TenantUseCase,
-	workspaceUC usecase.WorkspaceUseCase,
 	systemRoleUC usecase.SystemRoleUseCase,
 ) *AdminController {
 	return &AdminController{
 		tenantUC:     tenantUC,
-		workspaceUC:  workspaceUC,
 		systemRoleUC: systemRoleUC,
 	}
+}
+
+// AdminController handles admin-related HTTP requests.
+// All routes require system-level roles (SUPERADMIN or PLATFORM_ADMIN).
+type AdminController struct {
+	tenantUC     usecase.TenantUseCase
+	systemRoleUC usecase.SystemRoleUseCase
 }
 
 // RegisterRoutes registers all admin routes.
@@ -40,9 +37,10 @@ func (c *AdminController) RegisterRoutes(rg *gin.RouterGroup) {
 	system.Use(middleware.RequirePlatformAdmin()) // Base requirement: PLATFORM_ADMIN
 	{
 		// Tenant routes
-		// List and Get: PLATFORM_ADMIN
+		// Search, List and Get: PLATFORM_ADMIN
 		// Create and Delete: SUPERADMIN
-		system.GET("/tenants", c.ListTenants)
+		system.GET("/tenants/search", c.SearchTenants)
+		system.GET("/tenants/list", c.ListTenantsPaginated)
 		system.POST("/tenants", middleware.RequireSuperAdmin(), c.CreateTenant)
 		system.GET("/tenants/:tenantId", c.GetTenant)
 		system.PUT("/tenants/:tenantId", c.UpdateTenant)
@@ -57,18 +55,26 @@ func (c *AdminController) RegisterRoutes(rg *gin.RouterGroup) {
 
 // --- Tenant Handlers ---
 
-// ListTenants lists all tenants.
-// @Summary List tenants
+// SearchTenants searches tenants by name or code similarity.
+// @Summary Search tenants by name or code
 // @Tags System - Tenants
 // @Accept json
 // @Produce json
+// @Param q query string true "Search query (name or code)"
 // @Success 200 {object} dto.ListResponse[dto.TenantResponse]
+// @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
-// @Router /api/v1/system/tenants [get]
+// @Router /api/v1/system/tenants/search [get]
 // @Security BearerAuth
-func (c *AdminController) ListTenants(ctx *gin.Context) {
-	tenants, err := c.tenantUC.ListTenants(ctx.Request.Context())
+func (c *AdminController) SearchTenants(ctx *gin.Context) {
+	var req dto.TenantSearchRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	tenants, err := c.tenantUC.SearchTenants(ctx.Request.Context(), req.Query)
 	if err != nil {
 		HandleError(ctx, err)
 		return
@@ -76,6 +82,35 @@ func (c *AdminController) ListTenants(ctx *gin.Context) {
 
 	responses := mapper.TenantsToResponses(tenants)
 	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
+}
+
+// ListTenantsPaginated lists tenants with pagination.
+// @Summary List tenants with pagination
+// @Tags System - Tenants
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of items per page" default(20)
+// @Param offset query int false "Number of items to skip" default(0)
+// @Success 200 {object} dto.PaginatedTenantsResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Router /api/v1/system/tenants/list [get]
+// @Security BearerAuth
+func (c *AdminController) ListTenantsPaginated(ctx *gin.Context) {
+	var req dto.TenantListRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	filters := mapper.TenantListRequestToFilters(req)
+	tenants, total, err := c.tenantUC.ListTenantsPaginated(ctx.Request.Context(), filters)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.TenantsToPaginatedResponse(tenants, total, req.Limit, req.Offset))
 }
 
 // CreateTenant creates a new tenant.
@@ -300,4 +335,3 @@ func (c *AdminController) RevokeSystemRole(ctx *gin.Context) {
 }
 
 // --- Helper Functions ---
-

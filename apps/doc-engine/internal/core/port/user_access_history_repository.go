@@ -26,4 +26,12 @@ type UserAccessHistoryRepository interface {
 	// DeleteByEntity removes all access history for a specific entity.
 	// Useful when entity is deleted.
 	DeleteByEntity(ctx context.Context, entityType entity.AccessEntityType, entityID string) error
+
+	// RecordTenantAccessIfAllowed records tenant access only if user has membership or system role.
+	// Returns ErrForbidden if user has no access to the tenant.
+	RecordTenantAccessIfAllowed(ctx context.Context, userID, tenantID string) (string, error)
+
+	// RecordWorkspaceAccessIfAllowed records workspace access only if user has membership or system role.
+	// Returns ErrForbidden if user has no access to the workspace.
+	RecordWorkspaceAccessIfAllowed(ctx context.Context, userID, workspaceID string) (string, error)
 }

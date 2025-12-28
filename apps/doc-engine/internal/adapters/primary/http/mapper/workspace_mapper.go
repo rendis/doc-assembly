@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 )
 
@@ -92,5 +93,42 @@ func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) 
 		ID:       id,
 		Name:     req.Name,
 		Settings: settings,
+	}
+}
+
+// WorkspaceListRequestToFilters converts a list request to port filters.
+func WorkspaceListRequestToFilters(req dto.WorkspaceListRequest) port.WorkspaceFilters {
+	return port.WorkspaceFilters{
+		Limit:  req.Limit,
+		Offset: req.Offset,
+	}
+}
+
+// WorkspacesToPaginatedResponse converts workspaces to a paginated response.
+func WorkspacesToPaginatedResponse(workspaces []*entity.Workspace, total int64, limit, offset int) *dto.PaginatedWorkspacesResponse {
+	responses := make([]*dto.WorkspaceResponse, len(workspaces))
+	for i, ws := range workspaces {
+		resp := WorkspaceToResponse(ws)
+		responses[i] = &resp
+	}
+
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
+	}
+
+	page := 1
+	if limit > 0 {
+		page = (offset / limit) + 1
+	}
+
+	return &dto.PaginatedWorkspacesResponse{
+		Data: responses,
+		Pagination: dto.PaginationMeta{
+			Page:       page,
+			PerPage:    limit,
+			Total:      total,
+			TotalPages: totalPages,
+		},
 	}
 }

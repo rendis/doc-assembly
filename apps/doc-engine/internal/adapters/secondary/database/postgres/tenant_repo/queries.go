@@ -36,4 +36,19 @@ const (
 
 	queryExistsByCode = `
 		SELECT EXISTS(SELECT 1 FROM tenancy.tenants WHERE code = $1)`
+
+	queryFindAllPaginated = `
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
+		FROM tenancy.tenants
+		ORDER BY name
+		LIMIT $1 OFFSET $2`
+
+	queryCountAll = `SELECT COUNT(*) FROM tenancy.tenants`
+
+	querySearchByNameOrCode = `
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
+		FROM tenancy.tenants
+		WHERE name % $1 OR code % $1
+		ORDER BY GREATEST(similarity(name, $1), similarity(code, $1)) DESC
+		LIMIT $2`
 )

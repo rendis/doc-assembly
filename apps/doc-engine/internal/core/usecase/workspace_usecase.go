@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
 
 // CreateWorkspaceCommand represents the command to create a workspace.
@@ -36,8 +37,11 @@ type WorkspaceUseCase interface {
 	// ListUserWorkspacesInTenant lists all workspaces a user has access to within a specific tenant.
 	ListUserWorkspacesInTenant(ctx context.Context, userID, tenantID string) ([]*entity.WorkspaceWithRole, error)
 
-	// ListTenantWorkspaces lists all workspaces for a tenant.
-	ListTenantWorkspaces(ctx context.Context, tenantID string) ([]*entity.Workspace, error)
+	// SearchWorkspaces searches workspaces by name within a tenant.
+	SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error)
+
+	// ListWorkspacesPaginated lists workspaces for a tenant with pagination.
+	ListWorkspacesPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error)
 
 	// UpdateWorkspace updates a workspace's details.
 	UpdateWorkspace(ctx context.Context, cmd UpdateWorkspaceCommand) (*entity.Workspace, error)
@@ -78,11 +82,20 @@ type TenantUseCase interface {
 	// GetTenantByCode retrieves a tenant by its code.
 	GetTenantByCode(ctx context.Context, code string) (*entity.Tenant, error)
 
-	// ListTenants lists all tenants.
-	ListTenants(ctx context.Context) ([]*entity.Tenant, error)
+	// SearchTenants searches tenants by name or code similarity.
+	SearchTenants(ctx context.Context, query string) ([]*entity.Tenant, error)
+
+	// ListTenantsPaginated lists tenants with pagination.
+	ListTenantsPaginated(ctx context.Context, filters port.TenantFilters) ([]*entity.Tenant, int64, error)
 
 	// ListUserTenants lists all tenants a user belongs to with their roles.
 	ListUserTenants(ctx context.Context, userID string) ([]*entity.TenantWithRole, error)
+
+	// SearchUserTenants searches tenants by name or code similarity for a user.
+	SearchUserTenants(ctx context.Context, userID, query string) ([]*entity.TenantWithRole, error)
+
+	// ListUserTenantsPaginated lists tenants a user belongs to with pagination.
+	ListUserTenantsPaginated(ctx context.Context, userID string, filters port.TenantMemberFilters) ([]*entity.TenantWithRole, int64, error)
 
 	// UpdateTenant updates a tenant's details.
 	UpdateTenant(ctx context.Context, cmd UpdateTenantCommand) (*entity.Tenant, error)

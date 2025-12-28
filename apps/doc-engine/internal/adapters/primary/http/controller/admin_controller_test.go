@@ -149,8 +149,8 @@ func TestAdminController_Tenants(t *testing.T) {
 		})
 	})
 
-	t.Run("List", func(t *testing.T) {
-		t.Run("success", func(t *testing.T) {
+	t.Run("ListPaginated", func(t *testing.T) {
+		t.Run("success with default pagination", func(t *testing.T) {
 			// Create some tenants
 			tenant1ID := testhelper.CreateTestTenant(t, pool, "List Tenant 1", "LIST01")
 			defer testhelper.CleanupTenant(t, pool, tenant1ID)
@@ -159,7 +159,58 @@ func TestAdminController_Tenants(t *testing.T) {
 			defer testhelper.CleanupTenant(t, pool, tenant2ID)
 
 			resp, body := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants")
+				GET("/api/v1/system/tenants/list")
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var listResp dto.PaginatedTenantsResponse
+			err := json.Unmarshal(body, &listResp)
+			require.NoError(t, err)
+
+			assert.GreaterOrEqual(t, len(listResp.Data), 2)
+			assert.GreaterOrEqual(t, listResp.Pagination.Total, int64(2))
+		})
+
+		t.Run("success with custom limit and offset", func(t *testing.T) {
+			resp, body := client.WithAuth(superAdmin.BearerHeader).
+				GET("/api/v1/system/tenants/list?limit=5&offset=0")
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var listResp dto.PaginatedTenantsResponse
+			err := json.Unmarshal(body, &listResp)
+			require.NoError(t, err)
+
+			assert.LessOrEqual(t, len(listResp.Data), 5)
+			assert.Equal(t, 5, listResp.Pagination.PerPage)
+		})
+
+		t.Run("success with PLATFORM_ADMIN", func(t *testing.T) {
+			resp, _ := client.WithAuth(platformAdmin.BearerHeader).
+				GET("/api/v1/system/tenants/list")
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+
+		t.Run("forbidden without role", func(t *testing.T) {
+			resp, _ := client.WithAuth(regularUser.BearerHeader).
+				GET("/api/v1/system/tenants/list")
+
+			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		})
+	})
+
+	t.Run("Search", func(t *testing.T) {
+		t.Run("success search by name", func(t *testing.T) {
+			// Create tenants with similar names
+			tenant1ID := testhelper.CreateTestTenant(t, pool, "Search Test Alpha", "SRCH01")
+			defer testhelper.CleanupTenant(t, pool, tenant1ID)
+
+			tenant2ID := testhelper.CreateTestTenant(t, pool, "Search Test Beta", "SRCH02")
+			defer testhelper.CleanupTenant(t, pool, tenant2ID)
+
+			resp, body := client.WithAuth(superAdmin.BearerHeader).
+				GET("/api/v1/system/tenants/search?q=Search Test")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -170,16 +221,52 @@ func TestAdminController_Tenants(t *testing.T) {
 			assert.GreaterOrEqual(t, listResp.Count, 2)
 		})
 
+		t.Run("success search by code", func(t *testing.T) {
+			tenantID := testhelper.CreateTestTenant(t, pool, "Code Search Tenant", "CSRCH1")
+			defer testhelper.CleanupTenant(t, pool, tenantID)
+
+			resp, body := client.WithAuth(superAdmin.BearerHeader).
+				GET("/api/v1/system/tenants/search?q=CSRCH")
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var listResp dto.ListResponse[dto.TenantResponse]
+			err := json.Unmarshal(body, &listResp)
+			require.NoError(t, err)
+
+			assert.GreaterOrEqual(t, listResp.Count, 1)
+		})
+
+		t.Run("empty results", func(t *testing.T) {
+			resp, body := client.WithAuth(superAdmin.BearerHeader).
+				GET("/api/v1/system/tenants/search?q=ZZZZNONEXISTENT")
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var listResp dto.ListResponse[dto.TenantResponse]
+			err := json.Unmarshal(body, &listResp)
+			require.NoError(t, err)
+
+			assert.Equal(t, 0, listResp.Count)
+		})
+
+		t.Run("validation query required", func(t *testing.T) {
+			resp, _ := client.WithAuth(superAdmin.BearerHeader).
+				GET("/api/v1/system/tenants/search")
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
+
 		t.Run("success with PLATFORM_ADMIN", func(t *testing.T) {
 			resp, _ := client.WithAuth(platformAdmin.BearerHeader).
-				GET("/api/v1/system/tenants")
+				GET("/api/v1/system/tenants/search?q=Test")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 		})
 
 		t.Run("forbidden without role", func(t *testing.T) {
 			resp, _ := client.WithAuth(regularUser.BearerHeader).
-				GET("/api/v1/system/tenants")
+				GET("/api/v1/system/tenants/search?q=Test")
 
 			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 		})

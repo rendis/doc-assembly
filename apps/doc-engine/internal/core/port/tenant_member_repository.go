@@ -6,6 +6,12 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 )
 
+// TenantMemberFilters defines filters for paginated tenant member queries.
+type TenantMemberFilters struct {
+	Limit  int
+	Offset int
+}
+
 // TenantMemberRepository defines the interface for tenant membership data access.
 type TenantMemberRepository interface {
 	// Create creates a new tenant membership.
@@ -41,4 +47,10 @@ type TenantMemberRepository interface {
 	// FindTenantsWithRoleByUserAndIDs lists tenants by specific IDs that the user belongs to with their roles.
 	// Returns tenants in the same order as the provided IDs.
 	FindTenantsWithRoleByUserAndIDs(ctx context.Context, userID string, tenantIDs []string) ([]*entity.TenantWithRole, error)
+
+	// SearchTenantsWithRoleByUser searches tenants by name or code similarity for a user.
+	SearchTenantsWithRoleByUser(ctx context.Context, userID, query string, limit int) ([]*entity.TenantWithRole, error)
+
+	// FindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination.
+	FindTenantsWithRoleByUserPaginated(ctx context.Context, userID string, filters TenantMemberFilters) ([]*entity.TenantWithRole, int64, error)
 }

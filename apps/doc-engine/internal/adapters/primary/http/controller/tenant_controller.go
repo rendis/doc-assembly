@@ -44,7 +44,8 @@ func (c *TenantController) RegisterRoutes(rg *gin.RouterGroup, middlewareProvide
 		tenant.PUT("", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.UpdateCurrentTenant)
 
 		// Workspace routes within tenant
-		tenant.GET("/workspaces", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.ListTenantWorkspaces)
+		tenant.GET("/workspaces/search", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.SearchWorkspaces)
+		tenant.GET("/workspaces/list", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.ListWorkspacesPaginated)
 		tenant.GET("/my-workspaces", c.ListMyTenantWorkspaces)
 		tenant.POST("/workspaces", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.CreateWorkspace)
 		tenant.DELETE("/workspaces/:workspaceId", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.DeleteWorkspace)
@@ -128,25 +129,33 @@ func (c *TenantController) UpdateCurrentTenant(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, mapper.TenantToResponse(tenant))
 }
 
-// ListTenantWorkspaces lists all workspaces in the current tenant.
-// @Summary List tenant workspaces
+// SearchWorkspaces searches workspaces by name in the current tenant.
+// @Summary Search workspaces by name
 // @Tags Tenant - Workspaces
 // @Accept json
 // @Produce json
 // @Param X-Tenant-ID header string true "Tenant ID"
+// @Param q query string true "Search query (name)"
 // @Success 200 {object} dto.ListResponse[dto.WorkspaceResponse]
+// @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
-// @Router /api/v1/tenant/workspaces [get]
+// @Router /api/v1/tenant/workspaces/search [get]
 // @Security BearerAuth
-func (c *TenantController) ListTenantWorkspaces(ctx *gin.Context) {
+func (c *TenantController) SearchWorkspaces(ctx *gin.Context) {
 	tenantID, ok := middleware.GetTenantID(ctx)
 	if !ok {
 		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(entity.ErrMissingTenantID))
 		return
 	}
 
-	workspaces, err := c.workspaceUC.ListTenantWorkspaces(ctx.Request.Context(), tenantID)
+	var req dto.WorkspaceSearchRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
+		return
+	}
+
+	workspaces, err := c.workspaceUC.SearchWorkspaces(ctx.Request.Context(), tenantID, req.Query)
 	if err != nil {
 		HandleError(ctx, err)
 		return
@@ -154,6 +163,42 @@ func (c *TenantController) ListTenantWorkspaces(ctx *gin.Context) {
 
 	responses := mapper.WorkspacesToResponses(workspaces)
 	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
+}
+
+// ListWorkspacesPaginated lists workspaces with pagination in the current tenant.
+// @Summary List workspaces with pagination
+// @Tags Tenant - Workspaces
+// @Accept json
+// @Produce json
+// @Param X-Tenant-ID header string true "Tenant ID"
+// @Param limit query int false "Number of items per page" default(20)
+// @Param offset query int false "Number of items to skip" default(0)
+// @Success 200 {object} dto.PaginatedWorkspacesResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Router /api/v1/tenant/workspaces/list [get]
+// @Security BearerAuth
+func (c *TenantController) ListWorkspacesPaginated(ctx *gin.Context) {
+	tenantID, ok := middleware.GetTenantID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(entity.ErrMissingTenantID))
+		return
+	}
+
+	var req dto.WorkspaceListRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
+		return
+	}
+
+	filters := mapper.WorkspaceListRequestToFilters(req)
+	workspaces, total, err := c.workspaceUC.ListWorkspacesPaginated(ctx.Request.Context(), tenantID, filters)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.WorkspacesToPaginatedResponse(workspaces, total, req.Limit, req.Offset))
 }
 
 // ListMyTenantWorkspaces lists all workspaces the current user has access to in the current tenant.

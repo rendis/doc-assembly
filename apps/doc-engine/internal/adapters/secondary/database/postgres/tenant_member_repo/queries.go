@@ -61,4 +61,30 @@ const (
 		INNER JOIN identity.tenant_members m ON m.tenant_id = t.id
 		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
 		ORDER BY input.ord`
+
+	// querySearchTenantsWithRoleByUser searches tenants by name or code similarity using pg_trgm.
+	querySearchTenantsWithRoleByUser = `
+		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
+		FROM identity.tenant_members m
+		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		  AND (t.name % $2 OR t.code % $2)
+		ORDER BY GREATEST(similarity(t.name, $2), similarity(t.code, $2)) DESC
+		LIMIT $3`
+
+	// queryFindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination.
+	queryFindTenantsWithRoleByUserPaginated = `
+		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
+		FROM identity.tenant_members m
+		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		ORDER BY t.name
+		LIMIT $2 OFFSET $3`
+
+	// queryCountTenantsWithRoleByUser counts tenants a user belongs to.
+	queryCountTenantsWithRoleByUser = `
+		SELECT COUNT(*)
+		FROM identity.tenant_members m
+		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'`
 )

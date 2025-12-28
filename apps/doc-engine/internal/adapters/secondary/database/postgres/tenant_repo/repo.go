@@ -179,3 +179,71 @@ func (r *Repository) FindSystemTenant(ctx context.Context) (*entity.Tenant, erro
 
 	return &tenant, nil
 }
+
+// FindAllPaginated lists tenants with pagination and returns total count.
+func (r *Repository) FindAllPaginated(ctx context.Context, filters port.TenantFilters) ([]*entity.Tenant, int64, error) {
+	// Get total count
+	var total int64
+	err := r.pool.QueryRow(ctx, queryCountAll).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("counting tenants: %w", err)
+	}
+
+	// Get paginated results
+	rows, err := r.pool.Query(ctx, queryFindAllPaginated, filters.Limit, filters.Offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("querying tenants paginated: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*entity.Tenant
+	for rows.Next() {
+		var tenant entity.Tenant
+		err := rows.Scan(
+			&tenant.ID,
+			&tenant.Code,
+			&tenant.Name,
+			&tenant.Description,
+			&tenant.IsSystem,
+			&tenant.Settings,
+			&tenant.CreatedAt,
+			&tenant.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scanning tenant: %w", err)
+		}
+		result = append(result, &tenant)
+	}
+
+	return result, total, rows.Err()
+}
+
+// SearchByNameOrCode searches tenants by name or code similarity using trigram.
+func (r *Repository) SearchByNameOrCode(ctx context.Context, query string, limit int) ([]*entity.Tenant, error) {
+	rows, err := r.pool.Query(ctx, querySearchByNameOrCode, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("searching tenants: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*entity.Tenant
+	for rows.Next() {
+		var tenant entity.Tenant
+		err := rows.Scan(
+			&tenant.ID,
+			&tenant.Code,
+			&tenant.Name,
+			&tenant.Description,
+			&tenant.IsSystem,
+			&tenant.Settings,
+			&tenant.CreatedAt,
+			&tenant.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning tenant: %w", err)
+		}
+		result = append(result, &tenant)
+	}
+
+	return result, rows.Err()
+}

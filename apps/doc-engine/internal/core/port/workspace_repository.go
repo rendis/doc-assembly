@@ -6,6 +6,12 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 )
 
+// WorkspaceFilters defines filters for paginated workspace listing.
+type WorkspaceFilters struct {
+	Limit  int
+	Offset int
+}
+
 // WorkspaceRepository defines the interface for workspace data access.
 type WorkspaceRepository interface {
 	// Create creates a new workspace.
@@ -14,8 +20,11 @@ type WorkspaceRepository interface {
 	// FindByID finds a workspace by ID.
 	FindByID(ctx context.Context, id string) (*entity.Workspace, error)
 
-	// FindByTenant lists all workspaces for a tenant.
-	FindByTenant(ctx context.Context, tenantID string) ([]*entity.Workspace, error)
+	// FindByTenantPaginated lists workspaces for a tenant with pagination.
+	FindByTenantPaginated(ctx context.Context, tenantID string, filters WorkspaceFilters) ([]*entity.Workspace, int64, error)
+
+	// SearchByNameInTenant searches workspaces by name similarity within a tenant.
+	SearchByNameInTenant(ctx context.Context, tenantID, query string, limit int) ([]*entity.Workspace, error)
 
 	// FindByUser lists all workspaces a user has access to.
 	FindByUser(ctx context.Context, userID string) ([]*entity.WorkspaceWithRole, error)

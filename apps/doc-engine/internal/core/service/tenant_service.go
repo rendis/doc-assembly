@@ -90,13 +90,23 @@ func (s *TenantService) GetTenantByCode(ctx context.Context, code string) (*enti
 	return tenant, nil
 }
 
-// ListTenants lists all tenants.
-func (s *TenantService) ListTenants(ctx context.Context) ([]*entity.Tenant, error) {
-	tenants, err := s.tenantRepo.FindAll(ctx)
+// SearchTenants searches tenants by name or code similarity.
+func (s *TenantService) SearchTenants(ctx context.Context, query string) ([]*entity.Tenant, error) {
+	const maxResults = 10
+	tenants, err := s.tenantRepo.SearchByNameOrCode(ctx, query, maxResults)
 	if err != nil {
-		return nil, fmt.Errorf("listing tenants: %w", err)
+		return nil, fmt.Errorf("searching tenants: %w", err)
 	}
 	return tenants, nil
+}
+
+// ListTenantsPaginated lists tenants with pagination.
+func (s *TenantService) ListTenantsPaginated(ctx context.Context, filters port.TenantFilters) ([]*entity.Tenant, int64, error) {
+	tenants, total, err := s.tenantRepo.FindAllPaginated(ctx, filters)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing tenants paginated: %w", err)
+	}
+	return tenants, total, nil
 }
 
 // ListUserTenants lists all tenants a user belongs to with their roles.
@@ -106,6 +116,25 @@ func (s *TenantService) ListUserTenants(ctx context.Context, userID string) ([]*
 		return nil, fmt.Errorf("listing user tenants: %w", err)
 	}
 	return tenants, nil
+}
+
+// SearchUserTenants searches tenants by name or code similarity for a user.
+func (s *TenantService) SearchUserTenants(ctx context.Context, userID, query string) ([]*entity.TenantWithRole, error) {
+	const maxResults = 10
+	tenants, err := s.tenantMemberRepo.SearchTenantsWithRoleByUser(ctx, userID, query, maxResults)
+	if err != nil {
+		return nil, fmt.Errorf("searching user tenants: %w", err)
+	}
+	return tenants, nil
+}
+
+// ListUserTenantsPaginated lists tenants a user belongs to with pagination.
+func (s *TenantService) ListUserTenantsPaginated(ctx context.Context, userID string, filters port.TenantMemberFilters) ([]*entity.TenantWithRole, int64, error) {
+	tenants, total, err := s.tenantMemberRepo.FindTenantsWithRoleByUserPaginated(ctx, userID, filters)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing user tenants paginated: %w", err)
+	}
+	return tenants, total, nil
 }
 
 // UpdateTenant updates a tenant's details.

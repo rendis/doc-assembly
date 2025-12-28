@@ -66,3 +66,26 @@ func (r *UpdateTenantRequest) Validate() error {
 
 // ErrInvalidTenantCode is returned when the tenant code is invalid.
 var ErrInvalidTenantCode = ErrIDRequired // Reuse or define a specific error
+
+// TenantSearchRequest represents a request to search tenants by name or code.
+type TenantSearchRequest struct {
+	Query string `form:"q" binding:"required,min=1"`
+}
+
+// TenantListRequest represents a request to list tenants with pagination.
+type TenantListRequest struct {
+	Limit  int `form:"limit,default=20"`
+	Offset int `form:"offset,default=0"`
+}
+
+// PaginatedTenantsResponse represents a paginated list of tenants.
+type PaginatedTenantsResponse struct {
+	Data       []*TenantResponse `json:"data"`
+	Pagination PaginationMeta    `json:"pagination"`
+}
+
+// PaginatedTenantsWithRoleResponse represents a paginated list of tenants with roles.
+type PaginatedTenantsWithRoleResponse struct {
+	Data       []*TenantWithRoleResponse `json:"data"`
+	Pagination PaginationMeta            `json:"pagination"`
+}

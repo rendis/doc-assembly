@@ -18,35 +18,24 @@ const (
 // NewUserAccessHistoryService creates a new user access history service.
 func NewUserAccessHistoryService(
 	accessHistoryRepo port.UserAccessHistoryRepository,
-	tenantMemberRepo port.TenantMemberRepository,
-	workspaceMemberRepo port.WorkspaceMemberRepository,
 ) usecase.UserAccessHistoryUseCase {
 	return &UserAccessHistoryService{
-		accessHistoryRepo:   accessHistoryRepo,
-		tenantMemberRepo:    tenantMemberRepo,
-		workspaceMemberRepo: workspaceMemberRepo,
+		accessHistoryRepo: accessHistoryRepo,
 	}
 }
 
 // UserAccessHistoryService implements user access history business logic.
 type UserAccessHistoryService struct {
-	accessHistoryRepo   port.UserAccessHistoryRepository
-	tenantMemberRepo    port.TenantMemberRepository
-	workspaceMemberRepo port.WorkspaceMemberRepository
+	accessHistoryRepo port.UserAccessHistoryRepository
 }
 
 // RecordTenantAccess records that a user accessed a tenant.
+// Access is validated in the database: user must have tenant membership OR a system role.
 func (s *UserAccessHistoryService) RecordTenantAccess(ctx context.Context, userID, tenantID string) error {
-	// Verify user has access to the tenant
-	_, err := s.tenantMemberRepo.FindActiveByUserAndTenant(ctx, userID, tenantID)
+	// Record access with DB-level validation (membership OR system role)
+	_, err := s.accessHistoryRepo.RecordTenantAccessIfAllowed(ctx, userID, tenantID)
 	if err != nil {
-		return fmt.Errorf("verifying tenant access: %w", err)
-	}
-
-	// Record the access
-	_, err = s.accessHistoryRepo.RecordAccess(ctx, userID, entity.AccessEntityTypeTenant, tenantID)
-	if err != nil {
-		return fmt.Errorf("recording tenant access: %w", err)
+		return err
 	}
 
 	// Cleanup old entries (keep only last 10)
@@ -65,17 +54,12 @@ func (s *UserAccessHistoryService) RecordTenantAccess(ctx context.Context, userI
 }
 
 // RecordWorkspaceAccess records that a user accessed a workspace.
+// Access is validated in the database: user must have workspace membership OR a system role.
 func (s *UserAccessHistoryService) RecordWorkspaceAccess(ctx context.Context, userID, workspaceID string) error {
-	// Verify user has access to the workspace
-	_, err := s.workspaceMemberRepo.FindActiveByUserAndWorkspace(ctx, userID, workspaceID)
+	// Record access with DB-level validation (membership OR system role)
+	_, err := s.accessHistoryRepo.RecordWorkspaceAccessIfAllowed(ctx, userID, workspaceID)
 	if err != nil {
-		return fmt.Errorf("verifying workspace access: %w", err)
-	}
-
-	// Record the access
-	_, err = s.accessHistoryRepo.RecordAccess(ctx, userID, entity.AccessEntityTypeWorkspace, workspaceID)
-	if err != nil {
-		return fmt.Errorf("recording workspace access: %w", err)
+		return err
 	}
 
 	// Cleanup old entries

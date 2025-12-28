@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -43,87 +42,83 @@ func NewMeController(
 func (c *MeController) RegisterRoutes(rg *gin.RouterGroup) {
 	me := rg.Group("/me")
 	{
-		me.GET("/tenants", c.ListMyTenants)
+		me.GET("/tenants/search", c.SearchMyTenants)
+		me.GET("/tenants/list", c.ListMyTenantsPaginated)
 		me.GET("/roles", c.GetMyRoles)
 		me.POST("/access", c.RecordAccess)
 	}
 }
 
-const maxRecentTenants = 10
-
-// ListMyTenants lists the recently accessed tenants for the current user.
-// Returns up to 10 tenants, prioritizing recently accessed ones.
-// If there are fewer than 10 in the access history, fills with remaining memberships.
-// @Summary List my recently accessed tenants
+// SearchMyTenants searches tenants by name or code similarity for the current user.
+// Returns up to 10 tenants that the user is a member of, ordered by similarity.
+// @Summary Search my tenants
+// @Description Searches tenants by name or code similarity. Only returns tenants where the user is an active member.
 // @Tags Me
 // @Accept json
 // @Produce json
+// @Param q query string true "Search query for tenant name or code"
 // @Success 200 {object} dto.ListResponse[dto.TenantWithRoleResponse]
+// @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
-// @Router /api/v1/me/tenants [get]
+// @Router /api/v1/me/tenants/search [get]
 // @Security BearerAuth
-func (c *MeController) ListMyTenants(ctx *gin.Context) {
+func (c *MeController) SearchMyTenants(ctx *gin.Context) {
 	userID, ok := middleware.GetInternalUserID(ctx)
 	if !ok {
 		HandleError(ctx, entity.ErrUnauthorized)
 		return
 	}
 
-	// 1. Get recent tenant IDs from access history
-	recentIDs, err := c.accessHistoryUC.GetRecentTenantIDs(ctx.Request.Context(), userID)
-	if err != nil {
-		slog.Warn("failed to get recent tenant IDs",
-			slog.String("user_id", userID),
-			slog.String("error", err.Error()))
-		recentIDs = []string{}
-	}
-
-	// 2. Get tenant details for recent IDs (preserves order)
-	var recentTenants []*entity.TenantWithRole
-	if len(recentIDs) > 0 {
-		recentTenants, err = c.tenantMemberRepo.FindTenantsWithRoleByUserAndIDs(ctx.Request.Context(), userID, recentIDs)
-		if err != nil {
-			HandleError(ctx, err)
-			return
-		}
-	}
-
-	// 3. If we have enough, return them
-	if len(recentTenants) >= maxRecentTenants {
-		responses := mapper.TenantsWithRoleToResponses(recentTenants[:maxRecentTenants])
-		ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
+	var req dto.TenantSearchRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 		return
 	}
 
-	// 4. Need to fill with additional tenants from memberships
-	allTenants, err := c.tenantMemberRepo.FindTenantsWithRoleByUser(ctx.Request.Context(), userID)
+	tenants, err := c.tenantUC.SearchUserTenants(ctx.Request.Context(), userID, req.Query)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
-	// 5. Build result: recent first, then fill with non-duplicate memberships
-	result := make([]*entity.TenantWithRole, 0, maxRecentTenants)
-	result = append(result, recentTenants...)
-
-	// Create a set of recent tenant IDs for O(1) lookup
-	recentSet := make(map[string]struct{}, len(recentTenants))
-	for _, t := range recentTenants {
-		recentSet[t.Tenant.ID] = struct{}{}
-	}
-
-	// Add non-duplicate tenants until we reach 10
-	for _, t := range allTenants {
-		if len(result) >= maxRecentTenants {
-			break
-		}
-		if _, exists := recentSet[t.Tenant.ID]; !exists {
-			result = append(result, t)
-		}
-	}
-
-	responses := mapper.TenantsWithRoleToResponses(result)
+	responses := mapper.TenantsWithRoleToResponses(tenants)
 	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
+}
+
+// ListMyTenantsPaginated lists tenants the current user is a member of with pagination.
+// @Summary List my tenants with pagination
+// @Description Lists tenants where the user is an active member. Supports pagination.
+// @Tags Me
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of items per page" default(20)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {object} dto.PaginatedTenantsWithRoleResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Router /api/v1/me/tenants/list [get]
+// @Security BearerAuth
+func (c *MeController) ListMyTenantsPaginated(ctx *gin.Context) {
+	userID, ok := middleware.GetInternalUserID(ctx)
+	if !ok {
+		HandleError(ctx, entity.ErrUnauthorized)
+		return
+	}
+
+	var req dto.TenantListRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
+		return
+	}
+
+	filters := mapper.TenantMemberListRequestToFilters(req)
+	tenants, total, err := c.tenantUC.ListUserTenantsPaginated(ctx.Request.Context(), userID, filters)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	response := mapper.TenantsWithRoleToPaginatedResponse(tenants, total, filters.Limit, filters.Offset)
+	ctx.JSON(http.StatusOK, response)
 }
 
 // GetMyRoles returns the roles of the current user.
