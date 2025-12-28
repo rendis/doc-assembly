@@ -1,12 +1,8 @@
-import { Editor as TiptapEditor } from '@tiptap/react'
-import { 
-  Bold, Italic, List, ListOrdered, Quote, 
-  Undo, Redo, Heading1, Heading2 
-} from 'lucide-react'
-
-interface EditorToolbarProps {
-  editor: TiptapEditor
-}
+import {
+  Bold, Italic, List, ListOrdered, Quote,
+  Undo, Redo, Heading1, Heading2
+} from 'lucide-react';
+import type { EditorToolbarProps } from '../types';
 
 export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
   if (!editor) return null
