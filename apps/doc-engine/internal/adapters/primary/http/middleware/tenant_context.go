@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
@@ -35,6 +36,12 @@ func TenantContext(tenantMemberRepo port.TenantMemberRepository) gin.HandlerFunc
 		tenantID := c.GetHeader(TenantIDHeader)
 		if tenantID == "" {
 			abortWithError(c, http.StatusBadRequest, entity.ErrMissingTenantID)
+			return
+		}
+
+		// Validate UUID format
+		if _, err := uuid.Parse(tenantID); err != nil {
+			abortWithError(c, http.StatusBadRequest, entity.ErrInvalidTenantID)
 			return
 		}
 
@@ -94,9 +101,16 @@ func GetTenantID(c *gin.Context) (string, bool) {
 
 // GetTenantIDFromHeader retrieves the tenant ID directly from the X-Tenant-ID header.
 // Use this when you need to check the header without requiring full TenantContext middleware.
+// Returns false if the header is missing or contains an invalid UUID.
 func GetTenantIDFromHeader(c *gin.Context) (string, bool) {
 	tenantID := c.GetHeader(TenantIDHeader)
-	return tenantID, tenantID != ""
+	if tenantID == "" {
+		return "", false
+	}
+	if _, err := uuid.Parse(tenantID); err != nil {
+		return "", false
+	}
+	return tenantID, true
 }
 
 // GetTenantRole retrieves the user's role in the current tenant.
