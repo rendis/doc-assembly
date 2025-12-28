@@ -14,12 +14,6 @@ type WorkspaceResponse struct {
 	UpdatedAt *time.Time     `json:"updatedAt,omitempty"`
 }
 
-// WorkspaceWithRoleResponse includes the user's role in the workspace.
-type WorkspaceWithRoleResponse struct {
-	WorkspaceResponse
-	Role string `json:"role"`
-}
-
 // CreateWorkspaceRequest represents a request to create a workspace.
 type CreateWorkspaceRequest struct {
 	TenantID *string        `json:"tenantId,omitempty"`

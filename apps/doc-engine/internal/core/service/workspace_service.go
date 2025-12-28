@@ -104,15 +104,6 @@ func (s *WorkspaceService) ListUserWorkspaces(ctx context.Context, userID string
 	return workspaces, nil
 }
 
-// ListUserWorkspacesInTenant lists all workspaces a user has access to within a specific tenant.
-func (s *WorkspaceService) ListUserWorkspacesInTenant(ctx context.Context, userID, tenantID string) ([]*entity.WorkspaceWithRole, error) {
-	workspaces, err := s.workspaceRepo.FindByUserAndTenant(ctx, userID, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("listing user workspaces in tenant: %w", err)
-	}
-	return workspaces, nil
-}
-
 // SearchWorkspaces searches workspaces by name within a tenant.
 func (s *WorkspaceService) SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error) {
 	workspaces, err := s.workspaceRepo.SearchByNameInTenant(ctx, tenantID, query, 20)

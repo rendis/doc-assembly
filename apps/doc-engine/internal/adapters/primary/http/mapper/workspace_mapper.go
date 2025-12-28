@@ -26,28 +26,11 @@ func WorkspaceToResponse(ws *entity.Workspace) dto.WorkspaceResponse {
 	}
 }
 
-// WorkspaceWithRoleToResponse converts a WorkspaceWithRole entity to a response DTO.
-func WorkspaceWithRoleToResponse(ws *entity.WorkspaceWithRole) dto.WorkspaceWithRoleResponse {
-	return dto.WorkspaceWithRoleResponse{
-		WorkspaceResponse: WorkspaceToResponse(&ws.Workspace),
-		Role:              string(ws.Role),
-	}
-}
-
 // WorkspacesToResponses converts a slice of Workspace entities to response DTOs.
 func WorkspacesToResponses(workspaces []*entity.Workspace) []dto.WorkspaceResponse {
 	result := make([]dto.WorkspaceResponse, len(workspaces))
 	for i, ws := range workspaces {
 		result[i] = WorkspaceToResponse(ws)
-	}
-	return result
-}
-
-// WorkspacesWithRoleToResponses converts a slice of WorkspaceWithRole entities to response DTOs.
-func WorkspacesWithRoleToResponses(workspaces []*entity.WorkspaceWithRole) []dto.WorkspaceWithRoleResponse {
-	result := make([]dto.WorkspaceWithRoleResponse, len(workspaces))
-	for i, ws := range workspaces {
-		result[i] = WorkspaceWithRoleToResponse(ws)
 	}
 	return result
 }

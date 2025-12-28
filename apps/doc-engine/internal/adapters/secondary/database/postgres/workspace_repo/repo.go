@@ -107,17 +107,6 @@ func (r *Repository) FindByUser(ctx context.Context, userID string) ([]*entity.W
 	return scanWorkspacesWithRole(rows)
 }
 
-// FindByUserAndTenant lists all workspaces a user has access to within a specific tenant.
-func (r *Repository) FindByUserAndTenant(ctx context.Context, userID, tenantID string) ([]*entity.WorkspaceWithRole, error) {
-	rows, err := r.pool.Query(ctx, queryFindByUserAndTenant, userID, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("querying user workspaces in tenant: %w", err)
-	}
-	defer rows.Close()
-
-	return scanWorkspacesWithRole(rows)
-}
-
 // FindSystemByTenant finds the system workspace for a tenant.
 func (r *Repository) FindSystemByTenant(ctx context.Context, tenantID *string) (*entity.Workspace, error) {
 	var query string

@@ -36,13 +36,6 @@ const (
 		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE' AND w.status != 'ARCHIVED'
 		ORDER BY w.name`
 
-	queryFindByUserAndTenant = `
-		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'), w.created_at, w.updated_at, m.role
-		FROM tenancy.workspaces w
-		INNER JOIN identity.workspace_members m ON w.id = m.workspace_id
-		WHERE m.user_id = $1 AND w.tenant_id = $2 AND m.membership_status = 'ACTIVE' AND w.status != 'ARCHIVED'
-		ORDER BY w.name`
-
 	queryFindSystemByTenantNull = `
 		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.workspaces

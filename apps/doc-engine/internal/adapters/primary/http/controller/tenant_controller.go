@@ -46,7 +46,6 @@ func (c *TenantController) RegisterRoutes(rg *gin.RouterGroup, middlewareProvide
 		// Workspace routes within tenant
 		tenant.GET("/workspaces/search", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.SearchWorkspaces)
 		tenant.GET("/workspaces/list", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.ListWorkspacesPaginated)
-		tenant.GET("/my-workspaces", c.ListMyTenantWorkspaces)
 		tenant.POST("/workspaces", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.CreateWorkspace)
 		tenant.DELETE("/workspaces/:workspaceId", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.DeleteWorkspace)
 
@@ -199,40 +198,6 @@ func (c *TenantController) ListWorkspacesPaginated(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, mapper.WorkspacesToPaginatedResponse(workspaces, total, req.Limit, req.Offset))
-}
-
-// ListMyTenantWorkspaces lists all workspaces the current user has access to in the current tenant.
-// @Summary List my workspaces in tenant
-// @Tags Tenant - Workspaces
-// @Accept json
-// @Produce json
-// @Param X-Tenant-ID header string true "Tenant ID"
-// @Success 200 {object} dto.ListResponse[dto.WorkspaceWithRoleResponse]
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 403 {object} dto.ErrorResponse
-// @Router /api/v1/tenant/my-workspaces [get]
-// @Security BearerAuth
-func (c *TenantController) ListMyTenantWorkspaces(ctx *gin.Context) {
-	tenantID, ok := middleware.GetTenantID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(entity.ErrMissingTenantID))
-		return
-	}
-
-	userID, ok := middleware.GetInternalUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, dto.NewErrorResponse(entity.ErrUnauthorized))
-		return
-	}
-
-	workspaces, err := c.workspaceUC.ListUserWorkspacesInTenant(ctx.Request.Context(), userID, tenantID)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	responses := mapper.WorkspacesWithRoleToResponses(workspaces)
-	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
 }
 
 // CreateWorkspace creates a new workspace in the current tenant.

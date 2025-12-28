@@ -363,15 +363,6 @@ definitions:
           $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse'
         type: array
     type: object
-  ? github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_WorkspaceWithRoleResponse
-  : properties:
-      count:
-        type: integer
-      data:
-        items:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceWithRoleResponse'
-        type: array
-    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplateVersionsResponse:
     properties:
       items:
@@ -969,28 +960,6 @@ definitions:
       id:
         type: string
       name:
-        type: string
-      settings:
-        additionalProperties: {}
-        type: object
-      status:
-        type: string
-      tenantId:
-        type: string
-      type:
-        type: string
-      updatedAt:
-        type: string
-    type: object
-  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceWithRoleResponse:
-    properties:
-      createdAt:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      role:
         type: string
       settings:
         additionalProperties: {}
@@ -2702,36 +2671,6 @@ paths:
       summary: Update tenant member role
       tags:
       - Tenant - Members
-  /api/v1/tenant/my-workspaces:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tenant ID
-        in: header
-        name: X-Tenant-ID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_WorkspaceWithRoleResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List my workspaces in tenant
-      tags:
-      - Tenant - Workspaces
   /api/v1/tenant/workspaces:
     post:
       consumes:

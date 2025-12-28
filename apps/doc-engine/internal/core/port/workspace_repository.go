@@ -29,9 +29,6 @@ type WorkspaceRepository interface {
 	// FindByUser lists all workspaces a user has access to.
 	FindByUser(ctx context.Context, userID string) ([]*entity.WorkspaceWithRole, error)
 
-	// FindByUserAndTenant lists all workspaces a user has access to within a specific tenant.
-	FindByUserAndTenant(ctx context.Context, userID, tenantID string) ([]*entity.WorkspaceWithRole, error)
-
 	// FindSystemByTenant finds the system workspace for a tenant.
 	FindSystemByTenant(ctx context.Context, tenantID *string) (*entity.Workspace, error)
 

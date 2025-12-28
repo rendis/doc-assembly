@@ -34,9 +34,6 @@ type WorkspaceUseCase interface {
 	// ListUserWorkspaces lists all workspaces a user has access to.
 	ListUserWorkspaces(ctx context.Context, userID string) ([]*entity.WorkspaceWithRole, error)
 
-	// ListUserWorkspacesInTenant lists all workspaces a user has access to within a specific tenant.
-	ListUserWorkspacesInTenant(ctx context.Context, userID, tenantID string) ([]*entity.WorkspaceWithRole, error)
-
 	// SearchWorkspaces searches workspaces by name within a tenant.
 	SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error)
 
