@@ -47,9 +47,9 @@ export const AppSidebar = () => {
   ];
 
   return (
-    <aside 
+    <aside
       className={cn(
-        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-screen sticky top-0",
+        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-full",
         isCollapsed ? "w-16" : "w-64"
       )}
     >
@@ -88,11 +88,6 @@ export const AppSidebar = () => {
           );
         })}
       </nav>
-
-      {/* Footer (Optional) */}
-      <div className="border-t p-2">
-        {/* Could add user profile summary here if expanded */}
-      </div>
     </aside>
   );
 };

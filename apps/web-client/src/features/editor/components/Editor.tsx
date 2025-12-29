@@ -120,7 +120,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full min-h-0 w-full border rounded-lg overflow-hidden bg-muted/30 shadow-sm">
+      <div className="flex h-full min-h-0 w-full border overflow-hidden bg-muted/30 shadow-sm">
         <EditorSidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
