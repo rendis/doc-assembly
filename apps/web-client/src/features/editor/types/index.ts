@@ -1,8 +1,9 @@
-import type { Editor as TiptapEditor } from '@tiptap/react';
+// @ts-ignore
+import type { Editor as TiptapEditor } from '@tiptap/core';
 
 export interface EditorProps {
   content: string;
-  onChange: (content: string) => void;
+  onChange?: (content: string) => void;
   editable?: boolean;
 }
 

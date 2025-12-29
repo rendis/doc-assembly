@@ -1,8 +1,10 @@
-import { MoreVertical, Clock, Calendar } from 'lucide-react';
+import { MoreVertical, Clock, Calendar, Pen, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link, useParams } from '@tanstack/react-router';
 import type { TemplateVersion, TemplateVersionDetail } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDate, formatDistanceToNow } from '@/lib/date-utils';
+import { Button } from '@/components/ui/button';
 
 interface VersionsListProps {
   versions: (TemplateVersion | TemplateVersionDetail)[];
@@ -17,6 +19,7 @@ export function VersionsList({
 }: VersionsListProps) {
   void _onRefresh; // Will be used for version actions
   const { t } = useTranslation();
+  const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
 
   if (versions.length === 0) {
     return (
@@ -34,6 +37,7 @@ export function VersionsList({
           version={version}
           isLatest={index === 0}
           templateId={templateId}
+          workspaceId={workspaceId}
         />
       ))}
     </div>
@@ -44,11 +48,12 @@ interface VersionItemProps {
   version: TemplateVersion | TemplateVersionDetail;
   isLatest: boolean;
   templateId: string;
+  workspaceId: string;
 }
 
-function VersionItem({ version, isLatest, templateId: _templateId }: VersionItemProps) {
-  void _templateId; // Will be used for version actions
+function VersionItem({ version, isLatest, templateId, workspaceId }: VersionItemProps) {
   const { t } = useTranslation();
+  const isDraft = version.status === 'DRAFT';
 
   return (
     <div
@@ -108,15 +113,31 @@ function VersionItem({ version, isLatest, templateId: _templateId }: VersionItem
         </div>
 
         {/* Actions */}
-        <button
-          type="button"
-          className="
-            p-1 rounded-md opacity-0 group-hover:opacity-100
-            hover:bg-muted transition-all
-          "
-        >
-          <MoreVertical className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-primary"
+            asChild
+          >
+            <Link
+              to="/workspace/$workspaceId/templates/$templateId/version/$versionId/design"
+              params={{ workspaceId, templateId, versionId: version.id }}
+            >
+              {isDraft ? <Pen className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Link>
+          </Button>
+
+          <button
+            type="button"
+            className="
+              p-1 rounded-md opacity-0 group-hover:opacity-100
+              hover:bg-muted transition-all
+            "
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

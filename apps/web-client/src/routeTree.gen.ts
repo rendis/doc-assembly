@@ -21,9 +21,10 @@ import { Route as AdminAuditRouteImport } from './routes/admin/audit'
 import { Route as AppSelectTenantRouteImport } from './routes/_app/select-tenant'
 import { Route as AppWorkspaceWorkspaceIdRouteImport } from './routes/_app/workspace/$workspaceId'
 import { Route as AppWorkspaceWorkspaceIdIndexRouteImport } from './routes/_app/workspace/$workspaceId/index'
-import { Route as AppWorkspaceWorkspaceIdTemplatesRouteImport } from './routes/_app/workspace/$workspaceId/templates'
 import { Route as AppWorkspaceWorkspaceIdSettingsRouteImport } from './routes/_app/workspace/$workspaceId/settings'
 import { Route as AppWorkspaceWorkspaceIdDocumentsRouteImport } from './routes/_app/workspace/$workspaceId/documents'
+import { Route as AppWorkspaceWorkspaceIdTemplatesIndexRouteImport } from './routes/_app/workspace/$workspaceId/templates/index'
+import { Route as AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRouteImport } from './routes/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
 
 const EditorTestRoute = EditorTestRouteImport.update({
   id: '/editor-test',
@@ -85,12 +86,6 @@ const AppWorkspaceWorkspaceIdIndexRoute =
     path: '/',
     getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
   } as any)
-const AppWorkspaceWorkspaceIdTemplatesRoute =
-  AppWorkspaceWorkspaceIdTemplatesRouteImport.update({
-    id: '/templates',
-    path: '/templates',
-    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
-  } as any)
 const AppWorkspaceWorkspaceIdSettingsRoute =
   AppWorkspaceWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
@@ -103,6 +98,20 @@ const AppWorkspaceWorkspaceIdDocumentsRoute =
     path: '/documents',
     getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
   } as any)
+const AppWorkspaceWorkspaceIdTemplatesIndexRoute =
+  AppWorkspaceWorkspaceIdTemplatesIndexRouteImport.update({
+    id: '/templates/',
+    path: '/templates/',
+    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
+  } as any)
+const AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute =
+  AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRouteImport.update(
+    {
+      id: '/templates/$templateId/version/$versionId/design',
+      path: '/templates/$templateId/version/$versionId/design',
+      getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
@@ -117,8 +126,9 @@ export interface FileRoutesByFullPath {
   '/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdRouteWithChildren
   '/workspace/$workspaceId/documents': typeof AppWorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof AppWorkspaceWorkspaceIdSettingsRoute
-  '/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesRoute
   '/workspace/$workspaceId/': typeof AppWorkspaceWorkspaceIdIndexRoute
+  '/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
+  '/workspace/$workspaceId/templates/$templateId/version/$versionId/design': typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
 }
 export interface FileRoutesByTo {
   '/editor-test': typeof EditorTestRoute
@@ -131,8 +141,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/workspace/$workspaceId/documents': typeof AppWorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof AppWorkspaceWorkspaceIdSettingsRoute
-  '/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesRoute
   '/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdIndexRoute
+  '/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
+  '/workspace/$workspaceId/templates/$templateId/version/$versionId/design': typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -149,8 +160,9 @@ export interface FileRoutesById {
   '/_app/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdRouteWithChildren
   '/_app/workspace/$workspaceId/documents': typeof AppWorkspaceWorkspaceIdDocumentsRoute
   '/_app/workspace/$workspaceId/settings': typeof AppWorkspaceWorkspaceIdSettingsRoute
-  '/_app/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesRoute
   '/_app/workspace/$workspaceId/': typeof AppWorkspaceWorkspaceIdIndexRoute
+  '/_app/workspace/$workspaceId/templates/': typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
+  '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design': typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,8 +179,9 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
-    | '/workspace/$workspaceId/templates'
     | '/workspace/$workspaceId/'
+    | '/workspace/$workspaceId/templates'
+    | '/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/editor-test'
@@ -181,8 +194,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
-    | '/workspace/$workspaceId/templates'
     | '/workspace/$workspaceId'
+    | '/workspace/$workspaceId/templates'
+    | '/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
   id:
     | '__root__'
     | '/admin'
@@ -198,8 +212,9 @@ export interface FileRouteTypes {
     | '/_app/workspace/$workspaceId'
     | '/_app/workspace/$workspaceId/documents'
     | '/_app/workspace/$workspaceId/settings'
-    | '/_app/workspace/$workspaceId/templates'
     | '/_app/workspace/$workspaceId/'
+    | '/_app/workspace/$workspaceId/templates/'
+    | '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -294,13 +309,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceWorkspaceIdIndexRouteImport
       parentRoute: typeof AppWorkspaceWorkspaceIdRoute
     }
-    '/_app/workspace/$workspaceId/templates': {
-      id: '/_app/workspace/$workspaceId/templates'
-      path: '/templates'
-      fullPath: '/workspace/$workspaceId/templates'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdTemplatesRouteImport
-      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
-    }
     '/_app/workspace/$workspaceId/settings': {
       id: '/_app/workspace/$workspaceId/settings'
       path: '/settings'
@@ -313,6 +321,20 @@ declare module '@tanstack/react-router' {
       path: '/documents'
       fullPath: '/workspace/$workspaceId/documents'
       preLoaderRoute: typeof AppWorkspaceWorkspaceIdDocumentsRouteImport
+      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
+    }
+    '/_app/workspace/$workspaceId/templates/': {
+      id: '/_app/workspace/$workspaceId/templates/'
+      path: '/templates'
+      fullPath: '/workspace/$workspaceId/templates'
+      preLoaderRoute: typeof AppWorkspaceWorkspaceIdTemplatesIndexRouteImport
+      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
+    }
+    '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design': {
+      id: '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
+      path: '/templates/$templateId/version/$versionId/design'
+      fullPath: '/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
+      preLoaderRoute: typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRouteImport
       parentRoute: typeof AppWorkspaceWorkspaceIdRoute
     }
   }
@@ -341,8 +363,9 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface AppWorkspaceWorkspaceIdRouteChildren {
   AppWorkspaceWorkspaceIdDocumentsRoute: typeof AppWorkspaceWorkspaceIdDocumentsRoute
   AppWorkspaceWorkspaceIdSettingsRoute: typeof AppWorkspaceWorkspaceIdSettingsRoute
-  AppWorkspaceWorkspaceIdTemplatesRoute: typeof AppWorkspaceWorkspaceIdTemplatesRoute
   AppWorkspaceWorkspaceIdIndexRoute: typeof AppWorkspaceWorkspaceIdIndexRoute
+  AppWorkspaceWorkspaceIdTemplatesIndexRoute: typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
+  AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute: typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
 }
 
 const AppWorkspaceWorkspaceIdRouteChildren: AppWorkspaceWorkspaceIdRouteChildren =
@@ -350,9 +373,11 @@ const AppWorkspaceWorkspaceIdRouteChildren: AppWorkspaceWorkspaceIdRouteChildren
     AppWorkspaceWorkspaceIdDocumentsRoute:
       AppWorkspaceWorkspaceIdDocumentsRoute,
     AppWorkspaceWorkspaceIdSettingsRoute: AppWorkspaceWorkspaceIdSettingsRoute,
-    AppWorkspaceWorkspaceIdTemplatesRoute:
-      AppWorkspaceWorkspaceIdTemplatesRoute,
     AppWorkspaceWorkspaceIdIndexRoute: AppWorkspaceWorkspaceIdIndexRoute,
+    AppWorkspaceWorkspaceIdTemplatesIndexRoute:
+      AppWorkspaceWorkspaceIdTemplatesIndexRoute,
+    AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute:
+      AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute,
   }
 
 const AppWorkspaceWorkspaceIdRouteWithChildren =
