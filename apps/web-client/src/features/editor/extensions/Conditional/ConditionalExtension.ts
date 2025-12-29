@@ -38,6 +38,10 @@ export const ConditionalExtension = Node.create({
 
   draggable: true,
 
+  selectable: false,
+
+  allowGapCursor: false,
+
   addAttributes() {
     return {
       conditions: {

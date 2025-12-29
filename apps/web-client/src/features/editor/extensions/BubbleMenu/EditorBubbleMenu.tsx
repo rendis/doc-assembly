@@ -1,4 +1,5 @@
 import { BubbleMenu } from '@tiptap/react/menus';
+import { NodeSelection } from '@tiptap/pm/state';
 import { Bold, Italic, Strikethrough, Code, Link, Highlighter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -46,9 +47,26 @@ export const EditorBubbleMenu = ({ editor }: EditorBubbleMenuProps) => {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
+  // Don't show bubble menu for atomic nodes (injector, signature, conditional)
+  const shouldShow = ({ state }: { state: any }) => {
+    const { selection } = state;
+    const { empty } = selection;
+
+    // Don't show if selection is empty
+    if (empty) return false;
+
+    // Don't show for NodeSelection (atomic nodes)
+    if (selection instanceof NodeSelection) {
+      return false;
+    }
+
+    return true;
+  };
+
   return (
     <BubbleMenu
       editor={editor}
+      shouldShow={shouldShow}
       className="bg-popover border rounded-lg shadow-lg flex items-center gap-0.5 p-1"
     >
       <MenuButton

@@ -281,4 +281,20 @@
   .drag-handle:active {
     @apply cursor-grabbing text-foreground bg-accent/70;
   }
+
+  /* Fix: Ocultar cursor residual en nodos atómicos después de drag-and-drop */
+  .ProseMirror .ProseMirror-selectednode {
+    outline: none !important;
+  }
+
+  /* Ocultar gapcursor - causa cursores fantasma */
+  .ProseMirror-gapcursor {
+    display: none !important;
+    pointer-events: none;
+  }
+
+  .ProseMirror-gapcursor::after {
+    display: none !important;
+  }
+
 }

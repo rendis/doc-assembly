@@ -4,9 +4,8 @@ import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
 import { MentionList, type MentionListRef } from './MentionList';
 import { type MentionVariable } from './variables';
 
-export const mentionSuggestion: Partial<SuggestionOptions<MentionVariable>> = {
-  char: '@',
-
+// Only render logic - command is defined in MentionExtension
+export const variableSuggestion: Partial<SuggestionOptions<MentionVariable>> = {
   render: () => {
     let component: ReactRenderer<MentionListRef> | null = null;
     let popup: TippyInstance[] | null = null;

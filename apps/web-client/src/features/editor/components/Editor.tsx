@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EditorContent } from '@tiptap/react';
 import { EditorToolbar } from './EditorToolbar';
 import { useEditorState } from '../hooks/useEditorState';
@@ -17,7 +17,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
     editable,
     onUpdate: onChange,
   });
-  
+
   const [activeDragItem, setActiveDragItem] = useState<any>(null);
   const [dropCursorPos, setDropCursorPos] = useState<{ top: number; left: number; height: number } | null>(null);
 
@@ -26,6 +26,46 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
     useSensor(TouchSensor)
   );
 
+  // Escuchar eventos DOM para drag interno de TipTap
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleEditorDragOver = (event: DragEvent) => {
+      const pos = editor.view.posAtCoords({ left: event.clientX, top: event.clientY });
+      if (pos) {
+        const coords = editor.view.coordsAtPos(pos.pos);
+        setDropCursorPos({
+          top: coords.top,
+          left: coords.left,
+          height: coords.bottom - coords.top
+        });
+      }
+    };
+
+    const handleEditorDrop = () => {
+      setDropCursorPos(null);
+    };
+
+    const handleEditorDragLeave = (event: DragEvent) => {
+      // Solo limpiar si realmente salió del editor
+      const relatedTarget = event.relatedTarget as Node | null;
+      if (!relatedTarget || !editor.view.dom.contains(relatedTarget)) {
+        setDropCursorPos(null);
+      }
+    };
+
+    const editorDOM = editor.view.dom;
+    editorDOM.addEventListener('dragover', handleEditorDragOver);
+    editorDOM.addEventListener('drop', handleEditorDrop);
+    editorDOM.addEventListener('dragleave', handleEditorDragLeave);
+
+    return () => {
+      editorDOM.removeEventListener('dragover', handleEditorDragOver);
+      editorDOM.removeEventListener('drop', handleEditorDrop);
+      editorDOM.removeEventListener('dragleave', handleEditorDragLeave);
+    };
+  }, [editor]);
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragItem(event.active.data.current);
   };
@@ -33,19 +73,15 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   const handleDragMove = (event: DragMoveEvent) => {
     if (!editor) return;
 
-    // Calcular posición actual del puntero
     // @ts-ignore
     const clientX = event.activatorEvent.clientX + event.delta.x;
     // @ts-ignore
     const clientY = event.activatorEvent.clientY + event.delta.y;
 
     const pos = editor.view.posAtCoords({ left: clientX, top: clientY });
-    
+
     if (pos) {
-      // Obtener coordenadas visuales para el cursor falso
       const coords = editor.view.coordsAtPos(pos.pos);
-      // Ajustar coordenadas relativas al viewport si es necesario, 
-      // pero coordsAtPos devuelve coordenadas de cliente (viewport), lo cual es perfecto para un div fixed/absolute global
       setDropCursorPos({
         top: coords.top,
         left: coords.left,
@@ -63,40 +99,23 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
 
     if (!editor || !over) return;
 
-    // We assume the drop target is the editor area. 
-    // In a real implementation, we might check if over.id matches the editor container.
-    
-    // Map coordinates to editor position
-    // event.delta gives the translation. We need absolute client coordinates for posAtCoords.
-    // However, dnd-kit events don't strictly give the final mouse client coordinates in a way 
-    // that maps 1:1 to what posAtCoords expects if scrolling happens. 
-    // A simpler approach for this prototype is inserting at the current selection or 
-    // if we want to be fancy, we try to use the approximate drop location.
-    
-    // For now, let's try to get the position from the event if possible, 
-    // otherwise fallback to current selection.
-    
-    // NOTE: In a robust app, we'd use a custom Droppable that tracks mouse position
-    // or use the 'over' data if we made the editor lines droppable.
-    
     const data = active.data.current;
     if (!data) return;
 
-    // Use the coordinates from the drop event to find the position in the editor
-    // @ts-ignore - dnd-kit types are sometimes tricky with deeply nested event props, but clientX/Y usually exist on the original event
+    // @ts-ignore
     const clientX = event.activatorEvent.clientX + event.delta.x;
     // @ts-ignore
     const clientY = event.activatorEvent.clientY + event.delta.y;
 
     const pos = editor.view.posAtCoords({ left: clientX, top: clientY });
-    
+
     if (pos) {
       editor.commands.focus(pos.pos);
     }
 
     if (data.dndType === 'variable') {
-      editor.chain().setInjector({ 
-        type: data.type, // This is 'TEXT', 'DATE' etc from MOCK_VARIABLES
+      editor.chain().setInjector({
+        type: data.type,
         label: data.label,
         variableId: data.variableId
       }).run();
@@ -117,15 +136,15 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   if (!editor) return null;
 
   return (
-    <DndContext 
-      sensors={sensors} 
-      onDragStart={handleDragStart} 
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-[calc(100vh-100px)] w-full border rounded-lg overflow-hidden bg-muted/30 shadow-sm">
         <EditorSidebar />
-        
+
         <div className="flex-1 flex flex-col min-w-0">
           <EditorToolbar editor={editor} />
           <div className="flex-1 overflow-y-auto bg-muted/20 p-8">
@@ -143,27 +162,26 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
       <DragOverlay dropAnimation={null}>
         {activeDragItem ? (
           <div className="opacity-80 rotate-2 cursor-grabbing pointer-events-none">
-             <SidebarItem 
-               label={activeDragItem.label} 
-               icon={activeDragItem.icon} 
+             <SidebarItem
+               label={activeDragItem.label}
+               icon={activeDragItem.icon}
                type={activeDragItem.dndType === 'tool' ? 'tool' : 'variable'}
              />
           </div>
         ) : null}
       </DragOverlay>
 
+      {/* Indicador de drop - overlay sin afectar flujo del documento */}
       {dropCursorPos && (
-        <div 
-          className="fixed z-50 pointer-events-none transition-all duration-75 ease-out"
+        <div
+          className="fixed z-50 pointer-events-none"
           style={{
             top: dropCursorPos.top,
-            left: dropCursorPos.left - 2, // Centrar (-2px para ancho de 4px)
+            left: dropCursorPos.left - 2,
             height: dropCursorPos.height,
           }}
         >
-          {/* Línea vertical */}
           <div className="h-full w-[4px] bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-          {/* Cabezal/Círculo superior */}
           <div className="absolute -top-1.5 -left-1 w-3 h-3 bg-blue-500 rounded-full shadow-sm ring-2 ring-background" />
         </div>
       )}

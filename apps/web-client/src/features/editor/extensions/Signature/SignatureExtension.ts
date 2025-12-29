@@ -16,6 +16,12 @@ export const SignatureExtension = Node.create({
 
   atom: true,
 
+  draggable: true,
+
+  selectable: false,
+
+  allowGapCursor: false,
+
   addAttributes() {
     return {
       roleId: {

@@ -27,7 +27,9 @@ export const useEditorState = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // Disable default task list since we use the extension
+        // Disable dropcursor to fix static cursor bug with React NodeViews
+        // See: https://discuss.prosemirror.net/t/dropcursor-bug-with-nodeviews/4977
+        dropcursor: false,
         bulletList: {
           keepMarks: true,
           keepAttributes: false,

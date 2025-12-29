@@ -8,15 +8,32 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { LogicBuilder } from './builder/LogicBuilder';
 import type { ConditionalSchema, LogicGroup, LogicRule } from './ConditionalExtension';
+import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu';
 
 export const ConditionalComponent = (props: NodeViewProps) => {
-  const { node, updateAttributes, selected } = props;
+  const { node, updateAttributes, selected, deleteNode } = props;
   const { conditions, expression } = node.attrs;
 
   const [tempConditions, setTempConditions] = useState<ConditionalSchema>(conditions || {
       id: 'root', type: 'group', logic: 'AND', children: []
   });
   const [open, setOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleBorderClick = (e: React.MouseEvent) => {
+    // Only show context menu if clicking on the border area, not the content
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    }
+  };
 
   const handleSave = () => {
     // Generate readable expression summary
@@ -32,6 +49,9 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   return (
     <NodeViewWrapper className="my-6 relative group">
       <div
+        data-drag-handle
+        onClick={handleBorderClick}
+        onContextMenu={handleContextMenu}
         className={cn(
           'border-2 border-dashed rounded-lg p-4 transition-all pt-6',
           selected ? 'border-warning bg-warning-muted/30' : 'border-warning-border'
@@ -76,6 +96,17 @@ export const ConditionalComponent = (props: NodeViewProps) => {
         
         <NodeViewContent className="min-h-[2rem]" />
       </div>
+
+      {contextMenu && (
+        <EditorNodeContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          nodeType="conditional"
+          onDelete={deleteNode}
+          onEdit={() => setOpen(true)}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </NodeViewWrapper>
   );
 };
