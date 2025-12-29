@@ -1,6 +1,6 @@
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-// @ts-ignore
-import type { NodeViewProps } from '@tiptap/core';
+// @ts-expect-error - NodeViewProps is not exported in type definitions
+import type { NodeViewProps } from '@tiptap/react';
 import { cn } from '@/lib/utils';
 import { GitBranch, Settings2 } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -27,7 +27,6 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   };
 
   const handleBorderClick = (e: React.MouseEvent) => {
-    // Only show context menu if clicking on the border area, not the content
     if (e.target === e.currentTarget) {
       e.preventDefault();
       e.stopPropagation();
@@ -36,9 +35,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   };
 
   const handleSave = () => {
-    // Generate readable expression summary
     const summary = generateSummary(tempConditions);
-
     updateAttributes({
       conditions: tempConditions,
       expression: summary
@@ -78,11 +75,11 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                    Arrastra variables y configura las reglas de visualización.
                  </DialogDescription>
                </DialogHeader>
-               
+
                <div className="flex-1 min-h-0 py-4">
-                  <LogicBuilder 
-                    initialData={conditions} 
-                    onChange={setTempConditions} 
+                  <LogicBuilder
+                    initialData={conditions}
+                    onChange={setTempConditions}
                   />
                </div>
 
@@ -93,7 +90,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
              </DialogContent>
            </Dialog>
         </div>
-        
+
         <NodeViewContent className="min-h-[2rem]" />
       </div>
 
@@ -111,21 +108,19 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   );
 };
 
-// Helper function to generate human readable summary
 const generateSummary = (node: LogicGroup | LogicRule): string => {
   if (node.type === 'rule') {
     const r = node as LogicRule;
     if (!r.variableId) return '(Incompleto)';
-    // In a real app we map IDs to labels here too
-    const opMap: Record<string, string> = { 
-      eq: '=', neq: '!=', gt: '>', lt: '<', contains: 'contiene', empty: 'vacío', not_empty: 'no vacío' 
+    const opMap: Record<string, string> = {
+      eq: '=', neq: '!=', gt: '>', lt: '<', contains: 'contiene', empty: 'vacío', not_empty: 'no vacío'
     };
     return `${r.variableId} ${opMap[r.operator] || r.operator} "${r.value}"`;
   }
 
   const g = node as LogicGroup;
   if (g.children.length === 0) return 'Siempre visible (Grupo vacío)';
-  
+
   const childrenSummary = g.children.map(generateSummary).join(` ${g.logic} `);
   return g.children.length > 1 ? `(${childrenSummary})` : childrenSummary;
 };

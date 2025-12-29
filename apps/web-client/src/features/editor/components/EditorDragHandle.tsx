@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { DragHandle } from '@tiptap/extension-drag-handle-react';
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
 import { offset, flip, shift } from '@floating-ui/dom';
 import { GripVertical } from 'lucide-react';
 import {
@@ -10,7 +12,7 @@ import {
 import { DragHandleMenu } from './DragHandleMenu';
 
 interface EditorDragHandleProps {
-  editor: any;
+  editor: Editor;
 }
 
 export const EditorDragHandle = ({ editor }: EditorDragHandleProps) => {

@@ -35,7 +35,7 @@ function AdminUsersPage() {
     };
 
     fetchUsers();
-  }, []);
+  }, [t]);
 
   const handleRevokeRole = async (userId: string) => {
     if (!confirm(t('admin.users.confirmRevoke'))) {

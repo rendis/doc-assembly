@@ -1,9 +1,8 @@
-// @ts-ignore
+// @ts-expect-error - TipTap types are not fully compatible with strict mode
 import { mergeAttributes, Node } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { InjectorComponent } from './InjectorComponent';
-
-export type InjectorType = 'TEXT' | 'NUMBER' | 'DATE' | 'CURRENCY' | 'BOOLEAN' | 'IMAGE' | 'TABLE';
+import type { InjectorType } from '../../data/variables';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -19,10 +18,6 @@ export const InjectorExtension = Node.create({
   inline: true,
 
   atom: true,
-
-  draggable: true,
-
-  selectable: false,
 
   allowGapCursor: false,
 
@@ -54,7 +49,7 @@ export const InjectorExtension = Node.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
     return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'injector' })];
   },
 
@@ -66,7 +61,7 @@ export const InjectorExtension = Node.create({
     return {
       setInjector:
         (options: { type: InjectorType; label: string; variableId?: string }) =>
-        ({ commands }: { commands: any }) => {
+        ({ commands }: { commands: { insertContent: (content: unknown) => boolean } }) => {
           return commands.insertContent({
             type: this.name,
             attrs: options,

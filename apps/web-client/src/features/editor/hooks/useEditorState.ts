@@ -1,5 +1,8 @@
 import { useEditor } from '@tiptap/react';
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import Dropcursor from '@tiptap/extension-dropcursor';
 import { ResizableImage } from 'tiptap-extension-resizable-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
@@ -27,8 +30,7 @@ export const useEditorState = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // Disable dropcursor to fix static cursor bug with React NodeViews
-        // See: https://discuss.prosemirror.net/t/dropcursor-bug-with-nodeviews/4977
+        // Disable built-in dropcursor to use custom configuration
         dropcursor: false,
         bulletList: {
           keepMarks: true,
@@ -38,6 +40,12 @@ export const useEditorState = ({
           keepMarks: true,
           keepAttributes: false,
         },
+      }),
+      // Custom dropcursor with better styling
+      Dropcursor.configure({
+        color: 'hsl(var(--primary))',
+        width: 2,
+        class: 'tiptap-dropcursor',
       }),
       ResizableImage,
       Link.configure({
@@ -69,7 +77,7 @@ export const useEditorState = ({
     ],
     content,
     editable,
-    onUpdate: ({ editor }: { editor: any }) => {
+    onUpdate: ({ editor }: { editor: Editor }) => {
       onUpdate?.(editor.getHTML());
     },
     editorProps: {

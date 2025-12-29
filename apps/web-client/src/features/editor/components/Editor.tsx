@@ -1,15 +1,25 @@
-import { useState, useEffect } from 'react';
+import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { EditorContent } from '@tiptap/react';
-import { EditorToolbar } from './EditorToolbar';
-import { useEditorState } from '../hooks/useEditorState';
-import { EditorSidebar } from './EditorSidebar';
+import { useState } from 'react';
 import { EditorBubbleMenu } from '../extensions/BubbleMenu';
-import { EditorDragHandle } from './EditorDragHandle';
-import { DndContext, DragOverlay, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
-import { DroppableEditorArea } from './DroppableEditorArea';
-import { SidebarItem } from './DraggableItem';
+import { useEditorState } from '../hooks/useEditorState';
 import type { EditorProps } from '../types';
+import { SidebarItem } from './DraggableItem';
+import { DroppableEditorArea } from './DroppableEditorArea';
+import { EditorSidebar } from './EditorSidebar';
+import { EditorToolbar } from './EditorToolbar';
+import type { InjectorType } from '../data/variables';
+import type { LucideIcon } from 'lucide-react';
+
+interface DragData {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  dndType: 'variable' | 'tool';
+  type?: InjectorType;
+  variableId?: string;
+}
 
 export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   const { editor } = useEditorState({
@@ -18,7 +28,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
     onUpdate: onChange,
   });
 
-  const [activeDragItem, setActiveDragItem] = useState<any>(null);
+  const [activeDragItem, setActiveDragItem] = useState<DragData | null>(null);
   const [dropCursorPos, setDropCursorPos] = useState<{ top: number; left: number; height: number } | null>(null);
 
   const sensors = useSensors(
@@ -26,66 +36,28 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
     useSensor(TouchSensor)
   );
 
-  // Escuchar eventos DOM para drag interno de TipTap
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleEditorDragOver = (event: DragEvent) => {
-      const pos = editor.view.posAtCoords({ left: event.clientX, top: event.clientY });
-      if (pos) {
-        const coords = editor.view.coordsAtPos(pos.pos);
-        setDropCursorPos({
-          top: coords.top,
-          left: coords.left,
-          height: coords.bottom - coords.top
-        });
-      }
-    };
-
-    const handleEditorDrop = () => {
-      setDropCursorPos(null);
-    };
-
-    const handleEditorDragLeave = (event: DragEvent) => {
-      // Solo limpiar si realmente salió del editor
-      const relatedTarget = event.relatedTarget as Node | null;
-      if (!relatedTarget || !editor.view.dom.contains(relatedTarget)) {
-        setDropCursorPos(null);
-      }
-    };
-
-    const editorDOM = editor.view.dom;
-    editorDOM.addEventListener('dragover', handleEditorDragOver);
-    editorDOM.addEventListener('drop', handleEditorDrop);
-    editorDOM.addEventListener('dragleave', handleEditorDragLeave);
-
-    return () => {
-      editorDOM.removeEventListener('dragover', handleEditorDragOver);
-      editorDOM.removeEventListener('drop', handleEditorDrop);
-      editorDOM.removeEventListener('dragleave', handleEditorDragLeave);
-    };
-  }, [editor]);
-
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveDragItem(event.active.data.current);
+    setActiveDragItem(event.active.data.current as DragData);
   };
 
   const handleDragMove = (event: DragMoveEvent) => {
     if (!editor) return;
 
-    // @ts-ignore
-    const clientX = event.activatorEvent.clientX + event.delta.x;
-    // @ts-ignore
-    const clientY = event.activatorEvent.clientY + event.delta.y;
+    // Get current pointer position
+    const pointer = event.activatorEvent as PointerEvent;
+    const x = pointer.clientX + event.delta.x;
+    const y = pointer.clientY + event.delta.y;
 
-    const pos = editor.view.posAtCoords({ left: clientX, top: clientY });
+    // Get position in editor at pointer coordinates
+    const pos = editor.view.posAtCoords({ left: x, top: y });
 
     if (pos) {
+      // Get visual coordinates for the drop cursor
       const coords = editor.view.coordsAtPos(pos.pos);
       setDropCursorPos({
         top: coords.top,
         left: coords.left,
-        height: coords.bottom - coords.top
+        height: coords.bottom - coords.top,
       });
     } else {
       setDropCursorPos(null);
@@ -93,29 +65,30 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setDropCursorPos(null);
     const { active, over } = event;
     setActiveDragItem(null);
+    setDropCursorPos(null);
 
     if (!editor || !over) return;
 
-    const data = active.data.current;
+    const data = active.data.current as DragData;
     if (!data) return;
 
-    // @ts-ignore
-    const clientX = event.activatorEvent.clientX + event.delta.x;
-    // @ts-ignore
-    const clientY = event.activatorEvent.clientY + event.delta.y;
-
-    const pos = editor.view.posAtCoords({ left: clientX, top: clientY });
+    // Calculate drop position from pointer coordinates
+    const pointer = event.activatorEvent as PointerEvent;
+    const pos = editor.view.posAtCoords({
+      left: pointer.clientX + event.delta.x,
+      top: pointer.clientY + event.delta.y,
+    });
 
     if (pos) {
       editor.commands.focus(pos.pos);
     }
 
+    // Insert appropriate node type
     if (data.dndType === 'variable') {
       editor.chain().setInjector({
-        type: data.type,
+        type: data.type || 'TEXT',
         label: data.label,
         variableId: data.variableId
       }).run();
@@ -152,7 +125,6 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
               <div className="max-w-[850px] mx-auto bg-card shadow-md min-h-[1000px]">
                 <EditorContent editor={editor} />
                 <EditorBubbleMenu editor={editor} />
-                <EditorDragHandle editor={editor} />
               </div>
             </DroppableEditorArea>
           </div>
@@ -171,7 +143,6 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
         ) : null}
       </DragOverlay>
 
-      {/* Indicador de drop - overlay sin afectar flujo del documento */}
       {dropCursorPos && (
         <div
           className="fixed z-50 pointer-events-none"

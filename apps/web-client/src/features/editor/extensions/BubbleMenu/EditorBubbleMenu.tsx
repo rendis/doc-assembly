@@ -1,10 +1,12 @@
 import { BubbleMenu } from '@tiptap/react/menus';
-import { NodeSelection } from '@tiptap/pm/state';
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
+import { NodeSelection, type EditorState } from '@tiptap/pm/state';
 import { Bold, Italic, Strikethrough, Code, Link, Highlighter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EditorBubbleMenuProps {
-  editor: any;
+  editor: Editor;
 }
 
 interface MenuButtonProps {
@@ -48,7 +50,7 @@ export const EditorBubbleMenu = ({ editor }: EditorBubbleMenuProps) => {
   };
 
   // Don't show bubble menu for atomic nodes (injector, signature, conditional)
-  const shouldShow = ({ state }: { state: any }) => {
+  const shouldShow = ({ state }: { state: EditorState }) => {
     const { selection } = state;
     const { empty } = selection;
 

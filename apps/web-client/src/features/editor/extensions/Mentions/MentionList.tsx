@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Reset index on items change is a standard UI pattern */
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +18,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     const [selectedIndex, setSelectedIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    // Reset index when items change - standard reset-on-prop-change pattern
     useEffect(() => {
       setSelectedIndex(0);
     }, [items]);

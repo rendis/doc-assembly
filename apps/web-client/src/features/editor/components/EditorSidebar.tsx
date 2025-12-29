@@ -1,22 +1,16 @@
 import { DraggableItem } from './DraggableItem';
-import { 
-  Type, 
-  Hash, 
-  Calendar, 
-  Coins, 
-  CheckSquare, 
-  Image as ImageIcon, 
-  Table, 
-  PenTool, 
+import {
+  Type,
+  Hash,
+  Calendar,
+  Coins,
+  CheckSquare,
+  Image as ImageIcon,
+  Table,
+  PenTool,
   GitBranch
 } from 'lucide-react';
-
-const MOCK_VARIABLES = [
-  { id: 'var_1', label: 'Nombre Cliente', type: 'TEXT', variableId: 'client_name' },
-  { id: 'var_2', label: 'Fecha Inicio', type: 'DATE', variableId: 'start_date' },
-  { id: 'var_3', label: 'Monto Total', type: 'CURRENCY', variableId: 'total_amount' },
-  { id: 'var_4', label: 'Es Renovación', type: 'BOOLEAN', variableId: 'is_renewal' },
-];
+import { SYSTEM_VARIABLES, type InjectorType } from '../data/variables';
 
 const TOOLS = [
   { id: 'tool_signature', label: 'Bloque de Firma', icon: PenTool, type: 'signature' },
@@ -24,7 +18,7 @@ const TOOLS = [
   { id: 'tool_image', label: 'Imagen', icon: ImageIcon, type: 'image' },
 ];
 
-const ICONS = {
+const ICONS: Record<InjectorType, typeof Type> = {
   TEXT: Type,
   NUMBER: Hash,
   DATE: Calendar,
@@ -40,7 +34,7 @@ export const EditorSidebar = () => {
       <div className="p-4 border-b font-semibold bg-card">
         Toolbox
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <div>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -53,7 +47,7 @@ export const EditorSidebar = () => {
                 id={tool.id}
                 label={tool.label}
                 icon={tool.icon}
-                data={tool}
+                data={{ ...tool }}
                 type="tool"
               />
             ))}
@@ -65,13 +59,13 @@ export const EditorSidebar = () => {
             Variables
           </h3>
           <div className="space-y-2">
-            {MOCK_VARIABLES.map((v) => (
+            {SYSTEM_VARIABLES.map((v) => (
               <DraggableItem
                 key={v.id}
                 id={v.id}
                 label={v.label}
-                icon={ICONS[v.type as keyof typeof ICONS]}
-                data={v}
+                icon={ICONS[v.type]}
+                data={{ ...v }}
                 type="variable"
               />
             ))}

@@ -5,7 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { LogicRule, RuleOperator } from '../ConditionalExtension';
-import type { InjectorType } from '../../Injector/InjectorExtension';
+import type { InjectorType } from '../../../data/variables';
 import { useLogicBuilder } from './LogicBuilderContext';
 
 interface LogicRuleProps {

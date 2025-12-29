@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error - TipTap types are not fully compatible with strict mode
 import { mergeAttributes, Node } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ConditionalComponent } from './ConditionalComponent';
@@ -9,9 +9,9 @@ export type RuleOperator = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contain
 export interface LogicRule {
   id: string;
   type: 'rule';
-  variableId: string; // The ID of the variable dragged in
+  variableId: string;
   operator: RuleOperator;
-  value: string; // Static value or another variable
+  value: string;
 }
 
 export interface LogicGroup {
@@ -21,7 +21,7 @@ export interface LogicGroup {
   children: (LogicRule | LogicGroup)[];
 }
 
-export type ConditionalSchema = LogicGroup; // Root is always a group
+export type ConditionalSchema = LogicGroup;
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -36,10 +36,6 @@ export const ConditionalExtension = Node.create({
 
   content: 'block+',
 
-  draggable: true,
-
-  selectable: false,
-
   allowGapCursor: false,
 
   addAttributes() {
@@ -53,7 +49,7 @@ export const ConditionalExtension = Node.create({
         } as LogicGroup,
       },
       expression: {
-        default: '', // Human readable summary
+        default: '',
       },
     };
   },
@@ -66,7 +62,7 @@ export const ConditionalExtension = Node.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
     return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'conditional' }), 0];
   },
 
@@ -78,7 +74,7 @@ export const ConditionalExtension = Node.create({
     return {
       setConditional:
         (attributes: { conditions?: ConditionalSchema; expression?: string }) =>
-        ({ commands }: { commands: any }) => {
+        ({ commands }: { commands: { wrapIn: (name: string, attrs: unknown) => boolean } }) => {
           return commands.wrapIn(this.name, attributes);
         },
     };

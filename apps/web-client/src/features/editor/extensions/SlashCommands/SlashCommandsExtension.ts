@@ -1,7 +1,9 @@
-// @ts-ignore
+// @ts-expect-error - TipTap types compatibility
 import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import type { SuggestionOptions } from '@tiptap/suggestion';
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import { filterCommands, type SlashCommand } from './commands';
 
@@ -19,7 +21,7 @@ export const SlashCommandsExtension = Extension.create<SlashCommandsOptions>({
       suggestion: {
         char: '/',
         startOfLine: false,
-        command: ({ editor, range, props }: { editor: any; range: any; props: SlashCommand }) => {
+        command: ({ editor, range, props }: { editor: Editor; range: { from: number; to: number }; props: SlashCommand }) => {
           props.action(editor);
           editor.chain().focus().deleteRange(range).run();
         },
@@ -32,11 +34,11 @@ export const SlashCommandsExtension = Extension.create<SlashCommandsOptions>({
       Suggestion({
         editor: this.editor,
         pluginKey: SlashCommandsPluginKey,
+        ...this.options.suggestion,
+        items: ({ query }: { query: string }) => filterCommands(query),
         char: '/',
         allowSpaces: true,
         allowedPrefixes: null,
-        ...this.options.suggestion,
-        items: ({ query }: { query: string }) => filterCommands(query),
       }),
     ];
   },

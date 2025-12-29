@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error - TipTap types compatibility
 import type { Editor as TiptapEditor } from '@tiptap/core';
 
 export interface EditorProps {

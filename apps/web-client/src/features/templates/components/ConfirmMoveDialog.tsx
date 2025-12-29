@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Reset state on dialog open is a standard UI pattern */
 import { useState, useEffect } from 'react';
 import { X, Loader2, FolderInput } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +22,7 @@ export function ConfirmMoveDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset state when dialog opens
+  // Reset state when dialog opens - standard dialog reset pattern
   useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);

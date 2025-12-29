@@ -27,6 +27,7 @@
     "@tiptap/extension-bubble-menu": "^3.14.0",
     "@tiptap/extension-drag-handle": "^3.14.0",
     "@tiptap/extension-drag-handle-react": "^3.14.0",
+    "@tiptap/extension-dropcursor": "^3.14.0",
     "@tiptap/extension-highlight": "^3.14.0",
     "@tiptap/extension-link": "^3.14.0",
     "@tiptap/extension-mention": "^3.14.0",
@@ -79,6 +80,9 @@
   "pnpm": {
     "overrides": {
       "vite": "npm:rolldown-vite@7.3.0"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

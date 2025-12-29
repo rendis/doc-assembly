@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect -- Reset state on dialog open is a standard UI pattern */
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { X, Loader2, ChevronDown, FolderInput } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Folder, FolderTree } from '../types';
@@ -35,7 +36,7 @@ export function MoveFolderDialog({
   }, [isOpen]);
 
   // Get all descendant IDs of a folder (to prevent moving to a child)
-  const getDescendantIds = (folderId: string): Set<string> => {
+  const getDescendantIds = useCallback((folderId: string): Set<string> => {
     const descendants = new Set<string>();
 
     const traverse = (nodes: FolderTree[]) => {
@@ -55,7 +56,7 @@ export function MoveFolderDialog({
     }
 
     return descendants;
-  };
+  }, [folders]);
 
   // Filter out invalid destinations (self and descendants)
   const validDestinations = useMemo(() => {
@@ -65,7 +66,7 @@ export function MoveFolderDialog({
     return flatFolders.filter(
       (f) => f.id !== folder.id && !descendantIds.has(f.id)
     );
-  }, [folder, flatFolders, folders]);
+  }, [folder, flatFolders, getDescendantIds]);
 
   const handleConfirm = async () => {
     if (!folder) return;

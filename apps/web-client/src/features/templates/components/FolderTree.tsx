@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreVertical, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { FolderTree as FolderTreeType } from '../types';
@@ -53,7 +53,10 @@ export function FolderTree({
   const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
 
   // Get descendants of the dragging folder to prevent invalid drops
-  const draggingDescendants = draggingId ? getDescendantIds(draggingId, folders) : new Set<string>();
+  const draggingDescendants = useMemo(
+    () => (draggingId ? getDescendantIds(draggingId, folders) : new Set<string>()),
+    [draggingId, folders]
+  );
 
   const handleDragStart = useCallback((e: React.DragEvent, folderId: string) => {
     e.dataTransfer.setData('text/plain', folderId);

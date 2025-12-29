@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
-// @ts-ignore
-import type { NodeViewProps } from '@tiptap/core';
+// @ts-expect-error - NodeViewProps is not exported in type definitions
+import type { NodeViewProps } from '@tiptap/react';
 import { cn } from '@/lib/utils';
 import { PenTool } from 'lucide-react';
 import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu';
@@ -11,28 +11,8 @@ export const SignatureComponent = (props: NodeViewProps) => {
   const { label, roleId } = node.attrs;
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const wasDragged = useRef(false);
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleDragStart = () => {
-    wasDragged.current = true;
-  };
-
-  const handleDragEnd = () => {
-    // Keep wasDragged true so click handler knows a drag happened
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (wasDragged.current) {
-      wasDragged.current = false;
-      return;
-    }
-
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY });
@@ -43,9 +23,6 @@ export const SignatureComponent = (props: NodeViewProps) => {
       <div
         data-drag-handle
         contentEditable={false}
-        onClick={handleClick}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
         onContextMenu={handleContextMenu}
         className={cn(
           'w-full max-w-sm h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-muted/30 transition-colors cursor-grab select-none',
@@ -55,7 +32,6 @@ export const SignatureComponent = (props: NodeViewProps) => {
         style={{
           WebkitUserSelect: 'none',
           userSelect: 'none',
-          WebkitTouchCallout: 'none',
         }}
       >
         <div className="flex flex-col items-center gap-2 text-muted-foreground">

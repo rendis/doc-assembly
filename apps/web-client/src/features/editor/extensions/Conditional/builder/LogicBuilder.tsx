@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import type { LogicGroup, LogicRule, ConditionalSchema } from '../ConditionalExtension';
 import { LogicBuilderContext } from './LogicBuilderContext';
 import { LogicGroupItem } from './LogicGroup';
-import type { InjectorType } from '../../Injector/InjectorExtension';
+import type { InjectorType } from '../../../data/variables';
 import { Calendar, CheckSquare, Coins, Hash, Image as ImageIcon, Table, Type } from 'lucide-react';
 
 const ICONS = {
@@ -35,6 +35,29 @@ const MOCK_VARIABLES: { id: string; label: string; type: InjectorType }[] = [
   { id: 'contract_type', label: 'Tipo Contrato', type: 'TEXT' },
   { id: 'company_logo', label: 'Logo Empresa', type: 'IMAGE' }, // Should be filtered out
 ];
+
+// Pure function - moved outside component for better memoization
+const updateNodeRecursively = (
+  current: LogicGroup,
+  nodeId: string,
+  changes: Partial<LogicRule | LogicGroup>
+): LogicGroup => {
+  if (current.id === nodeId) {
+    return { ...current, ...changes } as LogicGroup;
+  }
+  return {
+    ...current,
+    children: current.children.map(child => {
+      if (child.id === nodeId) {
+        return { ...child, ...changes } as LogicRule | LogicGroup;
+      }
+      if (child.type === 'group') {
+        return updateNodeRecursively(child as LogicGroup, nodeId, changes);
+      }
+      return child;
+    })
+  };
+};
 
 interface LogicBuilderProps {
   initialData: ConditionalSchema;
@@ -61,28 +84,6 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
   }, [searchQuery]);
 
   // --- ACTIONS ---
-
-  const updateNodeRecursively = (
-    current: LogicGroup, 
-    nodeId: string, 
-    changes: Partial<LogicRule | LogicGroup>
-  ): LogicGroup => {
-    if (current.id === nodeId) {
-      return { ...current, ...changes } as LogicGroup;
-    }
-    return {
-      ...current,
-      children: current.children.map(child => {
-        if (child.id === nodeId) {
-          return { ...child, ...changes } as any;
-        }
-        if (child.type === 'group') {
-          return updateNodeRecursively(child as LogicGroup, nodeId, changes);
-        }
-        return child;
-      })
-    };
-  };
 
   const updateNode = useCallback((nodeId: string, changes: Partial<LogicRule | LogicGroup>) => {
     const newData = updateNodeRecursively(data, nodeId, changes);

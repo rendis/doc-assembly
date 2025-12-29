@@ -1,7 +1,9 @@
 import { Trash2 } from 'lucide-react';
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
 
 interface DragHandleMenuProps {
-  editor: any;
+  editor: Editor;
   pos: number;
   nodeSize: number;
   onClose: () => void;

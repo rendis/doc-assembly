@@ -28,7 +28,7 @@ export const SidebarItem = ({ label, icon: Icon, type, className, style }: Sideb
 
 interface DraggableItemProps extends Omit<SidebarItemProps, 'className' | 'style'> {
   id: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export const DraggableItem = ({ id, data, label, icon, type }: DraggableItemProps) => {

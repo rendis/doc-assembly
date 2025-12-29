@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error - TipTap types are not fully compatible with strict mode
 import { mergeAttributes, Node } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { SignatureComponent } from './SignatureComponent';
@@ -15,10 +15,6 @@ export const SignatureExtension = Node.create({
   group: 'block',
 
   atom: true,
-
-  draggable: true,
-
-  selectable: false,
 
   allowGapCursor: false,
 
@@ -41,7 +37,7 @@ export const SignatureExtension = Node.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
     return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'signature' })];
   },
 
@@ -53,7 +49,7 @@ export const SignatureExtension = Node.create({
     return {
       setSignature:
         (options: { roleId: string; label?: string }) =>
-        ({ commands }: { commands: any }) => {
+        ({ commands }: { commands: { insertContent: (content: unknown) => boolean } }) => {
           return commands.insertContent({
             type: this.name,
             attrs: options,

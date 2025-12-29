@@ -15,8 +15,8 @@ import {
   Variable,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-// Editor type from TipTap
-type Editor = any;
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
 
 export interface SlashCommand {
   id: string;
