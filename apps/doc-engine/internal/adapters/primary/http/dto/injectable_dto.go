@@ -102,10 +102,11 @@ type CreateTemplateRequest struct {
 }
 
 // UpdateTemplateRequest represents the request to update a template's metadata.
+// All fields are optional to support partial updates.
 type UpdateTemplateRequest struct {
-	Title           string  `json:"title" binding:"required,min=1,max=255"`
+	Title           *string `json:"title,omitempty" binding:"omitempty,min=1,max=255"`
 	FolderID        *string `json:"folderId,omitempty"`
-	IsPublicLibrary bool    `json:"isPublicLibrary"`
+	IsPublicLibrary *bool   `json:"isPublicLibrary,omitempty"`
 }
 
 // CloneTemplateRequest represents the request to clone a template.

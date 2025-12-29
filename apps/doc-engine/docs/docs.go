@@ -5140,9 +5140,6 @@ const docTemplate = `{
         },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTemplateRequest": {
             "type": "object",
-            "required": [
-                "title"
-            ],
             "properties": {
                 "folderId": {
                     "type": "string"

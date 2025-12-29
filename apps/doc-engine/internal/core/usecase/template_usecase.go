@@ -19,11 +19,12 @@ type CreateTemplateCommand struct {
 }
 
 // UpdateTemplateCommand represents the command to update a template.
+// All fields except ID are optional to support partial updates.
 type UpdateTemplateCommand struct {
 	ID              string
-	Title           string
+	Title           *string
 	FolderID        *string
-	IsPublicLibrary bool
+	IsPublicLibrary *bool
 }
 
 // CloneTemplateCommand represents the command to clone a template.

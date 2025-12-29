@@ -141,6 +141,7 @@ func (s *TemplateService) ListPublicLibrary(ctx context.Context, workspaceID str
 }
 
 // UpdateTemplate updates a template's metadata.
+// Supports partial updates - only non-nil fields are updated.
 func (s *TemplateService) UpdateTemplate(ctx context.Context, cmd usecase.UpdateTemplateCommand) (*entity.Template, error) {
 	template, err := s.templateRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
@@ -148,19 +149,25 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, cmd usecase.Update
 	}
 
 	// Check for duplicate title if changed
-	if template.Title != cmd.Title {
-		exists, err := s.templateRepo.ExistsByTitleExcluding(ctx, template.WorkspaceID, cmd.Title, template.ID)
+	if cmd.Title != nil && template.Title != *cmd.Title {
+		exists, err := s.templateRepo.ExistsByTitleExcluding(ctx, template.WorkspaceID, *cmd.Title, template.ID)
 		if err != nil {
 			return nil, fmt.Errorf("checking template title: %w", err)
 		}
 		if exists {
 			return nil, entity.ErrTemplateAlreadyExists
 		}
+		template.Title = *cmd.Title
 	}
 
-	template.Title = cmd.Title
-	template.FolderID = cmd.FolderID
-	template.IsPublicLibrary = cmd.IsPublicLibrary
+	if cmd.FolderID != nil {
+		template.FolderID = cmd.FolderID
+	}
+
+	if cmd.IsPublicLibrary != nil {
+		template.IsPublicLibrary = *cmd.IsPublicLibrary
+	}
+
 	now := time.Now().UTC()
 	template.UpdatedAt = &now
 
