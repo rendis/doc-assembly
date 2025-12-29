@@ -63,6 +63,7 @@ const (
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
 		FROM content.templates t
+		LEFT JOIN organizer.folders f ON t.folder_id = f.id
 		WHERE t.workspace_id = $1`
 
 	queryFindByFolder = `

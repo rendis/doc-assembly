@@ -326,7 +326,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 		argPos += 2
 	}
 
-	query += " ORDER BY (t.folder_id IS NULL) DESC, t.created_at DESC"
+	query += " ORDER BY COALESCE(f.path, '') ASC, t.title ASC"
 
 	if filters.Limit > 0 {
 		query += fmt.Sprintf(" LIMIT $%d", argPos)
