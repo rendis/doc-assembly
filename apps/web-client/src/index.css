@@ -316,4 +316,93 @@
     display: none !important;
   }
 
+  /* === PAGINATION STYLES === */
+
+  /* Pages container */
+  .pages-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Individual page wrapper */
+  .page-wrapper {
+    position: relative;
+    background: hsl(var(--card));
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+
+  /* Page content area - uses absolute positioning to fill parent */
+  .page-content {
+    position: relative;
+  }
+
+  .page-content > * {
+    position: absolute;
+    inset: 0;
+  }
+
+  .page-content .ProseMirror {
+    height: fit-content;
+    width: 100%;
+    overflow-y: auto;
+  }
+
+  /* Page break visual in editor */
+  .page-break-node {
+    position: relative;
+    min-height: 24px;
+    margin: 16px 0;
+    cursor: default;
+  }
+
+  /* Page boundary indicator (decoration) */
+  .page-boundary-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(
+      90deg,
+      hsl(var(--primary)) 0px,
+      hsl(var(--primary)) 4px,
+      transparent 4px,
+      transparent 8px
+    );
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* === PRINT STYLES === */
+  @media print {
+    .pages-container {
+      padding: 0;
+      margin: 0;
+    }
+
+    .page-wrapper {
+      box-shadow: none;
+      margin: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    /* Page break node triggers actual page break */
+    .page-break-node,
+    div[data-type="page-break"] {
+      display: block;
+      height: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    /* Hide UI elements during print */
+    .editor-sidebar,
+    .editor-toolbar,
+    .page-settings-toolbar,
+    .page-indicator,
+    .pages-viewport > .pages-container > div:last-child {
+      display: none !important;
+    }
+  }
 }

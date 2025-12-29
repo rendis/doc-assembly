@@ -13,6 +13,7 @@ import {
   InjectorExtension,
   SignatureExtension,
   ConditionalExtension,
+  PageBreakExtension,
   SlashCommandsExtension,
   slashCommandsSuggestion,
   MentionExtension,
@@ -20,7 +21,7 @@ import {
 import type { UseEditorStateOptions, UseEditorStateReturn } from '../types';
 
 const EDITOR_PROSE_CLASS =
-  'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-4 px-10 bg-background prose-slate dark:prose-invert max-w-none';
+  'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none h-fit w-full bg-transparent prose-slate dark:prose-invert max-w-none';
 
 export const useEditorState = ({
   content,
@@ -70,6 +71,7 @@ export const useEditorState = ({
       InjectorExtension,
       SignatureExtension,
       ConditionalExtension,
+      PageBreakExtension,
       SlashCommandsExtension.configure({
         suggestion: slashCommandsSuggestion,
       }),

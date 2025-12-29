@@ -4,11 +4,14 @@ import { EditorContent } from '@tiptap/react';
 import { useState } from 'react';
 import { EditorBubbleMenu } from '../extensions/BubbleMenu';
 import { useEditorState } from '../hooks/useEditorState';
+import { usePagination } from '../hooks/usePagination';
 import type { EditorProps } from '../types';
 import { SidebarItem } from './DraggableItem';
 import { DroppableEditorArea } from './DroppableEditorArea';
 import { EditorSidebar } from './EditorSidebar';
 import { EditorToolbar } from './EditorToolbar';
+import { PageSettingsToolbar } from './PageSettingsToolbar';
+import { PagesViewport } from './PagesViewport';
 import type { InjectorType } from '../data/variables';
 import type { LucideIcon } from 'lucide-react';
 
@@ -27,6 +30,14 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
     editable,
     onUpdate: onChange,
   });
+
+  const {
+    format,
+    pageGap,
+    showPageNumbers,
+    currentPage,
+    totalPages,
+  } = usePagination(editor);
 
   const [activeDragItem, setActiveDragItem] = useState<DragData | null>(null);
   const [dropCursorPos, setDropCursorPos] = useState<{ top: number; left: number; height: number } | null>(null);
@@ -120,14 +131,19 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
 
         <div className="flex-1 flex flex-col min-w-0">
           <EditorToolbar editor={editor} />
-          <div className="flex-1 overflow-y-auto bg-muted/20 p-8">
+          <PageSettingsToolbar />
+          <PagesViewport
+            format={format}
+            pageGap={pageGap}
+            showPageNumbers={showPageNumbers}
+            currentPage={currentPage}
+            totalPages={totalPages}
+          >
             <DroppableEditorArea className="min-h-full">
-              <div className="max-w-[850px] mx-auto bg-card shadow-md min-h-[1000px]">
-                <EditorContent editor={editor} />
-                <EditorBubbleMenu editor={editor} />
-              </div>
+              <EditorContent editor={editor} />
+              <EditorBubbleMenu editor={editor} />
             </DroppableEditorArea>
-          </div>
+          </PagesViewport>
         </div>
       </div>
 

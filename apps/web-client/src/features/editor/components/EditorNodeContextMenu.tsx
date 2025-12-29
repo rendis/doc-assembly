@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Trash2, Pencil } from 'lucide-react';
 
-export type NodeContextType = 'injector' | 'signature' | 'conditional';
+export type NodeContextType = 'injector' | 'signature' | 'conditional' | 'pageBreak';
 
 interface EditorNodeContextMenuProps {
   x: number;
@@ -16,6 +16,7 @@ const NODE_TYPE_LABELS: Record<NodeContextType, string> = {
   injector: 'Variable',
   signature: 'Firma',
   conditional: 'Condicional',
+  pageBreak: 'Salto de página',
 };
 
 export const EditorNodeContextMenu = ({
