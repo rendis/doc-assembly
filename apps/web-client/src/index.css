@@ -129,7 +129,7 @@
     /* Dark theme */
     --background: 220 13% 13%;
     --foreground: 210 20% 93%;
-    --card: 220 13% 18%;
+    --card: 220 13% 24%;
     --card-foreground: 210 20% 93%;
     --popover: 220 13% 22%;
     --popover-foreground: 210 20% 93%;
@@ -256,6 +256,11 @@
   .ProseMirror .mention {
     @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-medium;
     @apply bg-primary/10 text-primary border border-primary/20;
+  }
+
+  /* Dark mode: info (cyan) with dashed border for contrast */
+  .dark .ProseMirror .mention {
+    @apply bg-info/15 text-info border-dashed border-info/50;
   }
 
   /* Task List */

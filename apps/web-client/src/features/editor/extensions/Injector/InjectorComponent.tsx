@@ -36,9 +36,12 @@ export const InjectorComponent = (props: NodeViewProps) => {
         contentEditable={false}
         onContextMenu={handleContextMenu}
         className={cn(
-          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium transition-colors select-none',
+          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium transition-colors select-none border',
           selected ? 'ring-2 ring-ring ring-offset-2' : '',
-          'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20'
+          // Light mode: blue
+          'bg-primary/10 text-primary hover:bg-primary/20 border-primary/20',
+          // Dark mode: info (cyan) with dashed border
+          'dark:bg-info/15 dark:text-info dark:hover:bg-info/25 dark:border-dashed dark:border-info/50'
         )}
       >
         <Icon className="h-3 w-3" />
