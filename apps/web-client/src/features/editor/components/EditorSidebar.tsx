@@ -30,12 +30,12 @@ const ICONS: Record<InjectorType, typeof Type> = {
 
 export const EditorSidebar = () => {
   return (
-    <div className="w-64 border-r bg-muted/10 flex flex-col h-full overflow-hidden">
-      <div className="p-4 border-b font-semibold bg-card">
+    <div className="w-64 border-r bg-muted/10 flex flex-col h-full max-h-full overflow-hidden">
+      <div className="flex-shrink-0 p-4 border-b font-semibold bg-card">
         Toolbox
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-6 [mask-image:linear-gradient(to_bottom,transparent,black_20px,black_calc(100%-20px),transparent)]">
         <div>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             Estructura

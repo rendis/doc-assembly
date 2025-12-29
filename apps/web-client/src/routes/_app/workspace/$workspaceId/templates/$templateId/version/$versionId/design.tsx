@@ -1,10 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { Editor } from '@/features/editor/components/Editor';
 import { Button } from '@/components/ui/button';
+import { Editor } from '@/features/editor/components/Editor';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
-import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const Route = createFileRoute(
   '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design',
@@ -29,7 +28,7 @@ function VersionDesignPage() {
   const isEditable = status === 'DRAFT';
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <div className="border-b px-4 py-2 flex items-center justify-between bg-card shrink-0 h-14">
         <div className="flex items-center gap-4">
