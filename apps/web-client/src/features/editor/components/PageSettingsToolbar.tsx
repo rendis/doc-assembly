@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Settings2 } from 'lucide-react';
 import {
   Select,
@@ -18,9 +18,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePaginationStore, PAGE_FORMATS } from '../stores/pagination-store';
-import type { PageMargins } from '../types/pagination';
+import type { PageMargins, PageFormat } from '../types/pagination';
+// @ts-expect-error - TipTap types compatibility
+import type { Editor } from '@tiptap/core';
 
-export const PageSettingsToolbar = () => {
+interface PageSettingsToolbarProps {
+  editor: Editor | null;
+}
+
+export const PageSettingsToolbar = ({ editor }: PageSettingsToolbarProps) => {
   const { config, setFormat, setCustomFormat } = usePaginationStore();
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
   const [customValues, setCustomValues] = useState({
@@ -31,6 +37,23 @@ export const PageSettingsToolbar = () => {
     marginLeft: config.format.margins.left,
     marginRight: config.format.margins.right,
   });
+
+  // Sync pagination options with the editor extension
+  // Pass FULL page dimensions - extension handles margins internally
+  const syncPaginationOptions = (format: PageFormat) => {
+    if (editor?.commands?.setPaginationOptions) {
+      editor.commands.setPaginationOptions({
+        pageHeight: format.height,
+        pageWidth: format.width,
+        pageMargin: format.margins.top,
+      });
+    }
+  };
+
+  // Sync on mount and when config changes
+  useEffect(() => {
+    syncPaginationOptions(config.format);
+  }, [config.format, editor]);
 
   const handleFormatChange = (value: string) => {
     if (value === 'CUSTOM') {
@@ -49,6 +72,7 @@ export const PageSettingsToolbar = () => {
     const format = PAGE_FORMATS[value];
     if (format) {
       setFormat(format);
+      syncPaginationOptions(format);
     }
   };
 
@@ -60,6 +84,16 @@ export const PageSettingsToolbar = () => {
       right: customValues.marginRight,
     };
     setCustomFormat(customValues.width, customValues.height, margins);
+
+    // Sync with pagination extension
+    syncPaginationOptions({
+      id: 'CUSTOM',
+      name: 'Personalizado',
+      width: customValues.width,
+      height: customValues.height,
+      margins,
+    });
+
     setCustomDialogOpen(false);
   };
 

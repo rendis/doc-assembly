@@ -316,46 +316,36 @@
     display: none !important;
   }
 
-  /* === PAGINATION STYLES === */
+  /* === EDITOR LAYOUT === */
 
-  /* Pages container */
-  .pages-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  /* Individual page wrapper */
-  .page-wrapper {
-    position: relative;
-    background: hsl(var(--card));
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  }
-
-  /* Page content area - uses absolute positioning to fill parent */
-  .page-content {
-    position: relative;
-  }
-
-  .page-content > * {
-    position: absolute;
-    inset: 0;
-    background: unset;
-    background-color: transparent;
-    transition: background-color 0.2s ease;
-  }
-
-  .dark .page-content > * {
-    background-color: var(--color-slate-700);
-  }
-
-  .page-content .ProseMirror {
-    height: fit-content;
-    width: 100%;
+  /* Scrollable container for the editor */
+  .editor-scroll-container {
+    flex: 1;
     overflow-y: auto;
+    background: hsl(var(--muted) / 0.2);
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
   }
 
-  /* Page break visual in editor */
+  /* Paper-like appearance for the editor */
+  /* Width and margin controlled via CSS variables from React */
+  .editor-scroll-container .ProseMirror {
+    box-sizing: border-box !important;
+    width: var(--page-width, 794px) !important;
+    min-height: var(--page-height, 1123px) !important;
+    margin: var(--page-margin, 96px) auto !important;
+    background: hsl(var(--card)) !important;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    /* Content padding - matches page margins */
+    padding: var(--page-padding-v, 96px) var(--page-padding-h, 72px) !important;
+  }
+
+  .dark .editor-scroll-container .ProseMirror {
+    background: hsl(var(--card)) !important;
+  }
+
+  /* Page break visual in editor (manual) */
   .page-break-node {
     position: relative;
     min-height: 24px;
@@ -363,39 +353,42 @@
     cursor: default;
   }
 
-  /* Page boundary indicator (decoration) */
-  .page-boundary-indicator {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: repeating-linear-gradient(
-      90deg,
-      hsl(var(--primary)) 0px,
-      hsl(var(--primary)) 4px,
-      transparent 4px,
-      transparent 8px
-    );
-    opacity: 0.5;
-    pointer-events: none;
+  /* Automatic page break (tiptap-pagination-breaks) */
+  .page-break {
+    height: 40px;
+    width: 100%;
+    border-top: 2px dashed hsl(var(--border));
+    margin: 20px 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+  }
+
+  .page-break::before {
+    content: 'Página';
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+    padding: 2px 12px;
+    border-radius: 4px;
+    font-size: 12px;
   }
 
   /* === PRINT STYLES === */
   @media print {
-    .pages-container {
+    .editor-scroll-container {
       padding: 0;
-      margin: 0;
+      background: white;
     }
 
-    .page-wrapper {
-      box-shadow: none;
-      margin: 0;
-      page-break-after: always;
-      break-after: page;
+    .ProseMirror {
+      box-shadow: none !important;
     }
 
     /* Page break node triggers actual page break */
     .page-break-node,
+    .page-break,
     div[data-type="page-break"] {
       display: block;
       height: 0;
@@ -406,9 +399,7 @@
     /* Hide UI elements during print */
     .editor-sidebar,
     .editor-toolbar,
-    .page-settings-toolbar,
-    .page-indicator,
-    .pages-viewport > .pages-container > div:last-child {
+    .page-settings-toolbar {
       display: none !important;
     }
   }

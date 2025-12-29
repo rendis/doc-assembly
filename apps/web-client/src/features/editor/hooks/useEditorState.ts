@@ -9,6 +9,8 @@ import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+// @ts-expect-error - tiptap-pagination-breaks types compatibility
+import { Pagination } from 'tiptap-pagination-breaks';
 import {
   InjectorExtension,
   SignatureExtension,
@@ -18,16 +20,19 @@ import {
   slashCommandsSuggestion,
   MentionExtension,
 } from '../extensions';
+import { usePaginationStore } from '../stores/pagination-store';
 import type { UseEditorStateOptions, UseEditorStateReturn } from '../types';
 
 const EDITOR_PROSE_CLASS =
-  'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none h-fit w-full bg-transparent prose-slate dark:prose-invert max-w-none';
+  'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-screen bg-transparent prose-slate dark:prose-invert max-w-none';
 
 export const useEditorState = ({
   content,
   editable = true,
   onUpdate,
 }: UseEditorStateOptions): UseEditorStateReturn => {
+  const { config } = usePaginationStore();
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -47,6 +52,15 @@ export const useEditorState = ({
         color: 'hsl(var(--primary))',
         width: 2,
         class: 'tiptap-dropcursor',
+      }),
+      // Automatic pagination - detects overflow and adds page breaks
+      // Pass FULL page dimensions - extension handles margins internally
+      Pagination.configure({
+        pageHeight: config.format.height,
+        pageWidth: config.format.width,
+        pageMargin: config.format.margins.top,
+        label: 'Página',
+        showPageNumber: true,
       }),
       ResizableImage,
       Link.configure({

@@ -54,6 +54,7 @@
     "tailwind-merge": "^3.4.0",
     "tippy.js": "^6.3.7",
     "tiptap-extension-resizable-image": "^2.0.0",
+    "tiptap-pagination-breaks": "^1.0.3",
     "uuid": "^13.0.0",
     "zustand": "^5.0.9"
   },
