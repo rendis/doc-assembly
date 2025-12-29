@@ -42,14 +42,14 @@ function AdminSettingsPage() {
       </div>
 
       {/* Info Notice */}
-      <div className="rounded-lg border border-yellow-500/50 bg-yellow-50/50 p-4 dark:bg-yellow-900/10">
+      <div className="rounded-lg border border-warning-border bg-warning-muted p-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+          <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
           <div>
-            <h3 className="font-medium text-yellow-800 dark:text-yellow-200">
+            <h3 className="font-medium text-warning-foreground">
               {t('admin.settings.noApiTitle', { defaultValue: 'API Not Available' })}
             </h3>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+            <p className="text-sm text-warning-foreground/80 mt-1">
               {t('admin.settings.noApiDescription', {
                 defaultValue:
                   'The backend API for platform settings has not been implemented yet. Once available, you will be able to configure various platform options from this page.',

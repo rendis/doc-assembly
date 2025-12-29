@@ -8,15 +8,15 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<VersionStatus, string> = {
-  DRAFT: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  PUBLISHED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  ARCHIVED: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  DRAFT: 'bg-warning-muted text-warning-foreground',
+  PUBLISHED: 'bg-success-muted text-success-foreground',
+  ARCHIVED: 'bg-muted text-muted-foreground',
 };
 
 const dotStyles: Record<VersionStatus, string> = {
-  DRAFT: 'bg-amber-500',
-  PUBLISHED: 'bg-emerald-500',
-  ARCHIVED: 'bg-slate-400',
+  DRAFT: 'bg-warning',
+  PUBLISHED: 'bg-success',
+  ARCHIVED: 'bg-muted-foreground',
 };
 
 export function StatusBadge({ status, size = 'sm', showDot = true }: StatusBadgeProps) {

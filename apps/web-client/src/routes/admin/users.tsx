@@ -53,16 +53,16 @@ function AdminUsersPage() {
 
   const getRoleIcon = (role: string) => {
     if (role === 'SUPERADMIN') {
-      return <ShieldAlert className="h-4 w-4 text-red-500" />;
+      return <ShieldAlert className="h-4 w-4 text-destructive" />;
     }
-    return <Shield className="h-4 w-4 text-purple-500" />;
+    return <Shield className="h-4 w-4 text-admin" />;
   };
 
   const getRoleBadgeClass = (role: string) => {
     if (role === 'SUPERADMIN') {
-      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      return 'bg-destructive/10 text-destructive';
     }
-    return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+    return 'bg-admin-muted text-admin-foreground';
   };
 
   return (
@@ -80,7 +80,7 @@ function AdminUsersPage() {
           </p>
         </div>
         {canManageUsers && (
-          <button className="inline-flex items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 transition-colors">
+          <button className="inline-flex items-center justify-center gap-2 rounded-md bg-admin px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-admin/90 transition-colors">
             <UserPlus className="h-4 w-4" />
             {t('admin.users.addUser', { defaultValue: 'Add System User' })}
           </button>
@@ -90,8 +90,8 @@ function AdminUsersPage() {
       {/* Info Card */}
       <div className="rounded-lg border bg-card p-4">
         <div className="flex items-start gap-3">
-          <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
-            <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <div className="rounded-full bg-admin-muted p-2">
+            <Users className="h-5 w-5 text-admin" />
           </div>
           <div>
             <h3 className="font-medium">
@@ -202,11 +202,11 @@ function AdminUsersPage() {
       {/* Role Legend */}
       <div className="flex items-center gap-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-red-500" />
+          <ShieldAlert className="h-4 w-4 text-destructive" />
           <span>{t('admin.users.roleSuperadmin')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-purple-500" />
+          <Shield className="h-4 w-4 text-admin" />
           <span>{t('admin.users.rolePlatformAdmin')}</span>
         </div>
       </div>

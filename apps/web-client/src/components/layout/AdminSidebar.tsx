@@ -62,16 +62,16 @@ export const AdminSidebar = () => {
       )}
     >
       {/* Header / Logo */}
-      <div className="flex h-14 items-center justify-between px-4 border-b bg-purple-50 dark:bg-purple-950/20">
+      <div className="flex h-14 items-center justify-between px-4 border-b bg-admin-muted">
         {!isCollapsed && (
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            <span className="font-bold text-lg tracking-tight truncate text-purple-700 dark:text-purple-300">
+            <Shield className="h-5 w-5 text-admin" />
+            <span className="font-bold text-lg tracking-tight truncate text-admin-foreground">
               {t('navigation.admin')}
             </span>
           </div>
         )}
-        {isCollapsed && <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400 mx-auto" />}
+        {isCollapsed && <Shield className="h-5 w-5 text-admin mx-auto" />}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="rounded p-1 hover:bg-accent hover:text-accent-foreground"
@@ -94,8 +94,8 @@ export const AdminSidebar = () => {
               to={item.to}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                "hover:bg-purple-100 hover:text-purple-900 dark:hover:bg-purple-900/30 dark:hover:text-purple-100",
-                isActive && "bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-100",
+                "hover:bg-admin-muted hover:text-admin-foreground",
+                isActive && "bg-admin-muted text-admin-foreground",
                 isCollapsed && "justify-center px-2"
               )}
               title={isCollapsed ? item.label : undefined}

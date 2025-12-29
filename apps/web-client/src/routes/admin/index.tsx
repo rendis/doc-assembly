@@ -54,7 +54,7 @@ function AdminDashboard() {
           <span className="text-sm text-muted-foreground">
             {t('admin.currentRole', { defaultValue: 'Your role:' })}
           </span>
-          <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+          <span className="inline-flex items-center rounded-full bg-admin-muted px-2.5 py-0.5 text-xs font-medium text-admin-foreground">
             {systemRole}
           </span>
         </div>
@@ -68,8 +68,8 @@ function AdminDashboard() {
             className="rounded-lg border bg-card p-6 shadow-sm"
           >
             <div className="flex items-center gap-4">
-              <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
-                <stat.icon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="rounded-full bg-admin-muted p-3">
+                <stat.icon className="h-5 w-5 text-admin" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
@@ -147,8 +147,8 @@ function AdminDashboard() {
       </div>
 
       {/* Placeholder Notice */}
-      <div className="rounded-lg border border-dashed border-yellow-500/50 bg-yellow-50/50 p-4 dark:bg-yellow-900/10">
-        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+      <div className="rounded-lg border border-dashed border-warning-border bg-warning-muted p-4">
+        <p className="text-sm text-warning-foreground">
           <strong>Note:</strong> This dashboard is a placeholder. Stats and
           metrics will be populated once the corresponding API endpoints are
           implemented.

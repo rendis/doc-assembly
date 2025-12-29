@@ -143,8 +143,8 @@ function DashboardIndex() {
                       className={cn(
                         'rounded-lg p-2.5 transition-colors',
                         ws.type === 'SYSTEM'
-                          ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300'
-                          : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300'
+                          ? 'bg-admin-muted text-admin'
+                          : 'bg-accent-blue-muted text-accent-blue'
                       )}
                     >
                       {ws.type === 'SYSTEM' ? (
