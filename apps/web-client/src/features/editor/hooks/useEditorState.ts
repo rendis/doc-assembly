@@ -1,11 +1,23 @@
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { ResizableImage } from 'tiptap-extension-resizable-image';
-import { InjectorExtension, SignatureExtension, ConditionalExtension } from '../extensions';
+import Placeholder from '@tiptap/extension-placeholder';
+import Link from '@tiptap/extension-link';
+import Highlight from '@tiptap/extension-highlight';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import {
+  InjectorExtension,
+  SignatureExtension,
+  ConditionalExtension,
+  SlashCommandsExtension,
+  slashCommandsSuggestion,
+  MentionExtension,
+} from '../extensions';
 import type { UseEditorStateOptions, UseEditorStateReturn } from '../types';
 
 const EDITOR_PROSE_CLASS =
-  'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-4 bg-background prose-slate dark:prose-invert max-w-none';
+  'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-4 px-10 bg-background prose-slate dark:prose-invert max-w-none';
 
 export const useEditorState = ({
   content,
@@ -14,11 +26,44 @@ export const useEditorState = ({
 }: UseEditorStateOptions): UseEditorStateReturn => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disable default task list since we use the extension
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+      }),
       ResizableImage,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline cursor-pointer',
+        },
+      }),
+      Highlight.configure({
+        multicolor: false,
+        HTMLAttributes: {
+          class: 'bg-yellow-200 dark:bg-yellow-800',
+        },
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Placeholder.configure({
+        placeholder: 'Escribe "/" para comandos o "@" para mencionar variables...',
+      }),
       InjectorExtension,
       SignatureExtension,
       ConditionalExtension,
+      SlashCommandsExtension.configure({
+        suggestion: slashCommandsSuggestion,
+      }),
+      MentionExtension,
     ],
     content,
     editable,

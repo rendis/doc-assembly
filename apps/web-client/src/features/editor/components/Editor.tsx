@@ -3,6 +3,8 @@ import { EditorContent } from '@tiptap/react';
 import { EditorToolbar } from './EditorToolbar';
 import { useEditorState } from '../hooks/useEditorState';
 import { EditorSidebar } from './EditorSidebar';
+import { EditorBubbleMenu } from '../extensions/BubbleMenu';
+import { EditorDragHandle } from './EditorDragHandle';
 import { DndContext, DragOverlay, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { DroppableEditorArea } from './DroppableEditorArea';
@@ -130,6 +132,8 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
             <DroppableEditorArea className="min-h-full">
               <div className="max-w-[850px] mx-auto bg-card shadow-md min-h-[1000px]">
                 <EditorContent editor={editor} />
+                <EditorBubbleMenu editor={editor} />
+                <EditorDragHandle editor={editor} />
               </div>
             </DroppableEditorArea>
           </div>

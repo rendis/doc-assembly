@@ -191,31 +191,94 @@
 /* Explicit Tiptap Styles to fix missing Typography */
 @layer components {
   .ProseMirror {
-    @apply outline-none min-h-[400px];
+    @apply outline-none min-h-[400px] px-8 py-6;
   }
   
   .ProseMirror h1 {
-    @apply text-4xl font-extrabold mb-4 mt-6 scroll-m-20 tracking-tight lg:text-5xl;
+    @apply text-3xl font-bold mb-2 mt-4 scroll-m-20 tracking-tight first:mt-0;
   }
   .ProseMirror h2 {
-    @apply text-3xl font-semibold mb-3 mt-5 scroll-m-20 tracking-tight transition-colors first:mt-0;
+    @apply text-2xl font-semibold mb-2 mt-3 scroll-m-20 tracking-tight first:mt-0;
   }
   .ProseMirror h3 {
-    @apply text-2xl font-semibold mb-2 mt-4 scroll-m-20 tracking-tight;
+    @apply text-xl font-semibold mb-1 mt-2 scroll-m-20 tracking-tight first:mt-0;
   }
   .ProseMirror h4 {
-    @apply text-xl font-semibold mb-2 mt-4 scroll-m-20 tracking-tight;
+    @apply text-lg font-semibold mb-1 mt-2 scroll-m-20 tracking-tight first:mt-0;
   }
   .ProseMirror p {
-    @apply leading-7 [&:not(:first-child)]:mt-6;
+    @apply leading-normal my-1;
   }
   .ProseMirror ul {
-    @apply my-6 ml-6 list-disc [&>li]:mt-2;
+    @apply my-2 ml-6 list-disc [&>li]:mt-0.5;
   }
   .ProseMirror ol {
-    @apply my-6 ml-6 list-decimal [&>li]:mt-2;
+    @apply my-2 ml-6 list-decimal [&>li]:mt-0.5;
   }
   .ProseMirror blockquote {
-    @apply mt-6 border-l-2 pl-6 italic;
+    @apply my-2 border-l-2 pl-4 italic;
+  }
+
+  /* Placeholder */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-muted-foreground pointer-events-none float-left h-0;
+    content: attr(data-placeholder);
+  }
+
+  /* Mentions */
+  .ProseMirror .mention {
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-medium;
+    @apply bg-primary/10 text-primary border border-primary/20;
+  }
+
+  /* Task List */
+  .ProseMirror ul[data-type="taskList"] {
+    @apply list-none ml-0 pl-0;
+  }
+
+  .ProseMirror ul[data-type="taskList"] li {
+    @apply flex items-start gap-2;
+  }
+
+  .ProseMirror ul[data-type="taskList"] li > label {
+    @apply flex items-center justify-center mt-1;
+  }
+
+  .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+    @apply h-4 w-4 rounded border-border;
+  }
+
+  .ProseMirror ul[data-type="taskList"] li > div {
+    @apply flex-1;
+  }
+
+  /* Code Block */
+  .ProseMirror pre {
+    @apply bg-muted p-4 rounded-lg overflow-x-auto my-4;
+  }
+
+  .ProseMirror pre code {
+    @apply text-sm font-mono;
+  }
+
+  /* Horizontal Rule */
+  .ProseMirror hr {
+    @apply border-t border-border my-8;
+  }
+
+  /* Drag Handle - Estilo Notion */
+  .drag-handle {
+    @apply flex items-center justify-center;
+    @apply w-5 h-5 rounded-sm cursor-grab;
+    @apply text-muted-foreground/50;
+    @apply transition-all duration-100;
+  }
+
+  .drag-handle:hover {
+    @apply text-muted-foreground bg-muted/50;
+  }
+
+  .drag-handle:active {
+    @apply cursor-grabbing text-foreground bg-accent/70;
   }
 }
