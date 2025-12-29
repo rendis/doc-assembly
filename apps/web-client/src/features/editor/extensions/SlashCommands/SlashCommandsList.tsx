@@ -77,12 +77,12 @@ export const SlashCommandsList = forwardRef<SlashCommandsListRef, SlashCommandsL
     let globalIndex = 0;
 
     return (
-      <div className="bg-popover border rounded-lg shadow-lg overflow-hidden w-72">
+      <div className="bg-popover border rounded-lg shadow-lg w-72 p-1.5">
         <ScrollArea className="max-h-80" ref={containerRef}>
-          <div className="p-1">
+          <div className="py-1.5">
             {Object.entries(groupedItems).map(([group, commands]) => (
               <div key={group}>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {group}
                 </div>
                 {commands.map((item) => {
@@ -94,7 +94,7 @@ export const SlashCommandsList = forwardRef<SlashCommandsListRef, SlashCommandsL
                       data-index={currentIndex}
                       onClick={() => selectItem(currentIndex)}
                       className={cn(
-                        'flex items-center gap-3 w-full px-2 py-2 rounded-md text-left transition-colors',
+                        'flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-left transition-colors',
                         currentIndex === selectedIndex
                           ? 'bg-accent text-accent-foreground'
                           : 'hover:bg-muted'

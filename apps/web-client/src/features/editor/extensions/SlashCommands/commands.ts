@@ -5,7 +5,6 @@ import {
   Heading3,
   List,
   ListOrdered,
-  CheckSquare,
   Quote,
   Code,
   Minus,
@@ -86,15 +85,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     aliases: ['ol', 'numbered', 'ordered'],
     action: (editor) => editor.chain().focus().toggleOrderedList().run(),
   },
-  {
-    id: 'taskList',
-    title: 'Lista de tareas',
-    description: 'Lista con checkboxes',
-    icon: CheckSquare,
-    group: 'Listas',
-    aliases: ['todo', 'task', 'checklist'],
-    action: (editor) => editor.chain().focus().toggleTaskList().run(),
-  },
 
   // Bloques
   {
@@ -172,11 +162,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     group: 'Documentos',
     aliases: ['var', 'placeholder', 'field'],
     action: (editor) => {
-      editor.chain().focus().setInjector({
-        type: 'TEXT',
-        label: 'Nueva Variable',
-        variableId: 'new_var'
-      }).run();
+      // Insertar @ para disparar el menú de menciones con las variables disponibles
+      editor.chain().focus().insertContent('@').run();
     },
   },
 ];

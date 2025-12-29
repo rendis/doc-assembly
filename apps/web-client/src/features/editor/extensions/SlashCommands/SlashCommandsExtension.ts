@@ -22,8 +22,9 @@ export const SlashCommandsExtension = Extension.create<SlashCommandsOptions>({
         char: '/',
         startOfLine: false,
         command: ({ editor, range, props }: { editor: Editor; range: { from: number; to: number }; props: SlashCommand }) => {
-          props.action(editor);
+          // Eliminar '/' primero para que el rango sea válido incluso si la acción modifica la estructura
           editor.chain().focus().deleteRange(range).run();
+          props.action(editor);
         },
       },
     };
