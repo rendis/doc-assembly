@@ -74,12 +74,12 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     }
 
     return (
-      <div className="bg-popover border rounded-lg shadow-lg overflow-hidden w-64">
-        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-b">
+      <div className="bg-popover border rounded-lg shadow-lg w-64 p-1.5">
+        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground border-b rounded-t-md">
           Variables
         </div>
-        <ScrollArea className="max-h-64" ref={containerRef}>
-          <div className="p-1">
+        <ScrollArea className="max-h-64 mt-1" ref={containerRef}>
+          <div className="pt-1 pb-1">
             {items.map((item, index) => {
               const Icon = VARIABLE_ICONS[item.type];
               return (
@@ -88,7 +88,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
                   data-index={index}
                   onClick={() => selectItem(index)}
                   className={cn(
-                    'flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-left transition-colors',
+                    'flex items-center gap-2 w-full px-3 py-2 rounded-md text-left transition-colors',
                     index === selectedIndex
                       ? 'bg-accent text-accent-foreground'
                       : 'hover:bg-muted'
