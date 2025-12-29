@@ -157,7 +157,7 @@ export function TemplatesGrid({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="flex flex-col gap-2">
         {Array.from({ length: 8 }).map((_, i) => (
           <TemplateCardSkeleton key={i} />
         ))}
@@ -197,7 +197,7 @@ export function TemplatesGrid({
   return (
     <div className="space-y-4">
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="flex flex-col gap-2">
         {isRootView && groups ? (
           // Grouped view with folder dividers
           groups.map((group, groupIndex) => {

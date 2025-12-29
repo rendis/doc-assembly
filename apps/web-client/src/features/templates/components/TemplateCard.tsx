@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { FileText, MoreVertical, FolderOpen, Clock } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import type { TemplateListItem, Tag } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { TagBadgeList } from './TagBadge';
@@ -36,8 +35,6 @@ export function TemplateCard({
   onClick,
   onMenuClick,
 }: TemplateCardProps) {
-  const { t } = useTranslation();
-
   const status = template.hasPublishedVersion ? 'PUBLISHED' : 'DRAFT';
 
   // Prioritize tags matching the filter
@@ -49,70 +46,69 @@ export function TemplateCard({
   return (
     <div
       className={`
-        group relative rounded-lg border bg-card p-4
+        group relative flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5
         transition-all duration-200
-        hover:border-primary/50 hover:shadow-md
+        hover:border-primary/50 hover:bg-accent/50
         ${onClick ? 'cursor-pointer' : ''}
       `}
       onClick={onClick}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex-shrink-0 p-2 rounded-lg bg-primary/10">
-            <FileText className="w-4 h-4 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-medium text-sm truncate" title={template.title}>
-              {template.title}
-            </h3>
-            {folderName && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                <FolderOpen className="w-3 h-3" />
-                <span className="truncate">{folderName}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Menu button */}
-        {onMenuClick && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMenuClick(e);
-            }}
-            className="
-              flex-shrink-0 p-1 rounded-md
-              opacity-0 group-hover:opacity-100
-              hover:bg-muted transition-all
-            "
-          >
-            <MoreVertical className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
+      {/* Status */}
+      <div className="flex-shrink-0">
+        <StatusBadge status={status} size="sm" />
       </div>
 
-      {/* Status badge */}
-      <div className="mb-3">
-        <StatusBadge status={status} />
+      {/* Icono */}
+      <div className="flex-shrink-0 p-1.5 rounded-md bg-primary/10">
+        <FileText className="w-4 h-4 text-primary" />
+      </div>
+
+      {/* Título + Folder */}
+      <div className="flex-1 min-w-0">
+        <h3
+          className="font-medium text-sm truncate"
+          title={template.title}
+        >
+          {template.title}
+        </h3>
+        {folderName && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <FolderOpen className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{folderName}</span>
+          </div>
+        )}
       </div>
 
       {/* Tags */}
       {orderedTags.length > 0 && (
-        <div className="mb-3">
+        <div className="flex-shrink-0 hidden md:block">
           <TagBadgeList tags={orderedTags} maxVisible={2} size="sm" />
         </div>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+      {/* Fecha */}
+      <div className="flex-shrink-0 hidden lg:flex items-center gap-1 text-xs text-muted-foreground">
         <Clock className="w-3 h-3" />
-        <span>
-          {t('templates.modified')} {formatDistanceToNow(template.updatedAt || template.createdAt)}
-        </span>
+        <span>{formatDistanceToNow(template.updatedAt || template.createdAt)}</span>
       </div>
+
+      {/* Menu */}
+      {onMenuClick && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMenuClick(e);
+          }}
+          className="
+            flex-shrink-0 p-1 rounded-md
+            opacity-0 group-hover:opacity-100
+            hover:bg-muted transition-all
+          "
+        >
+          <MoreVertical className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
     </div>
   );
 }
@@ -120,20 +116,27 @@ export function TemplateCard({
 // Skeleton for loading state
 export function TemplateCardSkeleton() {
   return (
-    <div className="rounded-lg border bg-card p-4 animate-pulse">
-      <div className="flex items-start gap-2 mb-3">
-        <div className="w-8 h-8 rounded-lg bg-muted" />
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 bg-muted rounded" />
-          <div className="h-3 w-1/2 bg-muted rounded" />
-        </div>
+    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 animate-pulse">
+      {/* Status */}
+      <div className="h-5 w-16 bg-muted rounded-full flex-shrink-0" />
+
+      {/* Icono */}
+      <div className="w-7 h-7 rounded-md bg-muted flex-shrink-0" />
+
+      {/* Título */}
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="h-4 w-3/4 bg-muted rounded" />
+        <div className="h-3 w-1/3 bg-muted rounded" />
       </div>
-      <div className="h-5 w-20 bg-muted rounded-full mb-3" />
-      <div className="flex gap-1 mb-3">
-        <div className="h-5 w-16 bg-muted rounded-full" />
-        <div className="h-5 w-14 bg-muted rounded-full" />
+
+      {/* Tags */}
+      <div className="hidden md:flex gap-1 flex-shrink-0">
+        <div className="h-5 w-12 bg-muted rounded-full" />
+        <div className="h-5 w-10 bg-muted rounded-full" />
       </div>
-      <div className="h-3 w-32 bg-muted rounded" />
+
+      {/* Fecha */}
+      <div className="h-3 w-16 bg-muted rounded flex-shrink-0 hidden lg:block" />
     </div>
   );
 }
