@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import { tagsApi } from '../api/tags-api';
 import { TAG_COLORS } from '../hooks/useTags';
+import { quickTransition } from '@/lib/animations';
 import type { TagWithCount } from '../types';
 
 interface ManageTagsDialogProps {
@@ -24,10 +27,12 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
   const [newColor, setNewColor] = useState(TAG_COLORS[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch tags
+  // Fetch tags and reset editing state when dialog opens
   useEffect(() => {
     if (isOpen) {
       fetchTags();
+      setEditingId(null);
+      setIsCreating(false);
     }
   }, [isOpen]);
 
@@ -275,40 +280,78 @@ interface ColorPickerProps {
 
 function ColorPicker({ value, onChange }: ColorPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        popupRef.current && !popupRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+      });
+    }
+    setIsOpen(!isOpen);
+  };
 
   return (
-    <div className="relative">
+    <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-8 h-8 rounded-md border"
+        onClick={handleToggle}
+        className="w-8 h-8 rounded-md border-2 border-white shadow-sm flex-shrink-0 hover:scale-110 transition-transform"
         style={{ backgroundColor: value }}
       />
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 top-full mt-1 z-20 p-2 bg-popover border rounded-md shadow-lg grid grid-cols-4 gap-1">
+      {isOpen && createPortal(
+        <AnimatePresence>
+          <motion.div
+            ref={popupRef}
+            className="fixed z-[9999] p-2 bg-popover border rounded-md shadow-lg grid grid-cols-4 gap-1"
+            style={{ top: position.top, left: position.left }}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={quickTransition}
+          >
             {TAG_COLORS.map((color) => (
               <button
                 key={color}
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onChange(color);
                   setIsOpen(false);
                 }}
                 className={`
-                  w-6 h-6 rounded-md
+                  w-6 h-6 rounded-md transition-transform hover:scale-110
                   ${color === value ? 'ring-2 ring-primary ring-offset-2' : ''}
                 `}
                 style={{ backgroundColor: color }}
               />
             ))}
-          </div>
-        </>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

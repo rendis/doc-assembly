@@ -403,7 +403,10 @@ export function TemplatesPage() {
       <ManageTagsDialog
         isOpen={isManageTagsDialogOpen}
         onClose={() => setIsManageTagsDialogOpen(false)}
-        onChanged={refreshTags}
+        onChanged={() => {
+          refreshTags();
+          refreshTemplates();
+        }}
       />
 
       {/* Context menu */}
