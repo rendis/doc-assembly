@@ -94,4 +94,99 @@
         <rollback>DROP TRIGGER IF EXISTS trigger_folders_updated_at ON organizer.folders;</rollback>
     </changeSet>
 
+    <!-- ========== PATH COLUMN (Materialized Path) ========== -->
+
+    <changeSet id="folders:add_column:path" author="doc-assembly">
+        <comment>Materialized path for efficient hierarchical queries</comment>
+        <addColumn tableName="folders" schemaName="organizer">
+            <column name="path" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="folders" schemaName="organizer" columnName="path"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="folders:migrate_paths" author="doc-assembly">
+        <comment>Populate path for existing folders using recursive CTE</comment>
+        <sql>
+            WITH RECURSIVE folder_paths AS (
+                SELECT id, id::text as path
+                FROM organizer.folders
+                WHERE parent_id IS NULL
+                UNION ALL
+                SELECT f.id, fp.path || '/' || f.id::text
+                FROM organizer.folders f
+                JOIN folder_paths fp ON f.parent_id = fp.id
+            )
+            UPDATE organizer.folders f
+            SET path = fp.path
+            FROM folder_paths fp
+            WHERE f.id = fp.id;
+        </sql>
+        <rollback>
+            UPDATE organizer.folders SET path = NULL;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="folders:add_not_null:path" author="doc-assembly">
+        <comment>Path is required after migration</comment>
+        <addNotNullConstraint tableName="folders" schemaName="organizer" columnName="path"/>
+        <rollback>
+            <dropNotNullConstraint tableName="folders" schemaName="organizer" columnName="path"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="folders:index_creation:path" author="doc-assembly">
+        <comment>B-tree index for path prefix searches (LIKE 'path/%')</comment>
+        <createIndex indexName="idx_folders_path" tableName="folders" schemaName="organizer">
+            <column name="path"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="folders:function:compute_folder_path" author="doc-assembly">
+        <comment>Function to compute and maintain folder paths</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION organizer.compute_folder_path()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                parent_path TEXT;
+                old_path TEXT;
+                new_path TEXT;
+            BEGIN
+                -- Get parent's path (NULL if root folder)
+                IF NEW.parent_id IS NOT NULL THEN
+                    SELECT path INTO parent_path
+                    FROM organizer.folders
+                    WHERE id = NEW.parent_id;
+                    NEW.path := parent_path || '/' || NEW.id::text;
+                ELSE
+                    NEW.path := NEW.id::text;
+                END IF;
+
+                -- On UPDATE: cascade path changes to descendants
+                IF TG_OP = 'UPDATE' AND OLD.path IS DISTINCT FROM NEW.path THEN
+                    old_path := OLD.path;
+                    new_path := NEW.path;
+                    UPDATE organizer.folders
+                    SET path = new_path || substring(path FROM length(old_path) + 1)
+                    WHERE path LIKE old_path || '/%';
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS organizer.compute_folder_path();</rollback>
+    </changeSet>
+
+    <changeSet id="folders:trigger:path" author="doc-assembly">
+        <comment>Trigger to auto-maintain path on INSERT/UPDATE</comment>
+        <sql>
+            CREATE TRIGGER trigger_folders_path
+            BEFORE INSERT OR UPDATE OF parent_id ON organizer.folders
+            FOR EACH ROW EXECUTE FUNCTION organizer.compute_folder_path();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_folders_path ON organizer.folders;</rollback>
+    </changeSet>
+
 </databaseChangeLog>

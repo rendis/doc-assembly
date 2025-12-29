@@ -205,6 +205,7 @@ erDiagram
         uuid workspace_id FK "NOT NULL"
         uuid parent_id FK "Recursive"
         varchar_255 name "NOT NULL"
+        text path "NOT NULL (materialized)"
         timestamptz created_at "NOT NULL"
         timestamptz updated_at
     }
@@ -623,6 +624,7 @@ flowchart LR
 | `workspace_id` | UUID | FK → workspaces, NOT NULL | Owning workspace |
 | `parent_id` | UUID | FK → folders (self), NULLABLE | Parent folder (NULL = root) |
 | `name` | VARCHAR(255) | NOT NULL | Folder display name |
+| `path` | TEXT | NOT NULL | Materialized path for hierarchical queries |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | - | Last modification |
 
@@ -630,11 +632,38 @@ flowchart LR
 - `idx_folders_workspace_id` - List folders in a workspace
 - `idx_folders_parent_id` - Navigate folder hierarchy
 - `idx_folders_unique_name` - Unique folder names within same parent
+- `idx_folders_path` - B-tree index for path prefix searches (`LIKE 'path/%'`)
+
+**Triggers**:
+- `trigger_folders_updated_at` - Auto-updates `updated_at` on modification
+- `trigger_folders_path` - Auto-computes `path` on INSERT and cascades updates to descendants on parent change
+
+**Function**:
+- `organizer.compute_folder_path()` - Computes materialized path and propagates changes to descendants
 
 **Recursive Hierarchy**:
 - Root folders have `parent_id = NULL`
 - Nested folders reference their parent
 - Deleting a folder cascades to child folders
+
+**Materialized Path Pattern**:
+
+The `path` column enables efficient hierarchical queries without recursive CTEs at query time.
+
+| Folder | parent_id | path |
+|--------|-----------|------|
+| Projects (root) | NULL | `"aaa-uuid"` |
+| 2024 (child) | aaa-uuid | `"aaa-uuid/bbb-uuid"` |
+| Q1 (grandchild) | bbb-uuid | `"aaa-uuid/bbb-uuid/ccc-uuid"` |
+
+**Path Format**:
+- Root folder: `path = folder_id`
+- Nested folder: `path = parent_path/folder_id`
+
+**Benefits**:
+- Find all descendants with simple `LIKE` query (no recursion)
+- Find all ancestors by parsing the path
+- Depth calculation: `char_length(path) - char_length(replace(path, '/', '')) + 1`
 
 ---
 
@@ -1132,6 +1161,7 @@ LIMIT 10;
 | `tenants` | `idx_unique_system_tenant` | Unique Partial | Only ONE system tenant (is_system = TRUE) |
 | `workspaces` | `idx_unique_tenant_system_workspace` | Unique Partial | Only ONE SYSTEM workspace per tenant |
 | `folders` | `idx_folders_unique_name` | Unique Composite | Unique names within same parent |
+| `folders` | `idx_folders_path` | B-tree | Hierarchical path prefix searches (`LIKE 'path/%'`) |
 | `injectable_definitions` | `idx_injectable_definitions_unique_key` | Unique Composite | Unique key per scope |
 | `users` | `idx_users_full_name_trgm` | GIN Trigram | Fuzzy name search |
 | `templates` | `idx_templates_title_trgm` | GIN Trigram | Fuzzy title search |
@@ -1156,6 +1186,14 @@ All tables with `updated_at` columns have triggers that automatically set the va
 - `trigger_template_signer_roles_updated_at`
 - `trigger_documents_updated_at`
 - `trigger_document_recipients_updated_at`
+
+### Materialized Path Triggers
+
+| Trigger | Table | Events | Purpose |
+|---------|-------|--------|---------|
+| `trigger_folders_path` | `folders` | INSERT, UPDATE OF parent_id | Auto-computes `path` and cascades updates to all descendants |
+
+**Function**: `organizer.compute_folder_path()` - Computes path as `parent_path/id` and propagates changes when a folder is moved
 
 ### Protection Triggers
 
@@ -1424,7 +1462,51 @@ DELETE FROM identity.system_roles
 WHERE user_id = 'user-uuid';
 ```
 
-### 9.11 Record and Retrieve User Access History
+### 9.11 Folder Hierarchy Queries with Materialized Path
+
+```sql
+-- Find all descendants of a folder (including nested subfolders)
+SELECT * FROM organizer.folders
+WHERE path LIKE 'parent-folder-uuid/%';
+
+-- Find folder and all its descendants
+SELECT * FROM organizer.folders
+WHERE path LIKE 'parent-folder-uuid/%'
+   OR id = 'parent-folder-uuid';
+
+-- Find all templates in a folder and its subfolders
+SELECT t.*
+FROM content.templates t
+JOIN organizer.folders f ON t.folder_id = f.id
+WHERE f.path LIKE 'parent-folder-uuid/%'
+   OR f.id = 'parent-folder-uuid';
+
+-- Get folder depth (how many levels deep)
+SELECT
+    id,
+    name,
+    path,
+    char_length(path) - char_length(replace(path, '/', '')) + 1 AS depth
+FROM organizer.folders
+WHERE workspace_id = 'workspace-uuid';
+
+-- Find all ancestors of a folder by parsing the path
+-- (Path contains all ancestor IDs in order)
+SELECT f.*
+FROM organizer.folders f
+WHERE 'aaa/bbb/ccc' LIKE f.path || '%'
+  AND f.path != 'aaa/bbb/ccc';
+
+-- Move a folder to a new parent
+-- (Trigger automatically updates path of folder and all descendants)
+UPDATE organizer.folders
+SET parent_id = 'new-parent-uuid'
+WHERE id = 'folder-to-move-uuid';
+```
+
+---
+
+### 9.12 Record and Retrieve User Access History
 
 ```sql
 -- Record a tenant access (UPSERT - updates timestamp if already exists)
