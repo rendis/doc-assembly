@@ -340,6 +340,13 @@
   .page-content > * {
     position: absolute;
     inset: 0;
+    background: unset;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+  }
+
+  .dark .page-content > * {
+    background-color: var(--color-slate-700);
   }
 
   .page-content .ProseMirror {
