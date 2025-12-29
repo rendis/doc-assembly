@@ -362,8 +362,8 @@ export function TemplatesPage() {
             onTemplateMenu={handleTemplateMenu}
             getFolderName={getFolderName}
             filterTagIds={filters.tagIds}
-            isRootView={!filters.folderId}
             onFolderClick={handleFolderSelect}
+            currentFolderId={filters.folderId}
             page={page}
             totalPages={totalPages}
             totalCount={totalCount}
