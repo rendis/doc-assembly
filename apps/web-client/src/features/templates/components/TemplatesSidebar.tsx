@@ -12,6 +12,7 @@ interface TemplatesSidebarProps {
   onCreateFolder?: () => void;
   onFolderMenu?: (folder: FolderTreeType, e: React.MouseEvent) => void;
   onDragMove?: (sourceFolderId: string, targetFolderId: string | null) => void;
+  onTemplateDrop?: (templateId: string, targetFolderId: string | null) => void;
   isFoldersLoading?: boolean;
 
   // Tags
@@ -27,6 +28,7 @@ export function TemplatesSidebar({
   onCreateFolder,
   onFolderMenu,
   onDragMove,
+  onTemplateDrop,
   isFoldersLoading,
   tags,
   onManageTags,
@@ -48,6 +50,7 @@ export function TemplatesSidebar({
           onCreateFolder={onCreateFolder}
           onFolderMenu={onFolderMenu}
           onDragMove={onDragMove}
+          onTemplateDrop={onTemplateDrop}
           isLoading={isFoldersLoading}
         />
       </div>

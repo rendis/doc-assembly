@@ -10,6 +10,7 @@ interface FolderTreeProps {
   onCreateFolder?: (parentId?: string) => void;
   onFolderMenu?: (folder: FolderTreeType, e: React.MouseEvent) => void;
   onDragMove?: (sourceFolderId: string, targetFolderId: string | null) => void;
+  onTemplateDrop?: (templateId: string, targetFolderId: string | null) => void;
   isLoading?: boolean;
 }
 
@@ -43,11 +44,13 @@ export function FolderTree({
   onCreateFolder,
   onFolderMenu,
   onDragMove,
+  onTemplateDrop,
   isLoading,
 }: FolderTreeProps) {
   const { t } = useTranslation();
   const [dragOverId, setDragOverId] = useState<string | null | undefined>(undefined);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
 
   // Get descendants of the dragging folder to prevent invalid drops
   const draggingDescendants = draggingId ? getDescendantIds(draggingId, folders) : new Set<string>();
@@ -67,7 +70,16 @@ export function FolderTree({
     e.preventDefault();
     e.stopPropagation();
 
-    // Validate: can't drop on self or descendants
+    // Check if it's a template being dragged (always allow)
+    const hasTemplateData = e.dataTransfer.types.includes('application/template-id');
+    if (hasTemplateData) {
+      e.dataTransfer.dropEffect = 'move';
+      setDragOverId(targetId);
+      setIsDraggingTemplate(true);
+      return;
+    }
+
+    // Validate folder drag: can't drop on self or descendants
     if (draggingId === targetId || (targetId && draggingDescendants.has(targetId))) {
       e.dataTransfer.dropEffect = 'none';
       return;
@@ -83,6 +95,7 @@ export function FolderTree({
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (!relatedTarget?.closest('[data-folder-tree]')) {
       setDragOverId(undefined);
+      setIsDraggingTemplate(false);
     }
   }, []);
 
@@ -90,6 +103,16 @@ export function FolderTree({
     e.preventDefault();
     e.stopPropagation();
 
+    // Check if it's a template drop
+    const templateId = e.dataTransfer.getData('application/template-id');
+    if (templateId) {
+      setDragOverId(undefined);
+      setIsDraggingTemplate(false);
+      onTemplateDrop?.(templateId, targetId);
+      return;
+    }
+
+    // Handle folder drop
     const sourceFolderId = e.dataTransfer.getData('text/plain');
 
     // Validate
@@ -109,7 +132,7 @@ export function FolderTree({
 
     // Call the move handler
     onDragMove?.(sourceFolderId, targetId);
-  }, [onDragMove, draggingDescendants]);
+  }, [onDragMove, onTemplateDrop, draggingDescendants]);
 
   if (isLoading) {
     return (
@@ -129,7 +152,7 @@ export function FolderTree({
         name={t('folders.root')}
         isRoot
         isSelected={selectedFolderId === null}
-        isDragOver={dragOverId === null && draggingId !== null}
+        isDragOver={dragOverId === null && (draggingId !== null || isDraggingTemplate)}
         onClick={() => onFolderSelect(null)}
         onDragOver={(e) => handleDragOver(e, null)}
         onDragLeave={handleDragLeave}
@@ -153,6 +176,7 @@ export function FolderTree({
           dragOverId={dragOverId}
           draggingId={draggingId}
           draggingDescendants={draggingDescendants}
+          isDraggingTemplate={isDraggingTemplate}
         />
       ))}
 
@@ -190,6 +214,7 @@ interface FolderTreeNodeProps {
   dragOverId: string | null | undefined;
   draggingId: string | null;
   draggingDescendants: Set<string>;
+  isDraggingTemplate?: boolean;
 }
 
 function FolderTreeNode({
@@ -206,6 +231,7 @@ function FolderTreeNode({
   dragOverId,
   draggingId,
   draggingDescendants,
+  isDraggingTemplate,
 }: FolderTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasChildren = folder.children && folder.children.length > 0;
@@ -213,8 +239,8 @@ function FolderTreeNode({
   const isDragging = draggingId === folder.id;
   const isDragOver = dragOverId === folder.id;
 
-  // Can this folder receive a drop?
-  const canReceiveDrop = draggingId !== null &&
+  // Can this folder receive a drop? (folder or template)
+  const canReceiveDrop = (draggingId !== null || isDraggingTemplate) &&
     draggingId !== folder.id &&
     !draggingDescendants.has(folder.id);
 
@@ -259,6 +285,7 @@ function FolderTreeNode({
               dragOverId={dragOverId}
               draggingId={draggingId}
               draggingDescendants={draggingDescendants}
+              isDraggingTemplate={isDraggingTemplate}
             />
           ))}
         </div>

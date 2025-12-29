@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FileText, MoreVertical, FolderOpen, Clock } from 'lucide-react';
+import { FileText, MoreVertical, FolderOpen, Clock, GripVertical } from 'lucide-react';
 import type { TemplateListItem, Tag } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { TagBadgeList } from './TagBadge';
@@ -53,6 +53,41 @@ export function TemplateCard({
       `}
       onClick={onClick}
     >
+      {/* Drag Handle */}
+      <div
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation();
+          e.dataTransfer.setData('application/template-id', template.id);
+          e.dataTransfer.effectAllowed = 'move';
+
+          // Create custom drag image
+          const dragEl = document.createElement('div');
+          dragEl.className = 'flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg shadow-lg text-sm font-medium';
+          dragEl.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+              <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+            </svg>
+            <span style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${template.title}</span>
+          `;
+          dragEl.style.position = 'absolute';
+          dragEl.style.top = '-1000px';
+          dragEl.style.left = '-1000px';
+          document.body.appendChild(dragEl);
+          e.dataTransfer.setDragImage(dragEl, 20, 20);
+
+          // Clean up after drag starts
+          requestAnimationFrame(() => {
+            document.body.removeChild(dragEl);
+          });
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+
       {/* Status */}
       <div className="flex-shrink-0">
         <StatusBadge status={status} size="sm" />

@@ -97,6 +97,15 @@ export function TemplatesPage() {
     template: { id: string; title: string } | null;
   }>({ isOpen: false, template: null });
 
+  // Move template dialog state
+  const [moveTemplateDialog, setMoveTemplateDialog] = useState<{
+    isOpen: boolean;
+    templateId: string | null;
+    templateTitle: string;
+    targetFolderId: string | null;
+    targetFolderName: string;
+  }>({ isOpen: false, templateId: null, templateTitle: '', targetFolderId: null, targetFolderName: '' });
+
   // Debounced search
   const debouncedSearch = useDebounce(searchInput, 300);
 
@@ -154,7 +163,7 @@ export function TemplatesPage() {
     setSelectedTemplate(null);
   };
 
-  // Drag & drop move handler
+  // Drag & drop folder move handler
   const handleDragMove = useCallback((sourceFolderId: string, targetFolderId: string | null) => {
     const sourceFolder = getFolderById(sourceFolderId);
     const targetFolder = targetFolderId ? getFolderById(targetFolderId) : null;
@@ -170,6 +179,39 @@ export function TemplatesPage() {
       targetFolder: targetFolder ?? null,
     });
   }, [getFolderById]);
+
+  // Drag & drop template move handler
+  const handleTemplateDrop = useCallback((templateId: string, targetFolderId: string | null) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    // Don't move if already in this folder
+    if (template.folderId === targetFolderId) return;
+
+    const targetFolderName = targetFolderId
+      ? getFolderById(targetFolderId)?.name ?? t('folders.root')
+      : t('folders.root');
+
+    setMoveTemplateDialog({
+      isOpen: true,
+      templateId,
+      templateTitle: template.title,
+      targetFolderId,
+      targetFolderName,
+    });
+  }, [templates, getFolderById, t]);
+
+  // Confirm template move
+  const handleConfirmTemplateMove = useCallback(async () => {
+    if (!moveTemplateDialog.templateId) return;
+
+    await templatesApi.update(moveTemplateDialog.templateId, {
+      folderId: moveTemplateDialog.targetFolderId ?? undefined,
+    });
+
+    setMoveTemplateDialog({ isOpen: false, templateId: null, templateTitle: '', targetFolderId: null, targetFolderName: '' });
+    await refreshTemplates();
+  }, [moveTemplateDialog, refreshTemplates]);
 
   // Context menu move handler - opens folder selection dialog
   const handleContextMenuMoveFolder = useCallback((folder: FolderTree) => {
@@ -261,6 +303,7 @@ export function TemplatesPage() {
         onCreateFolder={() => handleCreateFolder()}
         onFolderMenu={handleFolderMenu}
         onDragMove={handleDragMove}
+        onTemplateDrop={handleTemplateDrop}
         isFoldersLoading={isFoldersLoading}
         tags={templatesTags}
         onManageTags={() => setIsManageTagsDialogOpen(true)}
@@ -409,6 +452,15 @@ export function TemplatesPage() {
         template={renameTemplateDialog.template}
         onConfirm={handleConfirmRenameTemplate}
         onCancel={() => setRenameTemplateDialog({ isOpen: false, template: null })}
+      />
+
+      {/* Move template confirmation dialog */}
+      <ConfirmMoveDialog
+        isOpen={moveTemplateDialog.isOpen}
+        sourceName={moveTemplateDialog.templateTitle}
+        targetName={moveTemplateDialog.targetFolderName}
+        onConfirm={handleConfirmTemplateMove}
+        onCancel={() => setMoveTemplateDialog({ isOpen: false, templateId: null, templateTitle: '', targetFolderId: null, targetFolderName: '' })}
       />
     </div>
   );
