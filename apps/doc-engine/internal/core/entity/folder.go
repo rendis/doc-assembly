@@ -8,6 +8,7 @@ type Folder struct {
 	WorkspaceID string     `json:"workspaceId"`
 	ParentID    *string    `json:"parentId,omitempty"` // NULL for root folders
 	Name        string     `json:"name"`
+	Path        string     `json:"path"` // Materialized path for efficient hierarchical queries
 	CreatedAt   time.Time  `json:"createdAt"`
 	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
 }

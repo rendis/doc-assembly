@@ -8,24 +8,24 @@ const (
 		RETURNING id`
 
 	queryFindByID = `
-		SELECT id, workspace_id, parent_id, name, created_at, updated_at
+		SELECT id, workspace_id, parent_id, name, path, created_at, updated_at
 		FROM organizer.folders
 		WHERE id = $1`
 
 	queryFindByWorkspace = `
-		SELECT id, workspace_id, parent_id, name, created_at, updated_at
+		SELECT id, workspace_id, parent_id, name, path, created_at, updated_at
 		FROM organizer.folders
 		WHERE workspace_id = $1
 		ORDER BY name`
 
 	queryFindByParentNull = `
-		SELECT id, workspace_id, parent_id, name, created_at, updated_at
+		SELECT id, workspace_id, parent_id, name, path, created_at, updated_at
 		FROM organizer.folders
 		WHERE workspace_id = $1 AND parent_id IS NULL
 		ORDER BY name`
 
 	queryFindByParent = `
-		SELECT id, workspace_id, parent_id, name, created_at, updated_at
+		SELECT id, workspace_id, parent_id, name, path, created_at, updated_at
 		FROM organizer.folders
 		WHERE workspace_id = $1 AND parent_id = $2
 		ORDER BY name`

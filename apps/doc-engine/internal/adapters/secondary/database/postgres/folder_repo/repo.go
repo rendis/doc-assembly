@@ -23,6 +23,7 @@ type Repository struct {
 }
 
 // Create creates a new folder.
+// Note: The 'path' column is automatically computed by a database trigger.
 func (r *Repository) Create(ctx context.Context, folder *entity.Folder) (string, error) {
 	var id string
 	err := r.pool.QueryRow(ctx, queryCreate,
@@ -47,6 +48,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Folder, e
 		&folder.WorkspaceID,
 		&folder.ParentID,
 		&folder.Name,
+		&folder.Path,
 		&folder.CreatedAt,
 		&folder.UpdatedAt,
 	)
@@ -96,6 +98,7 @@ func (r *Repository) FindRootFolders(ctx context.Context, workspaceID string) ([
 }
 
 // Update updates a folder.
+// Note: The 'path' column is automatically maintained by a database trigger when parent_id changes.
 func (r *Repository) Update(ctx context.Context, folder *entity.Folder) error {
 	_, err := r.pool.Exec(ctx, queryUpdate,
 		folder.ID,
@@ -192,6 +195,7 @@ func scanFolders(rows pgx.Rows) ([]*entity.Folder, error) {
 			&folder.WorkspaceID,
 			&folder.ParentID,
 			&folder.Name,
+			&folder.Path,
 			&folder.CreatedAt,
 			&folder.UpdatedAt,
 		)

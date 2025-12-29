@@ -292,7 +292,12 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 
 	// Apply filters
 	if filters.FolderID != nil {
-		query += fmt.Sprintf(" AND t.folder_id = $%d", argPos)
+		// Recursive search: find templates in folder and all its descendants using materialized path
+		query += fmt.Sprintf(` AND t.folder_id IN (
+			SELECT f2.id FROM organizer.folders f1
+			JOIN organizer.folders f2 ON f2.id = f1.id OR f2.path LIKE f1.path || '/%%'
+			WHERE f1.id = $%d
+		)`, argPos)
 		args = append(args, *filters.FolderID)
 		argPos++
 	}
