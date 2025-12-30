@@ -5,3 +5,4 @@ export * from './PageBreak';
 export * from './SlashCommands';
 export * from './Mentions';
 export * from './BubbleMenu';
+export * from './Image';

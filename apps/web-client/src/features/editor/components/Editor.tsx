@@ -1,7 +1,7 @@
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { EditorContent } from '@tiptap/react';
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { EditorBubbleMenu } from '../extensions/BubbleMenu';
 import { useEditorState } from '../hooks/useEditorState';
 import { usePaginationStore } from '../stores/pagination-store';
@@ -11,6 +11,7 @@ import { DroppableEditorArea } from './DroppableEditorArea';
 import { EditorSidebar } from './EditorSidebar';
 import { EditorToolbar } from './EditorToolbar';
 import { PageSettingsToolbar } from './PageSettingsToolbar';
+import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal';
 import type { InjectorType } from '../data/variables';
 import type { LucideIcon } from 'lucide-react';
 
@@ -35,6 +36,8 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
 
   const [activeDragItem, setActiveDragItem] = useState<DragData | null>(null);
   const [dropCursorPos, setDropCursorPos] = useState<{ top: number; left: number; height: number } | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -103,13 +106,42 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
       } else if (data.id === 'tool_conditional') {
         editor.chain().setConditional({ expression: 'var > 0' }).run();
       } else if (data.id === 'tool_image') {
-         const url = window.prompt('URL de la imagen:', 'https://via.placeholder.com/150');
-         if (url) {
-           editor.chain().setImage({ src: url }).run();
-         }
+        setPendingImagePosition(pos?.pos ?? null);
+        setImageModalOpen(true);
       }
     }
   };
+
+  const handleImageInsert = useCallback((result: ImageInsertResult) => {
+    if (!editor) return;
+
+    if (pendingImagePosition !== null) {
+      editor.commands.focus(pendingImagePosition);
+    }
+
+    editor.chain().setImage({
+      src: result.src,
+      alt: result.alt,
+    }).run();
+
+    setImageModalOpen(false);
+    setPendingImagePosition(null);
+  }, [editor, pendingImagePosition]);
+
+  // Listen for custom event from slash commands
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleOpenImageModal = () => {
+      setPendingImagePosition(editor.state.selection.from);
+      setImageModalOpen(true);
+    };
+
+    editor.view.dom.addEventListener('editor:open-image-modal', handleOpenImageModal);
+    return () => {
+      editor.view.dom.removeEventListener('editor:open-image-modal', handleOpenImageModal);
+    };
+  }, [editor]);
 
   if (!editor) return null;
 
@@ -169,6 +201,12 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
           <div className="absolute -top-1.5 -left-1 w-3 h-3 bg-blue-500 rounded-full shadow-sm ring-2 ring-background" />
         </div>
       )}
+
+      <ImageInsertModal
+        open={imageModalOpen}
+        onOpenChange={setImageModalOpen}
+        onInsert={handleImageInsert}
+      />
     </DndContext>
   );
 };

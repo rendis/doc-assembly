@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Dropcursor from '@tiptap/extension-dropcursor';
-import { ResizableImage } from 'tiptap-extension-resizable-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
@@ -20,6 +19,7 @@ import {
   SlashCommandsExtension,
   slashCommandsSuggestion,
   MentionExtension,
+  ImageExtension,
 } from '../extensions';
 import { usePaginationStore } from '../stores/pagination-store';
 import type { UseEditorStateOptions, UseEditorStateReturn } from '../types';
@@ -63,7 +63,10 @@ export const useEditorState = ({
         label: 'Página',
         showPageNumber: true,
       }),
-      ResizableImage,
+      ImageExtension.configure({
+        inline: false,
+        allowBase64: true,
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {

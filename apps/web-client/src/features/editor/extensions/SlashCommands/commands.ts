@@ -125,10 +125,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     group: 'Media',
     aliases: ['img', 'picture', 'photo'],
     action: (editor) => {
-      const url = window.prompt('URL de la imagen:', 'https://via.placeholder.com/400');
-      if (url) {
-        editor.chain().focus().setImage({ src: url }).run();
-      }
+      // Dispatch custom event to open the image modal
+      editor.view.dom.dispatchEvent(
+        new CustomEvent('editor:open-image-modal', { bubbles: true })
+      );
     },
   },
 
