@@ -12,13 +12,10 @@ export function DroppableEditorArea({ children, className }: DroppableEditorArea
   });
 
   return (
-    <div 
-      ref={setNodeRef} 
-      className={cn(
-        'transition-colors',
-        isOver ? 'bg-primary/5 ring-2 ring-primary ring-inset rounded-lg' : '',
-        className
-      )}
+    <div
+      ref={setNodeRef}
+      data-dragging-over={isOver || undefined}
+      className={cn('transition-colors', className)}
     >
       {children}
     </div>

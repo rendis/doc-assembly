@@ -345,6 +345,16 @@
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     /* Content padding - matches page margins */
     padding: var(--page-padding-v, 96px) var(--page-padding-h, 72px) !important;
+    transition: box-shadow 0.15s ease-in-out;
+  }
+
+  /* Highlight de la página durante drag and drop */
+  [data-dragging-over] .ProseMirror {
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.1),
+      0 1px 2px -1px rgb(0 0 0 / 0.1),
+      0 0 0 2px hsl(var(--primary)),
+      0 0 12px hsl(var(--primary) / 0.3);
   }
 
   .dark .editor-scroll-container .ProseMirror {
