@@ -34,23 +34,6 @@ definitions:
     required:
     - injectableDefinitionId
     type: object
-  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddVersionSignerRoleRequest:
-    properties:
-      anchorString:
-        maxLength: 100
-        type: string
-      roleName:
-        maxLength: 100
-        minLength: 1
-        type: string
-      signerOrder:
-        minimum: 1
-        type: integer
-    required:
-    - anchorString
-    - roleName
-    - signerOrder
-    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignSystemRoleRequest:
     properties:
       role:
@@ -700,6 +683,47 @@ definitions:
       updatedAt:
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse:
+    properties:
+      archivedAt:
+        type: string
+      archivedBy:
+        type: string
+      createdAt:
+        type: string
+      createdBy:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      injectables:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse'
+        type: array
+      name:
+        type: string
+      publishedAt:
+        type: string
+      publishedBy:
+        type: string
+      scheduledArchiveAt:
+        type: string
+      scheduledPublishAt:
+        type: string
+      signerRoles:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse'
+        type: array
+      status:
+        type: string
+      templateId:
+        type: string
+      updatedAt:
+        type: string
+      versionNumber:
+        type: integer
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateWithAllVersionsResponse:
     properties:
       createdAt:
@@ -722,7 +746,7 @@ definitions:
         type: string
       versions:
         items:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionDetailResponse'
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse'
         type: array
       workspaceId:
         type: string
@@ -889,19 +913,6 @@ definitions:
         maxLength: 100
         minLength: 1
         type: string
-    type: object
-  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionSignerRoleRequest:
-    properties:
-      roleName:
-        maxLength: 100
-        minLength: 1
-        type: string
-      signerOrder:
-        minimum: 1
-        type: integer
-    required:
-    - roleName
-    - signerOrder
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceRequest:
     properties:
@@ -1679,120 +1690,6 @@ paths:
           schema:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       summary: Schedule version publication
-      tags:
-      - Template Versions
-  /api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Template ID
-        in: path
-        name: templateId
-        required: true
-        type: string
-      - description: Version ID
-        in: path
-        name: versionId
-        required: true
-        type: string
-      - description: Signer role data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddVersionSignerRoleRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Add signer role to version
-      tags:
-      - Template Versions
-  /api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles/{roleId}:
-    delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Template ID
-        in: path
-        name: templateId
-        required: true
-        type: string
-      - description: Version ID
-        in: path
-        name: versionId
-        required: true
-        type: string
-      - description: Role ID
-        in: path
-        name: roleId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Remove signer role from version
-      tags:
-      - Template Versions
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Template ID
-        in: path
-        name: templateId
-        required: true
-        type: string
-      - description: Version ID
-        in: path
-        name: versionId
-        required: true
-        type: string
-      - description: Role ID
-        in: path
-        name: roleId
-        required: true
-        type: string
-      - description: Signer role data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionSignerRoleRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Update signer role
       tags:
       - Template Versions
   /api/v1/content/templates/{templateId}/versions/from-existing:

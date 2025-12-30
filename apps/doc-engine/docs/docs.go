@@ -1172,177 +1172,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Template Versions"
-                ],
-                "summary": "Add signer role to version",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Template ID",
-                        "name": "templateId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Version ID",
-                        "name": "versionId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Signer role data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddVersionSignerRoleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles/{roleId}": {
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Template Versions"
-                ],
-                "summary": "Update signer role",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Template ID",
-                        "name": "templateId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Version ID",
-                        "name": "versionId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Role ID",
-                        "name": "roleId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Signer role data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionSignerRoleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Template Versions"
-                ],
-                "summary": "Remove signer role from version",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Template ID",
-                        "name": "templateId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Version ID",
-                        "name": "versionId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Role ID",
-                        "name": "roleId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/me/access": {
             "post": {
                 "security": [
@@ -3731,29 +3560,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddVersionSignerRoleRequest": {
-            "type": "object",
-            "required": [
-                "anchorString",
-                "roleName",
-                "signerOrder"
-            ],
-            "properties": {
-                "anchorString": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "roleName": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1
-                },
-                "signerOrder": {
-                    "type": "integer",
-                    "minimum": 1
-                }
-            }
-        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignSystemRoleRequest": {
             "type": "object",
             "required": [
@@ -4735,6 +4541,68 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "archivedAt": {
+                    "type": "string"
+                },
+                "archivedBy": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "injectables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "publishedAt": {
+                    "type": "string"
+                },
+                "publishedBy": {
+                    "type": "string"
+                },
+                "scheduledArchiveAt": {
+                    "type": "string"
+                },
+                "scheduledPublishAt": {
+                    "type": "string"
+                },
+                "signerRoles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "templateId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "versionNumber": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateWithAllVersionsResponse": {
             "type": "object",
             "properties": {
@@ -4768,7 +4636,7 @@ const docTemplate = `{
                 "versions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionDetailResponse"
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse"
                     }
                 },
                 "workspaceId": {
@@ -5016,24 +4884,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 1
-                }
-            }
-        },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionSignerRoleRequest": {
-            "type": "object",
-            "required": [
-                "roleName",
-                "signerOrder"
-            ],
-            "properties": {
-                "roleName": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1
-                },
-                "signerOrder": {
-                    "type": "integer",
-                    "minimum": 1
                 }
             }
         },

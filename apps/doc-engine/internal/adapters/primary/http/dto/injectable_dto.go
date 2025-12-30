@@ -69,9 +69,9 @@ type TemplateWithDetailsResponse struct {
 // TemplateWithAllVersionsResponse represents a template with all its versions.
 type TemplateWithAllVersionsResponse struct {
 	TemplateResponse
-	Versions []*TemplateVersionDetailResponse `json:"versions,omitempty"`
-	Tags     []*TagResponse                   `json:"tags,omitempty"`
-	Folder   *FolderResponse                  `json:"folder,omitempty"`
+	Versions []*TemplateVersionSummaryResponse `json:"versions,omitempty"`
+	Tags     []*TagResponse                    `json:"tags,omitempty"`
+	Folder   *FolderResponse                   `json:"folder,omitempty"`
 }
 
 // TemplateCreateResponse represents the response when creating a template (with initial version).

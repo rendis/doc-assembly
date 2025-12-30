@@ -34,6 +34,13 @@ type TemplateVersionDetailResponse struct {
 	SignerRoles      []*TemplateVersionSignerRoleResponse `json:"signerRoles,omitempty"`
 }
 
+// TemplateVersionSummaryResponse represents a template version summary (without content).
+type TemplateVersionSummaryResponse struct {
+	TemplateVersionResponse
+	Injectables []*TemplateVersionInjectableResponse `json:"injectables,omitempty"`
+	SignerRoles []*TemplateVersionSignerRoleResponse `json:"signerRoles,omitempty"`
+}
+
 // ListTemplateVersionsResponse represents a list of template versions.
 type ListTemplateVersionsResponse struct {
 	Items []*TemplateVersionResponse `json:"items"`

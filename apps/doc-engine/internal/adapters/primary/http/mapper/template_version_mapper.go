@@ -100,6 +100,40 @@ func (m *TemplateVersionMapper) ToDetailResponseList(details []*entity.TemplateV
 	return responses
 }
 
+// ToSummaryResponse converts a template version with details to a summary response DTO (without content).
+func (m *TemplateVersionMapper) ToSummaryResponse(details *entity.TemplateVersionWithDetails) *dto.TemplateVersionSummaryResponse {
+	if details == nil {
+		return nil
+	}
+
+	resp := &dto.TemplateVersionSummaryResponse{
+		TemplateVersionResponse: *m.ToResponse(&details.TemplateVersion),
+	}
+
+	if details.Injectables != nil {
+		resp.Injectables = m.injectableMapper.VersionInjectablesToResponse(details.Injectables)
+	}
+
+	if details.SignerRoles != nil {
+		resp.SignerRoles = m.SignerRolesToResponse(details.SignerRoles)
+	}
+
+	return resp
+}
+
+// ToSummaryResponseList converts a list of template versions with details to summary response DTOs.
+func (m *TemplateVersionMapper) ToSummaryResponseList(details []*entity.TemplateVersionWithDetails) []*dto.TemplateVersionSummaryResponse {
+	if details == nil {
+		return []*dto.TemplateVersionSummaryResponse{}
+	}
+
+	responses := make([]*dto.TemplateVersionSummaryResponse, len(details))
+	for i, d := range details {
+		responses[i] = m.ToSummaryResponse(d)
+	}
+	return responses
+}
+
 // SignerRoleToResponse converts a version signer role to a response DTO.
 func (m *TemplateVersionMapper) SignerRoleToResponse(role *entity.TemplateVersionSignerRole) *dto.TemplateVersionSignerRoleResponse {
 	if role == nil {

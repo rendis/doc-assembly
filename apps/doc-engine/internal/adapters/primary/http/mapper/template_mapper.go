@@ -136,7 +136,7 @@ func (m *TemplateMapper) ToAllVersionsResponse(details *entity.TemplateWithAllVe
 	}
 
 	if details.Versions != nil {
-		resp.Versions = m.versionMapper.ToDetailResponseList(details.Versions)
+		resp.Versions = m.versionMapper.ToSummaryResponseList(details.Versions)
 	}
 
 	if details.Tags != nil {
