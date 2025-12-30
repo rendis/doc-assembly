@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { RoleInjectable } from '../../types/role-injectable';
@@ -13,6 +13,7 @@ interface RoleInjectablesSectionProps {
   values: InjectableFormValues;
   errors: InjectableFormErrors;
   onChange: (variableId: string, value: any) => void;
+  onGenerateAll: () => void;
 }
 
 export function RoleInjectablesSection({
@@ -20,6 +21,7 @@ export function RoleInjectablesSection({
   values,
   errors,
   onChange,
+  onGenerateAll,
 }: RoleInjectablesSectionProps) {
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -49,9 +51,22 @@ export function RoleInjectablesSection({
   return (
     <Collapsible open={!isCollapsed} onOpenChange={(newOpen) => setIsCollapsed(!newOpen)}>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-foreground">
-          {t('editor.preview.roleVariables')}
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            {t('editor.preview.roleVariables')}
+          </h2>
+          {!isCollapsed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGenerateAll}
+              className="h-7"
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              {t('editor.preview.generateTestData')}
+            </Button>
+          )}
+        </div>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
             {isCollapsed ? (

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
 import { useInjectables } from '../../hooks/useInjectables';
 import { useRoleInjectables } from '../../hooks/useRoleInjectables';
 import { usePreviewPDF } from '../../hooks/usePreviewPDF';
@@ -252,15 +252,21 @@ export function InjectablesFormModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] sm:max-h-[90vh] h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 bg-muted/30 border-b">
             <DialogTitle>{t('editor.preview.title')}</DialogTitle>
             <DialogDescription>
               Complete los valores para generar la vista previa del documento.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="flex-1 relative overflow-hidden">
+            {/* Blur fade superior */}
+            <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background via-background/50 to-transparent pointer-events-none z-10 backdrop-blur-[2px]" />
+
+            {/* Contenido scrolleable */}
+            <div className="absolute inset-0 overflow-y-auto px-6 py-4">
+              <div className="space-y-6">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -295,37 +301,31 @@ export function InjectablesFormModal({
             )}
 
             {roleInjectables.length > 0 && (
-              <div>
+              <>
                 {(systemVariables.length > 0 || documentVariables.length > 0) && <div className="border-t my-4" />}
-
-                {/* Botón global "Generar todos los roles" */}
-                <div className="flex items-center justify-end mb-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateAllRoles}
-                    className="h-7"
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    {t('editor.preview.generateAllRoles')}
-                  </Button>
-                </div>
 
                 <RoleInjectablesSection
                   roleInjectables={roleInjectables}
                   values={values}
                   errors={errors}
                   onChange={handleChange}
+                  onGenerateAll={handleGenerateAllRoles}
                 />
-              </div>
+              </>
             )}
+              </div>
+            </div>
+
+            {/* Blur fade inferior */}
+            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-10 backdrop-blur-[2px]" />
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isGenerating}>
+          <div className="flex items-center justify-center gap-2 px-6 py-3 border-t bg-muted/30">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isGenerating}>
+              <X className="h-4 w-4 mr-2" />
               {t('editor.preview.cancel')}
             </Button>
-            <Button onClick={handleGenerate} disabled={isGenerating}>
+            <Button size="sm" onClick={handleGenerate} disabled={isGenerating}>
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -335,7 +335,7 @@ export function InjectablesFormModal({
                 t('editor.preview.generate')
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

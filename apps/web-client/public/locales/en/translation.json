@@ -204,7 +204,7 @@
       "tooltip": "PDF Preview",
       "generate": "Generate",
       "generateAll": "Generate all",
-      "generateAllRoles": "Generate all roles",
+      "generateTestData": "Generate test data",
       "generateRandom": "Generate random value",
       "generating": "Generating...",
       "cancel": "Cancel",

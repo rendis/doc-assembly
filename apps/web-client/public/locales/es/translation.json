@@ -204,7 +204,7 @@
       "tooltip": "Vista previa del PDF",
       "generate": "Generar",
       "generateAll": "Generar todo",
-      "generateAllRoles": "Generar todos los roles",
+      "generateTestData": "Generar datos de prueba",
       "generateRandom": "Generar valor aleatorio",
       "generating": "Generando...",
       "cancel": "Cancelar",
