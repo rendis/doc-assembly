@@ -247,6 +247,21 @@
         "message": "El rol \"{{roleName}}\" tiene {{count}} variable(s) insertada(s) en el documento. Si eliminas este rol, también se eliminarán del documento.",
         "confirm": "Eliminar rol y variables"
       }
+    },
+    "preview": {
+      "title": "Vista Previa del Documento",
+      "editVariables": "Editar Variables",
+      "downloadPdf": "Descargar PDF",
+      "inputVariables": "Ingresar Valores de Variables",
+      "inputVariablesDescription": "Complete los valores para las variables del documento antes de generar la vista previa.",
+      "continue": "Continuar",
+      "autoFilledVariables": "Variables Automaticas",
+      "roleVariables": "Variables de Roles",
+      "documentVariables": "Variables del Documento",
+      "noVariables": "No hay variables que completar.",
+      "variableCount": "Variables:",
+      "filledCount": "Completadas:",
+      "missingVariables": "Variables sin valor"
     }
   },
   "templates": {

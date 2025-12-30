@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { injectablesApi } from '../api/injectables-api';
-import { mapInjectablesToVariables } from '../types/injectable';
+import { mapInjectablesToVariables, isInternalInjectable } from '../types/injectable';
 import type { Injectable } from '../types/injectable';
 import type { Variable, InjectorType } from '../data/variables';
 
@@ -108,4 +108,27 @@ export function getVariableById(id: string): Variable | undefined {
 export function getVariablesByType(types: InjectorType[]): Variable[] {
   const variables = useInjectablesStore.getState().variables;
   return variables.filter((v) => types.includes(v.type));
+}
+
+/**
+ * Get all injectables (raw API format, for use outside React components)
+ */
+export function getInjectables(): Injectable[] {
+  return useInjectablesStore.getState().injectables;
+}
+
+/**
+ * Get internal (system-calculated) injectables
+ */
+export function getInternalInjectables(): Injectable[] {
+  return useInjectablesStore.getState().injectables.filter(isInternalInjectable);
+}
+
+/**
+ * Get external (user-provided) injectables
+ */
+export function getExternalInjectables(): Injectable[] {
+  return useInjectablesStore.getState().injectables.filter(
+    (inj) => !isInternalInjectable(inj)
+  );
 }

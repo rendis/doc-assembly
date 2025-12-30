@@ -1,6 +1,32 @@
 import type { InjectorType, Variable } from '../data/variables';
 
 // ============================================
+// Internal Injectable Constants
+// ============================================
+
+/**
+ * Keys for system-calculated injectables (sourceType='INTERNAL')
+ * These can be auto-filled during preview
+ */
+export const INTERNAL_INJECTABLE_KEYS = [
+  'date_time_now',
+  'date_now',
+  'time_now',
+  'year_now',
+  'month_now',
+  'day_now',
+] as const;
+
+export type InternalInjectableKey = typeof INTERNAL_INJECTABLE_KEYS[number];
+
+/**
+ * Check if a key is an internal (auto-calculable) injectable
+ */
+export function isInternalKey(key: string): key is InternalInjectableKey {
+  return INTERNAL_INJECTABLE_KEYS.includes(key as InternalInjectableKey);
+}
+
+// ============================================
 // Metadata Types
 // ============================================
 
@@ -133,4 +159,11 @@ export function mapInjectableToVariable(injectable: Injectable): Variable {
  */
 export function mapInjectablesToVariables(injectables: Injectable[]): Variable[] {
   return injectables.map(mapInjectableToVariable);
+}
+
+/**
+ * Check if an injectable is internal (system-calculated)
+ */
+export function isInternalInjectable(injectable: Injectable): boolean {
+  return injectable.sourceType === 'INTERNAL';
 }
