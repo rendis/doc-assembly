@@ -127,7 +127,7 @@ export function getLayoutContainerClasses(layout: SignatureLayout): string {
 
     // 2 firmas
     case 'dual-sides':
-      return `${baseClasses} flex justify-between`;
+      return `${baseClasses} flex justify-between items-end`;
     case 'dual-center':
       return `${baseClasses} flex flex-col items-center gap-8`;
     case 'dual-left':
@@ -137,7 +137,7 @@ export function getLayoutContainerClasses(layout: SignatureLayout): string {
 
     // 3 firmas
     case 'triple-row':
-      return `${baseClasses} flex justify-between`;
+      return `${baseClasses} flex justify-between items-end`;
     case 'triple-pyramid':
       return `${baseClasses} flex flex-col gap-8`;
     case 'triple-inverted':
@@ -145,7 +145,7 @@ export function getLayoutContainerClasses(layout: SignatureLayout): string {
 
     // 4 firmas
     case 'quad-grid':
-      return `${baseClasses} grid grid-cols-2 gap-8 place-items-center`;
+      return `${baseClasses} grid grid-cols-2 gap-8 items-end justify-items-center`;
     case 'quad-top-heavy':
       return `${baseClasses} flex flex-col gap-8`;
     case 'quad-bottom-heavy':
@@ -204,25 +204,25 @@ export function getLayoutRowStructure(
     case 'triple-pyramid':
       return {
         rows: [[0, 1], [2]],
-        rowClasses: ['flex justify-between', 'flex justify-center'],
+        rowClasses: ['flex justify-between items-end', 'flex justify-center'],
       };
 
     case 'triple-inverted':
       return {
         rows: [[0], [1, 2]],
-        rowClasses: ['flex justify-center', 'flex justify-between'],
+        rowClasses: ['flex justify-center', 'flex justify-between items-end'],
       };
 
     case 'quad-top-heavy':
       return {
         rows: [[0, 1, 2], [3]],
-        rowClasses: ['flex justify-between', 'flex justify-center'],
+        rowClasses: ['flex justify-between items-end', 'flex justify-center'],
       };
 
     case 'quad-bottom-heavy':
       return {
         rows: [[0], [1, 2, 3]],
-        rowClasses: ['flex justify-center', 'flex justify-between'],
+        rowClasses: ['flex justify-center', 'flex justify-between items-end'],
       };
 
     default:

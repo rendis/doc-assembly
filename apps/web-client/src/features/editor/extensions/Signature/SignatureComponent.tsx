@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu';
 import { SignatureItemView } from './components/SignatureItemView';
 import { SignatureEditor } from './components/SignatureEditor';
-import type { SignatureBlockAttrs, SignatureCount, SignatureLayout, SignatureLineWidth } from './types';
+import type { SignatureBlockAttrs, SignatureCount, SignatureItem, SignatureLayout, SignatureLineWidth } from './types';
 import {
   getLayoutContainerClasses,
   getLayoutRowStructure,
@@ -56,6 +56,16 @@ export const SignatureComponent = (props: NodeViewProps) => {
     [updateAttributes]
   );
 
+  const handleImageTransformChange = useCallback(
+    (signatureId: string, transform: Partial<Pick<SignatureItem, 'imageRotation' | 'imageScale' | 'imageX' | 'imageY'>>) => {
+      const updatedSignatures = signatures.map((sig: SignatureItem) =>
+        sig.id === signatureId ? { ...sig, ...transform } : sig
+      );
+      updateAttributes({ signatures: updatedSignatures });
+    },
+    [signatures, updateAttributes]
+  );
+
   const containerClasses = getLayoutContainerClasses(layout);
   const itemWidthClasses = getSignatureItemWidthClasses(count);
   const needsRowStructure = layoutNeedsRowStructure(layout);
@@ -81,6 +91,10 @@ export const SignatureComponent = (props: NodeViewProps) => {
                     signature={signature}
                     lineWidth={lineWidth}
                     className={itemWidthClasses}
+                    editable={selected}
+                    onImageTransformChange={(transform) =>
+                      handleImageTransformChange(signature.id, transform)
+                    }
                   />
                 );
               })}
@@ -97,6 +111,10 @@ export const SignatureComponent = (props: NodeViewProps) => {
         signature={signature}
         lineWidth={lineWidth}
         className={itemWidthClasses}
+        editable={selected}
+        onImageTransformChange={(transform) =>
+          handleImageTransformChange(signature.id, transform)
+        }
       />
     ));
   };

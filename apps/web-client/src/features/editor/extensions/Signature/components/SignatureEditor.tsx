@@ -252,9 +252,10 @@ export function SignatureEditor({
                     {/* Imagen */}
                     <SignatureImageUpload
                       imageData={signature.imageData}
+                      imageOriginal={signature.imageOriginal}
                       opacity={signature.imageOpacity ?? 100}
-                      onImageChange={(imageData) =>
-                        handleSignatureUpdate(index, { imageData })
+                      onImageChange={(imageData, imageOriginal) =>
+                        handleSignatureUpdate(index, { imageData, imageOriginal })
                       }
                       onOpacityChange={(imageOpacity) =>
                         handleSignatureUpdate(index, { imageOpacity })

@@ -49,8 +49,13 @@ export interface SignatureItem {
   roleId?: string;
   label: string;
   subtitle?: string;
-  imageData?: string; // Base64 data URL
+  imageData?: string; // Imagen procesada (cropped) - Base64
+  imageOriginal?: string; // Imagen original para re-editar - Base64
   imageOpacity?: number; // 0-100, default 100
+  imageRotation?: number; // Rotación en grados (0, 90, 180, 270)
+  imageScale?: number; // Escala (1 = 100%)
+  imageX?: number; // Offset X en px
+  imageY?: number; // Offset Y en px
 }
 
 /**
