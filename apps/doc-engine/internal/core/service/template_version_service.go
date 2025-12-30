@@ -19,21 +19,24 @@ func NewTemplateVersionService(
 	injectableRepo port.TemplateVersionInjectableRepository,
 	signerRoleRepo port.TemplateVersionSignerRoleRepository,
 	templateRepo port.TemplateRepository,
+	contentValidator port.ContentValidator,
 ) usecase.TemplateVersionUseCase {
 	return &TemplateVersionService{
-		versionRepo:    versionRepo,
-		injectableRepo: injectableRepo,
-		signerRoleRepo: signerRoleRepo,
-		templateRepo:   templateRepo,
+		versionRepo:      versionRepo,
+		injectableRepo:   injectableRepo,
+		signerRoleRepo:   signerRoleRepo,
+		templateRepo:     templateRepo,
+		contentValidator: contentValidator,
 	}
 }
 
 // TemplateVersionService implements template version business logic.
 type TemplateVersionService struct {
-	versionRepo    port.TemplateVersionRepository
-	injectableRepo port.TemplateVersionInjectableRepository
-	signerRoleRepo port.TemplateVersionSignerRoleRepository
-	templateRepo   port.TemplateRepository
+	versionRepo      port.TemplateVersionRepository
+	injectableRepo   port.TemplateVersionInjectableRepository
+	signerRoleRepo   port.TemplateVersionSignerRoleRepository
+	templateRepo     port.TemplateRepository
+	contentValidator port.ContentValidator
 }
 
 // CreateVersion creates a new version for a template.
@@ -198,6 +201,11 @@ func (s *TemplateVersionService) UpdateVersion(ctx context.Context, cmd usecase.
 		version.Description = cmd.Description
 	}
 	if cmd.ContentStructure != nil {
+		// Validate content for draft (only checks JSON parseability)
+		result := s.contentValidator.ValidateForDraft(ctx, cmd.ContentStructure)
+		if !result.Valid {
+			return nil, toContentValidationError(result)
+		}
 		version.ContentStructure = cmd.ContentStructure
 	}
 
@@ -226,6 +234,39 @@ func (s *TemplateVersionService) PublishVersion(ctx context.Context, id string, 
 	if err := version.CanPublish(); err != nil {
 		return err
 	}
+
+	// Get template to obtain workspace ID for validation
+	template, err := s.templateRepo.FindByID(ctx, version.TemplateID)
+	if err != nil {
+		return fmt.Errorf("finding template: %w", err)
+	}
+
+	// Validate content for publishing (complete business logic validation)
+	result := s.contentValidator.ValidateForPublish(ctx, template.WorkspaceID, version.ID, version.ContentStructure)
+	if !result.Valid {
+		return toContentValidationError(result)
+	}
+
+	// Delete existing signer roles for this version
+	if err := s.signerRoleRepo.DeleteByVersionID(ctx, version.ID); err != nil {
+		slog.Warn("failed to delete existing signer roles",
+			slog.String("version_id", version.ID),
+			slog.Any("error", err),
+		)
+	}
+
+	// Insert extracted signer roles from content validation
+	for _, role := range result.ExtractedSignerRoles {
+		role.ID = uuid.NewString()
+		if _, err := s.signerRoleRepo.Create(ctx, role); err != nil {
+			return fmt.Errorf("creating signer role %s: %w", role.RoleName, err)
+		}
+	}
+
+	slog.Info("signer roles extracted from content",
+		slog.String("version_id", version.ID),
+		slog.Int("count", len(result.ExtractedSignerRoles)),
+	)
 
 	// Archive current published version if exists
 	currentPublished, err := s.versionRepo.FindPublishedByTemplateID(ctx, version.TemplateID)
@@ -442,124 +483,6 @@ func (s *TemplateVersionService) RemoveInjectable(ctx context.Context, id string
 	return nil
 }
 
-// AddSignerRole adds a signer role to a version.
-func (s *TemplateVersionService) AddSignerRole(ctx context.Context, cmd usecase.AddVersionSignerRoleCommand) (*entity.TemplateVersionSignerRole, error) {
-	// Verify version exists and can be edited
-	version, err := s.versionRepo.FindByID(ctx, cmd.VersionID)
-	if err != nil {
-		return nil, fmt.Errorf("finding version: %w", err)
-	}
-	if err := version.CanEdit(); err != nil {
-		return nil, err
-	}
-
-	// Check for duplicate anchor
-	anchorExists, err := s.signerRoleRepo.ExistsByAnchor(ctx, cmd.VersionID, cmd.AnchorString)
-	if err != nil {
-		return nil, fmt.Errorf("checking anchor existence: %w", err)
-	}
-	if anchorExists {
-		return nil, entity.ErrDuplicateSignerAnchor
-	}
-
-	// Check for duplicate order
-	orderExists, err := s.signerRoleRepo.ExistsByOrder(ctx, cmd.VersionID, cmd.SignerOrder)
-	if err != nil {
-		return nil, fmt.Errorf("checking order existence: %w", err)
-	}
-	if orderExists {
-		return nil, entity.ErrDuplicateSignerOrder
-	}
-
-	role := entity.NewTemplateVersionSignerRole(cmd.VersionID, cmd.RoleName, cmd.AnchorString, cmd.SignerOrder)
-	role.ID = uuid.NewString()
-
-	if err := role.Validate(); err != nil {
-		return nil, fmt.Errorf("validating signer role: %w", err)
-	}
-
-	id, err := s.signerRoleRepo.Create(ctx, role)
-	if err != nil {
-		return nil, fmt.Errorf("adding signer role: %w", err)
-	}
-	role.ID = id
-
-	slog.Info("signer role added to version",
-		slog.String("version_id", cmd.VersionID),
-		slog.String("role_name", cmd.RoleName),
-	)
-
-	return role, nil
-}
-
-// UpdateSignerRole updates a signer role.
-func (s *TemplateVersionService) UpdateSignerRole(ctx context.Context, cmd usecase.UpdateVersionSignerRoleCommand) (*entity.TemplateVersionSignerRole, error) {
-	role, err := s.signerRoleRepo.FindByID(ctx, cmd.ID)
-	if err != nil {
-		return nil, fmt.Errorf("finding signer role: %w", err)
-	}
-
-	// Verify version can be edited
-	version, err := s.versionRepo.FindByID(ctx, role.TemplateVersionID)
-	if err != nil {
-		return nil, fmt.Errorf("finding version: %w", err)
-	}
-	if err := version.CanEdit(); err != nil {
-		return nil, err
-	}
-
-	// Check for duplicate order if changed
-	if role.SignerOrder != cmd.SignerOrder {
-		orderExists, err := s.signerRoleRepo.ExistsByOrderExcluding(ctx, role.TemplateVersionID, cmd.SignerOrder, role.ID)
-		if err != nil {
-			return nil, fmt.Errorf("checking order existence: %w", err)
-		}
-		if orderExists {
-			return nil, entity.ErrDuplicateSignerOrder
-		}
-	}
-
-	role.RoleName = cmd.RoleName
-	role.SignerOrder = cmd.SignerOrder
-	now := time.Now().UTC()
-	role.UpdatedAt = &now
-
-	if err := role.Validate(); err != nil {
-		return nil, fmt.Errorf("validating signer role: %w", err)
-	}
-
-	if err := s.signerRoleRepo.Update(ctx, role); err != nil {
-		return nil, fmt.Errorf("updating signer role: %w", err)
-	}
-
-	slog.Info("signer role updated", slog.String("role_id", cmd.ID))
-	return role, nil
-}
-
-// RemoveSignerRole removes a signer role from a version.
-func (s *TemplateVersionService) RemoveSignerRole(ctx context.Context, id string) error {
-	role, err := s.signerRoleRepo.FindByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("finding signer role: %w", err)
-	}
-
-	// Verify version can be edited
-	version, err := s.versionRepo.FindByID(ctx, role.TemplateVersionID)
-	if err != nil {
-		return fmt.Errorf("finding version: %w", err)
-	}
-	if err := version.CanEdit(); err != nil {
-		return err
-	}
-
-	if err := s.signerRoleRepo.Delete(ctx, id); err != nil {
-		return fmt.Errorf("removing signer role: %w", err)
-	}
-
-	slog.Info("signer role removed", slog.String("role_id", id))
-	return nil
-}
-
 // ProcessScheduledPublications publishes all versions whose scheduled time has passed.
 func (s *TemplateVersionService) ProcessScheduledPublications(ctx context.Context) error {
 	versions, err := s.versionRepo.FindScheduledToPublish(ctx, time.Now().UTC())
@@ -600,4 +523,30 @@ func (s *TemplateVersionService) ProcessScheduledArchivals(ctx context.Context) 
 	}
 
 	return nil
+}
+
+// toContentValidationError converts a validation result to an entity.ContentValidationError.
+func toContentValidationError(result *port.ContentValidationResult) *entity.ContentValidationError {
+	errors := make([]entity.ContentValidationItem, 0, len(result.Errors))
+	for _, e := range result.Errors {
+		errors = append(errors, entity.ContentValidationItem{
+			Code:    e.Code,
+			Path:    e.Path,
+			Message: e.Message,
+		})
+	}
+
+	warnings := make([]entity.ContentValidationItem, 0, len(result.Warnings))
+	for _, w := range result.Warnings {
+		warnings = append(warnings, entity.ContentValidationItem{
+			Code:    w.Code,
+			Path:    w.Path,
+			Message: w.Message,
+		})
+	}
+
+	return &entity.ContentValidationError{
+		Errors:   errors,
+		Warnings: warnings,
+	}
 }

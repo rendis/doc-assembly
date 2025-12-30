@@ -32,21 +32,6 @@ type AddVersionInjectableCommand struct {
 	DefaultValue           *string
 }
 
-// AddVersionSignerRoleCommand represents the command to add a signer role to a version.
-type AddVersionSignerRoleCommand struct {
-	VersionID    string
-	RoleName     string
-	AnchorString string
-	SignerOrder  int
-}
-
-// UpdateVersionSignerRoleCommand represents the command to update a signer role.
-type UpdateVersionSignerRoleCommand struct {
-	ID          string
-	RoleName    string
-	SignerOrder int
-}
-
 // SchedulePublishCommand represents the command to schedule version publication.
 type SchedulePublishCommand struct {
 	VersionID string
@@ -105,15 +90,6 @@ type TemplateVersionUseCase interface {
 
 	// RemoveInjectable removes an injectable from a version.
 	RemoveInjectable(ctx context.Context, id string) error
-
-	// AddSignerRole adds a signer role to a version.
-	AddSignerRole(ctx context.Context, cmd AddVersionSignerRoleCommand) (*entity.TemplateVersionSignerRole, error)
-
-	// UpdateSignerRole updates a signer role.
-	UpdateSignerRole(ctx context.Context, cmd UpdateVersionSignerRoleCommand) (*entity.TemplateVersionSignerRole, error)
-
-	// RemoveSignerRole removes a signer role from a version.
-	RemoveSignerRole(ctx context.Context, id string) error
 
 	// ProcessScheduledPublications publishes all versions whose scheduled time has passed.
 	ProcessScheduledPublications(ctx context.Context) error

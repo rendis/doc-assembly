@@ -4,6 +4,7 @@ go 1.25.1
 
 require (
 	github.com/MicahParks/keyfunc/v3 v3.7.0
+	github.com/expr-lang/expr v1.17.7
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0

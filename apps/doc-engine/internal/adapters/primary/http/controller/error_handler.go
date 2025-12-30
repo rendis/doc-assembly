@@ -20,6 +20,13 @@ func respondError(ctx *gin.Context, statusCode int, err error) {
 // This is a centralized error handler that consolidates all error handling logic
 // from the various controller-specific error handlers.
 func HandleError(ctx *gin.Context, err error) {
+	// Check for ContentValidationError first (special handling)
+	var validationErr *entity.ContentValidationError
+	if errors.As(err, &validationErr) {
+		ctx.JSON(http.StatusUnprocessableEntity, dto.NewContentValidationErrorResponse(validationErr))
+		return
+	}
+
 	var statusCode int
 
 	switch {

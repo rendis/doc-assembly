@@ -51,11 +51,6 @@ func (c *TemplateVersionController) RegisterRoutes(templates *gin.RouterGroup) {
 		// Injectables - EDITOR+
 		versions.POST("/:versionId/injectables", middleware.RequireEditor(), c.AddInjectable)
 		versions.DELETE("/:versionId/injectables/:injectableId", middleware.RequireEditor(), c.RemoveInjectable)
-
-		// Signer roles - EDITOR+
-		versions.POST("/:versionId/signer-roles", middleware.RequireEditor(), c.AddSignerRole)
-		versions.PUT("/:versionId/signer-roles/:roleId", middleware.RequireEditor(), c.UpdateSignerRole)
-		versions.DELETE("/:versionId/signer-roles/:roleId", middleware.RequireEditor(), c.RemoveSignerRole)
 	}
 }
 
@@ -409,93 +404,6 @@ func (c *TemplateVersionController) RemoveInjectable(ctx *gin.Context) {
 	injectableID := ctx.Param("injectableId")
 
 	if err := c.versionUC.RemoveInjectable(ctx.Request.Context(), injectableID); err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
-}
-
-// --- Signer Role Handlers ---
-
-// AddSignerRole adds a signer role to a version.
-// @Summary Add signer role to version
-// @Tags Template Versions
-// @Accept json
-// @Produce json
-// @Param templateId path string true "Template ID"
-// @Param versionId path string true "Version ID"
-// @Param request body dto.AddVersionSignerRoleRequest true "Signer role data"
-// @Success 201 {object} dto.TemplateVersionSignerRoleResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Router /api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles [post]
-func (c *TemplateVersionController) AddSignerRole(ctx *gin.Context) {
-	versionID := ctx.Param("versionId")
-
-	var req dto.AddVersionSignerRoleRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	cmd := c.versionMapper.ToAddSignerRoleCommand(versionID, &req)
-	role, err := c.versionUC.AddSignerRole(ctx.Request.Context(), cmd)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, c.versionMapper.SignerRoleToResponse(role))
-}
-
-// UpdateSignerRole updates a signer role.
-// @Summary Update signer role
-// @Tags Template Versions
-// @Accept json
-// @Produce json
-// @Param templateId path string true "Template ID"
-// @Param versionId path string true "Version ID"
-// @Param roleId path string true "Role ID"
-// @Param request body dto.UpdateVersionSignerRoleRequest true "Signer role data"
-// @Success 200 {object} dto.TemplateVersionSignerRoleResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Router /api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles/{roleId} [put]
-func (c *TemplateVersionController) UpdateSignerRole(ctx *gin.Context) {
-	roleID := ctx.Param("roleId")
-
-	var req dto.UpdateVersionSignerRoleRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	cmd := c.versionMapper.ToUpdateSignerRoleCommand(roleID, &req)
-	role, err := c.versionUC.UpdateSignerRole(ctx.Request.Context(), cmd)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, c.versionMapper.SignerRoleToResponse(role))
-}
-
-// RemoveSignerRole removes a signer role from a version.
-// @Summary Remove signer role from version
-// @Tags Template Versions
-// @Accept json
-// @Produce json
-// @Param templateId path string true "Template ID"
-// @Param versionId path string true "Version ID"
-// @Param roleId path string true "Role ID"
-// @Success 204 "No Content"
-// @Failure 404 {object} dto.ErrorResponse
-// @Router /api/v1/content/templates/{templateId}/versions/{versionId}/signer-roles/{roleId} [delete]
-func (c *TemplateVersionController) RemoveSignerRole(ctx *gin.Context) {
-	roleID := ctx.Param("roleId")
-
-	if err := c.versionUC.RemoveSignerRole(ctx.Request.Context(), roleID); err != nil {
 		HandleError(ctx, err)
 		return
 	}

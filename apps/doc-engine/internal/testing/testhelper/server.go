@@ -28,6 +28,7 @@ import (
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
+	contentvalidator "github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 )
 
@@ -74,6 +75,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
 	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo)
 
+	// Create content validator
+	contentValidator := contentvalidator.New(injectableRepo)
+
 	// Create services - Content
 	injectableService := service.NewInjectableService(injectableRepo)
 	templateService := service.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
@@ -82,6 +86,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		templateVersionInjectableRepo,
 		templateVersionSignerRoleRepo,
 		templateRepo,
+		contentValidator,
 	)
 
 	// Create mappers

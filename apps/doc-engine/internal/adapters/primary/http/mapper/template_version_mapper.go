@@ -160,25 +160,6 @@ func (m *TemplateVersionMapper) ToAddInjectableCommand(versionID string, req *dt
 	}
 }
 
-// ToAddSignerRoleCommand converts an add signer role request to a command.
-func (m *TemplateVersionMapper) ToAddSignerRoleCommand(versionID string, req *dto.AddVersionSignerRoleRequest) usecase.AddVersionSignerRoleCommand {
-	return usecase.AddVersionSignerRoleCommand{
-		VersionID:    versionID,
-		RoleName:     req.RoleName,
-		AnchorString: req.AnchorString,
-		SignerOrder:  req.SignerOrder,
-	}
-}
-
-// ToUpdateSignerRoleCommand converts an update signer role request to a command.
-func (m *TemplateVersionMapper) ToUpdateSignerRoleCommand(roleID string, req *dto.UpdateVersionSignerRoleRequest) usecase.UpdateVersionSignerRoleCommand {
-	return usecase.UpdateVersionSignerRoleCommand{
-		ID:          roleID,
-		RoleName:    req.RoleName,
-		SignerOrder: req.SignerOrder,
-	}
-}
-
 // ToSchedulePublishCommand converts a schedule publish request to a command.
 func (m *TemplateVersionMapper) ToSchedulePublishCommand(versionID string, req *dto.SchedulePublishRequest) usecase.SchedulePublishCommand {
 	return usecase.SchedulePublishCommand{

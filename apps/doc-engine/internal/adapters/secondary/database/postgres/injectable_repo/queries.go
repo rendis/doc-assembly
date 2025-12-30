@@ -48,4 +48,12 @@ const (
 
 	queryGetVersionCount = `
 		SELECT COUNT(*) FROM content.template_version_injectables WHERE injectable_definition_id = $1`
+
+	// queryFindKeysByWorkspace returns all keys accessible to a workspace (workspace-specific + global)
+	// Used to validate that document variables reference accessible injectables
+	queryFindKeysByWorkspace = `
+		SELECT key
+		FROM content.injectable_definitions
+		WHERE (workspace_id = $1 OR workspace_id IS NULL)
+		  AND key = ANY($2)`
 )

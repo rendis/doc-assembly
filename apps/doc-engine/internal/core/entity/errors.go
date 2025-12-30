@@ -116,25 +116,27 @@ var (
 
 // Template Version errors.
 var (
-	ErrVersionNotFound             = errors.New("template version not found")
-	ErrVersionAlreadyExists        = errors.New("version number already exists for this template")
-	ErrVersionNameExists           = errors.New("version name already exists for this template")
-	ErrVersionNotPublished         = errors.New("version is not published")
-	ErrVersionAlreadyPublished     = errors.New("version is already published")
-	ErrCannotEditPublished         = errors.New("cannot edit published version")
-	ErrCannotEditArchived          = errors.New("cannot edit archived version")
-	ErrNoPublishedVersion          = errors.New("template has no published version")
+	ErrVersionNotFound                 = errors.New("template version not found")
+	ErrVersionAlreadyExists            = errors.New("version number already exists for this template")
+	ErrVersionNameExists               = errors.New("version name already exists for this template")
+	ErrVersionNotPublished             = errors.New("version is not published")
+	ErrVersionAlreadyPublished         = errors.New("version is already published")
+	ErrCannotEditPublished             = errors.New("cannot edit published version")
+	ErrCannotEditArchived              = errors.New("cannot edit archived version")
+	ErrNoPublishedVersion              = errors.New("template has no published version")
 	ErrCannotArchiveWithoutReplacement = errors.New("cannot schedule archive without scheduled replacement")
-	ErrInvalidVersionStatus        = errors.New("invalid version status")
-	ErrInvalidVersionNumber        = errors.New("invalid version number")
-	ErrScheduledTimeInPast         = errors.New("scheduled time must be in the future")
-	ErrInvalidContentStructure     = errors.New("invalid template content structure")
-	ErrMissingRequiredVariable     = errors.New("missing required template variable")
-	ErrSignerRoleNotFound          = errors.New("signer role not found")
-	ErrInvalidSignerRole           = errors.New("invalid signer role configuration")
-	ErrDuplicateSignerAnchor       = errors.New("duplicate signer anchor")
-	ErrDuplicateSignerOrder        = errors.New("duplicate signer order")
-	ErrVersionInjectableNotFound   = errors.New("version injectable not found")
+	ErrInvalidVersionStatus            = errors.New("invalid version status")
+	ErrInvalidVersionNumber            = errors.New("invalid version number")
+	ErrScheduledTimeInPast             = errors.New("scheduled time must be in the future")
+	ErrInvalidContentStructure         = errors.New("invalid template content structure")
+	ErrMissingRequiredVariable         = errors.New("missing required template variable")
+	ErrSignerRoleNotFound              = errors.New("signer role not found")
+	ErrInvalidSignerRole               = errors.New("invalid signer role configuration")
+	ErrDuplicateSignerAnchor           = errors.New("duplicate signer anchor")
+	ErrDuplicateSignerOrder            = errors.New("duplicate signer order")
+	ErrVersionInjectableNotFound       = errors.New("version injectable not found")
+	ErrContentValidationFailed         = errors.New("content validation failed")
+	ErrMissingRequiredContent          = errors.New("content structure is required for publishing")
 )
 
 // Document errors.
@@ -167,3 +169,34 @@ var (
 var (
 	ErrInvalidAccessEntityType = errors.New("invalid access entity type")
 )
+
+// ContentValidationError wraps multiple validation errors from content validation.
+type ContentValidationError struct {
+	Errors   []ContentValidationItem
+	Warnings []ContentValidationItem
+}
+
+// ContentValidationItem represents a single validation error or warning.
+type ContentValidationItem struct {
+	Code    string
+	Path    string
+	Message string
+}
+
+// Error implements the error interface.
+func (e *ContentValidationError) Error() string {
+	if len(e.Errors) == 0 {
+		return "content validation failed"
+	}
+	return "content validation failed: " + e.Errors[0].Message
+}
+
+// HasErrors returns true if there are validation errors.
+func (e *ContentValidationError) HasErrors() bool {
+	return len(e.Errors) > 0
+}
+
+// HasWarnings returns true if there are validation warnings.
+func (e *ContentValidationError) HasWarnings() bool {
+	return len(e.Warnings) > 0
+}

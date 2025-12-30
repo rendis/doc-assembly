@@ -32,4 +32,8 @@ type InjectableRepository interface {
 
 	// GetVersionCount returns the number of template versions using this injectable.
 	GetVersionCount(ctx context.Context, id string) (int, error)
+
+	// ExistsByKeysForWorkspace returns a set of keys that are accessible to the workspace.
+	// It checks both workspace-specific and global injectables.
+	ExistsByKeysForWorkspace(ctx context.Context, workspaceID string, keys []string) (map[string]bool, error)
 }

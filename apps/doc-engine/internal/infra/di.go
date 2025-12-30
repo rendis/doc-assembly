@@ -14,7 +14,6 @@ import (
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	systemrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tag_repo"
-	useraccesshistoryrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	templaterepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_repo"
 	templatetagrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_tag_repo"
 	templateversioninjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_version_injectable_repo"
@@ -22,10 +21,13 @@ import (
 	templateversionsignerrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_version_signer_role_repo"
 	tenantmemberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_member_repo"
 	tenantrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_repo"
+	useraccesshistoryrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
+	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
 )
@@ -75,6 +77,9 @@ var ProviderSet = wire.NewSet(
 	service.NewTemplateService,
 	service.NewTemplateVersionService,
 
+	// Content Validator
+	ProvideContentValidator,
+
 	// Mappers
 	mapper.NewInjectableMapper,
 	mapper.NewTagMapper,
@@ -119,4 +124,9 @@ func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
 // ProvideDBPool creates the database connection pool.
 func ProvideDBPool(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
 	return postgres.NewPool(context.Background(), cfg)
+}
+
+// ProvideContentValidator creates the content validator service.
+func ProvideContentValidator(injectableRepo port.InjectableRepository) port.ContentValidator {
+	return contentvalidator.New(injectableRepo)
 }

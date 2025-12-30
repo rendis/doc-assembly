@@ -219,3 +219,32 @@ func (r *Repository) GetVersionCount(ctx context.Context, id string) (int, error
 
 	return count, nil
 }
+
+// ExistsByKeysForWorkspace returns a set of keys that are accessible to the workspace.
+// It checks both workspace-specific and global injectables.
+func (r *Repository) ExistsByKeysForWorkspace(ctx context.Context, workspaceID string, keys []string) (map[string]bool, error) {
+	if len(keys) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	rows, err := r.pool.Query(ctx, queryFindKeysByWorkspace, workspaceID, keys)
+	if err != nil {
+		return nil, fmt.Errorf("querying accessible keys: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]bool, len(keys))
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, fmt.Errorf("scanning key: %w", err)
+		}
+		result[key] = true
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating keys: %w", err)
+	}
+
+	return result, nil
+}
