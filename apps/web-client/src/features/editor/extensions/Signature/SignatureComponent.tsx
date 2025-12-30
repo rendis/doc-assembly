@@ -123,10 +123,10 @@ export const SignatureComponent = (props: NodeViewProps) => {
 
         {/* Badge de edición flotante */}
         <div
-          className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs font-medium border border-foreground/20 transition-all cursor-pointer shadow-sm"
+          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded bg-foreground/10 hover:bg-foreground/20 text-foreground text-[10px] font-medium border border-foreground/20 transition-all cursor-pointer shadow-sm"
           onClick={handleDoubleClick}
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-3 w-3" />
           <span>Editar</span>
         </div>
       </div>

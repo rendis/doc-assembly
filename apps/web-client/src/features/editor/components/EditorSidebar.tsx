@@ -8,7 +8,9 @@ import {
   Image as ImageIcon,
   Table,
   PenTool,
-  GitBranch
+  GitBranch,
+  Variable,
+  Wrench,
 } from 'lucide-react';
 import { SYSTEM_VARIABLES, type InjectorType } from '../data/variables';
 
@@ -37,7 +39,8 @@ export const EditorSidebar = () => {
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-6 [mask-image:linear-gradient(to_bottom,transparent,black_20px,black_calc(100%-20px),transparent)]">
         <div>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            <Wrench className="h-3.5 w-3.5" />
             Estructura
           </h3>
           <div className="space-y-2">
@@ -55,7 +58,8 @@ export const EditorSidebar = () => {
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            <Variable className="h-3.5 w-3.5" />
             Variables
           </h3>
           <div className="space-y-2">
