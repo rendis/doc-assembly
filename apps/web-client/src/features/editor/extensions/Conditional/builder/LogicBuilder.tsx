@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DndContext, DragOverlay, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { GripVertical, Variable, Search } from 'lucide-react';
+import { GripVertical, Variable, Search, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ import { LogicBuilderContext } from './LogicBuilderContext';
 import { LogicGroupItem } from './LogicGroup';
 import { FormulaSummary } from './FormulaSummary';
 import type { InjectorType } from '../../../data/variables';
+import { useInjectablesStore } from '../../../stores/injectables-store';
 import { Calendar, CheckSquare, Coins, Hash, Image as ImageIcon, Table, Type } from 'lucide-react';
 
 const ICONS = {
@@ -25,17 +26,6 @@ const ICONS = {
 };
 
 const ALLOWED_TYPES: InjectorType[] = ['TEXT', 'NUMBER', 'CURRENCY', 'DATE', 'BOOLEAN'];
-
-// --- MOCK VARIABLES ---
-const MOCK_VARIABLES: { id: string; label: string; type: InjectorType }[] = [
-  { id: 'client_name', label: 'Nombre Cliente', type: 'TEXT' },
-  { id: 'total_amount', label: 'Monto Total', type: 'CURRENCY' },
-  { id: 'start_date', label: 'Fecha Inicio', type: 'DATE' },
-  { id: 'end_date', label: 'Fecha Fin', type: 'DATE' },
-  { id: 'is_renewal', label: 'Es Renovación', type: 'BOOLEAN' },
-  { id: 'contract_type', label: 'Tipo Contrato', type: 'TEXT' },
-  { id: 'company_logo', label: 'Logo Empresa', type: 'IMAGE' }, // Should be filtered out
-];
 
 // Pure function - moved outside component for better memoization
 const updateNodeRecursively = (
@@ -72,17 +62,32 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Get variables from store
+  const { variables: storeVariables, isLoading } = useInjectablesStore();
+
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor)
   );
 
+  // Map store variables to LogicBuilder format and filter by allowed types
+  const allVariables = useMemo(() => {
+    return storeVariables
+      .filter(v => ALLOWED_TYPES.includes(v.type))
+      .map(v => ({
+        id: v.variableId,
+        label: v.label,
+        type: v.type,
+      }));
+  }, [storeVariables]);
+
   const filteredVariables = useMemo(() => {
-    return MOCK_VARIABLES.filter(v => 
-      ALLOWED_TYPES.includes(v.type) && 
-      v.label.toLowerCase().includes(searchQuery.toLowerCase())
+    if (!searchQuery.trim()) return allVariables;
+    const lowerQuery = searchQuery.toLowerCase();
+    return allVariables.filter(v =>
+      v.label.toLowerCase().includes(lowerQuery)
     );
-  }, [searchQuery]);
+  }, [allVariables, searchQuery]);
 
   // --- ACTIONS ---
 
@@ -174,7 +179,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <LogicBuilderContext.Provider value={{
-        variables: MOCK_VARIABLES,
+        variables: allVariables,
         updateNode,
         addRule,
         addGroup,
@@ -202,10 +207,16 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
 
             <ScrollArea className="flex-1 p-3">
               <div className="space-y-2">
-                {filteredVariables.map(v => (
+                {isLoading && (
+                  <div className="flex items-center justify-center py-4 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-xs">Cargando...</span>
+                  </div>
+                )}
+                {!isLoading && filteredVariables.map(v => (
                   <DraggableVar key={v.id} id={v.id} label={v.label} type={v.type} />
                 ))}
-                {filteredVariables.length === 0 && (
+                {!isLoading && filteredVariables.length === 0 && (
                   <div className="text-xs text-muted-foreground text-center py-4">
                     No se encontraron variables.
                   </div>
@@ -229,7 +240,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
 
         <DragOverlay zIndex={100} dropAnimation={null}>
            {activeDragId ? (
-             <DraggingItem id={activeDragId} />
+             <DraggingItem id={activeDragId} variables={allVariables} />
            ) : null}
         </DragOverlay>
       </LogicBuilderContext.Provider>
@@ -237,11 +248,16 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
   );
 };
 
-const DraggingItem = ({ id }: { id: string }) => {
-  const v = MOCK_VARIABLES.find(v => v.id === id);
+interface DraggingItemProps {
+  id: string;
+  variables: { id: string; label: string; type: InjectorType }[];
+}
+
+const DraggingItem = ({ id, variables }: DraggingItemProps) => {
+  const v = variables.find(v => v.id === id);
   if (!v) return null;
   const Icon = ICONS[v.type] || Type;
-  
+
   return (
     <div className="bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-xl flex items-center gap-2 cursor-grabbing ring-2 ring-white z-[100]">
       <Icon className="h-3 w-3" />

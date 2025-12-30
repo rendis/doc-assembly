@@ -150,6 +150,7 @@ export interface CreateVersionFromExistingRequest {
 export interface UpdateVersionRequest {
   name?: string;
   description?: string;
+  contentStructure?: number[];
 }
 
 export interface SchedulePublishRequest {

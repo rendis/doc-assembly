@@ -5,6 +5,7 @@ export interface EditorProps {
   content: string;
   onChange?: (content: string) => void;
   editable?: boolean;
+  onEditorReady?: (editor: TiptapEditor) => void;
 }
 
 export interface EditorToolbarProps {
@@ -20,3 +21,12 @@ export interface UseEditorStateOptions {
 export interface UseEditorStateReturn {
   editor: TiptapEditor | null;
 }
+
+// Document Format Types
+export * from './document-format';
+
+// Pagination Types
+export * from './pagination';
+
+// Signer Roles Types
+export * from './signer-roles';

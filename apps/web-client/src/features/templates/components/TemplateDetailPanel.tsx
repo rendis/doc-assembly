@@ -30,8 +30,9 @@ export function TemplateDetailPanel({
 
   if (!isOpen || !template) return null;
 
-  const publishedVersion = template.versions.find((v) => v.status === 'PUBLISHED');
-  const latestVersion = template.versions[0];
+  const versions = template.versions ?? [];
+  const publishedVersion = versions.find((v) => v.status === 'PUBLISHED');
+  const latestVersion = versions[0];
 
   return (
     <>
@@ -167,7 +168,7 @@ export function TemplateDetailPanel({
             </div>
 
             <VersionsList
-              versions={template.versions}
+              versions={versions}
               templateId={template.id}
               onRefresh={onRefresh}
             />

@@ -7,6 +7,7 @@ import Dropcursor from '@tiptap/extension-dropcursor';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 // @ts-expect-error - tiptap-pagination-breaks types compatibility
@@ -78,6 +79,9 @@ export const useEditorState = ({
         HTMLAttributes: {
           class: 'bg-yellow-200 dark:bg-yellow-800',
         },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
       TaskList,
       TaskItem.configure({

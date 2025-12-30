@@ -24,12 +24,19 @@ interface DragData {
   variableId?: string;
 }
 
-export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
+export const Editor = ({ content, onChange, editable = true, onEditorReady }: EditorProps) => {
   const { editor } = useEditorState({
     content,
     editable,
     onUpdate: onChange,
   });
+
+  // Notify parent when editor is ready
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
 
   const { config } = usePaginationStore();
   const format = config.format;

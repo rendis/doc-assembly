@@ -26,7 +26,8 @@
     "close": "Close",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "apply": "Apply"
   },
   "auth": {
     "select_tenant": "Select an Organization",
@@ -180,8 +181,52 @@
     "bulletList": "Bullet List",
     "orderedList": "Ordered List",
     "quote": "Quote",
+    "alignLeft": "Align left",
+    "alignCenter": "Center",
+    "alignRight": "Align right",
+    "alignJustify": "Justify",
     "undo": "Undo",
-    "redo": "Redo"
+    "redo": "Redo",
+    "workflow": {
+      "title": "Signing configuration",
+      "settings": "Signing configuration",
+      "orderMode": "Signing order",
+      "parallel": "Parallel",
+      "sequential": "Sequential",
+      "notificationScope": "Notifications",
+      "global": "Global",
+      "individual": "Individual",
+      "notifications": "Notifications",
+      "notificationsFor": "Notifications",
+      "notificationsDescription": "Select when this signer will receive notifications:",
+      "triggers": {
+        "onDocumentCreated": "On document created",
+        "onPreviousRolesSigned": "When previous roles sign",
+        "onTurnToSign": "When it's their turn to sign",
+        "onAllComplete": "When all signatures complete"
+      },
+      "previousRoles": {
+        "title": "Select previous roles",
+        "auto": "Automatic",
+        "custom": "Custom",
+        "customize": "Customize",
+        "none": "None",
+        "autoDescription": "Will automatically notify when all previous roles (by order) have signed.",
+        "customDescription": "Select which roles must sign before notifying:",
+        "noRoles": "No previous roles available."
+      },
+      "activeCount": "{{count}} active",
+      "notConfigured": "Not configured"
+    },
+    "autoSave": {
+      "saved": "Saved",
+      "saving": "Saving...",
+      "pending": "Unsaved...",
+      "error": "Save failed",
+      "justNow": "just now",
+      "secondsAgo": "{{n}}s ago",
+      "minutesAgo": "{{n}}m ago"
+    }
   },
   "templates": {
     "title": "Templates",

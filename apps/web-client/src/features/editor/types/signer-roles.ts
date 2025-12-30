@@ -32,6 +32,7 @@ export interface SignerRoleDefinition {
 export interface SignerRolesState {
   roles: SignerRoleDefinition[];
   isCollapsed: boolean;
+  workflowConfig: SigningWorkflowConfig;
 }
 
 /**
@@ -45,6 +46,12 @@ export interface SignerRolesActions {
   reorderRoles: (startIndex: number, endIndex: number) => void;
   toggleCollapsed: () => void;
   reset: () => void;
+  // Workflow actions
+  setOrderMode: (mode: SigningOrderMode) => void;
+  setNotificationScope: (scope: NotificationScope) => void;
+  updateGlobalTriggers: (triggers: NotificationTriggerMap) => void;
+  updateRoleTriggers: (roleId: string, triggers: NotificationTriggerMap) => void;
+  setWorkflowConfig: (config: SigningWorkflowConfig) => void;
 }
 
 /**
@@ -98,4 +105,161 @@ export function getRoleDisplayName(
   _variables: Variable[]
 ): string {
   return role.label || `Rol ${role.order}`;
+}
+
+// =============================================================================
+// Signing Workflow Types
+// =============================================================================
+
+/**
+ * Modo de orden de firma
+ * - 'parallel': Los firmantes pueden firmar en cualquier orden
+ * - 'sequential': Los firmantes deben firmar en el orden definido
+ */
+export type SigningOrderMode = 'parallel' | 'sequential';
+
+/**
+ * Triggers de notificación disponibles
+ */
+export type NotificationTrigger =
+  | 'on_document_created'        // Al crear documento
+  | 'on_previous_roles_signed'   // Cuando firmen roles anteriores (solo secuencial)
+  | 'on_turn_to_sign'            // Cuando le toque firmar (solo secuencial)
+  | 'on_all_signatures_complete'; // Al completar todas las firmas
+
+/**
+ * Triggers disponibles en modo paralelo
+ */
+export type ParallelNotificationTrigger = Extract<
+  NotificationTrigger,
+  'on_document_created' | 'on_all_signatures_complete'
+>;
+
+/**
+ * Triggers disponibles en modo secuencial
+ */
+export type SequentialNotificationTrigger = NotificationTrigger;
+
+/**
+ * Configuración para el trigger "on_previous_roles_signed"
+ * - 'auto': Notifica cuando todos los roles anteriores (por order) hayan firmado
+ * - 'custom': Notifica cuando roles específicos seleccionados hayan firmado
+ */
+export interface PreviousRolesConfig {
+  mode: 'auto' | 'custom';
+  /** IDs de roles que deben firmar antes (solo cuando mode es 'custom') */
+  selectedRoleIds: string[];
+}
+
+/**
+ * Configuración de un trigger de notificación
+ */
+export interface NotificationTriggerSettings {
+  enabled: boolean;
+  /** Configuración adicional para 'on_previous_roles_signed' */
+  previousRolesConfig?: PreviousRolesConfig;
+}
+
+/**
+ * Mapa de triggers a sus configuraciones
+ */
+export type NotificationTriggerMap = Partial<
+  Record<NotificationTrigger, NotificationTriggerSettings>
+>;
+
+/**
+ * Configuración de notificaciones para un rol específico
+ */
+export interface RoleNotificationConfig {
+  roleId: string;
+  triggers: NotificationTriggerMap;
+}
+
+/**
+ * Scope de notificaciones
+ * - 'global': Una configuración aplica a todos los roles
+ * - 'individual': Cada rol tiene su propia configuración
+ */
+export type NotificationScope = 'global' | 'individual';
+
+/**
+ * Configuración completa de notificaciones del documento
+ */
+export interface SigningNotificationConfig {
+  scope: NotificationScope;
+  /** Triggers globales (usado cuando scope es 'global') */
+  globalTriggers: NotificationTriggerMap;
+  /** Configuración por rol (usado cuando scope es 'individual') */
+  roleConfigs: RoleNotificationConfig[];
+}
+
+/**
+ * Configuración completa del workflow de firma
+ */
+export interface SigningWorkflowConfig {
+  orderMode: SigningOrderMode;
+  notifications: SigningNotificationConfig;
+}
+
+/**
+ * Crea triggers por defecto para modo paralelo
+ */
+export function getDefaultParallelTriggers(): NotificationTriggerMap {
+  return {
+    on_document_created: { enabled: true },
+    on_all_signatures_complete: { enabled: false },
+  };
+}
+
+/**
+ * Crea triggers por defecto para modo secuencial
+ */
+export function getDefaultSequentialTriggers(): NotificationTriggerMap {
+  return {
+    on_document_created: { enabled: false },
+    on_previous_roles_signed: {
+      enabled: false,
+      previousRolesConfig: { mode: 'auto', selectedRoleIds: [] },
+    },
+    on_turn_to_sign: { enabled: true },
+    on_all_signatures_complete: { enabled: false },
+  };
+}
+
+/**
+ * Crea configuración de workflow por defecto
+ */
+export function createDefaultWorkflowConfig(): SigningWorkflowConfig {
+  return {
+    orderMode: 'parallel',
+    notifications: {
+      scope: 'global',
+      globalTriggers: getDefaultParallelTriggers(),
+      roleConfigs: [],
+    },
+  };
+}
+
+/**
+ * Obtiene los triggers disponibles según el modo de orden
+ */
+export function getAvailableTriggers(
+  orderMode: SigningOrderMode
+): NotificationTrigger[] {
+  if (orderMode === 'parallel') {
+    return ['on_document_created', 'on_all_signatures_complete'];
+  }
+  return [
+    'on_document_created',
+    'on_previous_roles_signed',
+    'on_turn_to_sign',
+    'on_all_signatures_complete',
+  ];
+}
+
+/**
+ * Cuenta los triggers activos en un mapa de triggers
+ */
+export function countActiveTriggers(triggers: NotificationTriggerMap): number {
+  return Object.values(triggers).filter((t) => t?.enabled).length;
 }

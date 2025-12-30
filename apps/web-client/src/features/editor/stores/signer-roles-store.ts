@@ -1,11 +1,24 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
-import type { SignerRoleDefinition, SignerRolesStore } from '../types/signer-roles';
-import { createEmptyRole } from '../types/signer-roles';
+import type {
+  SignerRoleDefinition,
+  SignerRolesStore,
+  SigningOrderMode,
+  NotificationScope,
+  NotificationTriggerMap,
+  SigningWorkflowConfig,
+} from '../types/signer-roles';
+import {
+  createEmptyRole,
+  createDefaultWorkflowConfig,
+  getDefaultParallelTriggers,
+  getDefaultSequentialTriggers,
+} from '../types/signer-roles';
 
 const initialState = {
   roles: [] as SignerRoleDefinition[],
   isCollapsed: false,
+  workflowConfig: createDefaultWorkflowConfig(),
 };
 
 export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
@@ -62,6 +75,107 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
   },
 
   reset: () => set(initialState),
+
+  // Workflow actions
+  setOrderMode: (mode: SigningOrderMode) => {
+    set((state) => {
+      const defaultTriggers =
+        mode === 'parallel'
+          ? getDefaultParallelTriggers()
+          : getDefaultSequentialTriggers();
+
+      return {
+        workflowConfig: {
+          ...state.workflowConfig,
+          orderMode: mode,
+          notifications: {
+            ...state.workflowConfig.notifications,
+            globalTriggers: defaultTriggers,
+            // Reset individual configs with new mode defaults
+            roleConfigs: state.workflowConfig.notifications.roleConfigs.map(
+              (rc) => ({
+                ...rc,
+                triggers: defaultTriggers,
+              })
+            ),
+          },
+        },
+      };
+    });
+  },
+
+  setNotificationScope: (scope: NotificationScope) => {
+    set((state) => {
+      const { workflowConfig, roles } = state;
+      const defaultTriggers =
+        workflowConfig.orderMode === 'parallel'
+          ? getDefaultParallelTriggers()
+          : getDefaultSequentialTriggers();
+
+      // When switching to individual, initialize roleConfigs for all roles
+      const roleConfigs =
+        scope === 'individual'
+          ? roles.map((role) => ({
+              roleId: role.id,
+              triggers:
+                workflowConfig.notifications.roleConfigs.find(
+                  (rc) => rc.roleId === role.id
+                )?.triggers || defaultTriggers,
+            }))
+          : workflowConfig.notifications.roleConfigs;
+
+      return {
+        workflowConfig: {
+          ...workflowConfig,
+          notifications: {
+            ...workflowConfig.notifications,
+            scope,
+            roleConfigs,
+          },
+        },
+      };
+    });
+  },
+
+  updateGlobalTriggers: (triggers: NotificationTriggerMap) => {
+    set((state) => ({
+      workflowConfig: {
+        ...state.workflowConfig,
+        notifications: {
+          ...state.workflowConfig.notifications,
+          globalTriggers: triggers,
+        },
+      },
+    }));
+  },
+
+  updateRoleTriggers: (roleId: string, triggers: NotificationTriggerMap) => {
+    set((state) => {
+      const { roleConfigs } = state.workflowConfig.notifications;
+      const existingIndex = roleConfigs.findIndex((rc) => rc.roleId === roleId);
+
+      const newRoleConfigs =
+        existingIndex >= 0
+          ? roleConfigs.map((rc, i) =>
+              i === existingIndex ? { ...rc, triggers } : rc
+            )
+          : [...roleConfigs, { roleId, triggers }];
+
+      return {
+        workflowConfig: {
+          ...state.workflowConfig,
+          notifications: {
+            ...state.workflowConfig.notifications,
+            roleConfigs: newRoleConfigs,
+          },
+        },
+      };
+    });
+  },
+
+  setWorkflowConfig: (config: SigningWorkflowConfig) => {
+    set({ workflowConfig: config });
+  },
 }));
 
 /**

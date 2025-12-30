@@ -26,7 +26,8 @@
     "close": "Cerrar",
     "confirm": "Confirmar",
     "yes": "Si",
-    "no": "No"
+    "no": "No",
+    "apply": "Aplicar"
   },
   "auth": {
     "select_tenant": "Selecciona una Organizacion",
@@ -180,8 +181,52 @@
     "bulletList": "Lista con vinetas",
     "orderedList": "Lista numerada",
     "quote": "Cita",
+    "alignLeft": "Alinear a la izquierda",
+    "alignCenter": "Centrar",
+    "alignRight": "Alinear a la derecha",
+    "alignJustify": "Justificar",
     "undo": "Deshacer",
-    "redo": "Rehacer"
+    "redo": "Rehacer",
+    "workflow": {
+      "title": "Configuracion de firma",
+      "settings": "Configuracion de firma",
+      "orderMode": "Orden de firma",
+      "parallel": "Paralelo",
+      "sequential": "Secuencial",
+      "notificationScope": "Notificaciones",
+      "global": "Global",
+      "individual": "Individual",
+      "notifications": "Notificaciones",
+      "notificationsFor": "Notificaciones",
+      "notificationsDescription": "Selecciona cuando este firmante recibira notificaciones:",
+      "triggers": {
+        "onDocumentCreated": "Al crear documento",
+        "onPreviousRolesSigned": "Cuando firmen roles anteriores",
+        "onTurnToSign": "Cuando le toque firmar",
+        "onAllComplete": "Al completar todas las firmas"
+      },
+      "previousRoles": {
+        "title": "Seleccionar roles anteriores",
+        "auto": "Automatico",
+        "custom": "Personalizado",
+        "customize": "Personalizar",
+        "none": "Ninguno",
+        "autoDescription": "Se notificara automaticamente cuando todos los roles anteriores (segun el orden) hayan firmado.",
+        "customDescription": "Selecciona los roles que deben firmar antes de notificar:",
+        "noRoles": "No hay roles anteriores disponibles."
+      },
+      "activeCount": "{{count}} activos",
+      "notConfigured": "Sin configurar"
+    },
+    "autoSave": {
+      "saved": "Guardado",
+      "saving": "Guardando...",
+      "pending": "Sin guardar...",
+      "error": "Error al guardar",
+      "justNow": "ahora mismo",
+      "secondsAgo": "hace {{n}}s",
+      "minutesAgo": "hace {{n}}m"
+    }
   },
   "templates": {
     "title": "Plantillas",

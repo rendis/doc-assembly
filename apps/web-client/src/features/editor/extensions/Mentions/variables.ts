@@ -1,6 +1,10 @@
 import { Calendar, CheckSquare, Coins, Hash, Image as ImageIcon, Table, Type } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { SYSTEM_VARIABLES as BASE_VARIABLES, filterVariables as baseFilterVariables, type Variable, type InjectorType } from '../../data/variables';
+import type { InjectorType, Variable } from '../../data/variables';
+import {
+  getVariables,
+  filterVariables as storeFilterVariables,
+} from '../../stores/injectables-store';
 
 // Re-export types for backward compatibility
 export type VariableType = InjectorType;
@@ -21,20 +25,28 @@ export const VARIABLE_ICONS: Record<VariableType, LucideIcon> = {
   TABLE: Table,
 };
 
-// Map from centralized variables to MentionVariable format
-export const SYSTEM_VARIABLES: MentionVariable[] = BASE_VARIABLES.map((v: Variable) => ({
-  id: v.variableId,
-  label: v.label,
-  type: v.type,
-}));
-
-export const filterVariables = (query: string): MentionVariable[] => {
-  if (!query) return SYSTEM_VARIABLES;
-
-  const filtered = baseFilterVariables(query);
-  return filtered.map((v: Variable) => ({
+/**
+ * Map Variable to MentionVariable format
+ */
+function mapToMentionVariable(v: Variable): MentionVariable {
+  return {
     id: v.variableId,
     label: v.label,
     type: v.type,
-  }));
-};
+  };
+}
+
+/**
+ * Get all variables as MentionVariable format (from store)
+ */
+export function getMentionVariables(): MentionVariable[] {
+  return getVariables().map(mapToMentionVariable);
+}
+
+/**
+ * Filter variables by query and return as MentionVariable format
+ */
+export function filterVariables(query: string): MentionVariable[] {
+  const filtered = storeFilterVariables(query);
+  return filtered.map(mapToMentionVariable);
+}

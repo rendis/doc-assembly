@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useSignerRolesStore } from '../stores/signer-roles-store';
 import { SignerRoleItem } from './SignerRoleItem';
+import { WorkflowConfigButton } from './workflow';
 import type { Variable } from '../data/variables';
 
 interface SignerRolesPanelProps {
@@ -39,6 +40,8 @@ export function SignerRolesPanel({ variables, className }: SignerRolesPanelProps
   const updateRole = useSignerRolesStore((state) => state.updateRole);
   const deleteRole = useSignerRolesStore((state) => state.deleteRole);
   const reorderRoles = useSignerRolesStore((state) => state.reorderRoles);
+  const workflowConfig = useSignerRolesStore((state) => state.workflowConfig);
+  const updateRoleTriggers = useSignerRolesStore((state) => state.updateRoleTriggers);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -92,15 +95,6 @@ export function SignerRolesPanel({ variables, className }: SignerRolesPanelProps
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Roles de Firma</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={addRole}
-              title="Agregar rol"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
           </>
         )}
       </div>
@@ -129,6 +123,9 @@ export function SignerRolesPanel({ variables, className }: SignerRolesPanelProps
       {!isCollapsed && (
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-3">
+            {/* Workflow configuration button - always at the top */}
+            <WorkflowConfigButton />
+
             {roles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
@@ -164,8 +161,11 @@ export function SignerRolesPanel({ variables, className }: SignerRolesPanelProps
                         key={role.id}
                         role={role}
                         variables={variables}
+                        allRoles={roles}
+                        workflowConfig={workflowConfig}
                         onUpdate={updateRole}
                         onDelete={deleteRole}
+                        onUpdateRoleTriggers={updateRoleTriggers}
                       />
                     ))}
                   </SortableContext>

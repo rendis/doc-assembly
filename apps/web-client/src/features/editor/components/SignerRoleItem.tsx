@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { GripVertical, Trash2, Type, Variable } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,14 +12,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { SignerRoleDefinition, SignerRoleFieldValue } from '../types/signer-roles';
+import type {
+  SignerRoleDefinition,
+  SignerRoleFieldValue,
+  NotificationTriggerMap,
+  SigningWorkflowConfig,
+} from '../types/signer-roles';
+import { getDefaultParallelTriggers, getDefaultSequentialTriggers } from '../types/signer-roles';
 import type { Variable as VariableType } from '../data/variables';
+import { NotificationBadge, NotificationConfigDialog } from './workflow';
 
 interface SignerRoleItemProps {
   role: SignerRoleDefinition;
   variables: VariableType[];
+  allRoles: SignerRoleDefinition[];
+  workflowConfig: SigningWorkflowConfig;
   onUpdate: (id: string, updates: Partial<Omit<SignerRoleDefinition, 'id'>>) => void;
   onDelete: (id: string) => void;
+  onUpdateRoleTriggers: (roleId: string, triggers: NotificationTriggerMap) => void;
 }
 
 interface FieldEditorProps {
@@ -94,9 +105,14 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
 export function SignerRoleItem({
   role,
   variables,
+  allRoles,
+  workflowConfig,
   onUpdate,
   onDelete,
+  onUpdateRoleTriggers,
 }: SignerRoleItemProps) {
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+
   const {
     attributes,
     listeners,
@@ -119,7 +135,24 @@ export function SignerRoleItem({
     onUpdate(role.id, { email: value });
   };
 
+  // Get role notification triggers
+  const isIndividualMode = workflowConfig.notifications.scope === 'individual';
+  const roleConfig = workflowConfig.notifications.roleConfigs.find(
+    (rc) => rc.roleId === role.id
+  );
+  const defaultTriggers =
+    workflowConfig.orderMode === 'parallel'
+      ? getDefaultParallelTriggers()
+      : getDefaultSequentialTriggers();
+  const roleTriggers = roleConfig?.triggers ?? defaultTriggers;
+
+  const handleSaveNotifications = (triggers: NotificationTriggerMap) => {
+    onUpdateRoleTriggers(role.id, triggers);
+  };
+
   return (
+    <>
+
     <div
       ref={setNodeRef}
       style={style}
@@ -144,6 +177,13 @@ export function SignerRoleItem({
           placeholder="Nombre del rol"
           className="h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent hover:border-input focus:border-input px-1"
         />
+
+        {isIndividualMode && (
+          <NotificationBadge
+            triggers={roleTriggers}
+            onClick={() => setShowNotificationDialog(true)}
+          />
+        )}
 
         <Button
           variant="ghost"
@@ -171,5 +211,17 @@ export function SignerRoleItem({
         />
       </div>
     </div>
+
+      {/* Notification config dialog (individual mode) */}
+      <NotificationConfigDialog
+        open={showNotificationDialog}
+        onOpenChange={setShowNotificationDialog}
+        role={role}
+        allRoles={allRoles}
+        triggers={roleTriggers}
+        orderMode={workflowConfig.orderMode}
+        onSave={handleSaveNotifications}
+      />
+    </>
   );
 }

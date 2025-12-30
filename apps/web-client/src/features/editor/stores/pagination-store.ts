@@ -5,6 +5,7 @@ import { PAGE_FORMATS, DEFAULT_PAGE_FORMAT } from '../utils/page-formats';
 
 interface PaginationStore {
   config: PaginationConfig;
+  setPaginationConfig: (config: Partial<PaginationConfig>) => void;
   setFormat: (format: PageFormat) => void;
   setCustomFormat: (width: number, height: number, margins: PageMargins) => void;
   togglePagination: (enabled: boolean) => void;
@@ -21,6 +22,11 @@ export const usePaginationStore = create<PaginationStore>()(
         showPageNumbers: true,
         pageGap: 40,
       },
+
+      setPaginationConfig: (config) =>
+        set((state) => ({
+          config: { ...state.config, ...config },
+        })),
 
       setFormat: (format) =>
         set((state) => ({
