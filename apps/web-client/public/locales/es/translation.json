@@ -216,8 +216,8 @@
     "created": "Creado",
     "status": {
       "all": "Todos",
-      "draft": "Borradores",
-      "published": "Publicados",
+      "draft": "Borrador",
+      "published": "Publicado",
       "archived": "Archivado"
     },
     "actions": {
