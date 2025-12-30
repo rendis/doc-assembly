@@ -1,2 +1,2 @@
-export { PageBreakExtension } from './PageBreakExtension';
-export { PageBreakComponent } from './PageBreakComponent';
+export { PageBreakHR } from './PageBreakHR';
+export { PageBreakHRComponent } from './PageBreakHRComponent';

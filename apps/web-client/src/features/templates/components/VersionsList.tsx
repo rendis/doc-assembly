@@ -1,11 +1,13 @@
-import { Clock, Calendar, Pen, Eye, FileText, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Clock, Calendar, Pen, Eye, FileText, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from '@tanstack/react-router';
-import type { TemplateVersion } from '../types';
+import type { TemplateVersion, VersionSortOption } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDate, formatDistanceToNow } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
 import { VersionActionsMenu } from './version-actions';
+import { sortVersions } from '../utils/version-sorting';
 import { cn } from '@/lib/utils';
 
 interface VersionsListProps {
@@ -21,6 +23,19 @@ export function VersionsList({
 }: VersionsListProps) {
   const { t } = useTranslation();
   const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
+  const [sortBy, setSortBy] = useState<VersionSortOption>('modified-desc');
+
+  // Calculate which version is truly latest (by version number)
+  const latestVersionNumber = useMemo(
+    () => versions.length > 0 ? Math.max(...versions.map(v => v.versionNumber)) : 0,
+    [versions]
+  );
+
+  // Sort versions based on selected option
+  const sortedVersions = useMemo(
+    () => sortVersions(versions, sortBy),
+    [versions, sortBy]
+  );
 
   if (versions.length === 0) {
     return (
@@ -31,17 +46,72 @@ export function VersionsList({
   }
 
   return (
-    <div className="space-y-2">
-      {versions.map((version, index) => (
-        <VersionItem
-          key={version.id}
-          version={version}
-          isLatest={index === 0}
-          templateId={templateId}
-          workspaceId={workspaceId}
-          onActionComplete={onRefresh}
-        />
-      ))}
+    <div className="space-y-3">
+      {/* Sort Control - Only show if there are multiple versions */}
+      {versions.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+          <button
+            onClick={() => setSortBy('modified-desc')}
+            className={cn(
+              'px-2 py-1 text-[11px] rounded-md transition-colors',
+              sortBy === 'modified-desc'
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            )}
+          >
+            {t('templates.sorting.modifiedNewest')}
+          </button>
+          <button
+            onClick={() => setSortBy('modified-asc')}
+            className={cn(
+              'px-2 py-1 text-[11px] rounded-md transition-colors',
+              sortBy === 'modified-asc'
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            )}
+          >
+            {t('templates.sorting.modifiedOldest')}
+          </button>
+          <span className="text-muted-foreground/30">|</span>
+          <button
+            onClick={() => setSortBy('version-desc')}
+            className={cn(
+              'px-2 py-1 text-[11px] rounded-md transition-colors',
+              sortBy === 'version-desc'
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            )}
+          >
+            {t('templates.sorting.versionNewest')}
+          </button>
+          <button
+            onClick={() => setSortBy('version-asc')}
+            className={cn(
+              'px-2 py-1 text-[11px] rounded-md transition-colors',
+              sortBy === 'version-asc'
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            )}
+          >
+            {t('templates.sorting.versionOldest')}
+          </button>
+        </div>
+      )}
+
+      {/* Version Items */}
+      <div className="space-y-2">
+        {sortedVersions.map((version) => (
+          <VersionItem
+            key={version.id}
+            version={version}
+            isLatest={version.versionNumber === latestVersionNumber}
+            templateId={templateId}
+            workspaceId={workspaceId}
+            onActionComplete={onRefresh}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -60,7 +130,7 @@ function VersionItem({ version, isLatest, templateId, workspaceId, onActionCompl
 
   // Show most relevant date: updatedAt if exists and different from createdAt, otherwise createdAt
   const hasBeenUpdated = version.updatedAt && version.updatedAt !== version.createdAt;
-  const primaryDate = hasBeenUpdated ? version.updatedAt : version.createdAt;
+  const primaryDate = (hasBeenUpdated ? version.updatedAt : version.createdAt) as string;
   const primaryDateLabel = hasBeenUpdated ? t('templates.dates.updated') : t('templates.dates.created');
   const PrimaryDateIcon = hasBeenUpdated ? RefreshCw : Calendar;
 

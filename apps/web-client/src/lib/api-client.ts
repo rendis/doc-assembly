@@ -32,7 +32,16 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // Para respuestas blob, retornar la respuesta completa
+    // para preservar metadata (headers, config, etc.)
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+
+    // Para respuestas JSON/text normales, retornar solo data
+    return response.data;
+  },
   (error) => {
     // Handle 401s globally (e.g., redirect to login)
     if (error.response?.status === 401) {

@@ -199,6 +199,44 @@
       "formatOptions": "Format options",
       "select": "Select"
     },
+    "preview": {
+      "title": "Generate Preview",
+      "tooltip": "PDF Preview",
+      "generate": "Generate",
+      "generateAll": "Generate all",
+      "generateAllRoles": "Generate all roles",
+      "generateRandom": "Generate random value",
+      "generating": "Generating...",
+      "cancel": "Cancel",
+      "close": "Close",
+      "download": "Download PDF",
+      "standardVariables": "Document Variables",
+      "roleVariables": "Role Variables",
+      "systemVariables": "System Variables",
+      "systemVariablesHelp": "These values are calculated automatically but you can modify them if you wish.",
+      "auto": "Auto",
+      "reset": "Reset",
+      "resetToEmulated": "Reset to automatic value",
+      "noVariables": "No variables defined in this document.",
+      "generateAnyway": "Generate anyway",
+      "errors": {
+        "invalidNumber": "Must be a valid number",
+        "invalidDate": "Invalid date format",
+        "invalidEmail": "Invalid email"
+      },
+      "pdfModal": {
+        "title": "Document Preview",
+        "loading": "Loading PDF...",
+        "browserNotSupported": "Your browser cannot display the PDF. Please download it to view.",
+        "error": "Error loading PDF",
+        "pageInfo": "Page {{current}} of {{total}}",
+        "page": "Page",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "zoomReset": "Reset zoom",
+        "fitToWidth": "Fit to width"
+      }
+    },
     "workflow": {
       "title": "Signing configuration",
       "settings": "Signing configuration",
@@ -423,6 +461,13 @@
       "cancelError": "Failed to cancel schedule",
       "cancelSuccess": "Schedule cancelled",
       "scheduledFor": "Scheduled for"
+    },
+    "sorting": {
+      "sortBy": "Sort by",
+      "versionNewest": "Version (Newest First)",
+      "versionOldest": "Version (Oldest First)",
+      "modifiedNewest": "Last Modified (Newest)",
+      "modifiedOldest": "Last Modified (Oldest)"
     }
   },
   "folders": {

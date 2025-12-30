@@ -1,10 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Editor } from '@/features/editor/components/Editor';
+import { PageIndicator } from '@/features/editor/components/PageIndicator';
 import { SaveStatusIndicator } from '@/features/editor/components/SaveStatusIndicator';
 import { SignerRolesPanel } from '@/features/editor/components/SignerRolesPanel';
 import { SignerRolesProvider } from '@/features/editor/context/SignerRolesContext';
 import { useAutoSave } from '@/features/editor/hooks/useAutoSave';
 import { useInjectables } from '@/features/editor/hooks/useInjectables';
+import { usePagination } from '@/features/editor/hooks/usePagination';
 import { deserializeContent, importDocument } from '@/features/editor/services/document-import';
 import { usePaginationStore } from '@/features/editor/stores/pagination-store';
 import { useSignerRolesStore } from '@/features/editor/stores/signer-roles-store';
@@ -32,6 +34,9 @@ function VersionDesignPage() {
   const [editor, setEditor] = useState<TiptapEditor | null>(null);
   const contentLoadedRef = useRef(false);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Pagination state
+  const pagination = usePagination(editor);
 
   // Version data state
   const [version, setVersion] = useState<TemplateVersionDetail | null>(null);
@@ -230,10 +235,17 @@ function VersionDesignPage() {
         {/* Editor + Roles Panel */}
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 overflow-hidden relative">
+            <PageIndicator
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              showPageNumbers={pagination.showPageNumbers}
+            />
             <Editor
               content=""
               editable={isEditable}
               onEditorReady={handleEditorReady}
+              templateId={templateId}
+              versionId={versionId}
             />
           </div>
 

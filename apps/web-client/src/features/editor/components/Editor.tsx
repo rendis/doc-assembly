@@ -46,7 +46,7 @@ interface PendingVariable {
   pointerCoords: { x: number; y: number };
 }
 
-export const Editor = ({ content, onChange, editable = true, onEditorReady }: EditorProps) => {
+export const Editor = ({ content, onChange, editable = true, onEditorReady, templateId, versionId }: EditorProps) => {
   const { editor } = useEditorState({
     content,
     editable,
@@ -320,7 +320,7 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
         <EditorSidebar />
 
         <div className="flex-1 flex flex-col min-w-0 relative">
-          <EditorToolbar editor={editor} />
+          <EditorToolbar editor={editor} templateId={templateId} versionId={versionId} />
           <PageSettingsToolbar editor={editor} />
           <div
             className="editor-scroll-container"

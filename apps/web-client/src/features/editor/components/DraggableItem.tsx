@@ -35,10 +35,10 @@ export const SidebarItem = ({
         'flex items-center gap-2 p-2 text-sm border rounded-md cursor-grab shadow-sm hover:shadow-md transition-shadow select-none',
         type === 'tool' && 'border-dashed border-muted-foreground/50 bg-card',
         type === 'variable' && 'border-border bg-card',
-        // Estilos púrpura para role-variable
+        // Estilos teal para role-variable
         isRoleVariant && [
-          'border-violet-300/50 bg-violet-50 hover:bg-violet-100/80',
-          'dark:border-violet-500/30 dark:bg-violet-950/30 dark:hover:bg-violet-900/40',
+          'border-role-border/50 bg-role-muted hover:bg-role-muted/80',
+          'dark:border-role-border dark:bg-role-muted dark:hover:bg-role-muted/80',
         ],
         !isRoleVariant && type === 'role-variable' && 'border-border bg-card',
         className
@@ -48,14 +48,14 @@ export const SidebarItem = ({
         <Icon
           className={cn(
             'h-4 w-4',
-            isRoleVariant ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'
+            isRoleVariant ? 'text-role-foreground dark:text-role-foreground' : 'text-muted-foreground'
           )}
         />
       )}
       <span
         className={cn(
           'flex-1 truncate',
-          isRoleVariant && 'text-violet-700 dark:text-violet-300'
+          isRoleVariant && 'text-role-foreground'
         )}
       >
         {label}

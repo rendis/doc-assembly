@@ -9,8 +9,9 @@ import { usePaginationStore } from '../stores/pagination-store';
 import { useSignerRolesStore } from '../stores/signer-roles-store';
 import { exportDocument, downloadAsJson } from '../services/document-export';
 import { importFromFile } from '../services/document-import';
+import { PreviewButton } from './PreviewButton';
 
-export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, templateId, versionId }: EditorToolbarProps) => {
   const { t } = useTranslation();
   const { config: paginationConfig } = usePaginationStore();
   const setPaginationConfig = usePaginationStore((s) => s.setPaginationConfig);
@@ -147,6 +148,12 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
       >
         <Upload className="h-4 w-4" />
       </button>
+      {templateId && versionId && (
+        <PreviewButton
+          templateId={templateId}
+          versionId={versionId}
+        />
+      )}
       <div className="w-px h-6 bg-border mx-1 self-center" />
       <button
         onClick={() => editor.chain().focus().undo().run()}

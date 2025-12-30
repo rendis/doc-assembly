@@ -103,10 +103,10 @@ export const InjectorComponent = (props: NodeViewProps) => {
             : // Estilos diferenciados para role variables (púrpura)
               isRoleVariable
               ? [
-                  // Light mode: violet/purple
-                  'bg-violet-100 text-violet-700 hover:bg-violet-200 border-violet-300/50',
-                  // Dark mode: violet with dashed border
-                  'dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-900/50 dark:border-dashed dark:border-violet-500/50',
+                  // Light mode: semantic role colors
+                  'bg-role-muted text-role-foreground hover:bg-role-muted/80 border-role-border/50',
+                  // Dark mode: semantic role colors with dashed border
+                  'dark:bg-role-muted dark:text-role-foreground dark:hover:bg-role-muted/80 dark:border-dashed dark:border-role-border',
                 ]
               : [
                   // Light mode: blue (variables regulares)

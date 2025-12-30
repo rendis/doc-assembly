@@ -12,6 +12,7 @@ import {
   PenTool,
   GitBranch,
   Variable,
+  FileText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 // @ts-expect-error - TipTap types compatibility
@@ -113,6 +114,15 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     group: 'Bloques',
     aliases: ['hr', 'separator', 'line'],
     action: (editor) => editor.chain().focus().setHorizontalRule().run(),
+  },
+  {
+    id: 'pageBreak',
+    title: 'Salto de página',
+    description: 'Insertar salto de página manual',
+    icon: FileText,
+    group: 'Bloques',
+    aliases: ['page', 'break', 'salto'],
+    action: (editor) => editor.chain().focus().setPageBreak().run(),
   },
 
   // Media

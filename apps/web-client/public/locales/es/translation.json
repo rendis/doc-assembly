@@ -199,6 +199,44 @@
       "formatOptions": "Opciones de formato",
       "select": "Seleccionar"
     },
+    "preview": {
+      "title": "Generar Vista Previa",
+      "tooltip": "Vista previa del PDF",
+      "generate": "Generar",
+      "generateAll": "Generar todo",
+      "generateAllRoles": "Generar todos los roles",
+      "generateRandom": "Generar valor aleatorio",
+      "generating": "Generando...",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "download": "Descargar PDF",
+      "standardVariables": "Variables del Documento",
+      "roleVariables": "Variables de Roles",
+      "systemVariables": "Variables de Sistema",
+      "systemVariablesHelp": "Estos valores se calculan automaticamente pero puedes modificarlos si lo deseas.",
+      "auto": "Auto",
+      "reset": "Restablecer",
+      "resetToEmulated": "Restablecer al valor automatico",
+      "noVariables": "No hay variables definidas en este documento.",
+      "generateAnyway": "Generar de todas formas",
+      "errors": {
+        "invalidNumber": "Debe ser un numero valido",
+        "invalidDate": "Formato de fecha invalido",
+        "invalidEmail": "Email invalido"
+      },
+      "pdfModal": {
+        "title": "Vista Previa del Documento",
+        "loading": "Cargando PDF...",
+        "browserNotSupported": "Tu navegador no puede mostrar el PDF. Por favor, descargalo para verlo.",
+        "error": "Error al cargar el PDF",
+        "pageInfo": "Página {{current}} de {{total}}",
+        "page": "Página",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "zoomReset": "Restablecer zoom",
+        "fitToWidth": "Ajustar al ancho"
+      }
+    },
     "workflow": {
       "title": "Configuracion de firma",
       "settings": "Configuracion de firma",
@@ -423,6 +461,13 @@
       "cancelError": "Error al cancelar la programacion",
       "cancelSuccess": "Programacion cancelada",
       "scheduledFor": "Programado para"
+    },
+    "sorting": {
+      "sortBy": "Ordenar por",
+      "versionNewest": "Versión (Más Reciente)",
+      "versionOldest": "Versión (Más Antigua)",
+      "modifiedNewest": "Última Modificación (Reciente)",
+      "modifiedOldest": "Última Modificación (Antigua)"
     }
   },
   "folders": {

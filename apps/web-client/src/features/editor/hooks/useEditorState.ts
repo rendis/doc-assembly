@@ -16,7 +16,7 @@ import {
   InjectorExtension,
   SignatureExtension,
   ConditionalExtension,
-  PageBreakExtension,
+  PageBreakHR,
   SlashCommandsExtension,
   slashCommandsSuggestion,
   MentionExtension,
@@ -95,7 +95,7 @@ export const useEditorState = ({
       InjectorExtension,
       SignatureExtension,
       ConditionalExtension,
-      PageBreakExtension,
+      PageBreakHR,
       SlashCommandsExtension.configure({
         suggestion: slashCommandsSuggestion,
       }),

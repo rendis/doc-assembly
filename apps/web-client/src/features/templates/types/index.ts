@@ -162,6 +162,12 @@ export interface ScheduleArchiveRequest {
   scheduledAt: string;
 }
 
+export type VersionSortOption =
+  | 'version-desc'   // Version (Newest First)
+  | 'version-asc'    // Version (Oldest First)
+  | 'modified-desc'  // Last Modified (Newest)
+  | 'modified-asc';  // Last Modified (Oldest)
+
 // ============================================================================
 // Folder Types
 // ============================================================================

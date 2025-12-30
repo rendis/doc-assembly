@@ -156,7 +156,7 @@ export const EditorSidebar = () => {
                     <Collapsible key={role.id} defaultOpen>
                       <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 text-xs font-medium hover:bg-muted rounded-md transition-colors group">
                         <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
-                        <span className="truncate text-violet-700 dark:text-violet-300">
+                        <span className="truncate text-role-foreground">
                           {role.label}
                         </span>
                         <span className="ml-auto text-muted-foreground text-[10px]">

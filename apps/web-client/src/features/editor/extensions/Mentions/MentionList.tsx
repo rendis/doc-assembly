@@ -101,7 +101,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
             'flex items-center gap-2 w-full px-3 py-2 rounded-md text-left transition-colors',
             index === selectedIndex
               ? isRole
-                ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-200'
+                ? 'bg-role-muted text-role-foreground dark:bg-role-muted dark:text-role-foreground'
                 : 'bg-accent text-accent-foreground'
               : 'hover:bg-muted'
           )}
@@ -111,15 +111,15 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
               'h-4 w-4 shrink-0',
               isRole
                 ? index === selectedIndex
-                  ? 'text-violet-600 dark:text-violet-400'
-                  : 'text-violet-500 dark:text-violet-400'
+                  ? 'text-role-foreground'
+                  : 'text-role'
                 : 'text-muted-foreground'
             )}
           />
           <span
             className={cn(
               'text-sm truncate flex-1',
-              isRole && 'text-violet-700 dark:text-violet-300'
+              isRole && 'text-role-foreground'
             )}
           >
             {item.label}
@@ -143,7 +143,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
           {/* Sección: Roles de Firmantes */}
           {roleItems.length > 0 && (
             <>
-              <div className="px-3 py-2 text-xs font-semibold text-violet-600 dark:text-violet-400 border-b border-violet-200 dark:border-violet-800">
+              <div className="px-3 py-2 text-xs font-semibold text-role border-b border-role-border">
                 Roles de Firmantes
               </div>
               <div className="pt-1 pb-1">

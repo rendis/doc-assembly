@@ -53,6 +53,11 @@
   --color-accent-blue-muted: hsl(var(--accent-blue-muted));
   --color-accent-blue-border: hsl(var(--accent-blue-border));
 
+  --color-role: hsl(var(--role));
+  --color-role-foreground: hsl(var(--role-foreground));
+  --color-role-muted: hsl(var(--role-muted));
+  --color-role-border: hsl(var(--role-border));
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -123,6 +128,12 @@
     --accent-blue-foreground: 217 85% 25%;
     --accent-blue-muted: 217 90% 92%;
     --accent-blue-border: 217 80% 55%;
+
+    /* Role (teal/verde azulado para role injectables) - optimizado para contraste en modo claro */
+    --role: 173 80% 40%;
+    --role-foreground: 173 85% 15%;
+    --role-muted: 173 70% 90%;
+    --role-border: 173 75% 45%;
   }
 
   .dark {
@@ -176,6 +187,12 @@
     --accent-blue-foreground: 217 95% 90%;
     --accent-blue-muted: 217 30% 20%;
     --accent-blue-border: 217 60% 45%;
+
+    /* Role (teal/verde azulado para role injectables) */
+    --role: 173 70% 50%;
+    --role-foreground: 173 60% 85%;
+    --role-muted: 173 60% 15%;
+    --role-border: 173 50% 40%;
   }
 }
 
@@ -293,8 +310,8 @@
     @apply text-sm font-mono;
   }
 
-  /* Horizontal Rule */
-  .ProseMirror hr {
+  /* Horizontal Rule (excluir manual page breaks) */
+  .ProseMirror hr:not(.manual-page-break) {
     @apply border-t border-border my-8;
   }
 
@@ -364,38 +381,65 @@
   /* Page break visual in editor (manual) */
   .page-break-node {
     position: relative;
-    min-height: 24px;
-    margin: 16px 0;
-    cursor: default;
+    margin: 24px 0;
+    cursor: grab;
+  }
+
+  .page-break-node:active {
+    cursor: grabbing;
+  }
+
+  /* Ocultar el <hr> nativo del HorizontalRule de TipTap */
+  .ProseMirror hr.manual-page-break,
+  .ProseMirror .page-break-node hr,
+  .page-break-node hr,
+  hr.manual-page-break {
+    display: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
   }
 
   /* Automatic page break (tiptap-pagination-breaks) */
   /* Using !important to override inline styles from the extension */
   .page-break {
-    height: 40px !important;
+    height: auto !important;
     width: 100% !important;
-    border-top: 2px dashed hsl(var(--border)) !important;
-    margin: 20px 0 !important;
+    margin: 24px 0 !important;
     position: relative !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: hsl(var(--background)) !important;
+    display: block !important;
+    background: transparent !important;
     box-sizing: border-box !important;
+    border-top: none !important;
   }
 
+  /* Solo línea punteada */
   .page-break::before {
-    content: 'Página' !important;
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--muted-foreground)) !important;
-    padding: 2px 12px !important;
-    border-radius: 4px !important;
-    font-size: 12px !important;
+    content: '' !important;
+    display: block !important;
+    width: 100% !important;
+    height: 0 !important;
+    border-top: 2px dashed hsl(var(--border)) !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
   }
 
-  /* Hide the page number indicator from the extension (we use ::before instead) */
+  /* Ocultar el texto "Página X" */
   .page-break .page-number {
     display: none !important;
+  }
+
+  /* Eliminar ::after ya no se necesita */
+  .page-break::after {
+    display: none !important;
+  }
+
+  /* Page Indicator */
+  .page-indicator {
+    transition: all 0.2s ease-in-out;
+    pointer-events: none; /* No interfiere con interacciones */
   }
 
   /* === PRINT STYLES === */
@@ -422,7 +466,8 @@
     /* Hide UI elements during print */
     .editor-sidebar,
     .editor-toolbar,
-    .page-settings-toolbar {
+    .page-settings-toolbar,
+    .page-indicator {
       display: none !important;
     }
   }

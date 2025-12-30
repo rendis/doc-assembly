@@ -6,10 +6,14 @@ export interface EditorProps {
   onChange?: (content: string) => void;
   editable?: boolean;
   onEditorReady?: (editor: TiptapEditor) => void;
+  templateId?: string;
+  versionId?: string;
 }
 
 export interface EditorToolbarProps {
   editor: TiptapEditor;
+  templateId?: string;
+  versionId?: string;
 }
 
 export interface UseEditorStateOptions {

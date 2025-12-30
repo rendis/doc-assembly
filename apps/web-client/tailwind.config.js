@@ -54,6 +54,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        role: {
+          DEFAULT: "hsl(var(--role))",
+          foreground: "hsl(var(--role-foreground))",
+          muted: "hsl(var(--role-muted))",
+          border: "hsl(var(--role-border))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
