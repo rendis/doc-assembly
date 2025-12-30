@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { usePermission } from '@/features/auth/hooks/usePermission';
@@ -7,18 +6,24 @@ import {
   LayoutDashboard,
   Settings,
   Users,
-  ChevronLeft,
-  ChevronRight,
   Building
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/logo';
+import { useSidebar } from '@/hooks/useSidebar';
+import { SidebarToggleButton } from './SidebarToggleButton';
 
 export const AppSidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const { t } = useTranslation();
   const { can } = usePermission();
   const location = useLocation();
+  const {
+    isExpanded,
+    isPinned,
+    togglePin,
+    handleMouseEnter,
+    handleMouseLeave,
+  } = useSidebar({ type: 'app' });
 
   const menuItems = [
     {
@@ -49,43 +54,36 @@ export const AppSidebar = () => {
 
   return (
     <aside
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className={cn(
-        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-screen sticky top-0",
-        isCollapsed ? "w-16" : "w-64"
+        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-screen sticky top-0 relative",
+        isExpanded ? "w-64" : "w-16"
       )}
     >
+      {/* Floating Toggle Button */}
+      <SidebarToggleButton
+        isPinned={isPinned}
+        isExpanded={isExpanded}
+        onTogglePin={togglePin}
+        ariaLabel={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
+        title={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
+      />
+
       {/* Header / Logo */}
       <div className={cn(
         "flex h-14 items-center border-b p-2",
-        isCollapsed ? "justify-center" : "justify-between"
+        isExpanded ? "justify-between" : "justify-center"
       )}>
         <Logo
           size="sm"
-          showText={!isCollapsed}
+          showText={isExpanded}
           className={cn(
             "rounded-md py-2",
-            isCollapsed ? "justify-center px-2" : "px-3"
+            isExpanded ? "px-3" : "justify-center px-2"
           )}
         />
-        {!isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="rounded p-1 hover:bg-accent hover:text-accent-foreground shrink-0"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        )}
       </div>
-      {isCollapsed && (
-        <div className="p-2">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex w-full items-center justify-center rounded-md px-2 py-2 hover:bg-accent hover:text-accent-foreground"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-      )}
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
@@ -101,12 +99,12 @@ export const AppSidebar = () => {
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
                 isActive && "bg-accent text-accent-foreground",
-                isCollapsed && "justify-center px-2"
+                !isExpanded && "justify-center px-2"
               )}
-              title={isCollapsed ? item.label : undefined}
+              title={!isExpanded ? item.label : undefined}
             >
               <item.icon className="h-5 w-5 shrink-0" />
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
+              {isExpanded && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}

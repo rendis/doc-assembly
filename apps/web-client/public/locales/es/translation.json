@@ -74,6 +74,11 @@
     "app": "App",
     "adminConsole": "Consola de Administracion"
   },
+  "sidebar": {
+    "pin": "Fijar barra lateral",
+    "unpin": "Desfijar barra lateral",
+    "expand": "Expandir barra lateral"
+  },
   "userMenu": {
     "theme": "Tema",
     "language": "Idioma"

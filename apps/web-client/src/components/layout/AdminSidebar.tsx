@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { usePermission } from '@/features/auth/hooks/usePermission';
@@ -9,17 +8,23 @@ import {
   Users,
   Settings,
   ScrollText,
-  ChevronLeft,
-  ChevronRight,
   Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSidebar } from '@/hooks/useSidebar';
+import { SidebarToggleButton } from './SidebarToggleButton';
 
 export const AdminSidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const { t } = useTranslation();
   const { can } = usePermission();
   const location = useLocation();
+  const {
+    isExpanded,
+    isPinned,
+    togglePin,
+    handleMouseEnter,
+    handleMouseLeave,
+  } = useSidebar({ type: 'admin' });
 
   const menuItems = [
     {
@@ -56,14 +61,28 @@ export const AdminSidebar = () => {
 
   return (
     <aside
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className={cn(
-        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-screen sticky top-0",
-        isCollapsed ? "w-16" : "w-64"
+        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-screen sticky top-0 relative",
+        isExpanded ? "w-64" : "w-16"
       )}
     >
+      {/* Floating Toggle Button */}
+      <SidebarToggleButton
+        isPinned={isPinned}
+        isExpanded={isExpanded}
+        onTogglePin={togglePin}
+        ariaLabel={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
+        title={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
+      />
+
       {/* Header / Logo */}
-      <div className="flex h-14 items-center justify-between px-4 border-b bg-admin-muted">
-        {!isCollapsed && (
+      <div className={cn(
+        "flex h-14 items-center border-b bg-admin-muted",
+        isExpanded ? "justify-between px-4" : "justify-center"
+      )}>
+        {isExpanded && (
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-admin" />
             <span className="font-bold text-lg tracking-tight truncate text-admin-foreground">
@@ -71,13 +90,7 @@ export const AdminSidebar = () => {
             </span>
           </div>
         )}
-        {isCollapsed && <Shield className="h-5 w-5 text-admin mx-auto" />}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="rounded p-1 hover:bg-accent hover:text-accent-foreground"
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        {!isExpanded && <Shield className="h-5 w-5 text-admin" />}
       </div>
 
       {/* Navigation */}
@@ -96,12 +109,12 @@ export const AdminSidebar = () => {
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 "hover:bg-admin-muted hover:text-admin-foreground",
                 isActive && "bg-admin-muted text-admin-foreground",
-                isCollapsed && "justify-center px-2"
+                !isExpanded && "justify-center px-2"
               )}
-              title={isCollapsed ? item.label : undefined}
+              title={!isExpanded ? item.label : undefined}
             >
               <item.icon className="h-5 w-5 shrink-0" />
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
+              {isExpanded && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
@@ -109,7 +122,7 @@ export const AdminSidebar = () => {
 
       {/* Footer */}
       <div className="border-t p-2 text-xs text-muted-foreground text-center">
-        {!isCollapsed && <span>{t('navigation.adminConsole')}</span>}
+        {isExpanded && <span>{t('navigation.adminConsole')}</span>}
       </div>
     </aside>
   );

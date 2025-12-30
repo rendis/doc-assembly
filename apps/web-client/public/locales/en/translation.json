@@ -74,6 +74,11 @@
     "app": "App",
     "adminConsole": "Admin Console"
   },
+  "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Unpin sidebar",
+    "expand": "Expand sidebar"
+  },
   "userMenu": {
     "theme": "Theme",
     "language": "Language"
