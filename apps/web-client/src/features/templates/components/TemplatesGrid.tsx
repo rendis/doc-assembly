@@ -166,7 +166,7 @@ export function TemplatesGrid({
     // If clicking the same template, collapse it
     if (expandedTemplateId === templateId) {
       setExpandedTemplateId(null);
-      setExpandedTemplateData(null);
+      // Don't clear data here - wait for animation to complete via onCloseComplete
       return;
     }
 
@@ -185,6 +185,11 @@ export function TemplatesGrid({
       setIsLoadingExpanded(false);
     }
   }, [expandedTemplateId]);
+
+  // Called after collapse animation completes - clean up data
+  const handleCloseComplete = useCallback(() => {
+    setExpandedTemplateData(null);
+  }, []);
 
   // Refresh expanded template data
   const handleRefreshExpanded = useCallback(async () => {
@@ -244,9 +249,10 @@ export function TemplatesGrid({
         priorityTagIds={filterTagIds}
         folderName={getFolderName?.(template.folderId)}
         isExpanded={isExpanded}
-        expandedData={isExpanded ? expandedTemplateData : null}
+        expandedData={expandedTemplateData}
         isLoadingExpanded={isExpanded && isLoadingExpanded}
         onToggleExpand={() => handleToggleExpand(template.id)}
+        onCloseComplete={handleCloseComplete}
         onMenuClick={(e) => onTemplateMenu(template, e)}
         onRefresh={handleRefreshExpanded}
         onCloneTemplate={onCloneTemplate}

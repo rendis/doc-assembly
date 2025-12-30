@@ -31,6 +31,7 @@ interface TemplateRowProps {
   expandedData: TemplateWithAllVersions | null;
   isLoadingExpanded?: boolean;
   onToggleExpand: () => void;
+  onCloseComplete?: () => void;
   onMenuClick?: (e: React.MouseEvent) => void;
   onRefresh: () => void;
   onCloneTemplate?: (template: { id: string; title: string }) => void;
@@ -47,6 +48,7 @@ export function TemplateRow({
   expandedData,
   isLoadingExpanded = false,
   onToggleExpand,
+  onCloseComplete,
   onMenuClick,
   onRefresh,
   onCloneTemplate,
@@ -61,7 +63,7 @@ export function TemplateRow({
   );
 
   return (
-    <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
+    <Collapsible open={isExpanded} onOpenChange={onToggleExpand} onCloseComplete={onCloseComplete}>
       <div
         className={cn(
           'group rounded-lg border bg-card transition-all duration-200',
