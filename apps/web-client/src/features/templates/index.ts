@@ -6,7 +6,9 @@ export { tagsApi } from './api/tags-api';
 
 // Component exports
 export { TemplatesPage } from './components/TemplatesPage';
-export { TemplateCard } from './components/TemplateCard';
+export { TemplateRow } from './components/TemplateRow';
+export { TemplateExpandedContent } from './components/TemplateExpandedContent';
+export { CreateVersionDialog } from './components/CreateVersionDialog';
 export { StatusBadge } from './components/StatusBadge';
 export { TagBadge, TagBadgeList } from './components/TagBadge';
 export { FolderTree as FolderTreeComponent } from './components/FolderTree';

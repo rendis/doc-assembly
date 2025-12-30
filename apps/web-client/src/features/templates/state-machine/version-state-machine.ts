@@ -1,4 +1,4 @@
-import type { TemplateVersionDetail, VersionStatus } from '../types';
+import type { TemplateVersion, VersionStatus } from '../types';
 
 // ============================================================================
 // Validation Types
@@ -44,37 +44,16 @@ export function getAvailableTransitions(status: VersionStatus): VersionStatus[] 
 // ============================================================================
 
 /**
- * Validate a version before publishing
+ * Validate a version before publishing.
+ * Note: Content validation (contentStructure) is delegated to the backend.
  */
-export function validateForPublish(version: TemplateVersionDetail): TransitionValidation {
-  const errors: ValidationError[] = [];
-
-  // Rule 1: Content must exist
-  const hasContent = version.contentStructure && (
-    Array.isArray(version.contentStructure)
-      ? version.contentStructure.length > 0
-      : Object.keys(version.contentStructure).length > 0
-  );
-  if (!hasContent) {
-    errors.push({
-      code: 'NO_CONTENT',
-      messageKey: 'templates.validation.noContent',
-      field: 'contentStructure',
-    });
-  }
-
-  // Rule 2: If injectables are referenced in content, they must be configured
-  // Note: This validation may need to be enhanced based on actual content analysis
-  // For now, we check if injectables array exists and is not empty when expected
-  // The backend should enforce stricter validation
-
-  // Rule 3: Signer roles must be defined if document requires signatures
-  // This is optional - only validate if the template type requires signatures
-  // For now, we don't enforce this as not all templates need signatures
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function validateForPublish(_version: TemplateVersion): TransitionValidation {
+  // All content validation is now handled by the backend.
+  // The frontend allows the publish action and the backend will validate.
   return {
-    isValid: errors.length === 0,
-    errors,
+    isValid: true,
+    errors: [],
   };
 }
 
@@ -93,7 +72,7 @@ export function validateForArchive(): TransitionValidation {
  * Validate a transition and return validation result
  */
 export function validateTransition(
-  version: TemplateVersionDetail,
+  version: TemplateVersion,
   to: VersionStatus
 ): TransitionValidation {
   // First check if transition is valid
@@ -127,7 +106,7 @@ export function validateTransition(
 /**
  * Check if version has a scheduled action
  */
-export function hasScheduledAction(version: TemplateVersionDetail): boolean {
+export function hasScheduledAction(version: TemplateVersion): boolean {
   return !!(version.scheduledPublishAt || version.scheduledArchiveAt);
 }
 
@@ -135,7 +114,7 @@ export function hasScheduledAction(version: TemplateVersionDetail): boolean {
  * Get the scheduled action type if any
  */
 export function getScheduledActionType(
-  version: TemplateVersionDetail
+  version: TemplateVersion
 ): 'publish' | 'archive' | null {
   if (version.scheduledPublishAt) return 'publish';
   if (version.scheduledArchiveAt) return 'archive';
@@ -145,27 +124,27 @@ export function getScheduledActionType(
 /**
  * Get the scheduled date if any
  */
-export function getScheduledDate(version: TemplateVersionDetail): string | null {
+export function getScheduledDate(version: TemplateVersion): string | null {
   return version.scheduledPublishAt || version.scheduledArchiveAt || null;
 }
 
 /**
  * Check if version is editable (only DRAFT versions are editable)
  */
-export function isEditable(version: TemplateVersionDetail): boolean {
+export function isEditable(version: TemplateVersion): boolean {
   return version.status === 'DRAFT';
 }
 
 /**
  * Check if version can be deleted (only DRAFT versions can be deleted)
  */
-export function canDelete(version: TemplateVersionDetail): boolean {
+export function canDelete(version: TemplateVersion): boolean {
   return version.status === 'DRAFT';
 }
 
 /**
  * Check if version can be cloned (PUBLISHED and ARCHIVED can be cloned)
  */
-export function canClone(version: TemplateVersionDetail): boolean {
+export function canClone(version: TemplateVersion): boolean {
   return version.status === 'PUBLISHED' || version.status === 'ARCHIVED';
 }

@@ -350,6 +350,14 @@
       "createVersion": "Crear Version",
       "latestVersion": "Ultima"
     },
+    "primaryAction": {
+      "editContract": "Editar Contrato",
+      "viewContract": "Ver Contrato"
+    },
+    "dates": {
+      "created": "Creado",
+      "updated": "Actualizado"
+    },
     "versionActions": {
       "publish": "Publicar",
       "archive": "Archivar",

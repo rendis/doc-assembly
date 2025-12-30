@@ -1,9 +1,10 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, useCallback } from 'react';
 import { FileText, ChevronLeft, ChevronRight, Folder, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TemplateCard, TemplateCardSkeleton } from './TemplateCard';
-import type { TemplateListItem } from '../types';
+import { TemplateRow, TemplateRowSkeleton } from './TemplateRow';
+import { templatesApi } from '../api/templates-api';
+import type { TemplateListItem, TemplateWithAllVersions, TagWithCount } from '../types';
 
 // Types for folder grouping
 interface TemplateGroup {
@@ -104,12 +105,15 @@ function FolderDivider({
 interface TemplatesGridProps {
   templates: TemplateListItem[];
   isLoading: boolean;
-  onTemplateClick: (template: TemplateListItem) => void;
+  allTags: TagWithCount[];
   onTemplateMenu: (template: TemplateListItem, e: React.MouseEvent) => void;
+  onRefresh: () => void;
   getFolderName?: (folderId: string | undefined) => string | undefined;
   filterTagIds?: string[];
   onFolderClick?: (folderId: string) => void;
   currentFolderId?: string | null;
+  onCloneTemplate?: (template: { id: string; title: string }) => void;
+  onDeleteTemplate?: (template: { id: string; title: string }) => void;
 
   // Pagination
   page: number;
@@ -121,18 +125,26 @@ interface TemplatesGridProps {
 export function TemplatesGrid({
   templates,
   isLoading,
-  onTemplateClick,
+  allTags,
   onTemplateMenu,
+  onRefresh,
   getFolderName,
   filterTagIds,
   onFolderClick,
   currentFolderId,
+  onCloneTemplate,
+  onDeleteTemplate,
   page,
   totalPages,
   totalCount,
   onPageChange,
 }: TemplatesGridProps) {
   const { t } = useTranslation();
+
+  // Accordion state - only one template expanded at a time
+  const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
+  const [expandedTemplateData, setExpandedTemplateData] = useState<TemplateWithAllVersions | null>(null);
+  const [isLoadingExpanded, setIsLoadingExpanded] = useState(false);
 
   // Track which folders are collapsed (by folderId)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -149,6 +161,45 @@ export function TemplatesGrid({
     });
   };
 
+  // Handle template expand toggle
+  const handleToggleExpand = useCallback(async (templateId: string) => {
+    // If clicking the same template, collapse it
+    if (expandedTemplateId === templateId) {
+      setExpandedTemplateId(null);
+      setExpandedTemplateData(null);
+      return;
+    }
+
+    // Expand new template
+    setExpandedTemplateId(templateId);
+    setExpandedTemplateData(null);
+    setIsLoadingExpanded(true);
+
+    try {
+      const fullTemplate = await templatesApi.getWithAllVersions(templateId);
+      setExpandedTemplateData(fullTemplate);
+    } catch (error) {
+      console.error('Failed to fetch template details:', error);
+      // Keep expanded but show empty state
+    } finally {
+      setIsLoadingExpanded(false);
+    }
+  }, [expandedTemplateId]);
+
+  // Refresh expanded template data
+  const handleRefreshExpanded = useCallback(async () => {
+    onRefresh();
+
+    if (expandedTemplateId) {
+      try {
+        const updated = await templatesApi.getWithAllVersions(expandedTemplateId);
+        setExpandedTemplateData(updated);
+      } catch (error) {
+        console.error('Failed to refresh expanded template:', error);
+      }
+    }
+  }, [expandedTemplateId, onRefresh]);
+
   // Group templates by folder (API returns them sorted: current folder first, then subfolders)
   const groups = useMemo(() => {
     return groupTemplatesByFolder(templates, getFolderName);
@@ -158,7 +209,7 @@ export function TemplatesGrid({
     return (
       <div className="flex flex-col gap-2">
         {Array.from({ length: 8 }).map((_, i) => (
-          <TemplateCardSkeleton key={i} />
+          <TemplateRowSkeleton key={i} />
         ))}
       </div>
     );
@@ -180,17 +231,29 @@ export function TemplatesGrid({
     );
   }
 
-  // Render a single template card
-  const renderTemplateCard = (template: TemplateListItem) => (
-    <TemplateCard
-      key={template.id}
-      template={template}
-      tags={template.tags}
-      priorityTagIds={filterTagIds}
-      onClick={() => onTemplateClick(template)}
-      onMenuClick={(e) => onTemplateMenu(template, e)}
-    />
-  );
+  // Render a single template row
+  const renderTemplateRow = (template: TemplateListItem) => {
+    const isExpanded = expandedTemplateId === template.id;
+
+    return (
+      <TemplateRow
+        key={template.id}
+        template={template}
+        tags={template.tags}
+        allTags={allTags}
+        priorityTagIds={filterTagIds}
+        folderName={getFolderName?.(template.folderId)}
+        isExpanded={isExpanded}
+        expandedData={isExpanded ? expandedTemplateData : null}
+        isLoadingExpanded={isExpanded && isLoadingExpanded}
+        onToggleExpand={() => handleToggleExpand(template.id)}
+        onMenuClick={(e) => onTemplateMenu(template, e)}
+        onRefresh={handleRefreshExpanded}
+        onCloneTemplate={onCloneTemplate}
+        onDeleteTemplate={onDeleteTemplate}
+      />
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -223,7 +286,7 @@ export function TemplatesGrid({
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.15 }}
                     >
-                      {renderTemplateCard(template)}
+                      {renderTemplateRow(template)}
                     </motion.div>
                   ))}
               </AnimatePresence>

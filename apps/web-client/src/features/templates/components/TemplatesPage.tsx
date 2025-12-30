@@ -5,7 +5,6 @@ import { TemplatesSidebar } from './TemplatesSidebar';
 import { TemplatesGrid } from './TemplatesGrid';
 import { FilterBar } from './FilterBar';
 import { Breadcrumb } from './Breadcrumb';
-import { TemplateDetailPanel } from './TemplateDetailPanel';
 import { CreateTemplateDialog } from './CreateTemplateDialog';
 import { CreateFolderDialog } from './CreateFolderDialog';
 import { ManageTagsDialog } from './ManageTagsDialog';
@@ -18,7 +17,7 @@ import { useTemplates } from '../hooks/useTemplates';
 import { useFolders } from '../hooks/useFolders';
 import { useTags } from '../hooks/useTags';
 import { useDebounce } from '@/hooks/use-debounce';
-import type { TemplateListItem, FolderTree, Folder, TemplateWithAllVersions } from '../types';
+import type { TemplateListItem, FolderTree, Folder } from '../types';
 import { templatesApi } from '../api/templates-api';
 
 export function TemplatesPage() {
@@ -62,8 +61,6 @@ export function TemplatesPage() {
 
   // Local state
   const [searchInput, setSearchInput] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateWithAllVersions | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
   const [createFolderParentId, setCreateFolderParentId] = useState<string | undefined>();
@@ -123,16 +120,6 @@ export function TemplatesPage() {
     setFolderId(folderId);
   };
 
-  const handleTemplateClick = async (template: TemplateListItem) => {
-    try {
-      const fullTemplate = await templatesApi.getWithAllVersions(template.id);
-      setSelectedTemplate(fullTemplate);
-      setIsDetailOpen(true);
-    } catch (error) {
-      console.error('Failed to fetch template details:', error);
-    }
-  };
-
   const handleTemplateMenu = (template: TemplateListItem, e: React.MouseEvent) => {
     e.preventDefault();
     setContextMenu({
@@ -156,11 +143,6 @@ export function TemplatesPage() {
   const handleCreateFolder = (parentId?: string) => {
     setCreateFolderParentId(parentId);
     setIsCreateFolderDialogOpen(true);
-  };
-
-  const handleCloseDetail = () => {
-    setIsDetailOpen(false);
-    setSelectedTemplate(null);
   };
 
   // Drag & drop folder move handler
@@ -260,16 +242,7 @@ export function TemplatesPage() {
 
   const handleRefreshAll = useCallback(async () => {
     await Promise.all([refreshTemplates(), refreshFolders(), refreshTags()]);
-    // Also refresh the selected template if one is open
-    if (selectedTemplate) {
-      try {
-        const updated = await templatesApi.getWithAllVersions(selectedTemplate.id);
-        setSelectedTemplate(updated);
-      } catch (error) {
-        console.error('Failed to refresh selected template:', error);
-      }
-    }
-  }, [refreshTemplates, refreshFolders, refreshTags, selectedTemplate]);
+  }, [refreshTemplates, refreshFolders, refreshTags]);
 
   // Rename template handlers
   const handleRenameTemplate = useCallback((template: { id: string; title: string }) => {
@@ -358,8 +331,9 @@ export function TemplatesPage() {
           <TemplatesGrid
             templates={templates}
             isLoading={isTemplatesLoading}
-            onTemplateClick={handleTemplateClick}
+            allTags={tags}
             onTemplateMenu={handleTemplateMenu}
+            onRefresh={handleRefreshAll}
             getFolderName={getFolderName}
             filterTagIds={filters.tagIds}
             onFolderClick={handleFolderSelect}
@@ -371,16 +345,6 @@ export function TemplatesPage() {
           />
         </div>
       </main>
-
-      {/* Detail panel */}
-      <TemplateDetailPanel
-        template={selectedTemplate}
-        isOpen={isDetailOpen}
-        onClose={handleCloseDetail}
-        onRefresh={handleRefreshAll}
-        tags={tags}
-        onRenameTemplate={handleRenameTemplate}
-      />
 
       {/* Dialogs */}
       <CreateTemplateDialog

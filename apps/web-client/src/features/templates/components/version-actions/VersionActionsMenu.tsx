@@ -23,10 +23,10 @@ import { PublishConfirmDialog } from './PublishConfirmDialog';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { ScheduleDialog } from './ScheduleDialog';
 import { CancelScheduleDialog } from './CancelScheduleDialog';
-import type { TemplateVersionDetail } from '../../types';
+import type { TemplateVersion } from '../../types';
 
 interface VersionActionsMenuProps {
-  version: TemplateVersionDetail;
+  version: TemplateVersion;
   templateId: string;
   onActionComplete: () => void;
 }

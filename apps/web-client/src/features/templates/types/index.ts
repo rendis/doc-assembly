@@ -47,7 +47,7 @@ export interface TemplateWithAllVersions {
   isPublicLibrary: boolean;
   folder?: Folder;
   tags?: Tag[];
-  versions: TemplateVersionDetail[];
+  versions: TemplateVersion[];
   createdAt: string;
   updatedAt?: string;
 }

@@ -350,6 +350,14 @@
       "createVersion": "Create Version",
       "latestVersion": "Latest"
     },
+    "primaryAction": {
+      "editContract": "Edit Contract",
+      "viewContract": "View Contract"
+    },
+    "dates": {
+      "created": "Created",
+      "updated": "Updated"
+    },
     "versionActions": {
       "publish": "Publish",
       "archive": "Archive",

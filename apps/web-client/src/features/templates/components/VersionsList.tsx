@@ -1,14 +1,15 @@
-import { Clock, Calendar, Pen, Eye } from 'lucide-react';
+import { Clock, Calendar, Pen, Eye, FileText, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from '@tanstack/react-router';
-import type { TemplateVersion, TemplateVersionDetail } from '../types';
+import type { TemplateVersion } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDate, formatDistanceToNow } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
 import { VersionActionsMenu } from './version-actions';
+import { cn } from '@/lib/utils';
 
 interface VersionsListProps {
-  versions: (TemplateVersion | TemplateVersionDetail)[];
+  versions: TemplateVersion[];
   templateId: string;
   onRefresh: () => void;
 }
@@ -46,7 +47,7 @@ export function VersionsList({
 }
 
 interface VersionItemProps {
-  version: TemplateVersion | TemplateVersionDetail;
+  version: TemplateVersion;
   isLatest: boolean;
   templateId: string;
   workspaceId: string;
@@ -54,88 +55,115 @@ interface VersionItemProps {
 }
 
 function VersionItem({ version, isLatest, templateId, workspaceId, onActionComplete }: VersionItemProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isDraft = version.status === 'DRAFT';
 
+  // Show most relevant date: updatedAt if exists and different from createdAt, otherwise createdAt
+  const hasBeenUpdated = version.updatedAt && version.updatedAt !== version.createdAt;
+  const primaryDate = hasBeenUpdated ? version.updatedAt : version.createdAt;
+  const primaryDateLabel = hasBeenUpdated ? t('templates.dates.updated') : t('templates.dates.created');
+  const PrimaryDateIcon = hasBeenUpdated ? RefreshCw : Calendar;
+
   return (
-    <div
-      className={`
-        group p-3 rounded-lg border bg-card
-        hover:border-primary/30 transition-colors
-      `}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          {/* Version header */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm">
-              v{version.versionNumber}
-            </span>
-            <StatusBadge status={version.status} size="sm" />
-            {isLatest && (
-              <span className="px-1.5 py-0.5 text-[10px] bg-primary/10 text-primary rounded">
-                {t('templates.detail.latestVersion')}
-              </span>
-            )}
-          </div>
+    <div className="group flex flex-col md:flex-row md:items-center gap-3 px-4 py-3 rounded-lg border bg-card hover:border-primary/30 hover:bg-accent/5 transition-all">
+      {/* LEFT: Status & Identity */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <StatusBadge status={version.status} size="sm" showDot={true} />
 
-          {/* Version name */}
-          <p className="text-sm text-muted-foreground truncate" title={version.name}>
-            {version.name}
-          </p>
+        {isLatest && (
+          <span className="px-1.5 py-0.5 text-[10px] bg-primary/10 text-primary rounded font-semibold uppercase tracking-wide">
+            {t('templates.detail.latestVersion')}
+          </span>
+        )}
 
-          {/* Description if present */}
-          {version.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-              {version.description}
-            </p>
+        {/* Contract Icon */}
+        <div
+          className={cn(
+            'p-2 rounded-md',
+            isDraft && 'bg-warning/10 text-warning',
+            version.status === 'PUBLISHED' && 'bg-primary/10 text-primary',
+            version.status === 'ARCHIVED' && 'bg-muted text-muted-foreground'
           )}
+        >
+          <FileText className="w-5 h-5" />
+        </div>
+      </div>
 
-          {/* Metadata */}
-          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {formatDate(version.createdAt)}
-            </span>
+      {/* CENTER: Version Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 mb-0.5">
+          <h4 className="font-semibold text-sm">v{version.versionNumber}</h4>
+          <span className="text-sm text-foreground truncate" title={version.name}>
+            {version.name}
+          </span>
+        </div>
+        {version.description && (
+          <p className="text-xs text-muted-foreground truncate">
+            {version.description}
+          </p>
+        )}
+      </div>
 
-            {version.status === 'PUBLISHED' && version.publishedAt && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {t('templates.versionActions.publish')}: {formatDistanceToNow(version.publishedAt)}
-              </span>
-            )}
+      {/* RIGHT: Metadata (hidden on mobile) */}
+      <div className="hidden md:flex flex-col items-end gap-0.5 text-xs flex-shrink-0 min-w-[140px]">
+        {/* Primary date: Updated or Created */}
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <PrimaryDateIcon className="w-3 h-3" />
+          <span>{primaryDateLabel} {formatDistanceToNow(primaryDate, i18n.language)}</span>
+        </div>
 
-            {version.scheduledPublishAt && (
-              <span className="flex items-center gap-1 text-warning">
-                <Clock className="w-3 h-3" />
-                {t('templates.schedule.scheduledFor')}: {formatDate(version.scheduledPublishAt)}
-              </span>
-            )}
+        {/* Published date - only for published versions */}
+        {version.status === 'PUBLISHED' && version.publishedAt && (
+          <div className="flex items-center gap-1.5 text-success">
+            <Clock className="w-3 h-3" />
+            <span>Published {formatDistanceToNow(version.publishedAt, i18n.language)}</span>
           </div>
-        </div>
+        )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-primary"
-            asChild
+        {/* Scheduled action indicator */}
+        {version.scheduledPublishAt && (
+          <div className="flex items-center gap-1.5 text-warning font-medium">
+            <Clock className="w-3 h-3" />
+            <span>
+              {t('templates.schedule.scheduledFor')}: {formatDate(version.scheduledPublishAt)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* FAR RIGHT: Actions */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* PRIMARY CTA - STAR OF THE SHOW */}
+        <Button
+          variant={isDraft ? 'default' : 'outline'}
+          size="sm"
+          className="gap-2 font-medium w-full md:w-auto"
+          asChild
+        >
+          <Link
+            to="/workspace/$workspaceId/templates/$templateId/version/$versionId/design"
+            params={{ workspaceId, templateId, versionId: version.id }}
           >
-            <Link
-              to="/workspace/$workspaceId/templates/$templateId/version/$versionId/design"
-              params={{ workspaceId, templateId, versionId: version.id }}
-            >
-              {isDraft ? <Pen className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Link>
-          </Button>
+            {isDraft ? (
+              <>
+                <Pen className="w-4 h-4" />
+                {t('templates.primaryAction.editContract')}
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4" />
+                {t('templates.primaryAction.viewContract')}
+              </>
+            )}
+          </Link>
+        </Button>
 
-          <VersionActionsMenu
-            version={version as TemplateVersionDetail}
-            templateId={templateId}
-            onActionComplete={onActionComplete}
-          />
-        </div>
+        {/* Secondary actions menu */}
+        <VersionActionsMenu
+          version={version}
+          templateId={templateId}
+          onActionComplete={onActionComplete}
+        />
       </div>
     </div>
   );
