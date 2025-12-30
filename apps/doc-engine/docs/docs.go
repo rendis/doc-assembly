@@ -57,56 +57,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Injectables"
-                ],
-                "summary": "Create injectable",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Workspace ID",
-                        "name": "X-Workspace-ID",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "Injectable data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateInjectableRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    }
-                }
             }
         },
         "/api/v1/content/injectables/{injectableId}": {
@@ -135,94 +85,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Injectables"
-                ],
-                "summary": "Update injectable",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Injectable ID",
-                        "name": "injectableId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Injectable data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateInjectableRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Injectables"
-                ],
-                "summary": "Delete injectable",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Injectable ID",
-                        "name": "injectableId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
@@ -3939,45 +3801,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateInjectableRequest": {
-            "type": "object",
-            "required": [
-                "dataType",
-                "key",
-                "label"
-            ],
-            "properties": {
-                "dataType": {
-                    "type": "string",
-                    "enum": [
-                        "TEXT",
-                        "NUMBER",
-                        "DATE",
-                        "CURRENCY",
-                        "BOOLEAN",
-                        "IMAGE",
-                        "TABLE"
-                    ]
-                },
-                "description": {
-                    "type": "string"
-                },
-                "isGlobal": {
-                    "description": "Only allowed for global admins",
-                    "type": "boolean"
-                },
-                "key": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1
-                },
-                "label": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 1
-                }
-            }
-        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTagRequest": {
             "type": "object",
             "required": [
@@ -4196,6 +4019,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "label": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "sourceType": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -5088,22 +4918,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "name": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 1
-                }
-            }
-        },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateInjectableRequest": {
-            "type": "object",
-            "required": [
-                "label"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "label": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 1

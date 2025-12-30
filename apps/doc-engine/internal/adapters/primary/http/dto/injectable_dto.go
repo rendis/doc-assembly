@@ -7,30 +7,17 @@ import (
 
 // InjectableResponse represents an injectable definition in API responses.
 type InjectableResponse struct {
-	ID          string     `json:"id"`
-	WorkspaceID *string    `json:"workspaceId,omitempty"`
-	Key         string     `json:"key"`
-	Label       string     `json:"label"`
-	Description string     `json:"description,omitempty"`
-	DataType    string     `json:"dataType"`
-	IsGlobal    bool       `json:"isGlobal"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
-}
-
-// CreateInjectableRequest represents the request to create an injectable.
-type CreateInjectableRequest struct {
-	Key         string `json:"key" binding:"required,min=1,max=100"`
-	Label       string `json:"label" binding:"required,min=1,max=255"`
-	Description string `json:"description,omitempty"`
-	DataType    string `json:"dataType" binding:"required,oneof=TEXT NUMBER DATE CURRENCY BOOLEAN IMAGE TABLE"`
-	IsGlobal    bool   `json:"isGlobal"` // Only allowed for global admins
-}
-
-// UpdateInjectableRequest represents the request to update an injectable.
-type UpdateInjectableRequest struct {
-	Label       string `json:"label" binding:"required,min=1,max=255"`
-	Description string `json:"description,omitempty"`
+	ID          string         `json:"id"`
+	WorkspaceID *string        `json:"workspaceId,omitempty"`
+	Key         string         `json:"key"`
+	Label       string         `json:"label"`
+	Description string         `json:"description,omitempty"`
+	DataType    string         `json:"dataType"`
+	SourceType  string         `json:"sourceType"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+	IsGlobal    bool           `json:"isGlobal"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   *time.Time     `json:"updatedAt,omitempty"`
 }
 
 // ListInjectablesResponse represents the list of injectables.

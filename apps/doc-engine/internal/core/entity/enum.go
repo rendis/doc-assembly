@@ -208,6 +208,24 @@ func (i InjectableDataType) IsValid() bool {
 	return false
 }
 
+// InjectableSourceType indicates whether an injectable's value is calculated
+// internally by the system or provided from an external source.
+type InjectableSourceType string
+
+const (
+	InjectableSourceTypeInternal InjectableSourceType = "INTERNAL"
+	InjectableSourceTypeExternal InjectableSourceType = "EXTERNAL"
+)
+
+// IsValid checks if the injectable source type is valid.
+func (i InjectableSourceType) IsValid() bool {
+	switch i {
+	case InjectableSourceTypeInternal, InjectableSourceTypeExternal:
+		return true
+	}
+	return false
+}
+
 // VersionStatus represents the lifecycle status of a template version.
 type VersionStatus string
 

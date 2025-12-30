@@ -83,36 +83,6 @@ definitions:
     required:
     - name
     type: object
-  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateInjectableRequest:
-    properties:
-      dataType:
-        enum:
-        - TEXT
-        - NUMBER
-        - DATE
-        - CURRENCY
-        - BOOLEAN
-        - IMAGE
-        - TABLE
-        type: string
-      description:
-        type: string
-      isGlobal:
-        description: Only allowed for global admins
-        type: boolean
-      key:
-        maxLength: 100
-        minLength: 1
-        type: string
-      label:
-        maxLength: 255
-        minLength: 1
-        type: string
-    required:
-    - dataType
-    - key
-    - label
-    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTagRequest:
     properties:
       color:
@@ -263,6 +233,11 @@ definitions:
       key:
         type: string
       label:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      sourceType:
         type: string
       updatedAt:
         type: string
@@ -850,17 +825,6 @@ definitions:
     required:
     - name
     type: object
-  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateInjectableRequest:
-    properties:
-      description:
-        type: string
-      label:
-        maxLength: 255
-        minLength: 1
-        type: string
-    required:
-    - label
-    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateMemberRoleRequest:
     properties:
       role:
@@ -1018,65 +982,7 @@ paths:
       summary: List injectables
       tags:
       - Injectables
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Workspace ID
-        in: header
-        name: X-Workspace-ID
-        required: true
-        type: string
-      - description: Injectable data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateInjectableRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Create injectable
-      tags:
-      - Injectables
   /api/v1/content/injectables/{injectableId}:
-    delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Injectable ID
-        in: path
-        name: injectableId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Delete injectable
-      tags:
-      - Injectables
     get:
       consumes:
       - application/json
@@ -1098,39 +1004,6 @@ paths:
           schema:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       summary: Get injectable
-      tags:
-      - Injectables
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Injectable ID
-        in: path
-        name: injectableId
-        required: true
-        type: string
-      - description: Injectable data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateInjectableRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      summary: Update injectable
       tags:
       - Injectables
   /api/v1/content/templates:

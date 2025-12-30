@@ -18,27 +18,9 @@ func New(pool *pgxpool.Pool) port.InjectableRepository {
 }
 
 // Repository implements port.InjectableRepository using PostgreSQL.
+// Note: Injectables are read-only - they are managed via database migrations/seeds.
 type Repository struct {
 	pool *pgxpool.Pool
-}
-
-// Create creates a new injectable definition.
-func (r *Repository) Create(ctx context.Context, injectable *entity.InjectableDefinition) (string, error) {
-	var id string
-	err := r.pool.QueryRow(ctx, queryCreate,
-		injectable.ID,
-		injectable.WorkspaceID,
-		injectable.Key,
-		injectable.Label,
-		injectable.Description,
-		injectable.DataType,
-		injectable.CreatedAt,
-	).Scan(&id)
-	if err != nil {
-		return "", fmt.Errorf("creating injectable definition: %w", err)
-	}
-
-	return id, nil
 }
 
 // FindByID finds an injectable definition by ID.
@@ -51,6 +33,8 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Injectabl
 		&injectable.Label,
 		&injectable.Description,
 		&injectable.DataType,
+		&injectable.SourceType,
+		&injectable.Metadata,
 		&injectable.CreatedAt,
 		&injectable.UpdatedAt,
 	)
@@ -82,6 +66,8 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string) ([
 			&injectable.Label,
 			&injectable.Description,
 			&injectable.DataType,
+			&injectable.SourceType,
+			&injectable.Metadata,
 			&injectable.CreatedAt,
 			&injectable.UpdatedAt,
 		); err != nil {
@@ -115,6 +101,8 @@ func (r *Repository) FindGlobal(ctx context.Context) ([]*entity.InjectableDefini
 			&injectable.Label,
 			&injectable.Description,
 			&injectable.DataType,
+			&injectable.SourceType,
+			&injectable.Metadata,
 			&injectable.CreatedAt,
 			&injectable.UpdatedAt,
 		); err != nil {
@@ -151,6 +139,8 @@ func (r *Repository) FindByKey(ctx context.Context, workspaceID *string, key str
 		&injectable.Label,
 		&injectable.Description,
 		&injectable.DataType,
+		&injectable.SourceType,
+		&injectable.Metadata,
 		&injectable.CreatedAt,
 		&injectable.UpdatedAt,
 	)
@@ -162,39 +152,6 @@ func (r *Repository) FindByKey(ctx context.Context, workspaceID *string, key str
 	}
 
 	return injectable, nil
-}
-
-// Update updates an injectable definition.
-func (r *Repository) Update(ctx context.Context, injectable *entity.InjectableDefinition) error {
-	result, err := r.pool.Exec(ctx, queryUpdate,
-		injectable.ID,
-		injectable.Label,
-		injectable.Description,
-		injectable.UpdatedAt,
-	)
-	if err != nil {
-		return fmt.Errorf("updating injectable definition: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return entity.ErrInjectableNotFound
-	}
-
-	return nil
-}
-
-// Delete deletes an injectable definition.
-func (r *Repository) Delete(ctx context.Context, id string) error {
-	result, err := r.pool.Exec(ctx, queryDelete, id)
-	if err != nil {
-		return fmt.Errorf("deleting injectable definition: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return entity.ErrInjectableNotFound
-	}
-
-	return nil
 }
 
 // ExistsByKey checks if an injectable with the given key exists.

@@ -3,7 +3,6 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 )
 
 // InjectableMapper handles mapping between injectable entities and DTOs.
@@ -27,6 +26,8 @@ func (m *InjectableMapper) ToResponse(injectable *entity.InjectableDefinition) *
 		Label:       injectable.Label,
 		Description: injectable.Description,
 		DataType:    string(injectable.DataType),
+		SourceType:  string(injectable.SourceType),
+		Metadata:    injectable.Metadata,
 		IsGlobal:    injectable.IsGlobal(),
 		CreatedAt:   injectable.CreatedAt,
 		UpdatedAt:   injectable.UpdatedAt,
@@ -52,33 +53,6 @@ func (m *InjectableMapper) ToListResponse(injectables []*entity.InjectableDefini
 	return &dto.ListInjectablesResponse{
 		Items: items,
 		Total: len(items),
-	}
-}
-
-// ToCreateCommand converts a create request to a command.
-func (m *InjectableMapper) ToCreateCommand(req *dto.CreateInjectableRequest, workspaceID string) usecase.CreateInjectableCommand {
-	cmd := usecase.CreateInjectableCommand{
-		Key:         req.Key,
-		Label:       req.Label,
-		Description: req.Description,
-		DataType:    entity.InjectableDataType(req.DataType),
-	}
-
-	if req.IsGlobal {
-		cmd.WorkspaceID = nil
-	} else {
-		cmd.WorkspaceID = &workspaceID
-	}
-
-	return cmd
-}
-
-// ToUpdateCommand converts an update request to a command.
-func (m *InjectableMapper) ToUpdateCommand(id string, req *dto.UpdateInjectableRequest) usecase.UpdateInjectableCommand {
-	return usecase.UpdateInjectableCommand{
-		ID:          id,
-		Label:       req.Label,
-		Description: req.Description,
 	}
 }
 

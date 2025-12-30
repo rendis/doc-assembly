@@ -10,14 +10,16 @@ var injectableKeyRegex = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 // InjectableDefinition represents a variable that can be injected into templates.
 type InjectableDefinition struct {
-	ID          string             `json:"id"`
-	WorkspaceID *string            `json:"workspaceId,omitempty"` // NULL for global definitions
-	Key         string             `json:"key"`                   // Technical key (e.g., customer_name)
-	Label       string             `json:"label"`                 // Human-readable name
-	Description string             `json:"description,omitempty"`
-	DataType    InjectableDataType `json:"dataType"`
-	CreatedAt   time.Time          `json:"createdAt"`
-	UpdatedAt   *time.Time         `json:"updatedAt,omitempty"`
+	ID          string               `json:"id"`
+	WorkspaceID *string              `json:"workspaceId,omitempty"` // NULL for global definitions
+	Key         string               `json:"key"`                   // Technical key (e.g., customer_name)
+	Label       string               `json:"label"`                 // Human-readable name
+	Description string               `json:"description,omitempty"`
+	DataType    InjectableDataType   `json:"dataType"`
+	SourceType  InjectableSourceType `json:"sourceType"` // INTERNAL (system-calculated) or EXTERNAL (user input)
+	Metadata    map[string]any       `json:"metadata"`   // Flexible configuration (format options, etc.)
+	CreatedAt   time.Time            `json:"createdAt"`
+	UpdatedAt   *time.Time           `json:"updatedAt,omitempty"`
 }
 
 // NewInjectableDefinition creates a new injectable definition.
@@ -27,6 +29,8 @@ func NewInjectableDefinition(workspaceID *string, key, label string, dataType In
 		Key:         key,
 		Label:       label,
 		DataType:    dataType,
+		SourceType:  InjectableSourceTypeExternal,
+		Metadata:    make(map[string]any),
 		CreatedAt:   time.Now().UTC(),
 	}
 }

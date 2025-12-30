@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
+	_ "github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto" // for swagger
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"
@@ -31,19 +31,17 @@ func NewContentInjectableController(
 
 // RegisterRoutes registers all injectable routes.
 // All injectable routes require X-Workspace-ID header.
+// Note: Injectables are read-only - they are managed via database migrations/seeds.
 func (c *ContentInjectableController) RegisterRoutes(rg *gin.RouterGroup, middlewareProvider *middleware.Provider) {
 	// Content group requires X-Workspace-ID header
 	content := rg.Group("/content")
 	content.Use(middlewareProvider.WorkspaceContext())
 	{
-		// Injectable routes
+		// Injectable routes (read-only)
 		injectables := content.Group("/injectables")
 		{
-			injectables.GET("", c.ListInjectables)                                              // VIEWER+
-			injectables.POST("", middleware.RequireEditor(), c.CreateInjectable)                // EDITOR+
-			injectables.GET("/:injectableId", c.GetInjectable)                                  // VIEWER+
-			injectables.PUT("/:injectableId", middleware.RequireEditor(), c.UpdateInjectable)   // EDITOR+
-			injectables.DELETE("/:injectableId", middleware.RequireAdmin(), c.DeleteInjectable) // ADMIN+
+			injectables.GET("", c.ListInjectables)             // VIEWER+
+			injectables.GET("/:injectableId", c.GetInjectable) // VIEWER+
 		}
 	}
 }
@@ -73,36 +71,6 @@ func (c *ContentInjectableController) ListInjectables(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, c.injectableMapper.ToListResponse(injectables))
 }
 
-// CreateInjectable creates a new injectable definition.
-// @Summary Create injectable
-// @Tags Injectables
-// @Accept json
-// @Produce json
-// @Param X-Workspace-ID header string true "Workspace ID"
-// @Param request body dto.CreateInjectableRequest true "Injectable data"
-// @Success 201 {object} dto.InjectableResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 409 {object} dto.ErrorResponse
-// @Router /api/v1/content/injectables [post]
-func (c *ContentInjectableController) CreateInjectable(ctx *gin.Context) {
-	workspaceID, _ := middleware.GetWorkspaceID(ctx)
-
-	var req dto.CreateInjectableRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	cmd := c.injectableMapper.ToCreateCommand(&req, workspaceID)
-	injectable, err := c.injectableUC.CreateInjectable(ctx.Request.Context(), cmd)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, c.injectableMapper.ToResponse(injectable))
-}
-
 // GetInjectable retrieves an injectable by ID.
 // @Summary Get injectable
 // @Tags Injectables
@@ -122,55 +90,4 @@ func (c *ContentInjectableController) GetInjectable(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, c.injectableMapper.ToResponse(injectable))
-}
-
-// UpdateInjectable updates an injectable definition.
-// @Summary Update injectable
-// @Tags Injectables
-// @Accept json
-// @Produce json
-// @Param injectableId path string true "Injectable ID"
-// @Param request body dto.UpdateInjectableRequest true "Injectable data"
-// @Success 200 {object} dto.InjectableResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Router /api/v1/content/injectables/{injectableId} [put]
-func (c *ContentInjectableController) UpdateInjectable(ctx *gin.Context) {
-	injectableID := ctx.Param("injectableId")
-
-	var req dto.UpdateInjectableRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	cmd := c.injectableMapper.ToUpdateCommand(injectableID, &req)
-	injectable, err := c.injectableUC.UpdateInjectable(ctx.Request.Context(), cmd)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, c.injectableMapper.ToResponse(injectable))
-}
-
-// DeleteInjectable deletes an injectable definition.
-// @Summary Delete injectable
-// @Tags Injectables
-// @Accept json
-// @Produce json
-// @Param injectableId path string true "Injectable ID"
-// @Success 204 "No Content"
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Router /api/v1/content/injectables/{injectableId} [delete]
-func (c *ContentInjectableController) DeleteInjectable(ctx *gin.Context) {
-	injectableID := ctx.Param("injectableId")
-
-	if err := c.injectableUC.DeleteInjectable(ctx.Request.Context(), injectableID); err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
 }
