@@ -49,7 +49,7 @@ export const AppSidebar = () => {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-full",
+        "flex flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-in-out h-screen sticky top-0",
         isCollapsed ? "w-16" : "w-64"
       )}
     >
