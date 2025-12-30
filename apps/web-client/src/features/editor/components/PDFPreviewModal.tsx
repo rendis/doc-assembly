@@ -184,8 +184,8 @@ export function PDFPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[90vw] sm:max-h-[90vh] h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6">
+      <DialogContent className="sm:max-w-[90vw] sm:max-h-[90vh] h-[90vh] flex flex-col p-0 pt-4 relative">
+        <DialogHeader className="px-6 pt-2">
           <DialogTitle>{t('editor.preview.pdfModal.title')}</DialogTitle>
         </DialogHeader>
 

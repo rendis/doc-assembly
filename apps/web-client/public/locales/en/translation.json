@@ -194,6 +194,29 @@
     "alignJustify": "Justify",
     "undo": "Undo",
     "redo": "Redo",
+    "aiGenerate": "Generate with AI",
+    "aiGenerateTitle": "Generate Contract with AI",
+    "aiGenerateSubtitle": "Use AI to create a contract from an image, PDF, Word file, or text description",
+    "fileUploadTab": "Upload File",
+    "textDescriptionTab": "Description",
+    "fileUploadHint": "Drag a file here or click to select",
+    "fileUploadSupported": "Supported: Images (PNG, JPG), PDF, Word (.docx)",
+    "fileUploadMaxSize": "Max size: 10MB",
+    "textDescriptionPlaceholder": "Describe the contract you want to generate. For example:\n\n\"Lease agreement for an apartment in Mexico City, 12-month duration, monthly rent of $8,000 MXN, and security deposit equivalent to 2 months' rent. The tenant agrees to...\"",
+    "textDescriptionHint": "Minimum 50 characters, maximum 2000",
+    "textDescriptionTip": "Tip for better results",
+    "textDescriptionTipDetail": "Include specific details such as: contract type, parties involved, deadlines, amounts, and special conditions.",
+    "textDescriptionExamples": "Example descriptions:",
+    "exampleLease": "Residential lease agreement, 12 months, $8,000 MXN monthly",
+    "exampleService": "Software development services agreement, 6 months",
+    "exampleSale": "Used vehicle purchase agreement, cash payment",
+    "generating": "Generating...",
+    "generateButton": "Generate",
+    "overwriteTitle": "Replace existing content?",
+    "overwriteDescription": "The editor contains content that will be replaced by the generated document. This action cannot be undone.",
+    "overwriteConfirm": "Continue",
+    "aiGenerateSuccess": "Contract generated successfully",
+    "aiGenerateError": "Error generating contract",
     "variables": {
       "selectFormat": "Select format",
       "formatOptions": "Format options",
@@ -542,5 +565,16 @@
       "success": "Tag deleted successfully",
       "error": "Error deleting tag"
     }
+  },
+  "errors": {
+    "fileInvalidType": "Unsupported file type",
+    "fileTooLarge": "File exceeds maximum size (10MB)",
+    "textTooShort": "Description is too short (minimum 50 characters)",
+    "textTooLong": "Description is too long (maximum 2000 characters)",
+    "fileReadError": "Error reading file",
+    "docxExtractionError": "Error processing Word file. Make sure it's a valid .docx file",
+    "generationFailed": "Error generating contract",
+    "noPermission": "You don't have permission to generate contracts",
+    "serviceUnavailable": "AI generation service is temporarily unavailable. Please try again in a few moments."
   }
 }

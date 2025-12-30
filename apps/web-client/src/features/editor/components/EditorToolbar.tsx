@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import {
   Bold, Italic, List, ListOrdered, Quote,
   Undo, Redo, Heading1, Heading2, Download, Upload,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { EditorToolbarProps } from '../types';
@@ -10,12 +11,52 @@ import { useSignerRolesStore } from '../stores/signer-roles-store';
 import { exportDocument, downloadAsJson } from '../services/document-export';
 import { importFromFile } from '../services/document-import';
 import { PreviewButton } from './PreviewButton';
+import { AIGenerateModal, OverwriteConfirmDialog } from './AIGenerateModal';
+import { useContractGenerator } from '../hooks/useContractGenerator';
+import type { GenerateRequest } from './AIGenerateModal/types';
 
 export const EditorToolbar = ({ editor, templateId, versionId }: EditorToolbarProps) => {
   const { t } = useTranslation();
   const { config: paginationConfig } = usePaginationStore();
   const setPaginationConfig = usePaginationStore((s) => s.setPaginationConfig);
   const { roles: signerRoles, workflowConfig, setRoles, setWorkflowConfig } = useSignerRolesStore();
+
+  // AI Generate Modal state
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [confirmOverwriteOpen, setConfirmOverwriteOpen] = useState(false);
+
+  // AI Contract Generator hook
+  const { generate, isGenerating, error: generationError, reset: resetGenerator } = useContractGenerator({
+    editor,
+    onSuccess: () => {
+      setAiModalOpen(false);
+      console.log('Contrato generado exitosamente');
+    },
+    onError: (err) => {
+      console.error('Error al generar contrato:', err);
+    },
+  });
+
+  const handleOpenAIModal = () => {
+    // Reset any previous errors
+    resetGenerator();
+
+    // Check if editor has content
+    if (editor && !editor.isEmpty) {
+      setConfirmOverwriteOpen(true);
+    } else {
+      setAiModalOpen(true);
+    }
+  };
+
+  const handleConfirmOverwrite = () => {
+    setConfirmOverwriteOpen(false);
+    setAiModalOpen(true);
+  };
+
+  const handleGenerate = async (request: GenerateRequest) => {
+    await generate(request);
+  };
 
   const handleExport = () => {
     if (!editor) return;
@@ -133,6 +174,15 @@ export const EditorToolbar = ({ editor, templateId, versionId }: EditorToolbarPr
       >
         <AlignJustify className="h-4 w-4" />
       </button>
+      <div className="w-px h-6 bg-border mx-1 self-center" />
+      <button
+        onClick={handleOpenAIModal}
+        className="p-2 rounded hover:bg-accent flex items-center gap-1.5 hover:bg-purple-100 dark:hover:bg-purple-950"
+        title={t('editor.aiGenerate', 'Generar con IA')}
+      >
+        <Sparkles className="h-4 w-4 text-purple-500" />
+        <span className="text-xs">IA</span>
+      </button>
       <div className="flex-1" />
       <button
         onClick={handleExport}
@@ -171,6 +221,22 @@ export const EditorToolbar = ({ editor, templateId, versionId }: EditorToolbarPr
       >
         <Redo className="h-4 w-4" />
       </button>
+
+      {/* AI Generate Modal */}
+      <AIGenerateModal
+        open={aiModalOpen}
+        onOpenChange={setAiModalOpen}
+        onGenerate={handleGenerate}
+        isGenerating={isGenerating}
+        externalError={generationError}
+      />
+
+      {/* Overwrite Confirmation Dialog */}
+      <OverwriteConfirmDialog
+        open={confirmOverwriteOpen}
+        onOpenChange={setConfirmOverwriteOpen}
+        onConfirm={handleConfirmOverwrite}
+      />
     </div>
   )
 }

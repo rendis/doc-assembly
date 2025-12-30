@@ -194,6 +194,29 @@
     "alignJustify": "Justificar",
     "undo": "Deshacer",
     "redo": "Rehacer",
+    "aiGenerate": "Generar con IA",
+    "aiGenerateTitle": "Generar Contrato con IA",
+    "aiGenerateSubtitle": "Usa IA para crear un contrato a partir de una imagen, PDF, archivo Word o descripcion de texto",
+    "fileUploadTab": "Subir Archivo",
+    "textDescriptionTab": "Descripcion",
+    "fileUploadHint": "Arrastra un archivo aqui o haz clic para seleccionar",
+    "fileUploadSupported": "Soportado: Imagenes (PNG, JPG), PDF, Word (.docx)",
+    "fileUploadMaxSize": "Tamano maximo: 10MB",
+    "textDescriptionPlaceholder": "Describe el contrato que deseas generar. Por ejemplo:\n\n\"Contrato de arrendamiento para un departamento en la Ciudad de Mexico, con duracion de 12 meses, renta mensual de $8,000 MXN, y deposito de garantia equivalente a 2 meses de renta. El arrendatario se compromete a...\"",
+    "textDescriptionHint": "Minimo 50 caracteres, maximo 2000",
+    "textDescriptionTip": "Consejo para mejores resultados",
+    "textDescriptionTipDetail": "Incluye detalles especificos como: tipo de contrato, partes involucradas, plazos, montos, y condiciones especiales.",
+    "textDescriptionExamples": "Ejemplos de descripciones:",
+    "exampleLease": "Contrato de arrendamiento residencial, 12 meses, $8,000 MXN mensuales",
+    "exampleService": "Contrato de prestacion de servicios de desarrollo de software, 6 meses",
+    "exampleSale": "Contrato de compraventa de vehiculo usado, pago en efectivo",
+    "generating": "Generando...",
+    "generateButton": "Generar",
+    "overwriteTitle": "¿Reemplazar contenido existente?",
+    "overwriteDescription": "El editor contiene contenido que sera reemplazado por el documento generado. Esta accion no se puede deshacer.",
+    "overwriteConfirm": "Continuar",
+    "aiGenerateSuccess": "Contrato generado exitosamente",
+    "aiGenerateError": "Error al generar el contrato",
     "variables": {
       "selectFormat": "Seleccionar formato",
       "formatOptions": "Opciones de formato",
@@ -542,5 +565,16 @@
       "success": "Etiqueta eliminada exitosamente",
       "error": "Error al eliminar la etiqueta"
     }
+  },
+  "errors": {
+    "fileInvalidType": "Tipo de archivo no soportado",
+    "fileTooLarge": "El archivo excede el tamano maximo (10MB)",
+    "textTooShort": "La descripcion es demasiado corta (minimo 50 caracteres)",
+    "textTooLong": "La descripcion es demasiado larga (maximo 2000 caracteres)",
+    "fileReadError": "Error al leer el archivo",
+    "docxExtractionError": "Error al procesar el archivo Word. Asegurate de que sea un archivo .docx valido",
+    "generationFailed": "Error al generar el contrato",
+    "noPermission": "No tienes permisos para generar contratos",
+    "serviceUnavailable": "El servicio de generacion de IA no esta disponible temporalmente. Por favor, intenta nuevamente en unos momentos."
   }
 }
