@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import {
   Bold, Italic, List, ListOrdered, Quote,
   Undo, Redo, Heading1, Heading2, Download, Upload,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Eye
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { EditorToolbarProps } from '../types';
@@ -11,19 +9,12 @@ import { usePaginationStore } from '../stores/pagination-store';
 import { useSignerRolesStore } from '../stores/signer-roles-store';
 import { exportDocument, downloadAsJson } from '../services/document-export';
 import { importFromFile } from '../services/document-import';
-import { PreviewModal } from './preview';
 
 export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
   const { t } = useTranslation();
   const { config: paginationConfig } = usePaginationStore();
   const setPaginationConfig = usePaginationStore((s) => s.setPaginationConfig);
   const { roles: signerRoles, workflowConfig, setRoles, setWorkflowConfig } = useSignerRolesStore();
-
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const handlePreview = () => {
-    setPreviewOpen(true);
-  };
 
   const handleExport = () => {
     if (!editor) return;
@@ -143,14 +134,6 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
       </button>
       <div className="flex-1" />
       <button
-        onClick={handlePreview}
-        className="p-2 rounded hover:bg-accent"
-        title={t('editor.preview.title', 'Vista Previa')}
-      >
-        <Eye className="h-4 w-4" />
-      </button>
-      <div className="w-px h-6 bg-border mx-1 self-center" />
-      <button
         onClick={handleExport}
         className="p-2 rounded hover:bg-accent"
         title="Exportar JSON"
@@ -181,12 +164,6 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
       >
         <Redo className="h-4 w-4" />
       </button>
-
-      <PreviewModal
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        editor={editor}
-      />
     </div>
   )
 }

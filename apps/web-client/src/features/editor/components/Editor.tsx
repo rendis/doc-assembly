@@ -12,6 +12,8 @@ import { DroppableEditorArea } from './DroppableEditorArea';
 import { EditorSidebar } from './EditorSidebar';
 import { EditorToolbar } from './EditorToolbar';
 import { PageSettingsToolbar } from './PageSettingsToolbar';
+import { PageNavigator } from './PageNavigator';
+import { usePageNavigation } from '../hooks/usePageNavigation';
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal';
 import { VariableFormatPopover } from './VariableFormatPopover';
 import type { InjectorType, Variable } from '../data/variables';
@@ -67,6 +69,8 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
 
   const { config } = usePaginationStore();
   const format = config.format;
+
+  const { currentPage, totalPages, goToPage } = usePageNavigation(editor);
 
   const [activeDragItem, setActiveDragItem] = useState<DragData | null>(null);
   const [dropCursorPos, setDropCursorPos] = useState<{ top: number; left: number; height: number } | null>(null);
@@ -315,7 +319,7 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
       <div className="flex h-full min-h-0 w-full border overflow-hidden bg-muted/30 shadow-sm">
         <EditorSidebar />
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 relative">
           <EditorToolbar editor={editor} />
           <PageSettingsToolbar editor={editor} />
           <div
@@ -333,6 +337,12 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
               <EditorBubbleMenu editor={editor} />
             </DroppableEditorArea>
           </div>
+
+          <PageNavigator
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
         </div>
       </div>
 

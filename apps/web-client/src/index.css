@@ -370,25 +370,32 @@
   }
 
   /* Automatic page break (tiptap-pagination-breaks) */
+  /* Using !important to override inline styles from the extension */
   .page-break {
-    height: 40px;
-    width: 100%;
-    border-top: 2px dashed hsl(var(--border));
-    margin: 20px 0;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
+    height: 40px !important;
+    width: 100% !important;
+    border-top: 2px dashed hsl(var(--border)) !important;
+    margin: 20px 0 !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: hsl(var(--background)) !important;
+    box-sizing: border-box !important;
   }
 
   .page-break::before {
-    content: 'Página';
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    padding: 2px 12px;
-    border-radius: 4px;
-    font-size: 12px;
+    content: 'Página' !important;
+    background: hsl(var(--muted)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    padding: 2px 12px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+  }
+
+  /* Hide the page number indicator from the extension (we use ::before instead) */
+  .page-break .page-number {
+    display: none !important;
   }
 
   /* === PRINT STYLES === */
@@ -418,5 +425,50 @@
     .page-settings-toolbar {
       display: none !important;
     }
+  }
+
+  /* === PREVIEW MODE STYLES === */
+
+  /* Paper-like appearance for the preview (mirrors editor styles) */
+  .preview-editor-container .ProseMirror {
+    box-sizing: border-box !important;
+    width: var(--page-width, 794px) !important;
+    min-height: var(--page-height, 1123px) !important;
+    background: hsl(var(--card)) !important;
+    /* Content padding - matches page margins */
+    padding: var(--page-padding-v, 96px) var(--page-padding-h, 72px) !important;
+  }
+
+  .dark .preview-editor-container .ProseMirror {
+    background: hsl(var(--card)) !important;
+  }
+
+  /* Page breaks in preview should look the same as in editor */
+  /* Using !important to override inline styles from tiptap-pagination-breaks */
+  .preview-editor-container .page-break {
+    height: 40px !important;
+    width: 100% !important;
+    border-top: 2px dashed hsl(var(--border)) !important;
+    margin: 20px 0 !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: hsl(var(--background)) !important;
+    box-sizing: border-box !important;
+  }
+
+  .preview-editor-container .page-break::before {
+    content: 'Página' !important;
+    background: hsl(var(--muted)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    padding: 2px 12px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+  }
+
+  /* Hide the page number indicator from the extension */
+  .preview-editor-container .page-break .page-number {
+    display: none !important;
   }
 }

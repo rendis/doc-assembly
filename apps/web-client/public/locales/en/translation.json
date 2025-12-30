@@ -247,21 +247,6 @@
         "message": "The role \"{{roleName}}\" has {{count}} variable(s) inserted in the document. If you delete this role, they will also be removed from the document.",
         "confirm": "Delete role and variables"
       }
-    },
-    "preview": {
-      "title": "Document Preview",
-      "editVariables": "Edit Variables",
-      "downloadPdf": "Download PDF",
-      "inputVariables": "Enter Variable Values",
-      "inputVariablesDescription": "Complete the values for the document variables before generating the preview.",
-      "continue": "Continue",
-      "autoFilledVariables": "Automatic Variables",
-      "roleVariables": "Role Variables",
-      "documentVariables": "Document Variables",
-      "noVariables": "No variables to complete.",
-      "variableCount": "Variables:",
-      "filledCount": "Filled:",
-      "missingVariables": "Missing variables"
     }
   },
   "templates": {
