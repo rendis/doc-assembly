@@ -38,6 +38,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   const [dropCursorPos, setDropCursorPos] = useState<{ top: number; left: number; height: number } | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null);
+  const [isEditingImage, setIsEditingImage] = useState(false);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -115,31 +116,48 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return;
 
-    if (pendingImagePosition !== null) {
-      editor.commands.focus(pendingImagePosition);
+    if (isEditingImage) {
+      // Update existing image attributes
+      editor.chain().focus().updateAttributes('image', {
+        src: result.src,
+        alt: result.alt,
+      }).run();
+    } else {
+      // Insert new image
+      if (pendingImagePosition !== null) {
+        editor.commands.focus(pendingImagePosition);
+      }
+      editor.chain().setImage({
+        src: result.src,
+        alt: result.alt,
+      }).run();
     }
-
-    editor.chain().setImage({
-      src: result.src,
-      alt: result.alt,
-    }).run();
 
     setImageModalOpen(false);
     setPendingImagePosition(null);
-  }, [editor, pendingImagePosition]);
+    setIsEditingImage(false);
+  }, [editor, pendingImagePosition, isEditingImage]);
 
-  // Listen for custom event from slash commands
+  // Listen for custom events from slash commands and image toolbar
   useEffect(() => {
     if (!editor) return;
 
     const handleOpenImageModal = () => {
       setPendingImagePosition(editor.state.selection.from);
+      setIsEditingImage(false);
+      setImageModalOpen(true);
+    };
+
+    const handleEditImage = () => {
+      setIsEditingImage(true);
       setImageModalOpen(true);
     };
 
     editor.view.dom.addEventListener('editor:open-image-modal', handleOpenImageModal);
+    editor.view.dom.addEventListener('editor:edit-image', handleEditImage);
     return () => {
       editor.view.dom.removeEventListener('editor:open-image-modal', handleOpenImageModal);
+      editor.view.dom.removeEventListener('editor:edit-image', handleEditImage);
     };
   }, [editor]);
 

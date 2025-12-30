@@ -3,7 +3,7 @@ import { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import Moveable from 'react-moveable';
 import { cn } from '@/lib/utils';
 import { ImageAlignSelector } from './ImageAlignSelector';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ImageDisplayMode, ImageAlign } from './types';
 
@@ -42,6 +42,15 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
 
   const handleDelete = useCallback(() => {
     editor.commands.deleteSelection();
+  }, [editor]);
+
+  const handleEdit = useCallback(() => {
+    // Blur editor to hide Moveable before opening modal
+    editor.commands.blur();
+    // Dispatch event to open image modal in edit mode
+    editor.view.dom.dispatchEvent(
+      new CustomEvent('editor:edit-image', { bubbles: true })
+    );
   }, [editor]);
 
   const containerStyles = useMemo(() => {
@@ -127,6 +136,15 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8"
+              onClick={handleEdit}
+              title="Cambiar imagen"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={handleDelete}
               title="Eliminar imagen"
@@ -147,6 +165,7 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
           throttleResize={0}
           edge={false}
           renderDirections={['se', 'sw', 'ne', 'nw']}
+          className="!z-10"
           onResize={({ target, width: newWidth, height: newHeight }) => {
             target.style.width = `${newWidth}px`;
             target.style.height = `${newHeight}px`;
