@@ -327,7 +327,7 @@ export function PDFPreviewModal({
           )}
         </div>
 
-        <DialogFooter className="px-6 py-3 justify-center">
+        <div className="flex items-center justify-center gap-2 px-6 py-2 border-t">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4 mr-2" />
             {t('editor.preview.close')}
@@ -336,7 +336,7 @@ export function PDFPreviewModal({
             <Download className="h-4 w-4 mr-2" />
             {t('editor.preview.download')}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
