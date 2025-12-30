@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
+import { AlertCircle, Loader2, X } from 'lucide-react';
 import { useInjectables } from '../../hooks/useInjectables';
 import { useRoleInjectables } from '../../hooks/useRoleInjectables';
 import { usePreviewPDF } from '../../hooks/usePreviewPDF';
@@ -252,21 +252,19 @@ export function InjectablesFormModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] sm:max-h-[90vh] h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 bg-muted/30 border-b">
+        <DialogContent className="sm:max-w-[600px] sm:max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-3 pb-3 bg-muted/30 border-b">
             <DialogTitle>{t('editor.preview.title')}</DialogTitle>
             <DialogDescription>
               Complete los valores para generar la vista previa del documento.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 relative overflow-hidden">
+          <div className="relative overflow-y-auto px-6">
             {/* Blur fade superior */}
-            <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background via-background/50 to-transparent pointer-events-none z-10 backdrop-blur-[2px]" />
+            <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
 
-            {/* Contenido scrolleable */}
-            <div className="absolute inset-0 overflow-y-auto px-6 py-4">
-              <div className="space-y-6">
+            <div className="space-y-6 pt-1 pb-4">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -313,11 +311,10 @@ export function InjectablesFormModal({
                 />
               </>
             )}
-              </div>
             </div>
 
             {/* Blur fade inferior */}
-            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-10 backdrop-blur-[2px]" />
+            <div className="sticky bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
           </div>
 
           <div className="flex items-center justify-center gap-2 px-6 py-3 border-t bg-muted/30">
