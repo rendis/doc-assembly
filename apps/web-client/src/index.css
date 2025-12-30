@@ -328,9 +328,10 @@
     flex: 1;
     overflow-y: auto;
     background: hsl(var(--muted) / 0.2);
-    padding: 2rem 2rem 10rem 2rem; /* Extra bottom padding for scroll breathing room */
+    padding: 0 2rem;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
   }
 
   /* Paper-like appearance for the editor */
@@ -339,7 +340,7 @@
     box-sizing: border-box !important;
     width: var(--page-width, 794px) !important;
     min-height: var(--page-height, 1123px) !important;
-    margin: var(--page-margin, 96px) auto !important;
+    margin: 16px auto 16px auto !important;
     background: hsl(var(--card)) !important;
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     /* Content padding - matches page margins */

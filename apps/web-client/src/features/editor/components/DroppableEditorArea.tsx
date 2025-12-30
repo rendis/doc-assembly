@@ -15,7 +15,7 @@ export function DroppableEditorArea({ children, className }: DroppableEditorArea
     <div 
       ref={setNodeRef} 
       className={cn(
-        'h-full transition-colors',
+        'transition-colors',
         isOver ? 'bg-primary/5 ring-2 ring-primary ring-inset rounded-lg' : '',
         className
       )}

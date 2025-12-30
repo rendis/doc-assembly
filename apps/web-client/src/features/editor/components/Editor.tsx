@@ -136,7 +136,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
               '--page-padding-h': `${format.margins.left}px`,
             } as React.CSSProperties}
           >
-            <DroppableEditorArea className="min-h-full">
+            <DroppableEditorArea>
               <EditorContent editor={editor} />
               <EditorBubbleMenu editor={editor} />
             </DroppableEditorArea>
