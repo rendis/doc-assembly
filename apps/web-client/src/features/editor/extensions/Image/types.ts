@@ -1,5 +1,6 @@
 export type ImageDisplayMode = 'block' | 'inline';
 export type ImageAlign = 'left' | 'center' | 'right';
+export type ImageShape = 'square' | 'circle';
 
 export interface ImageAttributes {
   src: string;
@@ -9,6 +10,7 @@ export interface ImageAttributes {
   height?: number;
   displayMode: ImageDisplayMode;
   align: ImageAlign;
+  shape: ImageShape;
 }
 
 export interface ImageAlignOption {
@@ -56,6 +58,7 @@ export const IMAGE_ALIGN_OPTIONS: ImageAlignOption[] = [
 export const DEFAULT_IMAGE_ATTRS: Partial<ImageAttributes> = {
   displayMode: 'block',
   align: 'center',
+  shape: 'square',
   width: undefined,
   height: undefined,
 };

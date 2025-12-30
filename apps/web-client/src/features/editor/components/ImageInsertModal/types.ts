@@ -4,17 +4,20 @@ export interface ImageInsertModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInsert: (result: ImageInsertResult) => void;
+  shape?: 'square' | 'circle';
 }
 
 export interface ImageInsertResult {
   src: string;
   alt?: string;
   isBase64: boolean;
+  shape?: 'square' | 'circle';
 }
 
 export interface ImageUrlTabProps {
   onImageReady: (src: string, isBase64: boolean) => void;
   onCropRequest: (src: string) => void;
+  croppedImage?: ImageInsertResult | null;
 }
 
 export interface ImagePreviewState {
@@ -28,9 +31,10 @@ export interface ImageCropperProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageSrc: string;
-  onSave: (croppedImage: string) => void;
+  onSave: (croppedImage: string, shape: 'square' | 'circle') => void;
   maxWidth?: number;
   maxHeight?: number;
+  initialShape?: 'square' | 'circle';
 }
 
 export interface ImageGalleryTabProps {

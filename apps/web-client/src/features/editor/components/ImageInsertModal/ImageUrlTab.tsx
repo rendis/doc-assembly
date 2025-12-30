@@ -7,7 +7,7 @@ import type { ImageUrlTabProps, ImagePreviewState } from './types';
 
 const URL_REGEX = /^https?:\/\/.+/i;
 
-export function ImageUrlTab({ onImageReady, onCropRequest }: ImageUrlTabProps) {
+export function ImageUrlTab({ onImageReady, onCropRequest, croppedImage }: ImageUrlTabProps) {
   const [url, setUrl] = useState('');
   const [preview, setPreview] = useState<ImagePreviewState>({
     src: null,
@@ -129,13 +129,16 @@ export function ImageUrlTab({ onImageReady, onCropRequest }: ImageUrlTabProps) {
         </div>
       )}
 
-      {preview.src && !preview.isLoading && !preview.error && (
+      {(preview.src || croppedImage) && !preview.isLoading && !preview.error && (
         <div className="space-y-3">
-          <div className="relative bg-muted/30 rounded-lg border p-4">
+          <div className="relative bg-muted/30 rounded-lg border p-4 flex justify-center">
             <img
-              src={preview.src}
+              src={croppedImage?.src || preview.src || ''}
               alt="Vista previa"
-              className="max-h-48 max-w-full mx-auto object-contain rounded"
+              className="max-h-48 max-w-full object-contain"
+              style={{
+                borderRadius: croppedImage?.shape === 'circle' ? '50%' : '0.25rem',
+              }}
             />
           </div>
 
@@ -147,13 +150,13 @@ export function ImageUrlTab({ onImageReady, onCropRequest }: ImageUrlTabProps) {
               onClick={handleCropClick}
             >
               <Crop className="h-4 w-4 mr-2" />
-              Recortar imagen
+              {croppedImage ? 'Volver a recortar' : 'Recortar imagen'}
             </Button>
           </div>
         </div>
       )}
 
-      {!url && !preview.isLoading && !preview.error && (
+      {!url && !croppedImage && !preview.isLoading && !preview.error && (
         <div className="flex items-center justify-center h-48 bg-muted/30 rounded-lg border border-dashed">
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Link2 className="h-8 w-8" />

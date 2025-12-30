@@ -1,5 +1,5 @@
-import { useRef, useCallback } from 'react';
-import { Cropper } from 'react-advanced-cropper';
+import { useRef, useCallback, useState } from 'react';
+import { Cropper, CircleStencil } from 'react-advanced-cropper';
 import 'react-advanced-cropper/dist/style.css';
 import {
   Dialog,
@@ -9,7 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Square, Circle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { ImageCropperProps } from './types';
 
 const DEFAULT_MAX_WIDTH = 1200;
@@ -22,9 +23,11 @@ export function ImageCropper({
   onSave,
   maxWidth = DEFAULT_MAX_WIDTH,
   maxHeight = DEFAULT_MAX_HEIGHT,
+  initialShape = 'square',
 }: ImageCropperProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cropperRef = useRef<any>(null);
+  const [shape, setShape] = useState<'square' | 'circle'>(initialShape);
 
   const handleReset = useCallback(() => {
     const defaultState = cropperRef.current?.getDefaultState();
@@ -35,17 +38,17 @@ export function ImageCropper({
 
   const handleSave = useCallback(() => {
     const canvas = cropperRef.current?.getCanvas({
-      maxWidth,
-      maxHeight,
+      maxWidth: shape === 'circle' ? Math.min(maxWidth, maxHeight) : maxWidth,
+      maxHeight: shape === 'circle' ? Math.min(maxWidth, maxHeight) : maxHeight,
       imageSmoothingQuality: 'high',
     });
 
     if (canvas) {
       const dataUrl = canvas.toDataURL('image/png', 0.9);
-      onSave(dataUrl);
+      onSave(dataUrl, shape);
       onOpenChange(false);
     }
-  }, [onSave, onOpenChange, maxWidth, maxHeight]);
+  }, [onSave, onOpenChange, maxWidth, maxHeight, shape]);
 
   const handleCancel = useCallback(() => {
     onOpenChange(false);
@@ -59,14 +62,47 @@ export function ImageCropper({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Shape selector */}
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-sm text-muted-foreground mr-2">Forma:</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={cn(
+                'gap-2',
+                shape === 'square' && 'bg-accent text-accent-foreground border-primary'
+              )}
+              onClick={() => setShape('square')}
+            >
+              <Square className="h-4 w-4" />
+              Cuadrada
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={cn(
+                'gap-2',
+                shape === 'circle' && 'bg-accent text-accent-foreground border-primary'
+              )}
+              onClick={() => setShape('circle')}
+            >
+              <Circle className="h-4 w-4" />
+              Circular
+            </Button>
+          </div>
+
           <div className="relative bg-muted/30 rounded-lg overflow-hidden">
             <Cropper
-              key={imageSrc}
+              key={`${imageSrc}-${shape}`}
               ref={cropperRef}
               src={imageSrc}
               className="h-[350px]"
+              stencilComponent={shape === 'circle' ? CircleStencil : undefined}
               stencilProps={{
                 grid: true,
+                aspectRatio: shape === 'circle' ? 1 : undefined,
               }}
             />
           </div>

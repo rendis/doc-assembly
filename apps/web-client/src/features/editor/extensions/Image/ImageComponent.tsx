@@ -3,12 +3,12 @@ import { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import Moveable from 'react-moveable';
 import { cn } from '@/lib/utils';
 import { ImageAlignSelector } from './ImageAlignSelector';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, Square, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { ImageDisplayMode, ImageAlign } from './types';
+import type { ImageDisplayMode, ImageAlign, ImageShape } from './types';
 
 export function ImageComponent({ node, updateAttributes, selected, editor }: NodeViewProps) {
-  const { src, alt, title, width, height, displayMode, align } = node.attrs as {
+  const { src, alt, title, width, height, displayMode, align, shape } = node.attrs as {
     src: string;
     alt?: string;
     title?: string;
@@ -16,6 +16,7 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
     height?: number;
     displayMode: ImageDisplayMode;
     align: ImageAlign;
+    shape: ImageShape;
   };
 
   const imageRef = useRef<HTMLImageElement>(null);
@@ -52,6 +53,16 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
       new CustomEvent('editor:edit-image', { bubbles: true })
     );
   }, [editor]);
+
+  const handleShapeChange = useCallback((newShape: ImageShape) => {
+    if (newShape === 'circle' && width && height && width !== height) {
+      // Use the smaller dimension to not enlarge the image
+      const size = Math.min(width, height);
+      updateAttributes({ shape: newShape, width: size, height: size });
+    } else {
+      updateAttributes({ shape: newShape });
+    }
+  }, [updateAttributes, width, height]);
 
   const containerStyles = useMemo(() => {
     const styles: React.CSSProperties = {};
@@ -96,8 +107,12 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
       styles.height = height;
     }
 
+    if (shape === 'circle') {
+      styles.borderRadius = '50%';
+    }
+
     return styles;
-  }, [width, height]);
+  }, [width, height, shape]);
 
   return (
     <NodeViewWrapper
@@ -136,6 +151,25 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
             <Button
               variant="ghost"
               size="icon"
+              className={cn('h-8 w-8', shape === 'square' && 'bg-accent text-accent-foreground')}
+              onClick={() => handleShapeChange('square')}
+              title="Forma cuadrada"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('h-8 w-8', shape === 'circle' && 'bg-accent text-accent-foreground')}
+              onClick={() => handleShapeChange('circle')}
+              title="Forma circular"
+            >
+              <Circle className="h-4 w-4" />
+            </Button>
+            <div className="w-px h-6 bg-border mx-1" />
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8"
               onClick={handleEdit}
               title="Cambiar imagen"
@@ -167,16 +201,24 @@ export function ImageComponent({ node, updateAttributes, selected, editor }: Nod
           renderDirections={['se', 'sw', 'ne', 'nw']}
           className="!z-10"
           onResize={({ target, width: newWidth, height: newHeight }) => {
-            target.style.width = `${newWidth}px`;
-            target.style.height = `${newHeight}px`;
+            if (shape === 'circle') {
+              const size = Math.max(newWidth, newHeight);
+              target.style.width = `${size}px`;
+              target.style.height = `${size}px`;
+            } else {
+              target.style.width = `${newWidth}px`;
+              target.style.height = `${newHeight}px`;
+            }
           }}
           onResizeEnd={({ target }) => {
             const newWidth = parseInt(target.style.width, 10);
             const newHeight = parseInt(target.style.height, 10);
-            updateAttributes({
-              width: newWidth,
-              height: newHeight,
-            });
+            if (shape === 'circle') {
+              const size = Math.max(newWidth, newHeight);
+              updateAttributes({ width: size, height: size });
+            } else {
+              updateAttributes({ width: newWidth, height: newHeight });
+            }
           }}
         />
       )}

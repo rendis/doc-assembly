@@ -18,6 +18,7 @@ export function ImageInsertModal({
   open,
   onOpenChange,
   onInsert,
+  shape: initialShape = 'square',
 }: ImageInsertModalProps) {
   const [activeTab, setActiveTab] = useState<ImageInsertTab>('url');
   const [currentImage, setCurrentImage] = useState<ImageInsertResult | null>(null);
@@ -36,10 +37,11 @@ export function ImageInsertModal({
     setCropperOpen(true);
   }, []);
 
-  const handleCropSave = useCallback((croppedSrc: string) => {
+  const handleCropSave = useCallback((croppedSrc: string, shape: 'square' | 'circle') => {
     setCurrentImage({
       src: croppedSrc,
       isBase64: true,
+      shape,
     });
     setImageToCrop(null);
     setCropperOpen(false);
@@ -116,6 +118,7 @@ export function ImageInsertModal({
               <ImageUrlTab
                 onImageReady={handleImageReady}
                 onCropRequest={handleCropRequest}
+                croppedImage={currentImage?.isBase64 ? currentImage : null}
               />
             )}
 
@@ -141,6 +144,7 @@ export function ImageInsertModal({
           onOpenChange={handleCropperClose}
           imageSrc={imageToCrop}
           onSave={handleCropSave}
+          initialShape={initialShape}
         />
       )}
     </>

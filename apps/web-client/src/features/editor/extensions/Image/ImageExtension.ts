@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ImageComponent } from './ImageComponent';
-import type { ImageDisplayMode, ImageAlign } from './types';
+import type { ImageDisplayMode, ImageAlign, ImageShape } from './types';
 
 export interface ImageOptions {
   inline: boolean;
@@ -20,6 +20,7 @@ declare module '@tiptap/core' {
         height?: number;
         displayMode?: ImageDisplayMode;
         align?: ImageAlign;
+        shape?: ImageShape;
       }) => ReturnType;
       setImageAlign: (options: {
         displayMode: ImageDisplayMode;
@@ -29,6 +30,7 @@ declare module '@tiptap/core' {
         width: number;
         height: number;
       }) => ReturnType;
+      setImageShape: (shape: ImageShape) => ReturnType;
     };
   }
 }
@@ -101,6 +103,13 @@ export const ImageExtension = Node.create<ImageOptions>({
           'data-align': attributes.align,
         }),
       },
+      shape: {
+        default: 'square',
+        parseHTML: (element) => element.getAttribute('data-shape') || 'square',
+        renderHTML: (attributes) => ({
+          'data-shape': attributes.shape,
+        }),
+      },
     };
   },
 
@@ -133,6 +142,7 @@ export const ImageExtension = Node.create<ImageOptions>({
               ...options,
               displayMode: options.displayMode || 'block',
               align: options.align || 'center',
+              shape: options.shape || 'square',
             },
           });
         },
@@ -151,6 +161,11 @@ export const ImageExtension = Node.create<ImageOptions>({
             width: options.width,
             height: options.height,
           });
+        },
+      setImageShape:
+        (shape) =>
+        ({ commands }) => {
+          return commands.updateAttributes(this.name, { shape });
         },
     };
   },

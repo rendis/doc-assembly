@@ -39,6 +39,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null);
   const [isEditingImage, setIsEditingImage] = useState(false);
+  const [editingImageShape, setEditingImageShape] = useState<'square' | 'circle'>('square');
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -118,10 +119,15 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
 
     if (isEditingImage) {
       // Update existing image attributes
-      editor.chain().focus().updateAttributes('image', {
+      const updateAttrs: Record<string, unknown> = {
         src: result.src,
         alt: result.alt,
-      }).run();
+      };
+      // If shape was set during cropping, update it too
+      if (result.shape) {
+        updateAttrs.shape = result.shape;
+      }
+      editor.chain().focus().updateAttributes('image', updateAttrs).run();
     } else {
       // Insert new image
       if (pendingImagePosition !== null) {
@@ -130,12 +136,14 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
       editor.chain().setImage({
         src: result.src,
         alt: result.alt,
+        shape: result.shape,
       }).run();
     }
 
     setImageModalOpen(false);
     setPendingImagePosition(null);
     setIsEditingImage(false);
+    setEditingImageShape('square');
   }, [editor, pendingImagePosition, isEditingImage]);
 
   // Listen for custom events from slash commands and image toolbar
@@ -149,6 +157,11 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
     };
 
     const handleEditImage = () => {
+      // Get the shape from the currently selected image node
+      const { selection } = editor.state;
+      const node = editor.state.doc.nodeAt(selection.from);
+      const shape = node?.attrs?.shape || 'square';
+      setEditingImageShape(shape);
       setIsEditingImage(true);
       setImageModalOpen(true);
     };
@@ -224,6 +237,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
         open={imageModalOpen}
         onOpenChange={setImageModalOpen}
         onInsert={handleImageInsert}
+        shape={isEditingImage ? editingImageShape : 'square'}
       />
     </DndContext>
   );
