@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Download, Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, X } from 'lucide-react';
 
 // Import worker as Vite asset
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -327,11 +327,12 @@ export function PDFPreviewModal({
           )}
         </div>
 
-        <DialogFooter className="px-6 pb-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="px-6 py-3 justify-center">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <X className="h-4 w-4 mr-2" />
             {t('editor.preview.close')}
           </Button>
-          <Button onClick={handleDownload}>
+          <Button size="sm" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             {t('editor.preview.download')}
           </Button>

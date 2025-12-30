@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { Editor } from '@/features/editor/components/Editor';
-import { PageIndicator } from '@/features/editor/components/PageIndicator';
 import { SaveStatusIndicator } from '@/features/editor/components/SaveStatusIndicator';
 import { SignerRolesPanel } from '@/features/editor/components/SignerRolesPanel';
 import { SignerRolesProvider } from '@/features/editor/context/SignerRolesContext';
@@ -235,11 +234,6 @@ function VersionDesignPage() {
         {/* Editor + Roles Panel */}
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 overflow-hidden relative">
-            <PageIndicator
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              showPageNumbers={pagination.showPageNumbers}
-            />
             <Editor
               content=""
               editable={isEditable}
