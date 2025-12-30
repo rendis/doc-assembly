@@ -27,7 +27,9 @@
     "confirm": "Confirm",
     "yes": "Yes",
     "no": "No",
-    "apply": "Apply"
+    "apply": "Apply",
+    "keep": "Keep",
+    "retry": "Retry"
   },
   "auth": {
     "select_tenant": "Select an Organization",
@@ -362,11 +364,50 @@
       "success": "Version created successfully",
       "error": "Error creating version"
     },
+    "validation": {
+      "title": "Validation Required",
+      "fixErrors": "Please fix the following issues before publishing:",
+      "noContent": "Template must have content before publishing",
+      "invalidInjectables": "All injectables must be properly configured",
+      "noSignerRoles": "At least one signer role must be defined",
+      "invalidTransition": "This status transition is not allowed"
+    },
+    "publish": {
+      "title": "Publish Version",
+      "confirmMessage": "Are you sure you want to publish version {{version}}? Once published, this version will be available for document generation.",
+      "button": "Publish",
+      "success": "Version published successfully",
+      "error": "Failed to publish version"
+    },
+    "archive": {
+      "title": "Archive Version",
+      "confirmMessage": "Are you sure you want to archive version {{version}}? Archived versions cannot be used for new documents.",
+      "button": "Archive",
+      "success": "Version archived successfully",
+      "error": "Failed to archive version"
+    },
+    "delete": {
+      "title": "Delete Version",
+      "confirmMessage": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
+      "button": "Delete",
+      "success": "Version deleted successfully",
+      "error": "Failed to delete version"
+    },
     "schedule": {
       "publishTitle": "Schedule Publication",
       "archiveTitle": "Schedule Archival",
+      "publishDescription": "Schedule version {{version}} to be published automatically at the specified date and time.",
+      "archiveDescription": "Schedule version {{version}} to be archived automatically at the specified date and time.",
       "dateLabel": "Schedule date and time",
+      "dateRequired": "Please select a date and time",
+      "minDateError": "Scheduled date must be in the future",
       "button": "Schedule",
+      "publishError": "Failed to schedule publication",
+      "archiveError": "Failed to schedule archival",
+      "cancelTitle": "Cancel Schedule",
+      "cancelMessage": "Are you sure you want to cancel the scheduled {{action}} for version {{version}}? It was scheduled for {{date}}.",
+      "cancelButton": "Cancel Schedule",
+      "cancelError": "Failed to cancel schedule",
       "cancelSuccess": "Schedule cancelled",
       "scheduledFor": "Scheduled for"
     }

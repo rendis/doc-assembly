@@ -50,20 +50,6 @@ const MAX_RETRIES = 2;
 const SAVED_DISPLAY_MS = 3000;
 
 // =============================================================================
-// Serialization
-// =============================================================================
-
-/**
- * Serializes a PortableDocument to byte array for API
- */
-function serializeToBytes(doc: object): number[] {
-  const jsonString = JSON.stringify(doc);
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(jsonString);
-  return Array.from(bytes);
-}
-
-// =============================================================================
 // Hook Implementation
 // =============================================================================
 
@@ -145,8 +131,8 @@ export function useAutoSave({
         { includeChecksum: true }
       );
 
-      // Serialize to bytes
-      const contentStructure = serializeToBytes(portableDoc);
+      // Send document directly as JSON object
+      const contentStructure = portableDoc;
 
       // Call API
       await versionsApi.update(templateId, versionId, { contentStructure });

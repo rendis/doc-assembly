@@ -5,7 +5,7 @@ import { SignerRolesPanel } from '@/features/editor/components/SignerRolesPanel'
 import { SignerRolesProvider } from '@/features/editor/context/SignerRolesContext';
 import { useAutoSave } from '@/features/editor/hooks/useAutoSave';
 import { useInjectables } from '@/features/editor/hooks/useInjectables';
-import { deserializeContentBytes, importDocument } from '@/features/editor/services/document-import';
+import { deserializeContent, importDocument } from '@/features/editor/services/document-import';
 import { usePaginationStore } from '@/features/editor/stores/pagination-store';
 import { useSignerRolesStore } from '@/features/editor/stores/signer-roles-store';
 import { versionsApi } from '@/features/templates/api/versions-api';
@@ -65,13 +65,18 @@ function VersionDesignPage() {
     if (!editor || !version || contentLoadedRef.current) return;
 
     // If no content, leave editor empty (new document)
-    if (!version.contentStructure || version.contentStructure.length === 0) {
+    const hasContent = version.contentStructure && (
+      Array.isArray(version.contentStructure)
+        ? version.contentStructure.length > 0
+        : Object.keys(version.contentStructure).length > 0
+    );
+    if (!hasContent) {
       contentLoadedRef.current = true;
       return;
     }
 
-    // Deserialize content
-    const portableDoc = deserializeContentBytes(version.contentStructure);
+    // Deserialize content (supports both legacy byte array and new JSON object format)
+    const portableDoc = deserializeContent(version.contentStructure!);
     if (!portableDoc) {
       setImportError('Error al deserializar el contenido');
       contentLoadedRef.current = true;

@@ -52,18 +52,34 @@ function parseJson(json: string): PortableDocument | null {
 }
 
 /**
- * Deserializes content bytes (from backend) to PortableDocument
- * Inverse of the serialization done in useAutoSave
+ * Deserializes content from backend to PortableDocument
+ * Supports both legacy byte array format and new direct JSON object format
  */
-export function deserializeContentBytes(bytes: number[]): PortableDocument | null {
+export function deserializeContent(
+  content: number[] | Record<string, unknown>
+): PortableDocument | null {
   try {
-    const uint8Array = new Uint8Array(bytes);
+    // New format: direct JSON object
+    if (!Array.isArray(content)) {
+      return content as unknown as PortableDocument;
+    }
+
+    // Legacy format: byte array
+    const uint8Array = new Uint8Array(content);
     const jsonString = new TextDecoder().decode(uint8Array);
     return JSON.parse(jsonString) as PortableDocument;
   } catch (error) {
-    console.error('Error deserializing content bytes:', error);
+    console.error('Error deserializing content:', error);
     return null;
   }
+}
+
+/**
+ * @deprecated Use deserializeContent instead
+ * Kept for backwards compatibility
+ */
+export function deserializeContentBytes(bytes: number[]): PortableDocument | null {
+  return deserializeContent(bytes);
 }
 
 /**

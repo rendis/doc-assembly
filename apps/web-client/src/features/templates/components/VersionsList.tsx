@@ -1,10 +1,11 @@
-import { MoreVertical, Clock, Calendar, Pen, Eye } from 'lucide-react';
+import { Clock, Calendar, Pen, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from '@tanstack/react-router';
 import type { TemplateVersion, TemplateVersionDetail } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDate, formatDistanceToNow } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
+import { VersionActionsMenu } from './version-actions';
 
 interface VersionsListProps {
   versions: (TemplateVersion | TemplateVersionDetail)[];
@@ -15,9 +16,8 @@ interface VersionsListProps {
 export function VersionsList({
   versions,
   templateId,
-  onRefresh: _onRefresh,
+  onRefresh,
 }: VersionsListProps) {
-  void _onRefresh; // Will be used for version actions
   const { t } = useTranslation();
   const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
 
@@ -38,6 +38,7 @@ export function VersionsList({
           isLatest={index === 0}
           templateId={templateId}
           workspaceId={workspaceId}
+          onActionComplete={onRefresh}
         />
       ))}
     </div>
@@ -49,9 +50,10 @@ interface VersionItemProps {
   isLatest: boolean;
   templateId: string;
   workspaceId: string;
+  onActionComplete: () => void;
 }
 
-function VersionItem({ version, isLatest, templateId, workspaceId }: VersionItemProps) {
+function VersionItem({ version, isLatest, templateId, workspaceId, onActionComplete }: VersionItemProps) {
   const { t } = useTranslation();
   const isDraft = version.status === 'DRAFT';
 
@@ -128,15 +130,11 @@ function VersionItem({ version, isLatest, templateId, workspaceId }: VersionItem
             </Link>
           </Button>
 
-          <button
-            type="button"
-            className="
-              p-1 rounded-md opacity-0 group-hover:opacity-100
-              hover:bg-muted transition-all
-            "
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
+          <VersionActionsMenu
+            version={version as TemplateVersionDetail}
+            templateId={templateId}
+            onActionComplete={onActionComplete}
+          />
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ export interface CreateTemplateRequest {
   title: string;
   folderId?: string;
   isPublicLibrary?: boolean;
-  contentStructure?: number[];
+  contentStructure?: Record<string, unknown>;
 }
 
 export interface UpdateTemplateRequest {
@@ -98,7 +98,8 @@ export interface TemplateVersion {
 }
 
 export interface TemplateVersionDetail extends TemplateVersion {
-  contentStructure?: number[];
+  // Supports both legacy byte array format and new JSON object format
+  contentStructure?: number[] | Record<string, unknown>;
   injectables?: TemplateVersionInjectable[];
   signerRoles?: TemplateVersionSignerRole[];
 }
@@ -150,7 +151,7 @@ export interface CreateVersionFromExistingRequest {
 export interface UpdateVersionRequest {
   name?: string;
   description?: string;
-  contentStructure?: number[];
+  contentStructure?: Record<string, unknown>;
 }
 
 export interface SchedulePublishRequest {

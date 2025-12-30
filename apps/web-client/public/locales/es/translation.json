@@ -27,7 +27,9 @@
     "confirm": "Confirmar",
     "yes": "Si",
     "no": "No",
-    "apply": "Aplicar"
+    "apply": "Aplicar",
+    "keep": "Mantener",
+    "retry": "Reintentar"
   },
   "auth": {
     "select_tenant": "Selecciona una Organizacion",
@@ -362,11 +364,50 @@
       "success": "Version creada exitosamente",
       "error": "Error al crear la version"
     },
+    "validation": {
+      "title": "Validacion Requerida",
+      "fixErrors": "Por favor corrige los siguientes problemas antes de publicar:",
+      "noContent": "La plantilla debe tener contenido antes de publicar",
+      "invalidInjectables": "Todos los campos inyectables deben estar configurados correctamente",
+      "noSignerRoles": "Debe definir al menos un rol de firmante",
+      "invalidTransition": "Esta transicion de estado no esta permitida"
+    },
+    "publish": {
+      "title": "Publicar Version",
+      "confirmMessage": "Estas seguro de que deseas publicar la version {{version}}? Una vez publicada, esta version estara disponible para generar documentos.",
+      "button": "Publicar",
+      "success": "Version publicada exitosamente",
+      "error": "Error al publicar la version"
+    },
+    "archive": {
+      "title": "Archivar Version",
+      "confirmMessage": "Estas seguro de que deseas archivar la version {{version}}? Las versiones archivadas no pueden usarse para nuevos documentos.",
+      "button": "Archivar",
+      "success": "Version archivada exitosamente",
+      "error": "Error al archivar la version"
+    },
+    "delete": {
+      "title": "Eliminar Version",
+      "confirmMessage": "Estas seguro de que deseas eliminar la version {{version}}? Esta accion no se puede deshacer.",
+      "button": "Eliminar",
+      "success": "Version eliminada exitosamente",
+      "error": "Error al eliminar la version"
+    },
     "schedule": {
       "publishTitle": "Programar Publicacion",
       "archiveTitle": "Programar Archivado",
+      "publishDescription": "Programar la version {{version}} para publicarse automaticamente en la fecha y hora especificadas.",
+      "archiveDescription": "Programar la version {{version}} para archivarse automaticamente en la fecha y hora especificadas.",
       "dateLabel": "Fecha y hora programada",
+      "dateRequired": "Por favor selecciona una fecha y hora",
+      "minDateError": "La fecha programada debe ser en el futuro",
       "button": "Programar",
+      "publishError": "Error al programar la publicacion",
+      "archiveError": "Error al programar el archivado",
+      "cancelTitle": "Cancelar Programacion",
+      "cancelMessage": "Estas seguro de que deseas cancelar la programacion de {{action}} para la version {{version}}? Estaba programada para {{date}}.",
+      "cancelButton": "Cancelar Programacion",
+      "cancelError": "Error al cancelar la programacion",
       "cancelSuccess": "Programacion cancelada",
       "scheduledFor": "Programado para"
     }
