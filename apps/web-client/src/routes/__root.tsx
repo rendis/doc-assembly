@@ -1,5 +1,5 @@
 import { createRootRoute, Outlet, redirect } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/router-devtools';
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { useAppContextStore } from '@/stores/app-context-store';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';

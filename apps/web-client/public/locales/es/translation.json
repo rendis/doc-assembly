@@ -187,6 +187,11 @@
     "alignJustify": "Justificar",
     "undo": "Deshacer",
     "redo": "Rehacer",
+    "variables": {
+      "selectFormat": "Seleccionar formato",
+      "formatOptions": "Opciones de formato",
+      "select": "Seleccionar"
+    },
     "workflow": {
       "title": "Configuracion de firma",
       "settings": "Configuracion de firma",
@@ -199,6 +204,8 @@
       "notifications": "Notificaciones",
       "notificationsFor": "Notificaciones",
       "notificationsDescription": "Selecciona cuando este firmante recibira notificaciones:",
+      "notifyWhen": "Notificar a firmantes cuando:",
+      "individualHint": "Configura las notificaciones de cada rol usando el icono de campana en cada tarjeta.",
       "triggers": {
         "onDocumentCreated": "Al crear documento",
         "onPreviousRolesSigned": "Cuando firmen roles anteriores",
@@ -226,6 +233,20 @@
       "justNow": "ahora mismo",
       "secondsAgo": "hace {{n}}s",
       "minutesAgo": "hace {{n}}m"
+    },
+    "roleInjectables": {
+      "title": "Roles de Firmantes",
+      "name": "nombre",
+      "email": "email",
+      "noRoles": "No hay roles definidos",
+      "addRoleFirst": "Agrega roles en el panel derecho"
+    },
+    "signerRoles": {
+      "deleteConfirmation": {
+        "title": "Eliminar rol",
+        "message": "El rol \"{{roleName}}\" tiene {{count}} variable(s) insertada(s) en el documento. Si eliminas este rol, también se eliminarán del documento.",
+        "confirm": "Eliminar rol y variables"
+      }
     }
   },
   "templates": {

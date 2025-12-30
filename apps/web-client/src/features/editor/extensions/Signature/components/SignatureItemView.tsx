@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { User } from 'lucide-react';
 import Moveable from 'react-moveable';
 import type { SignatureItem, SignatureLineWidth } from '../types';
@@ -38,6 +38,12 @@ export function SignatureItemView({
   const rolesContext = useSignerRolesContextSafe();
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+
+  // Sync ref to state for Moveable target
+  useEffect(() => {
+    setImageElement(imageRef.current);
+  }, [signature.imageData]);
 
   // Store last clamped position for onDragEnd
   const lastClampedPos = useRef({ x: 0, y: 0 });
@@ -132,9 +138,9 @@ export function SignatureItemView({
           />
 
           {/* Moveable controls - only when editable and selected */}
-          {editable && isImageSelected && imageRef.current && (
+          {editable && isImageSelected && imageElement && (
             <Moveable
-              target={imageRef.current}
+              target={imageElement}
               draggable={true}
               rotatable={true}
               scalable={true}

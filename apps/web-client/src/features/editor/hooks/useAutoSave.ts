@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
 import type { Editor } from '@tiptap/core';
 import { versionsApi } from '@/features/templates/api/versions-api';
 import { exportDocument } from '../services/document-export';
@@ -85,6 +86,9 @@ export function useAutoSave({
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const isSavingRef = useRef(false);
+  const isInitializedRef = useRef(false);
+  const prevRolesRef = useRef<string | null>(null);
+  const prevWorkflowRef = useRef<string | null>(null);
 
   // Store data
   const paginationConfig = usePaginationStore((s) => s.config);
@@ -98,6 +102,21 @@ export function useAutoSave({
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     };
   }, []);
+
+  // Mark as initialized once enabled becomes true and capture baseline values
+  useEffect(() => {
+    if (!enabled || isInitializedRef.current) return;
+
+    // Small delay to ensure store values are fully hydrated after document load
+    const timer = setTimeout(() => {
+      // Capture current values as baseline before marking initialized
+      prevRolesRef.current = JSON.stringify(signerRoles);
+      prevWorkflowRef.current = JSON.stringify(workflowConfig);
+      isInitializedRef.current = true;
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [enabled, signerRoles, workflowConfig]);
 
   /**
    * Core save function
@@ -227,6 +246,41 @@ export function useAutoSave({
       editor.off('update', handleUpdate);
     };
   }, [editor, enabled, scheduleSave]);
+
+  /**
+   * Listen to store changes (roles and notifications)
+   */
+  useEffect(() => {
+    // Skip if not enabled or not initialized
+    if (!enabled || !isInitializedRef.current) return;
+
+    // Serialize current values for comparison
+    const rolesJson = JSON.stringify(signerRoles);
+    const workflowJson = JSON.stringify(workflowConfig);
+
+    // Check if values actually changed from baseline
+    const rolesChanged = prevRolesRef.current !== rolesJson;
+    const workflowChanged = prevWorkflowRef.current !== workflowJson;
+
+    if (rolesChanged || workflowChanged) {
+      // Update refs
+      prevRolesRef.current = rolesJson;
+      prevWorkflowRef.current = workflowJson;
+
+      // Schedule save
+      setIsDirty(true);
+      setStatus('pending');
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null;
+        performSave();
+      }, debounceMs);
+    }
+  }, [signerRoles, workflowConfig, enabled, debounceMs, performSave]);
 
   return {
     status,

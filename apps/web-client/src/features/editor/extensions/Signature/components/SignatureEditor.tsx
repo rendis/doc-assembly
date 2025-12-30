@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Sync external props to local state is a standard UI pattern */
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

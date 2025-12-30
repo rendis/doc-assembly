@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { EditorBubbleMenu } from '../extensions/BubbleMenu';
 import { useEditorState } from '../hooks/useEditorState';
 import { usePaginationStore } from '../stores/pagination-store';
+import { useEditorStore } from '../stores/editor-store';
 import type { EditorProps } from '../types';
 import { SidebarItem } from './DraggableItem';
 import { DroppableEditorArea } from './DroppableEditorArea';
@@ -12,16 +13,35 @@ import { EditorSidebar } from './EditorSidebar';
 import { EditorToolbar } from './EditorToolbar';
 import { PageSettingsToolbar } from './PageSettingsToolbar';
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal';
-import type { InjectorType } from '../data/variables';
+import { VariableFormatPopover } from './VariableFormatPopover';
+import type { InjectorType, Variable } from '../data/variables';
 import type { LucideIcon } from 'lucide-react';
+import {
+  hasConfigurableOptions,
+  getDefaultFormat,
+  type InjectableMetadata,
+} from '../types/injectable';
+import type { RolePropertyKey } from '../types/role-injectable';
 
 interface DragData {
   id: string;
   label: string;
   icon: LucideIcon;
-  dndType: 'variable' | 'tool';
+  dndType: 'variable' | 'tool' | 'role-variable';
   type?: InjectorType;
   variableId?: string;
+  metadata?: InjectableMetadata;
+  // Propiedades para role injectables
+  isRoleInjectable?: boolean;
+  roleId?: string;
+  roleLabel?: string;
+  propertyKey?: RolePropertyKey;
+}
+
+interface PendingVariable {
+  variable: Variable;
+  position: number;
+  pointerCoords: { x: number; y: number };
 }
 
 export const Editor = ({ content, onChange, editable = true, onEditorReady }: EditorProps) => {
@@ -38,6 +58,13 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
     }
   }, [editor, onEditorReady]);
 
+  // Set editor in global store for cross-component access
+  const setEditorInStore = useEditorStore((state) => state.setEditor);
+  useEffect(() => {
+    setEditorInStore(editor);
+    return () => setEditorInStore(null);
+  }, [editor, setEditorInStore]);
+
   const { config } = usePaginationStore();
   const format = config.format;
 
@@ -47,6 +74,10 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null);
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [editingImageShape, setEditingImageShape] = useState<'square' | 'circle'>('square');
+
+  // Variable format popover state
+  const [formatPopoverOpen, setFormatPopoverOpen] = useState(false);
+  const [pendingVariable, setPendingVariable] = useState<PendingVariable | null>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -104,10 +135,45 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
 
     // Insert appropriate node type
     if (data.dndType === 'variable') {
+      // Check if variable has configurable options
+      if (hasConfigurableOptions(data.metadata)) {
+        // Store pending variable and open format popover
+        const variable: Variable = {
+          id: data.id,
+          variableId: data.variableId || data.id,
+          label: data.label,
+          type: data.type || 'TEXT',
+          metadata: data.metadata,
+        };
+        setPendingVariable({
+          variable,
+          position: pos?.pos ?? editor.state.selection.from,
+          pointerCoords: {
+            x: pointer.clientX + event.delta.x,
+            y: pointer.clientY + event.delta.y,
+          },
+        });
+        setFormatPopoverOpen(true);
+      } else {
+        // Insert directly with default format
+        const defaultFormat = getDefaultFormat(data.metadata);
+        editor.chain().setInjector({
+          type: data.type || 'TEXT',
+          label: data.label,
+          variableId: data.variableId,
+          format: defaultFormat || null,
+        }).run();
+      }
+    } else if (data.dndType === 'role-variable' && data.isRoleInjectable) {
+      // Insertar role injectable (variable de rol de firmante)
       editor.chain().setInjector({
-        type: data.type || 'TEXT',
+        type: 'ROLE_TEXT',
         label: data.label,
-        variableId: data.variableId
+        variableId: data.variableId,
+        isRoleVariable: true,
+        roleId: data.roleId,
+        roleLabel: data.roleLabel,
+        propertyKey: data.propertyKey,
       }).run();
     } else if (data.dndType === 'tool') {
       if (data.id === 'tool_signature') {
@@ -120,6 +186,28 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
       }
     }
   };
+
+  // Handle format selection from popover
+  const handleFormatSelect = useCallback((format: string) => {
+    if (!editor || !pendingVariable) return;
+
+    editor.commands.focus(pendingVariable.position);
+    editor.chain().setInjector({
+      type: pendingVariable.variable.type,
+      label: pendingVariable.variable.label,
+      variableId: pendingVariable.variable.variableId,
+      format,
+    }).run();
+
+    setFormatPopoverOpen(false);
+    setPendingVariable(null);
+  }, [editor, pendingVariable]);
+
+  // Handle cancel from format popover
+  const handleFormatCancel = useCallback(() => {
+    setFormatPopoverOpen(false);
+    setPendingVariable(null);
+  }, []);
 
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return;
@@ -178,6 +266,40 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
     return () => {
       editor.view.dom.removeEventListener('editor:open-image-modal', handleOpenImageModal);
       editor.view.dom.removeEventListener('editor:edit-image', handleEditImage);
+    };
+  }, [editor]);
+
+  // Listen for variable format selection events from @mentions
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleSelectVariableFormat = (event: CustomEvent<{ variable: Variable; range: { from: number; to: number } }>) => {
+      const { variable, range } = event.detail;
+
+      // Delete the @mention text
+      editor.chain().focus().deleteRange(range).run();
+
+      // Get cursor position for popover
+      const coords = editor.view.coordsAtPos(editor.state.selection.from);
+
+      // Store pending variable and open format popover
+      setPendingVariable({
+        variable,
+        position: editor.state.selection.from,
+        pointerCoords: { x: coords.left, y: coords.top },
+      });
+      setFormatPopoverOpen(true);
+    };
+
+    editor.view.dom.addEventListener(
+      'editor:select-variable-format',
+      handleSelectVariableFormat as EventListener
+    );
+    return () => {
+      editor.view.dom.removeEventListener(
+        'editor:select-variable-format',
+        handleSelectVariableFormat as EventListener
+      );
     };
   }, [editor]);
 
@@ -245,6 +367,15 @@ export const Editor = ({ content, onChange, editable = true, onEditorReady }: Ed
         onOpenChange={setImageModalOpen}
         onInsert={handleImageInsert}
         shape={isEditingImage ? editingImageShape : 'square'}
+      />
+
+      <VariableFormatPopover
+        variable={pendingVariable?.variable ?? null}
+        open={formatPopoverOpen}
+        onOpenChange={setFormatPopoverOpen}
+        onSelect={handleFormatSelect}
+        onCancel={handleFormatCancel}
+        position={pendingVariable?.pointerCoords}
       />
     </DndContext>
   );

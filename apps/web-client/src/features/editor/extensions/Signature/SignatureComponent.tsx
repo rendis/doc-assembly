@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Reset selection state on prop change is a standard UI pattern */
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
 // @ts-expect-error - NodeViewProps is not exported in type definitions
@@ -22,7 +23,10 @@ export const SignatureComponent = (props: NodeViewProps) => {
   const count = (node.attrs.count ?? 1) as SignatureCount;
   const layout = (node.attrs.layout ?? 'single-center') as SignatureLayout;
   const lineWidth = (node.attrs.lineWidth ?? 'md') as SignatureLineWidth;
-  const signatures = node.attrs.signatures ?? [];
+  const signatures = useMemo(
+    () => (node.attrs.signatures ?? []) as SignatureItem[],
+    [node.attrs.signatures]
+  );
 
   const attrs: SignatureBlockAttrs = {
     count,

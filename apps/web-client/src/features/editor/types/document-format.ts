@@ -14,6 +14,7 @@ import type {
   SignatureItem,
 } from '../extensions/Signature/types';
 import type { SignerRoleDefinition, SigningWorkflowConfig } from './signer-roles';
+import type { PageMargins } from './pagination';
 
 // =============================================================================
 // Document Format Version
@@ -91,12 +92,7 @@ export interface DocumentMeta {
 
 export type PageFormatId = 'A4' | 'LETTER' | 'LEGAL' | 'CUSTOM';
 
-export interface PageMargins {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
+// PageMargins is imported from './pagination' to avoid duplicate exports
 
 export interface PageConfig {
   /** Page format preset ID or 'CUSTOM' */

@@ -1,8 +1,9 @@
 import { createContext, useContext } from 'react';
 import type { LogicGroup, LogicRule } from '../ConditionalExtension';
+import type { InjectorType } from '../../../data/variables';
 
 export interface LogicBuilderContextType {
-  variables: { id: string; label: string; type: string }[];
+  variables: { id: string; label: string; type: InjectorType }[];
   updateNode: (nodeId: string, data: Partial<LogicRule | LogicGroup>) => void;
   addRule: (parentId: string) => void;
   addGroup: (parentId: string) => void;

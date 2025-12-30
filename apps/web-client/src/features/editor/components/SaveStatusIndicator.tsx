@@ -27,7 +27,7 @@ export interface SaveStatusIndicatorProps {
 // Helper Functions
 // =============================================================================
 
-function formatLastSaved(date: Date, t: (key: string) => string): string {
+function formatLastSaved(date: Date, t: (key: string, options?: Record<string, unknown>) => string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSeconds = Math.floor(diffMs / 1000);
@@ -37,10 +37,10 @@ function formatLastSaved(date: Date, t: (key: string) => string): string {
     return t('editor.autoSave.justNow') || 'ahora mismo';
   }
   if (diffSeconds < 60) {
-    return t('editor.autoSave.secondsAgo', { n: diffSeconds }) || `hace ${diffSeconds}s`;
+    return t('editor.autoSave.secondsAgo', { count: diffSeconds }) || `hace ${diffSeconds}s`;
   }
   if (diffMinutes < 60) {
-    return t('editor.autoSave.minutesAgo', { n: diffMinutes }) || `hace ${diffMinutes}m`;
+    return t('editor.autoSave.minutesAgo', { count: diffMinutes }) || `hace ${diffMinutes}m`;
   }
 
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -50,6 +50,10 @@ function formatLastSaved(date: Date, t: (key: string) => string): string {
 // Animation Variants
 // =============================================================================
 
+// Easing curves
+const easeOutCubic = [0.4, 0, 0.2, 1] as const;
+const easeInCubic = [0.4, 0, 1, 1] as const;
+
 // Text slides in from right, exits to right
 const textVariants = {
   initial: { opacity: 0, x: 30, filter: 'blur(4px)' },
@@ -57,13 +61,13 @@ const textVariants = {
     opacity: 1,
     x: 0,
     filter: 'blur(0px)',
-    transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] }
+    transition: { duration: 0.5, ease: easeOutCubic }
   },
   exit: {
     opacity: 0,
     x: 30,
     filter: 'blur(4px)',
-    transition: { duration: 0.4, ease: [0.4, 0, 1, 1] }
+    transition: { duration: 0.4, ease: easeInCubic }
   },
 };
 
@@ -76,17 +80,19 @@ const iconMorphTransition = {
 };
 
 // Icon appearance animation
+const easeBackOut = [0.34, 1.56, 0.64, 1] as const;
+const easeIn = [0.4, 0, 1, 1] as const;
 const iconVariants = {
   initial: { scale: 0.5, opacity: 0 },
   animate: {
     scale: 1,
     opacity: 1,
-    transition: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }
+    transition: { duration: 0.4, ease: easeBackOut }
   },
   exit: {
     scale: 0.5,
     opacity: 0,
-    transition: { duration: 0.25, ease: 'easeIn' }
+    transition: { duration: 0.25, ease: easeIn }
   },
 };
 
@@ -135,7 +141,8 @@ function StatusIcon({ status }: StatusIconProps) {
 export function SaveStatusIndicator({
   status,
   lastSavedAt,
-  error,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  error: _error,
   onRetry,
   className,
 }: SaveStatusIndicatorProps) {

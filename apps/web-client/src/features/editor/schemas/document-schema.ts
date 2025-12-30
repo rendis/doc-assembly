@@ -345,14 +345,14 @@ export type PortableDocumentInput = z.input<typeof PortableDocumentSchema>;
 /**
  * Validates a portable document and returns typed result
  */
-export function validateDocument(data: unknown): z.SafeParseReturnType<unknown, z.infer<typeof PortableDocumentSchema>> {
+export function validateDocument(data: unknown) {
   return PortableDocumentSchema.safeParse(data);
 }
 
 /**
  * Validates document content (ProseMirror structure)
  */
-export function validateContent(data: unknown): z.SafeParseReturnType<unknown, z.infer<typeof ProseMirrorDocumentSchema>> {
+export function validateContent(data: unknown) {
   return ProseMirrorDocumentSchema.safeParse(data);
 }
 

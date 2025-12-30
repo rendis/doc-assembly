@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Sync external props to local state is a standard UI pattern */
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';

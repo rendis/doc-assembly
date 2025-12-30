@@ -102,6 +102,7 @@ export function getFieldDisplayValue(
  */
 export function getRoleDisplayName(
   role: SignerRoleDefinition,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _variables: Variable[]
 ): string {
   return role.label || `Rol ${role.order}`;

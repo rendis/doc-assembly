@@ -40,6 +40,8 @@ export const useEditorState = ({
       StarterKit.configure({
         // Disable built-in dropcursor to use custom configuration
         dropcursor: false,
+        // Disable built-in link to avoid duplicate extension warning
+        link: false,
         bulletList: {
           keepMarks: true,
           keepAttributes: false,

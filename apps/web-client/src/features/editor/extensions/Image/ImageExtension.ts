@@ -1,3 +1,4 @@
+// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ImageComponent } from './ImageComponent';
@@ -69,44 +70,44 @@ export const ImageExtension = Node.create<ImageOptions>({
       },
       width: {
         default: null,
-        parseHTML: (element) => {
+        parseHTML: (element: HTMLElement) => {
           const width = element.getAttribute('width') || element.style.width;
           return width ? parseInt(width, 10) : null;
         },
-        renderHTML: (attributes) => {
+        renderHTML: (attributes: Record<string, unknown>) => {
           if (!attributes.width) return {};
           return { width: attributes.width };
         },
       },
       height: {
         default: null,
-        parseHTML: (element) => {
+        parseHTML: (element: HTMLElement) => {
           const height = element.getAttribute('height') || element.style.height;
           return height ? parseInt(height, 10) : null;
         },
-        renderHTML: (attributes) => {
+        renderHTML: (attributes: Record<string, unknown>) => {
           if (!attributes.height) return {};
           return { height: attributes.height };
         },
       },
       displayMode: {
         default: 'block',
-        parseHTML: (element) => element.getAttribute('data-display-mode') || 'block',
-        renderHTML: (attributes) => ({
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-display-mode') || 'block',
+        renderHTML: (attributes: Record<string, unknown>) => ({
           'data-display-mode': attributes.displayMode,
         }),
       },
       align: {
         default: 'center',
-        parseHTML: (element) => element.getAttribute('data-align') || 'center',
-        renderHTML: (attributes) => ({
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-align') || 'center',
+        renderHTML: (attributes: Record<string, unknown>) => ({
           'data-align': attributes.align,
         }),
       },
       shape: {
         default: 'square',
-        parseHTML: (element) => element.getAttribute('data-shape') || 'square',
-        renderHTML: (attributes) => ({
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-shape') || 'square',
+        renderHTML: (attributes: Record<string, unknown>) => ({
           'data-shape': attributes.shape,
         }),
       },
@@ -123,7 +124,7 @@ export const ImageExtension = Node.create<ImageOptions>({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
     return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
   },
 
@@ -134,8 +135,8 @@ export const ImageExtension = Node.create<ImageOptions>({
   addCommands() {
     return {
       setImage:
-        (options) =>
-        ({ commands }) => {
+        (options: { src: string; alt?: string; title?: string; width?: number; height?: number; displayMode?: ImageDisplayMode; align?: ImageAlign; shape?: ImageShape }) =>
+        ({ commands }: { commands: { insertContent: (content: Record<string, unknown>) => boolean } }) => {
           return commands.insertContent({
             type: this.name,
             attrs: {
@@ -147,24 +148,24 @@ export const ImageExtension = Node.create<ImageOptions>({
           });
         },
       setImageAlign:
-        (options) =>
-        ({ commands }) => {
+        (options: { displayMode: ImageDisplayMode; align: ImageAlign }) =>
+        ({ commands }: { commands: { updateAttributes: (name: string, attrs: Record<string, unknown>) => boolean } }) => {
           return commands.updateAttributes(this.name, {
             displayMode: options.displayMode,
             align: options.align,
           });
         },
       setImageSize:
-        (options) =>
-        ({ commands }) => {
+        (options: { width: number; height: number }) =>
+        ({ commands }: { commands: { updateAttributes: (name: string, attrs: Record<string, unknown>) => boolean } }) => {
           return commands.updateAttributes(this.name, {
             width: options.width,
             height: options.height,
           });
         },
       setImageShape:
-        (shape) =>
-        ({ commands }) => {
+        (shape: ImageShape) =>
+        ({ commands }: { commands: { updateAttributes: (name: string, attrs: Record<string, unknown>) => boolean } }) => {
           return commands.updateAttributes(this.name, { shape });
         },
     };

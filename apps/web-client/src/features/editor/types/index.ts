@@ -1,4 +1,4 @@
-// @ts-expect-error - TipTap types compatibility
+// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
 import type { Editor as TiptapEditor } from '@tiptap/core';
 
 export interface EditorProps {

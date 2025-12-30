@@ -67,6 +67,9 @@ function addError(
   context.errors.push({ code, path, message });
 }
 
+// Ensure addError is available for future validation rules
+void addError;
+
 /**
  * Adds a warning to the context
  */

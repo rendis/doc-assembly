@@ -31,6 +31,7 @@ export const TYPE_OPERATORS: Record<InjectorType, RuleOperator[]> = {
   BOOLEAN: ['eq', 'neq', 'is_true', 'is_false', 'empty', 'not_empty'],
   IMAGE: ['empty', 'not_empty'],
   TABLE: ['empty', 'not_empty'],
+  ROLE_TEXT: ['eq', 'neq', 'starts_with', 'ends_with', 'contains', 'empty', 'not_empty'],
 };
 
 // Definición de operador con etiqueta e icono

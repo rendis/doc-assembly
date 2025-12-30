@@ -12,7 +12,6 @@ import {
   PenTool,
   GitBranch,
   Variable,
-  Scissors,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 // @ts-expect-error - TipTap types compatibility
@@ -133,17 +132,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
 
   // Documentos
-  {
-    id: 'pageBreak',
-    title: 'Salto de página',
-    description: 'Insertar salto de página',
-    icon: Scissors,
-    group: 'Documentos',
-    aliases: ['page', 'break', 'salto', 'nueva pagina'],
-    action: (editor) => {
-      editor.chain().focus().setPageBreak().run();
-    },
-  },
   {
     id: 'signature',
     title: 'Firma',

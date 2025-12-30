@@ -54,13 +54,6 @@ export function ImageInsertModal({
     }
   }, []);
 
-  const handleInsert = useCallback(() => {
-    if (currentImage) {
-      onInsert(currentImage);
-      handleClose();
-    }
-  }, [currentImage, onInsert]);
-
   const handleClose = useCallback(() => {
     setActiveTab('url');
     setCurrentImage(null);
@@ -68,6 +61,13 @@ export function ImageInsertModal({
     setImageToCrop(null);
     onOpenChange(false);
   }, [onOpenChange]);
+
+  const handleInsert = useCallback(() => {
+    if (currentImage) {
+      onInsert(currentImage);
+      handleClose();
+    }
+  }, [currentImage, onInsert, handleClose]);
 
   const handleGallerySelect = useCallback((src: string) => {
     setCurrentImage({

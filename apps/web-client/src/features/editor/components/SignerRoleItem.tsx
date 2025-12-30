@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { GripVertical, Trash2, Type, Variable } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { GripVertical, Trash2, Type, Variable, AlertTriangle } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type {
   SignerRoleDefinition,
@@ -21,6 +29,8 @@ import type {
 import { getDefaultParallelTriggers, getDefaultSequentialTriggers } from '../types/signer-roles';
 import type { Variable as VariableType } from '../data/variables';
 import { NotificationBadge, NotificationConfigDialog } from './workflow';
+import { useEditorStore, countRoleInjectables, deleteRoleInjectables } from '../stores/editor-store';
+import { useTranslation } from 'react-i18next';
 
 interface SignerRoleItemProps {
   role: SignerRoleDefinition;
@@ -111,7 +121,30 @@ export function SignerRoleItem({
   onDelete,
   onUpdateRoleTriggers,
 }: SignerRoleItemProps) {
+  const { t } = useTranslation();
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [injectableCount, setInjectableCount] = useState(0);
+  const editor = useEditorStore((state) => state.editor);
+
+  // Handle delete button click - check for injectables first
+  const handleDeleteClick = useCallback(() => {
+    const count = countRoleInjectables(editor, role.id);
+    if (count > 0) {
+      setInjectableCount(count);
+      setShowDeleteConfirmation(true);
+    } else {
+      // No injectables, delete directly
+      onDelete(role.id);
+    }
+  }, [editor, role.id, onDelete]);
+
+  // Handle confirmed deletion - delete injectables and role
+  const handleConfirmDelete = useCallback(() => {
+    deleteRoleInjectables(editor, role.id);
+    onDelete(role.id);
+    setShowDeleteConfirmation(false);
+  }, [editor, role.id, onDelete]);
 
   const {
     attributes,
@@ -189,7 +222,7 @@ export function SignerRoleItem({
           variant="ghost"
           size="icon"
           className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-          onClick={() => onDelete(role.id)}
+          onClick={handleDeleteClick}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -222,6 +255,42 @@ export function SignerRoleItem({
         orderMode={workflowConfig.orderMode}
         onSave={handleSaveNotifications}
       />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              {t('editor.signerRoles.deleteConfirmation.title', 'Eliminar rol')}
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {t(
+                'editor.signerRoles.deleteConfirmation.message',
+                {
+                  count: injectableCount,
+                  roleName: role.label,
+                  defaultValue: `El rol "${role.label}" tiene ${injectableCount} ${injectableCount === 1 ? 'variable' : 'variables'} insertada${injectableCount === 1 ? '' : 's'} en el documento. Si eliminas este rol, también se eliminarán del documento.`,
+                }
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirmation(false)}
+            >
+              {t('common.cancel', 'Cancelar')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+            >
+              {t('editor.signerRoles.deleteConfirmation.confirm', 'Eliminar rol y variables')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

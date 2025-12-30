@@ -5,6 +5,7 @@
  * Variables are resolved against the backend variable list.
  */
 
+// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
 import type { Editor } from '@tiptap/core';
 import type {
   PortableDocument,
@@ -46,6 +47,21 @@ function parseJson(json: string): PortableDocument | null {
   try {
     return JSON.parse(json) as PortableDocument;
   } catch {
+    return null;
+  }
+}
+
+/**
+ * Deserializes content bytes (from backend) to PortableDocument
+ * Inverse of the serialization done in useAutoSave
+ */
+export function deserializeContentBytes(bytes: number[]): PortableDocument | null {
+  try {
+    const uint8Array = new Uint8Array(bytes);
+    const jsonString = new TextDecoder().decode(uint8Array);
+    return JSON.parse(jsonString) as PortableDocument;
+  } catch (error) {
+    console.error('Error deserializing content bytes:', error);
     return null;
   }
 }
@@ -104,10 +120,10 @@ function validateImport(
   if (!schemaResult.success) {
     return {
       valid: false,
-      errors: schemaResult.error.errors.map((err) => ({
+      errors: schemaResult.error.issues.map((issue) => ({
         code: 'SCHEMA_ERROR',
-        path: err.path.join('.'),
-        message: err.message,
+        path: issue.path.join('.'),
+        message: issue.message,
       })),
       warnings: [],
     };

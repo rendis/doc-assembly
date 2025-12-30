@@ -15,7 +15,7 @@ import type { InjectorType } from '../../../data/variables';
 import { useInjectablesStore } from '../../../stores/injectables-store';
 import { Calendar, CheckSquare, Coins, Hash, Image as ImageIcon, Table, Type } from 'lucide-react';
 
-const ICONS = {
+const ICONS: Record<InjectorType, typeof Type> = {
   TEXT: Type,
   NUMBER: Hash,
   DATE: Calendar,
@@ -23,6 +23,7 @@ const ICONS = {
   BOOLEAN: CheckSquare,
   IMAGE: ImageIcon,
   TABLE: Table,
+  ROLE_TEXT: Type,
 };
 
 const ALLOWED_TYPES: InjectorType[] = ['TEXT', 'NUMBER', 'CURRENCY', 'DATE', 'BOOLEAN'];

@@ -12,15 +12,17 @@ i18n
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
-    debug: import.meta.env.DEV, // Debug solo en desarrollo
+    supportedLngs: ['en', 'es'],
+    load: 'languageOnly', // Carga 'es' en vez de 'es-419'
+    debug: false,
 
     interpolation: {
       escapeValue: false, // React ya escapa por defecto
     },
 
     backend: {
-        loadPath: '/locales/{{lng}}/translation.json',
-    }
+      loadPath: '/locales/{{lng}}/translation.json',
+    },
   });
 
 export default i18n;

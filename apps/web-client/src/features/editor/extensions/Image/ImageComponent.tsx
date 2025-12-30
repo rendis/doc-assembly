@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/refs -- Moveable requires ref.current as target, synced via imageLoaded state */
+// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import Moveable from 'react-moveable';

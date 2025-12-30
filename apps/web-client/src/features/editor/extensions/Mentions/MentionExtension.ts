@@ -4,6 +4,8 @@ import type { Editor } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import { filterVariables, type MentionVariable } from './variables';
 import { variableSuggestion } from './suggestion';
+import { hasConfigurableOptions, getDefaultFormat } from '../../types/injectable';
+import type { Variable } from '../../data/variables';
 
 const MentionPluginKey = new PluginKey('mentionSuggestion');
 
@@ -16,16 +18,58 @@ export const MentionExtension = Mention.configure({
     items: ({ query }: { query: string }) => filterVariables(query),
     command: ({ editor, range, props }: { editor: Editor; range: { from: number; to: number }; props: unknown }) => {
       const item = props as MentionVariable;
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .setInjector({
-          type: item.type,
-          label: item.label,
+
+      // Si es un role injectable, insertar directamente con atributos de rol
+      if (item.isRoleVariable) {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setInjector({
+            type: 'ROLE_TEXT',
+            label: item.label,
+            variableId: item.id,
+            isRoleVariable: true,
+            roleId: item.roleId,
+            roleLabel: item.roleLabel,
+            propertyKey: item.propertyKey,
+          })
+          .run();
+        return;
+      }
+
+      // Check if variable has configurable options
+      if (hasConfigurableOptions(item.metadata)) {
+        // Convert to Variable format for the event
+        const variable: Variable = {
+          id: item.id,
           variableId: item.id,
-        })
-        .run();
+          label: item.label,
+          type: item.type,
+          metadata: item.metadata,
+        };
+
+        // Emit event to open format selector
+        editor.view.dom.dispatchEvent(
+          new CustomEvent('editor:select-variable-format', {
+            detail: { variable, range },
+          })
+        );
+      } else {
+        // Insert directly with default format
+        const defaultFormat = getDefaultFormat(item.metadata);
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setInjector({
+            type: item.type,
+            label: item.label,
+            variableId: item.id,
+            format: defaultFormat || null,
+          })
+          .run();
+      }
     },
   },
 });

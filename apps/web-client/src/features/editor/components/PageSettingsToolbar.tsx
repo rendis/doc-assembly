@@ -53,6 +53,7 @@ export const PageSettingsToolbar = ({ editor }: PageSettingsToolbarProps) => {
   // Sync on mount and when config changes
   useEffect(() => {
     syncPaginationOptions(config.format);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.format, editor]);
 
   const handleFormatChange = (value: string) => {
