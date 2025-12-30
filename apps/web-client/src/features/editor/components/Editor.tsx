@@ -99,7 +99,7 @@ export const Editor = ({ content, onChange, editable = true }: EditorProps) => {
       }).run();
     } else if (data.dndType === 'tool') {
       if (data.id === 'tool_signature') {
-        editor.chain().setSignature({ roleId: 'signer_1', label: 'Firma Principal' }).run();
+        editor.chain().setSignature().run();
       } else if (data.id === 'tool_conditional') {
         editor.chain().setConditional({ expression: 'var > 0' }).run();
       } else if (data.id === 'tool_image') {

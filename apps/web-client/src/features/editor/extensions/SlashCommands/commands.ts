@@ -147,12 +147,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   {
     id: 'signature',
     title: 'Firma',
-    description: 'Bloque de firma',
+    description: 'Bloque de firma configurable',
     icon: PenTool,
     group: 'Documentos',
     aliases: ['sign', 'firmar'],
     action: (editor) => {
-      editor.chain().focus().setSignature({ roleId: 'signer_1', label: 'Firma' }).run();
+      editor.chain().focus().setSignature().run();
     },
   },
   {
