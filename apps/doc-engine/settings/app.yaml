@@ -40,3 +40,13 @@ storage:
 logging:
   level: info   # debug, info, warn, error
   format: json  # json, text
+
+# LLM Configuration for contract generation
+llm:
+  provider: openai              # DOC_ENGINE_LLM_PROVIDER - Active provider (openai, anthropic, etc.)
+  prompt_file: "contract_generator_prompt.txt"  # DOC_ENGINE_LLM_PROMPT_FILE
+  openai:
+    api_key: ""                 # DOC_ENGINE_LLM_OPENAI_API_KEY
+    model: "gpt-4o"             # DOC_ENGINE_LLM_OPENAI_MODEL
+    max_tokens: 16000           # DOC_ENGINE_LLM_OPENAI_MAX_TOKENS
+    temperature: 0.1            # DOC_ENGINE_LLM_OPENAI_TEMPERATURE

@@ -170,6 +170,11 @@ var (
 	ErrInvalidAccessEntityType = errors.New("invalid access entity type")
 )
 
+// LLM Service errors.
+var (
+	ErrLLMServiceUnavailable = errors.New("AI generation service is temporarily unavailable")
+)
+
 // ContentValidationError wraps multiple validation errors from content validation.
 type ContentValidationError struct {
 	Errors   []ContentValidationItem

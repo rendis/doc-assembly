@@ -11,6 +11,7 @@ Doc Engine is a Go-based microservice that provides:
 - **Folder Organization**: Hierarchical folder structure for template organization
 - **Tag System**: Flexible tagging for template categorization
 - **Signer Role Management**: Configure signature roles and anchors for e-signature integration
+- **AI Contract Generation**: Generate structured contract documents from images, PDFs, DOCX files, or text descriptions using LLM
 
 ## Architecture
 
@@ -32,7 +33,8 @@ internal/
 │   │   └── middleware/       # HTTP middleware
 │   │
 │   └── secondary/            # Driven adapters
-│       └── database/postgres/ # PostgreSQL repositories
+│       ├── database/postgres/ # PostgreSQL repositories
+│       └── llm/              # LLM providers (OpenAI, etc.)
 │
 └── infra/                    # Infrastructure
     ├── config/               # Configuration loading
@@ -53,6 +55,7 @@ internal/
 | Config | Viper | 1.19.0 |
 | JWT | golang-jwt/v5 | 5.3.0 |
 | JWKS | keyfunc/v3 | 3.7.0 |
+| OpenAI SDK | go-openai | latest |
 
 ## Prerequisites
 
@@ -123,6 +126,9 @@ Configuration is loaded from `settings/app.yaml` and can be overridden with envi
 | `DOC_ENGINE_DATABASE_NAME` | Database name | doc_engine_v1 |
 | `DOC_ENGINE_AUTH_JWKS_URL` | Keycloak JWKS endpoint | - |
 | `DOC_ENGINE_AUTH_ISSUER` | JWT issuer | - |
+| `DOC_ENGINE_LLM_PROVIDER` | LLM provider (openai) | openai |
+| `DOC_ENGINE_LLM_OPENAI_API_KEY` | OpenAI API key | - |
+| `DOC_ENGINE_LLM_OPENAI_MODEL` | OpenAI model | gpt-4o |
 
 ## API Endpoints
 

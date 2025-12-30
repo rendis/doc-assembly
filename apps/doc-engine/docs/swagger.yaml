@@ -201,6 +201,58 @@ definitions:
       workspaceId:
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GenerateContractRequest:
+    properties:
+      content:
+        description: |-
+          Content is the actual content - base64 encoded for image/pdf/docx, plain text for text.
+          Required.
+        type: string
+      contentType:
+        description: |-
+          ContentType is the type of input content: "image", "pdf", "docx", or "text".
+          Required.
+        enum:
+        - image
+        - pdf
+        - docx
+        - text
+        type: string
+      mimeType:
+        description: |-
+          MimeType is the MIME type for image/pdf/docx content.
+          Required for image, pdf, and docx content types.
+          Example values: "image/png", "image/jpeg", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        type: string
+      outputLang:
+        description: |-
+          OutputLang is the desired language for the generated contract content.
+          Defaults to "es" if not provided.
+          Supported values: "es", "en"
+        enum:
+        - es
+        - en
+        type: string
+    required:
+    - content
+    - contentType
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GenerateContractResponse:
+    properties:
+      document:
+        allOf:
+        - $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Document'
+        description: Document is the generated portable document.
+      generatedAt:
+        description: GeneratedAt is the timestamp when the document was generated.
+        type: string
+      model:
+        description: Model is the LLM model used for generation.
+        type: string
+      tokensUsed:
+        description: TokensUsed is the number of tokens consumed by the LLM.
+        type: integer
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse:
     properties:
       createdAt:
@@ -966,6 +1018,187 @@ definitions:
       updatedAt:
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Document:
+    properties:
+      content:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.ProseMirrorDoc'
+      exportInfo:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.ExportInfo'
+      meta:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Meta'
+      pageConfig:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.PageConfig'
+      signerRoles:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.SignerRole'
+        type: array
+      signingWorkflow:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.WorkflowConfig'
+      variableIds:
+        items:
+          type: string
+        type: array
+      version:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.ExportInfo:
+    properties:
+      checksum:
+        type: string
+      exportedAt:
+        type: string
+      exportedBy:
+        type: string
+      sourceApp:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.FieldValue:
+    properties:
+      type:
+        description: '"text" | "injectable"'
+        type: string
+      value:
+        description: literal text or variableId
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Margins:
+    properties:
+      bottom:
+        type: number
+      left:
+        type: number
+      right:
+        type: number
+      top:
+        type: number
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Mark:
+    properties:
+      attrs:
+        additionalProperties: {}
+        type: object
+      type:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Meta:
+    properties:
+      customFields:
+        additionalProperties:
+          type: string
+        type: object
+      description:
+        type: string
+      language:
+        description: '"en" | "es"'
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Node:
+    properties:
+      attrs:
+        additionalProperties: {}
+        type: object
+      content:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Node'
+        type: array
+      marks:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Mark'
+        type: array
+      text:
+        type: string
+      type:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.NotificationConfig:
+    properties:
+      globalTriggers:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.TriggerMap'
+      roleConfigs:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.RoleNotifyConfig'
+        type: array
+      scope:
+        description: '"global" | "individual"'
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.PageConfig:
+    properties:
+      formatId:
+        description: '"A4" | "LETTER" | "LEGAL" | "CUSTOM"'
+        type: string
+      height:
+        type: number
+      margins:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Margins'
+      pageGap:
+        type: number
+      showPageNumbers:
+        type: boolean
+      width:
+        type: number
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.PreviousRolesConf:
+    properties:
+      mode:
+        description: '"auto" | "custom"'
+        type: string
+      selectedRoleIds:
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.ProseMirrorDoc:
+    properties:
+      content:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.Node'
+        type: array
+      type:
+        description: always "doc"
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.RoleNotifyConfig:
+    properties:
+      roleId:
+        type: string
+      triggers:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.TriggerMap'
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.SignerRole:
+    properties:
+      email:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.FieldValue'
+      id:
+        type: string
+      label:
+        type: string
+      name:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.FieldValue'
+      order:
+        type: integer
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.TriggerMap:
+    additionalProperties:
+      $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.TriggerSettings'
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.TriggerSettings:
+    properties:
+      enabled:
+        type: boolean
+      previousRolesConfig:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.PreviousRolesConf'
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.WorkflowConfig:
+    properties:
+      notifications:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_entity_portabledoc.NotificationConfig'
+      orderMode:
+        description: '"parallel" | "sequential"'
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -978,6 +1211,46 @@ info:
   title: Doc Engine API
   version: "1.0"
 paths:
+  /api/v1/content/generate-contract:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes the provided content (scanned image, PDF, DOCX, or text
+        description) and generates a structured contract document using AI.
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Content to analyze
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GenerateContractRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GenerateContractResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Generate contract from image/PDF/DOCX/text
+      tags:
+      - Contract Generation
   /api/v1/content/injectables:
     get:
       consumes:

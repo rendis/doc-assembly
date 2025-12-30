@@ -261,6 +261,25 @@ func DefaultStyles() string {
       display: flex;
       align-items: flex-end;
       justify-content: center;
+      position: relative;
+    }
+
+    /* Wrapper para centrar la imagen sin interferir con transforms del usuario */
+    .signature-image-wrapper {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    .signature-image {
+      max-height: 50px;
+      max-width: 100%;
+      object-fit: contain;
     }
 
     .signature-line.line-sm {

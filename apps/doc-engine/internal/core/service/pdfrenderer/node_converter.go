@@ -439,6 +439,29 @@ func (c *NodeConverter) parseSignatureAttrs(attrs map[string]any) portabledoc.Si
 				if subtitle, ok := sigMap["subtitle"].(string); ok {
 					item.Subtitle = &subtitle
 				}
+				// Image fields
+				if imageData, ok := sigMap["imageData"].(string); ok {
+					item.ImageData = &imageData
+				}
+				if imageOriginal, ok := sigMap["imageOriginal"].(string); ok {
+					item.ImageOriginal = &imageOriginal
+				}
+				if imageOpacity, ok := sigMap["imageOpacity"].(float64); ok {
+					item.ImageOpacity = &imageOpacity
+				}
+				if imageRotation, ok := sigMap["imageRotation"].(float64); ok {
+					rotation := int(imageRotation)
+					item.ImageRotation = &rotation
+				}
+				if imageScale, ok := sigMap["imageScale"].(float64); ok {
+					item.ImageScale = &imageScale
+				}
+				if imageX, ok := sigMap["imageX"].(float64); ok {
+					item.ImageX = &imageX
+				}
+				if imageY, ok := sigMap["imageY"].(float64); ok {
+					item.ImageY = &imageY
+				}
 				result.Signatures = append(result.Signatures, item)
 			}
 		}
@@ -459,6 +482,12 @@ func (c *NodeConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) s
 		// Signature line with anchor string
 		anchorString := c.getAnchorString(sig)
 		sb.WriteString(fmt.Sprintf("      <div class=\"signature-line line-%s\">\n", attrs.LineWidth))
+
+		// Render signature image if present
+		if sig.IsSigned() {
+			sb.WriteString(c.renderSignatureImage(sig))
+		}
+
 		sb.WriteString(fmt.Sprintf("        <span class=\"anchor-string\">%s</span>\n", html.EscapeString(anchorString)))
 		sb.WriteString("      </div>\n")
 
@@ -477,6 +506,57 @@ func (c *NodeConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) s
 	sb.WriteString("</div>\n")
 
 	return sb.String()
+}
+
+// renderSignatureImage generates HTML for a signature image with transformations.
+// Uses a wrapper div for centering to avoid interfering with user-defined transforms.
+func (c *NodeConverter) renderSignatureImage(sig portabledoc.SignatureItem) string {
+	if sig.ImageData == nil || *sig.ImageData == "" {
+		return ""
+	}
+
+	var styleBuilder strings.Builder
+	var transforms []string
+
+	// Build transform property in the same order as frontend:
+	// translate(X, Y) → rotate(N) → scale(N)
+
+	// Position offsets first (same as frontend)
+	if sig.ImageX != nil || sig.ImageY != nil {
+		x := 0.0
+		y := 0.0
+		if sig.ImageX != nil {
+			x = *sig.ImageX
+		}
+		if sig.ImageY != nil {
+			y = *sig.ImageY
+		}
+		transforms = append(transforms, fmt.Sprintf("translate(%.0fpx, %.0fpx)", x, y))
+	}
+
+	// Rotation
+	if sig.ImageRotation != nil && *sig.ImageRotation != 0 {
+		transforms = append(transforms, fmt.Sprintf("rotate(%ddeg)", *sig.ImageRotation))
+	}
+
+	// Scale
+	if sig.ImageScale != nil && *sig.ImageScale != 1.0 {
+		transforms = append(transforms, fmt.Sprintf("scale(%.2f)", *sig.ImageScale))
+	}
+
+	if len(transforms) > 0 {
+		styleBuilder.WriteString(fmt.Sprintf("transform: %s; ", strings.Join(transforms, " ")))
+	}
+
+	// Opacity - always apply when defined (to support transparency)
+	if sig.ImageOpacity != nil {
+		styleBuilder.WriteString(fmt.Sprintf("opacity: %.2f; ", *sig.ImageOpacity))
+	}
+
+	// Use wrapper div for centering - this allows user transforms to work correctly
+	return fmt.Sprintf("        <div class=\"signature-image-wrapper\"><img class=\"signature-image\" src=\"%s\" style=\"%s\" alt=\"Signature\"></div>\n",
+		html.EscapeString(*sig.ImageData),
+		styleBuilder.String())
 }
 
 func (c *NodeConverter) getAnchorString(sig portabledoc.SignatureItem) string {

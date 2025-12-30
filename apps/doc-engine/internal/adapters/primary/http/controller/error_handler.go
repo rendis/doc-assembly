@@ -106,6 +106,10 @@ func HandleError(ctx *gin.Context, err error) {
 	case errors.Is(err, entity.ErrUnauthorized):
 		statusCode = http.StatusUnauthorized
 
+	// 503 Service Unavailable - External service errors
+	case errors.Is(err, entity.ErrLLMServiceUnavailable):
+		statusCode = http.StatusServiceUnavailable
+
 	// 500 Internal Server Error - Unhandled errors
 	default:
 		statusCode = http.StatusInternalServerError

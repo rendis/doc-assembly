@@ -2,6 +2,8 @@ package infra
 
 import (
 	"context"
+	"log/slog"
+	"time"
 
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,10 +27,13 @@ import (
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/llm"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
 	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
+	"github.com/doc-assembly/doc-engine/internal/core/service/contractgenerator"
 	"github.com/doc-assembly/doc-engine/internal/core/service/pdfrenderer"
+	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
 )
@@ -84,6 +89,13 @@ var ProviderSet = wire.NewSet(
 	// PDF Renderer
 	ProvidePDFRenderer,
 
+	// LLM Client and Contract Generator
+	ProvideLLMConfig,
+	ProvideLLMClient,
+	ProvidePromptLoader,
+	ProvideContractGeneratorService,
+	wire.Bind(new(usecase.ContractGeneratorUseCase), new(*contractgenerator.Service)),
+
 	// Mappers
 	mapper.NewInjectableMapper,
 	mapper.NewTagMapper,
@@ -103,6 +115,7 @@ var ProviderSet = wire.NewSet(
 	controller.NewAdminController,
 	controller.NewMeController,
 	controller.NewTenantController,
+	controller.NewContractGeneratorController,
 
 	// HTTP Server
 	server.NewHTTPServer,
@@ -140,4 +153,58 @@ func ProvideContentValidator(injectableRepo port.InjectableRepository) port.Cont
 func ProvidePDFRenderer() (port.PDFRenderer, error) {
 	opts := pdfrenderer.DefaultChromeOptions()
 	return pdfrenderer.NewService(opts)
+}
+
+// ProvideLLMConfig extracts LLM config from the main config.
+func ProvideLLMConfig(cfg *config.Config) *config.LLMConfig {
+	return &cfg.LLM
+}
+
+// ProvideLLMClient creates the LLM client using the factory and executes health check.
+// Health check failure is logged but does not block service startup.
+func ProvideLLMClient(cfg *config.LLMConfig) (port.LLMClient, error) {
+	factory := llm.NewFactory()
+
+	client, err := factory.CreateClient(cfg)
+	if err != nil {
+		slog.Warn("LLM client creation failed - AI generation service will be unavailable",
+			slog.String("provider", cfg.Provider),
+			slog.Any("error", err),
+		)
+		return nil, nil // Return nil client, service will handle gracefully
+	}
+
+	// Health check (ping) - log result but don't block startup
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx); err != nil {
+		slog.Warn("LLM health check failed - AI generation service may be degraded",
+			slog.String("provider", client.ProviderName()),
+			slog.Any("error", err),
+		)
+	} else {
+		slog.Info("LLM client initialized successfully",
+			slog.String("provider", client.ProviderName()),
+		)
+	}
+
+	return client, nil
+}
+
+// ProvidePromptLoader creates the prompt loader for contract generation.
+func ProvidePromptLoader(cfg *config.LLMConfig) *contractgenerator.PromptLoader {
+	promptFile := cfg.PromptFile
+	if promptFile == "" {
+		promptFile = "contract_generator_prompt.txt"
+	}
+	return contractgenerator.NewPromptLoader(promptFile)
+}
+
+// ProvideContractGeneratorService creates the contract generator service.
+func ProvideContractGeneratorService(
+	llmClient port.LLMClient,
+	promptLoader *contractgenerator.PromptLoader,
+) *contractgenerator.Service {
+	return contractgenerator.NewService(llmClient, promptLoader)
 }

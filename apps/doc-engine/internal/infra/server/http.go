@@ -47,6 +47,7 @@ func NewHTTPServer(
 	adminController *controller.AdminController,
 	meController *controller.MeController,
 	tenantController *controller.TenantController,
+	contractGeneratorController *controller.ContractGeneratorController,
 ) *HTTPServer {
 	// Set Gin mode based on environment
 	if cfg.Environment == "production" {
@@ -105,6 +106,7 @@ func NewHTTPServer(
 		// =====================================================
 		injectableController.RegisterRoutes(v1, middlewareProvider)
 		templateController.RegisterRoutes(v1, middlewareProvider)
+		contractGeneratorController.RegisterRoutes(v1, middlewareProvider)
 	}
 
 	return &HTTPServer{

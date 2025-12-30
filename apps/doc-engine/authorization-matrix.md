@@ -213,6 +213,65 @@ Lista workspaces del tenant actual con soporte de paginación.
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/content_template_controller.go`
 
+### Endpoints de Contract Generation (`/api/v1/content`)
+
+| Método | Endpoint | Descripción | OWNER | ADMIN | EDITOR | OPERATOR | VIEWER |
+|--------|----------|-------------|:-----:|:-----:|:------:|:--------:|:------:|
+| POST | `/content/generate-contract` | Genera un contrato estructurado desde imagen/PDF/DOCX/texto usando IA | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+**Archivo fuente**: `internal/adapters/primary/http/controller/contract_generator_controller.go`
+
+#### Endpoint `/content/generate-contract` - Detalle
+
+Genera un documento de contrato estructurado (PortableDocument JSON) analizando el contenido proporcionado mediante un modelo de lenguaje (LLM).
+
+**Request body:**
+```json
+{
+  "contentType": "image",
+  "content": "<base64_encoded_content>",
+  "mimeType": "image/png",
+  "outputLang": "es"
+}
+```
+
+| Campo | Tipo | Requerido | Valores válidos | Descripción |
+|-------|------|-----------|-----------------|-------------|
+| `contentType` | string | ✅ | `image`, `pdf`, `docx`, `text` | Tipo de contenido de entrada |
+| `content` | string | ✅ | - | Contenido base64 (image/pdf/docx) o texto plano (text) |
+| `mimeType` | string | ✅* | `image/png`, `image/jpeg`, `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | MIME type del contenido (*requerido para image/pdf/docx) |
+| `outputLang` | string | ❌ | `es`, `en` | Idioma de salida (default: `es`) |
+
+**Ejemplo de respuesta:**
+```json
+{
+  "document": {
+    "version": "1.1.0",
+    "meta": {
+      "title": "Contrato de Arrendamiento",
+      "language": "es"
+    },
+    "content": { /* ProseMirror document structure */ },
+    "signerRoles": [...],
+    "variableIds": [...]
+  },
+  "tokensUsed": 4523,
+  "model": "gpt-4o",
+  "generatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+**Respuestas:**
+| Código | Descripción |
+|--------|-------------|
+| 200 | Contrato generado exitosamente |
+| 400 | Request inválido (contentType, mimeType faltante, etc.) |
+| 401 | Usuario no autenticado |
+| 403 | Usuario sin permisos (requiere rol EDITOR+) |
+| 503 | Servicio de IA no disponible |
+
+---
+
 ### Endpoints de Template Versions (`/api/v1/content/templates/{templateId}/versions`)
 
 | Método | Endpoint | Descripción | OWNER | ADMIN | EDITOR | OPERATOR | VIEWER |
@@ -243,6 +302,7 @@ Lista workspaces del tenant actual con soporte de paginación.
 | Lectura (GET) | VIEWER |
 | Crear contenido (POST templates/versions/injectables) | EDITOR |
 | Editar contenido (PUT templates/versions/injectables) | EDITOR |
+| Generar contratos con IA (POST generate-contract) | EDITOR |
 | Eliminar contenido | ADMIN |
 | Publicar/Archivar versiones | ADMIN |
 | Gestionar carpetas/tags | EDITOR (crear/editar), ADMIN (eliminar) |

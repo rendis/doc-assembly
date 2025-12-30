@@ -11,6 +11,7 @@ type Config struct {
 	Documenso   DocumensoConfig `mapstructure:"documenso"`
 	Storage     StorageConfig   `mapstructure:"storage"`
 	Logging     LoggingConfig   `mapstructure:"logging"`
+	LLM         LLMConfig       `mapstructure:"llm"`
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -79,4 +80,19 @@ type StorageConfig struct {
 type LoggingConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
+}
+
+// LLMConfig holds LLM provider configuration.
+type LLMConfig struct {
+	Provider   string       `mapstructure:"provider"`
+	PromptFile string       `mapstructure:"prompt_file"`
+	OpenAI     OpenAIConfig `mapstructure:"openai"`
+}
+
+// OpenAIConfig holds OpenAI-specific configuration.
+type OpenAIConfig struct {
+	APIKey      string  `mapstructure:"api_key"`
+	Model       string  `mapstructure:"model"`
+	MaxTokens   int     `mapstructure:"max_tokens"`
+	Temperature float64 `mapstructure:"temperature"`
 }
