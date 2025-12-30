@@ -7,7 +7,8 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { LogicBuilder } from './builder/LogicBuilder';
-import type { ConditionalSchema, LogicGroup, LogicRule } from './ConditionalExtension';
+import type { ConditionalSchema, LogicGroup, LogicRule, RuleValue } from './ConditionalExtension';
+import { OPERATOR_SYMBOLS } from './types/operators';
 import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu';
 
 export const ConditionalComponent = (props: NodeViewProps) => {
@@ -112,10 +113,27 @@ const generateSummary = (node: LogicGroup | LogicRule): string => {
   if (node.type === 'rule') {
     const r = node as LogicRule;
     if (!r.variableId) return '(Incompleto)';
-    const opMap: Record<string, string> = {
-      eq: '=', neq: '!=', gt: '>', lt: '<', contains: 'contiene', empty: 'vacío', not_empty: 'no vacío'
-    };
-    return `${r.variableId} ${opMap[r.operator] || r.operator} "${r.value}"`;
+
+    const opSymbol = OPERATOR_SYMBOLS[r.operator] || r.operator;
+
+    // Operadores sin valor
+    if (['empty', 'not_empty', 'is_true', 'is_false'].includes(r.operator)) {
+      return `${r.variableId} ${opSymbol}`;
+    }
+
+    // Normalizar valor (compatibilidad con formato antiguo)
+    const ruleValue: RuleValue =
+      typeof r.value === 'string' ? { mode: 'text', value: r.value } : r.value || { mode: 'text', value: '' };
+
+    // Con valor
+    let valueDisplay: string;
+    if (ruleValue.mode === 'variable') {
+      valueDisplay = `{${ruleValue.value || '?'}}`;
+    } else {
+      valueDisplay = ruleValue.value ? `"${ruleValue.value}"` : '?';
+    }
+
+    return `${r.variableId} ${opSymbol} ${valueDisplay}`;
   }
 
   const g = node as LogicGroup;

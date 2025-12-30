@@ -1,109 +1,132 @@
 import { useDroppable } from '@dnd-kit/core';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { LogicRule, RuleOperator } from '../ConditionalExtension';
+import { fade, quickTransition } from '@/lib/animations';
+import type { LogicRule, RuleOperator, RuleValue } from '../ConditionalExtension';
 import type { InjectorType } from '../../../data/variables';
 import { useLogicBuilder } from './LogicBuilderContext';
+import { RuleValueInput } from './RuleValueInput';
+import { getOperatorsForType, operatorRequiresValue } from '../types/operators';
 
 interface LogicRuleProps {
   rule: LogicRule;
   parentId: string;
 }
 
-const TYPE_OPERATORS: Record<InjectorType, RuleOperator[]> = {
-  TEXT: ['eq', 'neq', 'contains', 'empty', 'not_empty'],
-  NUMBER: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'empty', 'not_empty'],
-  CURRENCY: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'empty', 'not_empty'],
-  DATE: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'empty', 'not_empty'],
-  BOOLEAN: ['eq', 'neq'],
-  IMAGE: ['empty', 'not_empty'],
-  TABLE: ['empty', 'not_empty'],
-};
-
-const ALL_OPERATORS: { value: RuleOperator; label: string }[] = [
-  { value: 'eq', label: 'es igual a' },
-  { value: 'neq', label: 'no es igual a' },
-  { value: 'gt', label: 'mayor que' },
-  { value: 'lt', label: 'menor que' },
-  { value: 'gte', label: 'mayor o igual que' },
-  { value: 'lte', label: 'menor o igual que' },
-  { value: 'contains', label: 'contiene' },
-  { value: 'empty', label: 'está vacío' },
-  { value: 'not_empty', label: 'no está vacío' },
-];
-
 export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
   const { removeNode, updateNode, variables } = useLogicBuilder();
 
-  // Drop zone for Variable
   const { setNodeRef: setVarRef, isOver: isVarOver } = useDroppable({
     id: `rule-var-${rule.id}`,
     data: { type: 'field-drop', ruleId: rule.id, field: 'variableId' },
   });
 
-  const selectedVar = variables.find(v => v.id === rule.variableId);
-  
-  const availableOps = selectedVar 
-    ? ALL_OPERATORS.filter(op => TYPE_OPERATORS[selectedVar.type as InjectorType]?.includes(op.value))
-    : ALL_OPERATORS;
+  const selectedVar = variables.find((v) => v.id === rule.variableId);
+  const variableType = (selectedVar?.type as InjectorType) || 'TEXT';
+  const operatorOptions = selectedVar ? getOperatorsForType(variableType) : [];
+  const showValueInput = selectedVar && operatorRequiresValue(rule.operator);
+
+  const handleOperatorChange = (op: RuleOperator) => {
+    const updates: Partial<LogicRule> = { operator: op };
+    if (!operatorRequiresValue(op)) {
+      updates.value = { mode: 'text', value: '' };
+    }
+    updateNode(rule.id, updates);
+  };
+
+  const handleValueChange = (newValue: RuleValue) => {
+    updateNode(rule.id, { value: newValue });
+  };
+
+  const normalizedValue: RuleValue =
+    typeof rule.value === 'string' ? { mode: 'text', value: rule.value } : rule.value || { mode: 'text', value: '' };
 
   return (
-    <div className="flex items-center gap-2 p-2 rounded-md bg-card border border-border group relative">
-      {/* Variable Input (Droppable) */}
-      <div 
+    <motion.div
+      layout
+      className="flex flex-wrap items-center gap-1.5 p-2 rounded-md bg-card border border-border group relative"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+    >
+      {/* Variable (Droppable) - flexible width */}
+      <div
         ref={setVarRef}
         className={cn(
-          "flex-1 min-w-[150px] h-9 px-3 rounded-md border flex items-center text-sm transition-colors",
-          isVarOver ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-input bg-background",
-          !rule.variableId && "text-muted-foreground border-dashed"
+          'h-8 px-2 rounded-md border flex items-center text-sm transition-colors shrink-0',
+          'min-w-[100px] max-w-[150px]',
+          isVarOver ? 'border-primary bg-primary/10 ring-2 ring-primary/20' : 'border-input bg-background',
+          !rule.variableId && 'text-muted-foreground border-dashed'
         )}
       >
         {selectedVar ? (
-          <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded text-xs border border-primary/20">
+          <span className="font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded text-xs border border-primary/20 truncate">
             {selectedVar.label}
           </span>
         ) : (
-          <span className="text-xs italic">Arrastra una variable aquí</span>
+          <span className="text-[10px] italic truncate">Arrastra variable</span>
         )}
       </div>
 
-      {/* Operator */}
-      <Select 
-        value={rule.operator} 
-        onValueChange={(val) => updateNode(rule.id, { operator: val as RuleOperator })}
+      {/* Operator - compact */}
+      <Select
+        value={rule.operator}
+        onValueChange={(val) => handleOperatorChange(val as RuleOperator)}
         disabled={!selectedVar}
       >
-        <SelectTrigger className="w-[140px] h-9">
-          <SelectValue placeholder={!selectedVar ? "-" : undefined} />
+        <SelectTrigger className="w-[130px] h-8 shrink-0">
+          <SelectValue placeholder="-" />
         </SelectTrigger>
         <SelectContent>
-          {availableOps.map(op => (
-            <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
-          ))}
+          {operatorOptions.map((op) => {
+            const Icon = op.icon;
+            return (
+              <SelectItem key={op.value} value={op.value}>
+                <div className="flex items-center gap-2">
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs">{op.label}</span>
+                </div>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 
-      {/* Value Input */}
-      {/* TODO: Make this droppable too to compare var vs var */}
-      <Input
-        value={rule.value}
-        onChange={(e) => updateNode(rule.id, { value: e.target.value })}
-        placeholder="Valor"
-        className="flex-1 h-9"
-        disabled={rule.operator === 'empty' || rule.operator === 'not_empty'}
-      />
+      {/* Value Input - grows to fill remaining space */}
+      <AnimatePresence mode="wait">
+        {showValueInput && (
+          <motion.div
+            key="value-input"
+            className="flex-1 min-w-[120px] flex items-center"
+            variants={fade}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={quickTransition}
+          >
+            <RuleValueInput
+              value={normalizedValue}
+              onChange={handleValueChange}
+              variableType={variableType}
+              variables={variables}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Delete Button - always visible on mobile, hover on desktop */}
       <Button
         variant="ghost"
         size="icon"
         onClick={() => removeNode(rule.id, parentId)}
-        className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0 ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-3.5 w-3.5" />
       </Button>
-    </div>
+    </motion.div>
   );
 };

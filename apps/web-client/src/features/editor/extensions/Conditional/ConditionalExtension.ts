@@ -4,14 +4,42 @@ import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ConditionalComponent } from './ConditionalComponent';
 
 export type LogicOperator = 'AND' | 'OR';
-export type RuleOperator = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'empty' | 'not_empty';
+
+export type RuleOperator =
+  // Comunes
+  | 'eq'
+  | 'neq'
+  | 'empty'
+  | 'not_empty'
+  // TEXT
+  | 'starts_with'
+  | 'ends_with'
+  | 'contains'
+  // NUMBER/CURRENCY
+  | 'gt'
+  | 'lt'
+  | 'gte'
+  | 'lte'
+  // DATE
+  | 'before'
+  | 'after'
+  // BOOLEAN
+  | 'is_true'
+  | 'is_false';
+
+export type RuleValueMode = 'text' | 'variable';
+
+export interface RuleValue {
+  mode: RuleValueMode;
+  value: string;
+}
 
 export interface LogicRule {
   id: string;
   type: 'rule';
   variableId: string;
   operator: RuleOperator;
-  value: string;
+  value: RuleValue;
 }
 
 export interface LogicGroup {

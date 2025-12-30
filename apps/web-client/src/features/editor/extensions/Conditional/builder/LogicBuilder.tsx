@@ -7,9 +7,10 @@ import { GripVertical, Variable, Search } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { LogicGroup, LogicRule, ConditionalSchema } from '../ConditionalExtension';
+import type { LogicGroup, LogicRule, ConditionalSchema, RuleValue } from '../ConditionalExtension';
 import { LogicBuilderContext } from './LogicBuilderContext';
 import { LogicGroupItem } from './LogicGroup';
+import { FormulaSummary } from './FormulaSummary';
 import type { InjectorType } from '../../../data/variables';
 import { Calendar, CheckSquare, Coins, Hash, Image as ImageIcon, Table, Type } from 'lucide-react';
 
@@ -97,7 +98,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
       type: 'rule',
       variableId: '',
       operator: 'eq',
-      value: ''
+      value: { mode: 'text', value: '' } as RuleValue,
     };
     // Helper to insert
     const insertInto = (group: LogicGroup): LogicGroup => {
@@ -166,7 +167,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
     if (over.id.toString().startsWith('rule-var-')) {
        const ruleId = over.id.toString().replace('rule-var-', '');
        const variableId = active.id.toString();
-       updateNode(ruleId, { variableId, value: '', operator: 'eq' }); // Reset value/op on change
+       updateNode(ruleId, { variableId, value: { mode: 'text', value: '' } as RuleValue, operator: 'eq' }); // Reset value/op on change
     }
   };
 
@@ -181,7 +182,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
       }}>
         <div className="flex h-[500px] border rounded-md bg-background overflow-hidden">
           {/* Sidebar */}
-          <div className="w-64 border-r bg-muted/20 flex flex-col">
+          <div className="w-52 border-r bg-muted/20 flex flex-col shrink-0">
             <div className="p-3 border-b font-medium text-sm flex items-center gap-2">
                <Variable className="h-4 w-4" /> Variables
             </div>
@@ -214,8 +215,15 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
           </div>
 
           {/* Builder Area */}
-          <div className="flex-1 p-6 overflow-y-auto bg-muted/30">
-             <LogicGroupItem group={data} />
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden bg-muted/30">
+              <LogicGroupItem group={data} />
+            </div>
+
+            {/* Formula Summary */}
+            <div className="border-t p-3 bg-background">
+              <FormulaSummary schema={data} />
+            </div>
           </div>
         </div>
 
