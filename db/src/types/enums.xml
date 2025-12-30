@@ -59,6 +59,12 @@
         <rollback>DROP TYPE IF EXISTS injectable_data_type;</rollback>
     </changeSet>
 
+    <changeSet id="enum:injectable_source_type" author="doc-assembly">
+        <comment>Source type for injectable: INTERNAL (system-calculated) or EXTERNAL (from external source/user input)</comment>
+        <sql>CREATE TYPE injectable_source_type AS ENUM ('INTERNAL', 'EXTERNAL');</sql>
+        <rollback>DROP TYPE IF EXISTS injectable_source_type;</rollback>
+    </changeSet>
+
     <changeSet id="enum:version_status" author="doc-assembly">
         <comment>Template version lifecycle status: DRAFT (editing), SCHEDULED (awaiting activation), PUBLISHED (active), ARCHIVED (historical)</comment>
         <sql>CREATE TYPE version_status AS ENUM ('DRAFT', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED');</sql>
