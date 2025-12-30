@@ -431,6 +431,15 @@ definitions:
     - entityId
     - entityType
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RenderPreviewRequest:
+    properties:
+      injectables:
+        additionalProperties: {}
+        description: |-
+          Injectables contains the values to inject into the document.
+          Keys are variable IDs, values are the actual values.
+        type: object
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry:
     properties:
       resourceId:
@@ -1554,6 +1563,54 @@ paths:
           schema:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       summary: Remove injectable from version
+      tags:
+      - Template Versions
+  /api/v1/content/templates/{templateId}/versions/{versionId}/preview:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        type: string
+      - description: Version ID
+        in: path
+        name: versionId
+        required: true
+        type: string
+      - description: Injectable values
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RenderPreviewRequest'
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Generate preview PDF
       tags:
       - Template Versions
   /api/v1/content/templates/{templateId}/versions/{versionId}/publish:

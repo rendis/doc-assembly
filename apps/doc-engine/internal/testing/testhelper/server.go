@@ -112,7 +112,8 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	workspaceController := controller.NewWorkspaceController(workspaceService, folderService, tagService, workspaceMemberService)
 
 	// Create controllers - Content
-	templateVersionController := controller.NewTemplateVersionController(templateVersionService, templateVersionMapper)
+	// Note: RenderController is nil for tests (no PDF renderer configured)
+	templateVersionController := controller.NewTemplateVersionController(templateVersionService, templateVersionMapper, nil)
 	injectableController := controller.NewContentInjectableController(
 		injectableService,
 		injectableMapper,

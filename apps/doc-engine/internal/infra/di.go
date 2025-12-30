@@ -28,6 +28,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
 	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
+	"github.com/doc-assembly/doc-engine/internal/core/service/pdfrenderer"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
 )
@@ -80,6 +81,9 @@ var ProviderSet = wire.NewSet(
 	// Content Validator
 	ProvideContentValidator,
 
+	// PDF Renderer
+	ProvidePDFRenderer,
+
 	// Mappers
 	mapper.NewInjectableMapper,
 	mapper.NewTagMapper,
@@ -92,6 +96,7 @@ var ProviderSet = wire.NewSet(
 
 	// Controllers
 	controller.NewWorkspaceController,
+	controller.NewRenderController,
 	controller.NewTemplateVersionController,
 	controller.NewContentInjectableController,
 	controller.NewContentTemplateController,
@@ -129,4 +134,10 @@ func ProvideDBPool(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
 // ProvideContentValidator creates the content validator service.
 func ProvideContentValidator(injectableRepo port.InjectableRepository) port.ContentValidator {
 	return contentvalidator.New(injectableRepo)
+}
+
+// ProvidePDFRenderer creates the PDF renderer service.
+func ProvidePDFRenderer() (port.PDFRenderer, error) {
+	opts := pdfrenderer.DefaultChromeOptions()
+	return pdfrenderer.NewService(opts)
 }

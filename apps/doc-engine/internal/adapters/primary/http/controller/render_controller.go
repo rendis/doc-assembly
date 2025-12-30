@@ -1,0 +1,113 @@
+package controller
+
+import (
+	"fmt"
+	"log/slog"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
+	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
+	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+)
+
+// RenderController handles document rendering HTTP requests.
+type RenderController struct {
+	versionUC   usecase.TemplateVersionUseCase
+	pdfRenderer port.PDFRenderer
+}
+
+// NewRenderController creates a new render controller.
+func NewRenderController(
+	versionUC usecase.TemplateVersionUseCase,
+	pdfRenderer port.PDFRenderer,
+) *RenderController {
+	return &RenderController{
+		versionUC:   versionUC,
+		pdfRenderer: pdfRenderer,
+	}
+}
+
+// RegisterRoutes registers all render routes.
+// These routes are nested under /content/templates/:templateId/versions/:versionId
+func (c *RenderController) RegisterRoutes(versions *gin.RouterGroup) {
+	// Preview route requires EDITOR+ role
+	versions.POST("/:versionId/preview", middleware.RequireEditor(), c.PreviewVersion)
+}
+
+// PreviewVersion generates a preview PDF for a template version.
+// @Summary Generate preview PDF
+// @Tags Template Versions
+// @Accept json
+// @Produce application/pdf
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param templateId path string true "Template ID"
+// @Param versionId path string true "Version ID"
+// @Param request body dto.RenderPreviewRequest true "Injectable values"
+// @Success 200 {file} application/pdf
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/content/templates/{templateId}/versions/{versionId}/preview [post]
+func (c *RenderController) PreviewVersion(ctx *gin.Context) {
+	versionID := ctx.Param("versionId")
+
+	// Parse request body
+	var req dto.RenderPreviewRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		// Allow empty body (no injectables)
+		if err.Error() != "EOF" {
+			respondError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		req.Injectables = make(map[string]any)
+	}
+
+	// Get version with details
+	details, err := c.versionUC.GetVersionWithDetails(ctx.Request.Context(), versionID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	// Parse content structure into portable document
+	doc, err := portabledoc.Parse(details.ContentStructure)
+	if err != nil {
+		slog.Error("failed to parse content structure",
+			slog.String("version_id", versionID),
+			slog.Any("error", err),
+		)
+		respondError(ctx, http.StatusInternalServerError, fmt.Errorf("invalid content structure"))
+		return
+	}
+
+	if doc == nil {
+		respondError(ctx, http.StatusBadRequest, fmt.Errorf("version has no content"))
+		return
+	}
+
+	// Render PDF
+	result, err := c.pdfRenderer.RenderPreview(ctx.Request.Context(), &port.RenderPreviewRequest{
+		Document:    doc,
+		Injectables: req.Injectables,
+	})
+	if err != nil {
+		slog.Error("failed to render PDF",
+			slog.String("version_id", versionID),
+			slog.Any("error", err),
+		)
+		respondError(ctx, http.StatusInternalServerError, fmt.Errorf("failed to generate PDF"))
+		return
+	}
+
+	// Set response headers
+	ctx.Header("Content-Type", "application/pdf")
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", result.Filename))
+	ctx.Header("Content-Length", fmt.Sprintf("%d", len(result.PDF)))
+
+	// Write PDF bytes
+	ctx.Data(http.StatusOK, "application/pdf", result.PDF)
+}

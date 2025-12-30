@@ -13,18 +13,21 @@ import (
 
 // TemplateVersionController handles template version HTTP requests.
 type TemplateVersionController struct {
-	versionUC     usecase.TemplateVersionUseCase
-	versionMapper *mapper.TemplateVersionMapper
+	versionUC        usecase.TemplateVersionUseCase
+	versionMapper    *mapper.TemplateVersionMapper
+	renderController *RenderController
 }
 
 // NewTemplateVersionController creates a new template version controller.
 func NewTemplateVersionController(
 	versionUC usecase.TemplateVersionUseCase,
 	versionMapper *mapper.TemplateVersionMapper,
+	renderController *RenderController,
 ) *TemplateVersionController {
 	return &TemplateVersionController{
-		versionUC:     versionUC,
-		versionMapper: versionMapper,
+		versionUC:        versionUC,
+		versionMapper:    versionMapper,
+		renderController: renderController,
 	}
 }
 
@@ -51,6 +54,11 @@ func (c *TemplateVersionController) RegisterRoutes(templates *gin.RouterGroup) {
 		// Injectables - EDITOR+
 		versions.POST("/:versionId/injectables", middleware.RequireEditor(), c.AddInjectable)
 		versions.DELETE("/:versionId/injectables/:injectableId", middleware.RequireEditor(), c.RemoveInjectable)
+
+		// Render routes - EDITOR+ (delegates to RenderController)
+		if c.renderController != nil {
+			c.renderController.RegisterRoutes(versions)
+		}
 	}
 }
 
