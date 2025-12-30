@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
 // @ts-expect-error - NodeViewProps is not exported in type definitions
 import type { NodeViewProps } from '@tiptap/react';
@@ -33,6 +33,12 @@ export const SignatureComponent = (props: NodeViewProps) => {
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+
+  // Reset image selection when block selection changes or editor opens
+  useEffect(() => {
+    setSelectedImageId(null);
+  }, [selected, editorOpen]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -92,6 +98,9 @@ export const SignatureComponent = (props: NodeViewProps) => {
                     lineWidth={lineWidth}
                     className={itemWidthClasses}
                     editable={selected}
+                    isImageSelected={selectedImageId === signature.id}
+                    onImageSelect={() => setSelectedImageId(signature.id)}
+                    onImageDeselect={() => setSelectedImageId(null)}
                     onImageTransformChange={(transform) =>
                       handleImageTransformChange(signature.id, transform)
                     }
@@ -112,6 +121,9 @@ export const SignatureComponent = (props: NodeViewProps) => {
         lineWidth={lineWidth}
         className={itemWidthClasses}
         editable={selected}
+        isImageSelected={selectedImageId === signature.id}
+        onImageSelect={() => setSelectedImageId(signature.id)}
+        onImageDeselect={() => setSelectedImageId(null)}
         onImageTransformChange={(transform) =>
           handleImageTransformChange(signature.id, transform)
         }

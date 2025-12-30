@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 import { User } from 'lucide-react';
 import Moveable from 'react-moveable';
 import type { SignatureItem, SignatureLineWidth } from '../types';
@@ -18,6 +18,9 @@ interface SignatureItemViewProps {
   lineWidth: SignatureLineWidth;
   className?: string;
   editable?: boolean;
+  isImageSelected?: boolean;
+  onImageSelect?: () => void;
+  onImageDeselect?: () => void;
   onImageTransformChange?: (transform: Partial<ImageTransform>) => void;
 }
 
@@ -26,17 +29,37 @@ export function SignatureItemView({
   lineWidth,
   className,
   editable = false,
+  isImageSelected = false,
+  onImageSelect,
+  onImageDeselect,
   onImageTransformChange,
 }: SignatureItemViewProps) {
   const lineWidthClasses = getLineWidthClasses(lineWidth);
   const rolesContext = useSignerRolesContextSafe();
+  const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const [isSelected, setIsSelected] = useState(false);
 
-  // Reset image selection when editable state changes
-  useEffect(() => {
-    setIsSelected(false);
-  }, [editable]);
+  // Store last clamped position for onDragEnd
+  const lastClampedPos = useRef({ x: 0, y: 0 });
+
+  // Clamp position so image center stays within container
+  const clampPosition = useCallback((x: number, y: number): { x: number; y: number } => {
+    if (!containerRef.current) return { x, y };
+
+    const container = containerRef.current.getBoundingClientRect();
+
+    // Bounds for keeping center inside container
+    const maxX = container.width / 2;
+    const maxY = container.height / 2;
+
+    const clamped = {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+
+    lastClampedPos.current = clamped;
+    return clamped;
+  }, []);
 
   const assignedRole = useMemo(() => {
     if (!signature.roleId || !rolesContext) return null;
@@ -62,14 +85,16 @@ export function SignatureItemView({
   }, [signature.imageData, signature.imageOpacity, imageTransform]);
 
   const handleImageClick = useCallback(() => {
-    if (editable) {
-      setIsSelected(true);
+    if (editable && onImageSelect) {
+      onImageSelect();
     }
-  }, [editable]);
+  }, [editable, onImageSelect]);
 
   const handleClickOutside = useCallback(() => {
-    setIsSelected(false);
-  }, []);
+    if (onImageDeselect) {
+      onImageDeselect();
+    }
+  }, [onImageDeselect]);
 
   return (
     <div
@@ -89,7 +114,8 @@ export function SignatureItemView({
       {/* Imagen de firma (si existe) */}
       {signature.imageData && (
         <div
-          className="mb-2 h-20 flex items-end justify-center relative"
+          ref={containerRef}
+          className="mb-2 h-20 w-full flex items-end justify-center relative"
           onClick={(e) => e.stopPropagation()}
         >
           <img
@@ -98,15 +124,15 @@ export function SignatureItemView({
             alt="Firma"
             className={cn(
               'max-h-20 max-w-full object-contain',
-              editable && !isSelected && 'cursor-pointer',
-              editable && isSelected && 'cursor-move'
+              editable && !isImageSelected && 'cursor-pointer',
+              editable && isImageSelected && 'cursor-move'
             )}
             style={imageStyles}
             onClick={handleImageClick}
           />
 
           {/* Moveable controls - only when editable and selected */}
-          {editable && isSelected && imageRef.current && (
+          {editable && isImageSelected && imageRef.current && (
             <Moveable
               target={imageRef.current}
               draggable={true}
@@ -116,17 +142,19 @@ export function SignatureItemView({
               throttleDrag={0}
               throttleRotate={0}
               throttleScale={0}
-              onDrag={({ target, transform }) => {
-                target.style.transform = transform;
+              onDrag={({ target, translate }) => {
+                // Clamp position to keep center within container
+                const clamped = clampPosition(translate[0], translate[1]);
+                const rotation = signature.imageRotation ?? 0;
+                const scale = signature.imageScale ?? 1;
+                target.style.transform = `translate(${clamped.x}px, ${clamped.y}px) rotate(${rotation}deg) scale(${scale})`;
               }}
-              onDragEnd={({ target }) => {
-                // Parse transform to extract values
-                const style = target.style.transform;
-                const translateMatch = style.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
-                if (translateMatch && onImageTransformChange) {
+              onDragEnd={() => {
+                // Save last clamped position
+                if (onImageTransformChange) {
                   onImageTransformChange({
-                    imageX: parseFloat(translateMatch[1]),
-                    imageY: parseFloat(translateMatch[2]),
+                    imageX: lastClampedPos.current.x,
+                    imageY: lastClampedPos.current.y,
                   });
                 }
               }}
