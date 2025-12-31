@@ -577,7 +577,7 @@ function SelectTenantPage() {
                 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Label "Workspace" - only appears during toSidebar */}
+                {/* Label "Current Workspace" - only appears during toSidebar */}
                 <motion.label
                   initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                   animate={{
@@ -588,7 +588,7 @@ function SelectTenantPage() {
                   transition={{ duration: 0.3 }}
                   className="block text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
                 >
-                  Workspace
+                  Current Workspace
                 </motion.label>
 
                 {/* Name - slides to center during toCenter, stays during fadeBorders, back to left during toSidebar */}
