@@ -577,16 +577,14 @@ function SelectTenantPage() {
                 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Label "Current Workspace" - only appears during toSidebar */}
+                {/* Label "Current Workspace" - fades in after title settles */}
                 <motion.label
-                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  initial={{ opacity: 0 }}
                   animate={{
                     opacity: animationPhase === 'toSidebar' ? 1 : 0,
-                    height: animationPhase === 'toSidebar' ? 'auto' : 0,
-                    marginBottom: animationPhase === 'toSidebar' ? 8 : 0
                   }}
-                  transition={{ duration: 0.3 }}
-                  className="block text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                  className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
                 >
                   Current Workspace
                 </motion.label>
@@ -599,8 +597,13 @@ function SelectTenantPage() {
                     // Slide to center during toCenter (stays during fadeBorders), back to 0 during toSidebar
                     x: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 120 : 0,
                   }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                  className="text-left font-display font-medium tracking-tight text-foreground"
+                  transition={{
+                    type: 'spring',
+                    damping: 25,
+                    stiffness: 200,
+                    fontSize: { duration: 0.4, ease: 'easeOut' },
+                  }}
+                  className="text-left font-display font-medium text-foreground"
                 >
                   {selectedWorkspaceForAnim.name}
                 </motion.h3>
