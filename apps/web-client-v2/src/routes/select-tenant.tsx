@@ -40,6 +40,7 @@ const itemVariants = {
 }
 
 const ITEMS_PER_PAGE = 5
+const LIST_MIN_HEIGHT = 400 // Fixed height to prevent layout shifts
 
 function PaginationControls({
   page,
@@ -120,6 +121,8 @@ function SelectTenantPage() {
   )
   const [tenantPage, setTenantPage] = useState(1)
   const [workspacePage, setWorkspacePage] = useState(1)
+  const [tenantTotalPages, setTenantTotalPages] = useState(1)
+  const [workspaceTotalPages, setWorkspaceTotalPages] = useState(1)
 
   // Fetch tenants
   const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants(tenantPage, ITEMS_PER_PAGE)
@@ -142,15 +145,29 @@ function SelectTenantPage() {
     return () => clearTimeout(timer)
   }, [selectedTenant])
 
-  // Reset workspace page when tenant changes
+  // Reset workspace page and total pages when tenant changes
   useEffect(() => {
     setWorkspacePage(1)
+    setWorkspaceTotalPages(1)
   }, [selectedTenant?.id])
 
   // Reset tenant page when search changes
   useEffect(() => {
     setTenantPage(1)
   }, [searchQuery])
+
+  // Update total pages when data arrives
+  useEffect(() => {
+    if (tenantPagination?.totalPages) {
+      setTenantTotalPages(tenantPagination.totalPages)
+    }
+  }, [tenantPagination?.totalPages])
+
+  useEffect(() => {
+    if (workspacePagination?.totalPages) {
+      setWorkspaceTotalPages(workspacePagination.totalPages)
+    }
+  }, [workspacePagination?.totalPages])
 
   // Combined loading conditions
   const showTenantLoading = !minLoadingComplete || isLoadingTenants || isSearching
@@ -262,7 +279,7 @@ function SelectTenantPage() {
           </div>
 
           {/* List */}
-          <div className="flex w-full flex-col" style={{ minHeight: '400px' }}>
+          <div className="flex w-full flex-col justify-start" style={{ height: `${LIST_MIN_HEIGHT}px` }}>
             <AnimatePresence mode="wait">
               {selectedTenant ? (
                 // Workspaces list
@@ -272,10 +289,9 @@ function SelectTenantPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, transition: { duration: 0.3 } }}
-                    className="py-8 text-center text-muted-foreground"
+                    className="flex h-full items-start justify-center py-8 text-muted-foreground"
                   >
-                    Loading workspaces
-                    <LoadingDots />
+                    <span>Loading workspaces<LoadingDots /></span>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -284,7 +300,7 @@ function SelectTenantPage() {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="flex w-full flex-col"
+                    className="flex h-full w-full flex-col justify-start"
                   >
                     {displayWorkspaces.map((ws: WorkspaceWithRole) => (
                       <motion.button
@@ -325,10 +341,9 @@ function SelectTenantPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, transition: { duration: 0.3 } }}
-                  className="py-8 text-center text-muted-foreground"
+                  className="flex h-full items-start justify-center py-8 text-muted-foreground"
                 >
-                  Loading organizations
-                  <LoadingDots />
+                  <span>Loading organizations<LoadingDots /></span>
                 </motion.div>
               ) : (
                 <motion.div
@@ -337,7 +352,7 @@ function SelectTenantPage() {
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="flex w-full flex-col"
+                  className="flex h-full w-full flex-col justify-start"
                 >
                   {displayTenants.map((tenant: TenantWithRole) => (
                     <motion.button
@@ -368,17 +383,17 @@ function SelectTenantPage() {
           </div>
 
           {/* Pagination */}
-          {!selectedTenant && !showTenantLoading && tenantPagination && (
+          {!selectedTenant && tenantTotalPages > 1 && (
             <PaginationControls
-              page={tenantPagination.page}
-              totalPages={tenantPagination.totalPages}
+              page={tenantPage}
+              totalPages={tenantTotalPages}
               onPageChange={setTenantPage}
             />
           )}
-          {selectedTenant && !showWorkspaceLoading && workspacePagination && (
+          {selectedTenant && workspaceTotalPages > 1 && (
             <PaginationControls
-              page={workspacePagination.page}
-              totalPages={workspacePagination.totalPages}
+              page={workspacePage}
+              totalPages={workspaceTotalPages}
               onPageChange={setWorkspacePage}
             />
           )}
