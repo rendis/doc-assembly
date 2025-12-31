@@ -17,11 +17,11 @@ export async function fetchMyRoles(): Promise<RoleEntry[]> {
  * Record resource access (for analytics/audit)
  */
 export async function recordAccess(
-  resourceType: 'TENANT' | 'WORKSPACE',
-  resourceId: string
+  entityType: 'TENANT' | 'WORKSPACE',
+  entityId: string
 ): Promise<void> {
   await apiClient.post('/me/access', {
-    resourceType,
-    resourceId,
+    entityType,
+    entityId,
   })
 }

@@ -51,6 +51,7 @@ export interface Workspace {
  */
 export interface WorkspaceWithRole extends Workspace {
   role: string
+  lastAccessedAt?: string | null
 }
 
 /**

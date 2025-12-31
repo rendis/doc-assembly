@@ -5,6 +5,8 @@ export function useMyTenants(page = 1, perPage = 20) {
   return useQuery({
     queryKey: ['my-tenants', page, perPage],
     queryFn: () => fetchMyTenants(page, perPage),
+    staleTime: 0,
+    gcTime: 0,
   })
 }
 

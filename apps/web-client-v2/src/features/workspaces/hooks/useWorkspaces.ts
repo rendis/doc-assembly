@@ -13,6 +13,8 @@ export function useWorkspaces(tenantId: string | null, page = 1, perPage = 20) {
     queryKey: ['workspaces', tenantId, page, perPage],
     queryFn: () => fetchWorkspaces(page, perPage),
     enabled: !!tenantId,
+    staleTime: 0,
+    gcTime: 0,
   })
 }
 

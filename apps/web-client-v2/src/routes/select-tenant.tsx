@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
 import { useMyTenants, useSearchTenants } from '@/features/tenants'
 import { useWorkspaces } from '@/features/workspaces'
+import { recordAccess } from '@/features/auth'
 
 export const Route = createFileRoute('/select-tenant')({
   component: SelectTenantPage,
@@ -83,7 +84,7 @@ function SelectTenantPage() {
   // Start minimum loading timer on mount and when context changes
   useEffect(() => {
     setMinLoadingComplete(false)
-    const timer = setTimeout(() => setMinLoadingComplete(true), 2000)
+    const timer = setTimeout(() => setMinLoadingComplete(true), 1000)
     return () => clearTimeout(timer)
   }, [selectedTenant])
 
@@ -103,9 +104,9 @@ function SelectTenantPage() {
   ]
 
   const mockWorkspaces: WorkspaceWithRole[] = [
-    { id: 'ws-1', name: 'Legal Documents', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'ADMIN' },
-    { id: 'ws-2', name: 'HR Templates', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'EDITOR' },
-    { id: 'ws-3', name: 'System Templates', type: 'SYSTEM', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'VIEWER' },
+    { id: 'ws-1', name: 'Legal Documents', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'ADMIN', lastAccessedAt: new Date(Date.now() - 5 * 60000).toISOString() },
+    { id: 'ws-2', name: 'HR Templates', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'EDITOR', lastAccessedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+    { id: 'ws-3', name: 'System Templates', type: 'SYSTEM', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'VIEWER', lastAccessedAt: null },
   ]
 
   const displayTenants: TenantWithRole[] = (tenants?.length ? tenants : mockTenants) as TenantWithRole[]
@@ -114,10 +115,12 @@ function SelectTenantPage() {
   const handleTenantSelect = (tenant: TenantWithRole) => {
     setCurrentTenant(tenant as TenantWithRole)
     setSelectedTenant(tenant)
+    recordAccess('TENANT', tenant.id).catch(() => {})
   }
 
   const handleWorkspaceSelect = (workspace: WorkspaceWithRole) => {
     setCurrentWorkspace(workspace as WorkspaceWithRole)
+    recordAccess('WORKSPACE', workspace.id).catch(() => {})
     navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } })
   }
 
@@ -239,7 +242,7 @@ function SelectTenantPage() {
                         </div>
                         <div className="flex items-center gap-6 md:gap-8">
                           <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">
-                            Role: {ws.role}
+                            Last accessed: {formatRelativeTime(ws.lastAccessedAt)}
                           </span>
                           <ArrowRight
                             className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
