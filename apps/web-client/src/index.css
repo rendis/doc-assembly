@@ -375,7 +375,7 @@
   }
 
   .dark .editor-scroll-container .ProseMirror {
-    background: hsl(var(--card)) !important;
+    background: transparent !important;
   }
 
   /* Page break visual in editor (manual) */
