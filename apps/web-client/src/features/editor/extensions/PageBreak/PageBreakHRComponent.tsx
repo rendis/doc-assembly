@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
 // @ts-expect-error - NodeViewProps is not exported in type definitions
 import type { NodeViewProps } from '@tiptap/react';
+import { Scissors } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu';
 
@@ -30,13 +31,34 @@ export const PageBreakHRComponent = (props: NodeViewProps) => {
           userSelect: 'none',
         }}
       >
-        {/* Solo línea punteada */}
-        <div
-          className={cn(
-            'w-full border-t-2 border-dashed transition-colors',
-            selected ? 'border-primary' : 'border-border'
-          )}
-        />
+        {/* Línea con icono de tijeras en el centro */}
+        <div className="flex items-center w-full">
+          {/* Línea izquierda */}
+          <div
+            className={cn(
+              'flex-1 border-t-2 border-dashed transition-colors',
+              selected ? 'border-primary' : 'border-border'
+            )}
+          />
+
+          {/* Icono de tijeras centrado */}
+          <div className="px-2 flex items-center">
+            <Scissors
+              className={cn(
+                'w-4 h-4 transition-colors',
+                selected ? 'text-primary' : 'text-muted-foreground'
+              )}
+            />
+          </div>
+
+          {/* Línea derecha */}
+          <div
+            className={cn(
+              'flex-1 border-t-2 border-dashed transition-colors',
+              selected ? 'border-primary' : 'border-border'
+            )}
+          />
+        </div>
       </div>
 
       {contextMenu && (

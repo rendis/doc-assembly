@@ -106,7 +106,7 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={onClose}
+        onClick={!isSubmitting ? onClose : undefined}
       />
 
       {/* Dialog */}
@@ -125,7 +125,8 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              disabled={isSubmitting}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X className="w-4 h-4" />
             </button>
@@ -147,7 +148,8 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="flex-1 px-2 py-1 text-sm border rounded"
+                          disabled={isSubmitting}
+                          className="flex-1 px-2 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           autoFocus
                         />
                         <ColorPicker
@@ -158,14 +160,15 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
                           type="button"
                           onClick={() => handleEdit(tag.id)}
                           disabled={isSubmitting}
-                          className="p-1.5 text-primary hover:bg-primary/10 rounded"
+                          className="p-1.5 text-primary hover:bg-primary/10 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Check className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingId(null)}
-                          className="p-1.5 hover:bg-muted rounded"
+                          disabled={isSubmitting}
+                          className="p-1.5 hover:bg-muted rounded disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -186,14 +189,16 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
                           <button
                             type="button"
                             onClick={() => startEditing(tag)}
-                            className="p-1.5 hover:bg-muted-foreground/10 rounded"
+                            disabled={isSubmitting}
+                            className="p-1.5 hover:bg-muted-foreground/10 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(tag.id)}
-                            className="p-1.5 hover:bg-destructive/10 text-destructive rounded"
+                            disabled={isSubmitting}
+                            className="p-1.5 hover:bg-destructive/10 text-destructive rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -221,7 +226,8 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder={t('tagManager.create.namePlaceholder')}
-                  className="flex-1 px-3 py-2 text-sm border rounded-md"
+                  disabled={isSubmitting}
+                  className="flex-1 px-3 py-2 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
                 />
                 <ColorPicker value={newColor} onChange={setNewColor} />
@@ -231,7 +237,7 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
                   disabled={isSubmitting || !newName.trim()}
                   className="
                     p-2 bg-primary text-primary-foreground rounded-md
-                    hover:bg-primary/90 disabled:opacity-50
+                    hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed
                   "
                 >
                   {isSubmitting ? (
@@ -246,7 +252,8 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
                     setIsCreating(false);
                     setNewName('');
                   }}
-                  className="p-2 hover:bg-muted rounded-md"
+                  disabled={isSubmitting}
+                  className="p-2 hover:bg-muted rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -255,11 +262,13 @@ export function ManageTagsDialog({ isOpen, onClose, onChanged }: ManageTagsDialo
               <button
                 type="button"
                 onClick={() => setIsCreating(true)}
+                disabled={isSubmitting}
                 className="
                   flex items-center gap-2 w-full px-3 py-2
                   text-sm text-muted-foreground
                   border border-dashed rounded-md
                   hover:border-primary hover:text-primary transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed
                 "
               >
                 <Plus className="w-4 h-4" />

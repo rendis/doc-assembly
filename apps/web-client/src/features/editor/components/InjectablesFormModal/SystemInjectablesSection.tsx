@@ -14,6 +14,7 @@ interface SystemInjectablesSectionProps {
   touchedFields: Set<string>;
   onChange: (variableId: string, value: any) => void;
   onResetToEmulated: (variableId: string) => void;
+  disabled?: boolean;
 }
 
 export function SystemInjectablesSection({
@@ -23,6 +24,7 @@ export function SystemInjectablesSection({
   touchedFields,
   onChange,
   onResetToEmulated,
+  disabled = false,
 }: SystemInjectablesSectionProps) {
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -65,6 +67,7 @@ export function SystemInjectablesSection({
               isEmulated={!touchedFields.has(variable.variableId)}
               onResetToEmulated={() => onResetToEmulated(variable.variableId)}
               metadata={variable.metadata}
+              disabled={disabled}
             />
           ))}
         </div>

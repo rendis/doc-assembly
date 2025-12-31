@@ -51,11 +51,21 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg text-card-foreground">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onClick={!loading ? () => setIsOpen(false) : undefined}
+    >
+      <div
+        className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg text-card-foreground"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{t('tenant.createTitle')}</h2>
-          <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => setIsOpen(false)}
+            disabled={loading}
+            className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -74,11 +84,12 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={loading}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder={t('tenant.namePlaceholder')}
             />
           </div>
-          
+
           <div>
             <label className="mb-1 block text-sm font-medium">{t('tenant.code')}</label>
             <input
@@ -86,7 +97,8 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
               type="text"
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={loading}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder={t('tenant.codePlaceholder')}
               maxLength={10}
             />
@@ -98,7 +110,8 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={loading}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               rows={3}
             />
           </div>
@@ -107,7 +120,8 @@ export const CreateTenantDialog = ({ onTenantCreated }: CreateTenantDialogProps)
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              disabled={loading}
+              className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.cancel')}
             </button>

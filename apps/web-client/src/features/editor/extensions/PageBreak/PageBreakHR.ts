@@ -1,21 +1,25 @@
-import HorizontalRule from '@tiptap/extension-horizontal-rule';
+import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { PageBreakHRComponent } from './PageBreakHRComponent';
 
-export const PageBreakHR = HorizontalRule.extend({
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    pageBreak: {
+      setPageBreak: () => ReturnType;
+    };
+  }
+}
+
+export const PageBreakHR = Node.create({
   name: 'pageBreak',
+  group: 'block',
+  atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
-      ...this.parent?.(),
       type: {
         default: 'pagebreak',
-        parseHTML: (element) => element.getAttribute('data-type'),
-        renderHTML: (attributes) => {
-          return {
-            'data-type': attributes.type,
-          };
-        },
       },
     };
   },
@@ -24,8 +28,8 @@ export const PageBreakHR = HorizontalRule.extend({
     return {
       setPageBreak:
         () =>
-        ({ commands }) => {
-          return commands.setHorizontalRule();
+        ({ commands }: { commands: { insertContent: (content: { type: string }) => boolean } }) => {
+          return commands.insertContent({ type: this.name });
         },
     };
   },
@@ -44,11 +48,12 @@ export const PageBreakHR = HorizontalRule.extend({
     return [
       { tag: 'hr[data-type="pagebreak"]' },
       { tag: 'hr.page-break' },
-      { tag: 'div[data-type="page-break"]' }, // Backward compatibility
+      { tag: 'hr.manual-page-break' },
+      { tag: 'div[data-type="page-break"]' },
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ['hr', { ...HTMLAttributes, 'data-type': 'pagebreak', class: 'manual-page-break' }];
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
+    return ['hr', mergeAttributes(HTMLAttributes, { 'data-type': 'pagebreak', class: 'manual-page-break' })];
   },
 });

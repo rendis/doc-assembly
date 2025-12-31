@@ -22,6 +22,7 @@ interface InjectableInputProps {
   isEmulated?: boolean;
   onResetToEmulated?: () => void;
   onGenerate?: () => void;
+  disabled?: boolean;
 }
 
 /**
@@ -66,6 +67,7 @@ export function InjectableInput({
   isEmulated = false,
   onResetToEmulated,
   onGenerate,
+  disabled = false,
 }: InjectableInputProps) {
   const { t } = useTranslation();
 
@@ -84,12 +86,13 @@ export function InjectableInput({
   // BOOLEAN type
   if (type === 'BOOLEAN') {
     return (
-      <div className="flex items-center justify-between">
+      <div className={cn("flex items-center justify-between", disabled && "opacity-50")}>
         <div className="flex items-center space-x-2">
           <Checkbox
             id={variableId}
             checked={!!value}
             onCheckedChange={(checked) => handleChange(checked)}
+            disabled={disabled}
           />
           <Label
             htmlFor={variableId}
@@ -108,6 +111,7 @@ export function InjectableInput({
                 variant="ghost"
                 size="sm"
                 onClick={onResetToEmulated}
+                disabled={disabled}
                 className="h-6 px-2"
                 title={t('editor.preview.resetToEmulated')}
               >
@@ -147,7 +151,7 @@ export function InjectableInput({
   const suffixCount = (onGenerate ? 1 : 0) + (isEmulated && onResetToEmulated ? 1 : 0);
 
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5", disabled && "opacity-50")}>
       <div className="flex items-center justify-between">
         <Label htmlFor={variableId} className="text-sm font-medium">
           {label}
@@ -170,6 +174,7 @@ export function InjectableInput({
           value={value || ''}
           onChange={(e) => handleChange(e.target.value)}
           onBlur={handleBlur}
+          disabled={disabled}
           className={cn(
             inputPrefix && 'pl-8',
             hasSuffixIcons && suffixCount === 1 && 'pr-10',
@@ -188,6 +193,7 @@ export function InjectableInput({
                 className="h-7 w-7 p-0 hover:bg-muted"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={onGenerate}
+                disabled={disabled}
                 title={t('editor.preview.generateRandom')}
               >
                 <Sparkles className="h-3 w-3" />
@@ -200,6 +206,7 @@ export function InjectableInput({
                 className="h-7 w-7 p-0 hover:bg-muted"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={onResetToEmulated}
+                disabled={disabled}
                 title={t('editor.preview.resetToEmulated')}
               >
                 <RotateCcw className="h-3 w-3" />

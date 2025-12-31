@@ -58,6 +58,7 @@ export function CreateTemplateDialog({
   };
 
   const handleClose = () => {
+    if (isSubmitting) return;
     setTitle('');
     setSelectedTagIds([]);
     setError(null);
@@ -97,7 +98,8 @@ export function CreateTemplateDialog({
             <button
               type="button"
               onClick={handleClose}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              disabled={isSubmitting}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X className="w-4 h-4" />
             </button>
@@ -123,11 +125,13 @@ export function CreateTemplateDialog({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('templates.create.titlePlaceholder')}
+                disabled={isSubmitting}
                 className="
                   w-full px-3 py-2 text-sm
                   border rounded-md bg-background
                   placeholder:text-muted-foreground
                   focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+                  disabled:opacity-50 disabled:cursor-not-allowed
                 "
                 required
                 autoFocus
@@ -160,9 +164,11 @@ export function CreateTemplateDialog({
                         key={tag.id}
                         type="button"
                         onClick={() => toggleTag(tag.id)}
+                        disabled={isSubmitting}
                         className={`
-                          transition-opacity
+                          transition-opacity disabled:cursor-not-allowed
                           ${isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'}
+                          ${isSubmitting ? 'opacity-50' : ''}
                         `}
                       >
                         <TagBadge
@@ -186,6 +192,7 @@ export function CreateTemplateDialog({
                   px-4 py-2 text-sm font-medium
                   border rounded-md
                   hover:bg-muted transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed
                 "
                 disabled={isSubmitting}
               >

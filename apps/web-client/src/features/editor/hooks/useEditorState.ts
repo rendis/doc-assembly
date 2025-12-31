@@ -10,8 +10,7 @@ import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-// @ts-expect-error - tiptap-pagination-breaks types compatibility
-import { Pagination } from 'tiptap-pagination-breaks';
+import PaginationExtension, { PageNode, HeaderFooterNode, BodyNode } from 'tiptap-extension-pagination';
 import {
   InjectorExtension,
   SignatureExtension,
@@ -57,15 +56,25 @@ export const useEditorState = ({
         width: 2,
         class: 'tiptap-dropcursor',
       }),
-      // Automatic pagination - detects overflow and adds page breaks
-      // Pass FULL page dimensions - extension handles margins internally
-      Pagination.configure({
-        pageHeight: config.format.height,
-        pageWidth: config.format.width,
-        pageMargin: config.format.margins.top,
-        label: 'Página',
-        showPageNumber: true,
+      // Pagination extension - visual page separation
+      PaginationExtension.configure({
+        defaultPaperSize: 'A4',
+        defaultPaperOrientation: 'portrait',
+        useDeviceThemeForPaperColour: true, // Auto-detect dark/light mode
+        defaultMarginConfig: {
+          top: config.format.margins.top / 3.78, // px to mm (approx)
+          bottom: config.format.margins.bottom / 3.78,
+          left: config.format.margins.left / 3.78,
+          right: config.format.margins.right / 3.78,
+        },
+        pageAmendmentOptions: {
+          enableHeader: false,
+          enableFooter: false,
+        },
       }),
+      PageNode,
+      HeaderFooterNode,
+      BodyNode,
       ImageExtension.configure({
         inline: false,
         allowBase64: true,

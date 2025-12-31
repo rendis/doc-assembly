@@ -402,7 +402,6 @@
   }
 
   /* Automatic page break (tiptap-pagination-breaks) */
-  /* Using !important to override inline styles from the extension */
   .page-break {
     height: auto !important;
     width: 100% !important;
@@ -414,7 +413,7 @@
     border-top: none !important;
   }
 
-  /* Solo línea punteada */
+  /* Línea punteada */
   .page-break::before {
     content: '' !important;
     display: block !important;
@@ -431,9 +430,56 @@
     display: none !important;
   }
 
-  /* Eliminar ::after ya no se necesita */
   .page-break::after {
     display: none !important;
+  }
+
+  /* === TIPTAP-EXTENSION-PAGINATION OVERRIDES === */
+
+  /* Centrado de páginas */
+  .page,
+  [data-page] {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Light mode: fondo blanco y bordes */
+  .page,
+  [data-page] {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  [data-page-body] {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  [data-page-header-footer] {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  /* Dark mode: color de fondo de página */
+  .dark .page,
+  .dark [data-page] {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .dark [data-page-body] {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .dark [data-page-header-footer] {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  /* Ocultar estilos del ProseMirror original cuando hay páginas de la extensión */
+  .ProseMirror:has([data-page]) {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    width: auto !important;
   }
 
   /* Page Indicator */

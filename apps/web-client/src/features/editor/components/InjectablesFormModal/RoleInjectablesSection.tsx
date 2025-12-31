@@ -14,6 +14,7 @@ interface RoleInjectablesSectionProps {
   errors: InjectableFormErrors;
   onChange: (variableId: string, value: any) => void;
   onGenerateAll: () => void;
+  disabled?: boolean;
 }
 
 export function RoleInjectablesSection({
@@ -22,6 +23,7 @@ export function RoleInjectablesSection({
   errors,
   onChange,
   onGenerateAll,
+  disabled = false,
 }: RoleInjectablesSectionProps) {
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -60,6 +62,7 @@ export function RoleInjectablesSection({
               variant="outline"
               size="sm"
               onClick={onGenerateAll}
+              disabled={disabled}
               className="h-7"
             >
               <Sparkles className="h-3 w-3 mr-1" />
@@ -95,6 +98,7 @@ export function RoleInjectablesSection({
                     onChange={(value) => onChange(ri.variableId, value)}
                     propertyKey={ri.propertyKey}
                     onGenerate={() => handleGenerateIndividual(ri)}
+                    disabled={disabled}
                   />
                 ))}
               </div>

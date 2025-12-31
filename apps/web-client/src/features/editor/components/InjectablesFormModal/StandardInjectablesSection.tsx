@@ -8,6 +8,7 @@ interface StandardInjectablesSectionProps {
   values: InjectableFormValues;
   errors: InjectableFormErrors;
   onChange: (variableId: string, value: any) => void;
+  disabled?: boolean;
 }
 
 export function StandardInjectablesSection({
@@ -15,6 +16,7 @@ export function StandardInjectablesSection({
   values,
   errors,
   onChange,
+  disabled = false,
 }: StandardInjectablesSectionProps) {
   // Filtrar inyectables de sistema para que NO aparezcan en esta sección
   const nonSystemVariables = variables.filter(
@@ -37,6 +39,7 @@ export function StandardInjectablesSection({
           error={errors[variable.variableId]}
           onChange={(value) => onChange(variable.variableId, value)}
           metadata={variable.metadata}
+          disabled={disabled}
         />
       ))}
     </div>

@@ -280,6 +280,7 @@ export function InjectablesFormModal({
                 touchedFields={touchedFields}
                 onChange={handleChange}
                 onResetToEmulated={handleResetToEmulated}
+                disabled={isGenerating}
               />
             )}
 
@@ -294,6 +295,7 @@ export function InjectablesFormModal({
                   values={values}
                   errors={errors}
                   onChange={handleChange}
+                  disabled={isGenerating}
                 />
               </div>
             )}
@@ -308,6 +310,7 @@ export function InjectablesFormModal({
                   errors={errors}
                   onChange={handleChange}
                   onGenerateAll={handleGenerateAllRoles}
+                  disabled={isGenerating}
                 />
               </>
             )}

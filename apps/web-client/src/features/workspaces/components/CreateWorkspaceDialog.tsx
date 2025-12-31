@@ -65,13 +65,20 @@ export const CreateWorkspaceDialog = ({ onWorkspaceCreated }: CreateWorkspaceDia
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-card p-6 shadow-2xl text-card-foreground dark:border-slate-800 animate-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={!loading ? () => setIsOpen(false) : undefined}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-card p-6 shadow-2xl text-card-foreground dark:border-slate-800 animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight text-foreground">{t('workspace.createTitle')}</h2>
-          <button 
-            onClick={() => setIsOpen(false)} 
-            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          <button
+            onClick={() => setIsOpen(false)}
+            disabled={loading}
+            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="h-5 w-5" />
           </button>
@@ -92,17 +99,19 @@ export const CreateWorkspaceDialog = ({ onWorkspaceCreated }: CreateWorkspaceDia
               autoFocus
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              disabled={loading}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder={t('workspace.namePlaceholder')}
             />
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">{t('workspace.type')}</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as 'CLIENT' | 'SYSTEM' })}
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none"
+              disabled={loading}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <option value="CLIENT">{t('workspace.typeClient')}</option>
                 <option value="SYSTEM">{t('workspace.typeSystem')}</option>
@@ -113,7 +122,8 @@ export const CreateWorkspaceDialog = ({ onWorkspaceCreated }: CreateWorkspaceDia
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.cancel')}
             </button>

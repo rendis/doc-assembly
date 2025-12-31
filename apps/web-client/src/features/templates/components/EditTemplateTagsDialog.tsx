@@ -269,7 +269,7 @@ export function EditTemplateTagsDialog({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={!(isSubmitting || isCreating) ? onClose : undefined}
       />
 
       {/* Dialog */}
@@ -291,7 +291,8 @@ export function EditTemplateTagsDialog({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              disabled={isSubmitting || isCreating}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X className="w-4 h-4" />
             </button>
@@ -306,11 +307,13 @@ export function EditTemplateTagsDialog({
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={t('templates.tags.searchOrCreate')}
+                disabled={isSubmitting || isCreating}
                 className="
                   w-full pl-9 pr-3 py-2 text-sm
                   border rounded-md bg-background
                   placeholder:text-muted-foreground
                   focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+                  disabled:opacity-50 disabled:cursor-not-allowed
                 "
               />
             </div>
@@ -400,9 +403,11 @@ export function EditTemplateTagsDialog({
                         layout
                         type="button"
                         onClick={() => toggleTag(tag.id)}
+                        disabled={isSubmitting || isCreating}
                         className={`
                           flex items-center justify-between w-full px-3 py-2.5
                           rounded-md transition-colors
+                          disabled:opacity-50 disabled:cursor-not-allowed
                           ${isSelected
                             ? 'bg-primary/10 border border-primary/30'
                             : 'hover:bg-muted border border-transparent'
@@ -441,19 +446,20 @@ export function EditTemplateTagsDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium rounded-md hover:bg-muted transition-colors"
+              disabled={isSubmitting || isCreating}
+              className="px-4 py-2 text-sm font-medium rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.cancel')}
             </button>
             <button
               type="button"
               onClick={handleSave}
-              disabled={isSubmitting || !hasChanges}
+              disabled={isSubmitting || isCreating || !hasChanges}
               className="
                 flex items-center gap-2 px-4 py-2
                 text-sm font-medium rounded-md
                 bg-primary text-primary-foreground
-                hover:bg-primary/90 disabled:opacity-50
+                hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors
               "
             >

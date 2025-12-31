@@ -158,6 +158,9 @@ importers:
       mammoth:
         specifier: ^1.11.0
         version: 1.11.0
+      marked:
+        specifier: ^17.0.1
+        version: 17.0.1
       pdfjs-dist:
         specifier: 5.4.296
         version: 5.4.296
@@ -185,12 +188,12 @@ importers:
       tippy.js:
         specifier: ^6.3.7
         version: 6.3.7
+      tiptap-extension-pagination:
+        specifier: ^2.1.4
+        version: 2.1.4(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0)
       tiptap-extension-resizable-image:
         specifier: ^2.0.0
         version: 2.0.0(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0)(@tiptap/react@3.14.0(@floating-ui/dom@1.7.4)(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
-      tiptap-pagination-breaks:
-        specifier: ^1.0.3
-        version: 1.0.3(@tiptap/pm@3.14.0)
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
@@ -210,6 +213,9 @@ importers:
       '@tanstack/react-router-devtools':
         specifier: ^1.144.0
         version: 1.144.0(@tanstack/react-router@1.144.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@tanstack/router-core@1.144.0)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.10)
+      '@types/marked':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/node':
         specifier: ^25.0.3
         version: 25.0.3
@@ -1453,11 +1459,6 @@ packages:
     resolution: {integrity: sha512-CJrWtr6L9TVzEImm9S7dQINx+xJcYP/aDkIi6gnaWtIgbZs1pnzsE0yJc2noqXZ+yAOqLx3TBGpBEs9tS0P9/A==}
     engines: {node: '>=12'}
 
-  '@tiptap/core@2.27.1':
-    resolution: {integrity: sha512-nkerkl8syHj44ZzAB7oA2GPmmZINKBKCa79FuNvmGJrJ4qyZwlkDzszud23YteFZEytbc87kVd/fP76ROS6sLg==}
-    peerDependencies:
-      '@tiptap/pm': ^2.7.0
-
   '@tiptap/core@3.14.0':
     resolution: {integrity: sha512-nm0VWVA1Vq/jaKY3wyRXViL/kf78yMdH7qETpv4qZXDQLU+pdWV3IGoRTQTKESc7d8L1wL/2uCeByLNUJfrSIw==}
     peerDependencies:
@@ -1713,6 +1714,10 @@ packages:
 
   '@types/markdown-it@14.1.2':
     resolution: {integrity: sha512-promo4eFwuiW+TfGxhi+0x3czqTYJkG8qB17ZUJiVF10Xm7NLVRSLUsfRTU/6h1e24VvRnXCx+hG7li58lkzog==}
+
+  '@types/marked@6.0.0':
+    resolution: {integrity: sha512-jmjpa4BwUsmhxcfsgUit/7A9KbrC48Q0q8KvnY107ogcjGgTFDlIL3RpihNpx2Mu1hM4mdFQjoVc4O6JoGKHsA==}
+    deprecated: This is a stub types definition. marked provides its own type definitions, so you do not need this installed.
 
   '@types/mdurl@2.0.0':
     resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
@@ -2505,6 +2510,11 @@ packages:
     resolution: {integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==}
     hasBin: true
 
+  marked@17.0.1:
+    resolution: {integrity: sha512-boeBdiS0ghpWcSwoNm/jJBwdpFaMnZWRzjA6SkUMYb40SVaN1x7mmfGKp0jvexGcx+7y2La5zRZsYFZI6Qpypg==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -2974,6 +2984,12 @@ packages:
   tippy.js@6.3.7:
     resolution: {integrity: sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==}
 
+  tiptap-extension-pagination@2.1.4:
+    resolution: {integrity: sha512-ol7wdiueeufFsafbdhGSj0LSdd4FUrGkYybNf2+Dn1pE28ysSewSp2TDWJxJTjBjNEVoivKWYQYdRLFh+KQHZw==}
+    peerDependencies:
+      '@tiptap/core': ^2.11.5
+      '@tiptap/pm': ^2.11.5
+
   tiptap-extension-resizable-image@2.0.0:
     resolution: {integrity: sha512-wIZY9m4xrusbCt5BKOx+V71cwGNSbFi/J+Xr0q94VFGS+MXPSWt0TdIQ4kCN4jQoXYICmL+A6ta89wVCYhnL+g==}
     peerDependencies:
@@ -2981,9 +2997,6 @@ packages:
       '@tiptap/pm': '>=2'
       '@tiptap/react': '>=2'
       react: '>=18'
-
-  tiptap-pagination-breaks@1.0.3:
-    resolution: {integrity: sha512-t7Q9lG40Me73WHxHxKu4UG16VLSF9IcV2uoUSL86oZxv1OZxexlG0gTrUBxa8RMB+lPq2ienb+s9dlL2djvjmg==}
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -4263,10 +4276,6 @@ snapshots:
 
   '@tanstack/virtual-file-routes@1.141.0': {}
 
-  '@tiptap/core@2.27.1(@tiptap/pm@3.14.0)':
-    dependencies:
-      '@tiptap/pm': 3.14.0
-
   '@tiptap/core@3.14.0(@tiptap/pm@3.14.0)':
     dependencies:
       '@tiptap/pm': 3.14.0
@@ -4548,6 +4557,10 @@ snapshots:
     dependencies:
       '@types/linkify-it': 5.0.0
       '@types/mdurl': 2.0.0
+
+  '@types/marked@6.0.0':
+    dependencies:
+      marked: 17.0.1
 
   '@types/mdurl@2.0.0': {}
 
@@ -5370,6 +5383,8 @@ snapshots:
       punycode.js: 2.3.1
       uc.micro: 2.1.0
 
+  marked@17.0.1: {}
+
   math-intrinsics@1.1.0: {}
 
   mdurl@2.0.0: {}
@@ -5834,19 +5849,17 @@ snapshots:
     dependencies:
       '@popperjs/core': 2.11.8
 
+  tiptap-extension-pagination@2.1.4(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0):
+    dependencies:
+      '@tiptap/core': 3.14.0(@tiptap/pm@3.14.0)
+      '@tiptap/pm': 3.14.0
+
   tiptap-extension-resizable-image@2.0.0(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0)(@tiptap/react@3.14.0(@floating-ui/dom@1.7.4)(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3):
     dependencies:
       '@tiptap/core': 3.14.0(@tiptap/pm@3.14.0)
       '@tiptap/pm': 3.14.0
       '@tiptap/react': 3.14.0(@floating-ui/dom@1.7.4)(@tiptap/core@3.14.0(@tiptap/pm@3.14.0))(@tiptap/pm@3.14.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
-
-  tiptap-pagination-breaks@1.0.3(@tiptap/pm@3.14.0):
-    dependencies:
-      '@tiptap/core': 2.27.1(@tiptap/pm@3.14.0)
-      prosemirror-state: 1.4.4
-    transitivePeerDependencies:
-      - '@tiptap/pm'
 
   to-regex-range@5.0.1:
     dependencies:
