@@ -1,15 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useThemeStore } from '@/stores/theme-store';
 import keycloak from '@/lib/keycloak';
 import { 
-  LogOut, User, Moon, Sun, Laptop, 
+  LogOut, User, 
   Languages 
 } from 'lucide-react';
 
 export const UserMenu = () => {
   const { t, i18n } = useTranslation();
-  const { theme, setTheme } = useThemeStore();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -24,14 +22,6 @@ export const UserMenu = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
-
-  const currentThemeIcon = theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Laptop className="h-4 w-4" />;
-  
   const userName = keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || 'User';
   const userEmail = keycloak.tokenParsed?.email;
 
@@ -52,17 +42,6 @@ export const UserMenu = () => {
             <p className="text-sm font-medium">{userName}</p>
             {userEmail && <p className="text-xs text-muted-foreground truncate">{userEmail}</p>}
           </div>
-
-          {/* Selector de Tema */}
-          <button
-            onClick={toggleTheme}
-            className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-sm text-foreground hover:bg-accent"
-          >
-            <div className="flex items-center gap-2">
-                {currentThemeIcon}
-                <span>{t('userMenu.theme')}: <span className="capitalize">{t(`theme.${theme}`)}</span></span>
-            </div>
-          </button>
 
           {/* Selector de Idioma Minimalista */}
           <div className="flex items-center justify-between px-3 py-2 text-sm text-foreground">

@@ -15,10 +15,10 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycleTheme}
-      className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none focus:ring-1 focus:ring-primary"
+      className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus:outline-none"
       title={`Tema actual: ${theme}. Click para cambiar.`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5" />
       <span className="sr-only">Cambiar tema</span>
     </button>
   );

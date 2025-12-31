@@ -2,6 +2,7 @@ import { Outlet } from '@tanstack/react-router';
 import { useAppContextStore } from '@/stores/app-context-store';
 import { AppSidebar } from './AppSidebar';
 import { ConsoleSwitch } from '@/components/common/ConsoleSwitch';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { UserMenu } from '@/components/common/UserMenu';
 import { TenantSelector } from '@/features/tenants/components/TenantSelector';
 
@@ -38,7 +39,8 @@ export const AppLayout = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <UserMenu />
           </div>
         </header>

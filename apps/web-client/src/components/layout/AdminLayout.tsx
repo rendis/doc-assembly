@@ -2,6 +2,7 @@ import { Outlet } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AdminSidebar } from './AdminSidebar';
 import { ConsoleSwitch } from '@/components/common/ConsoleSwitch';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { UserMenu } from '@/components/common/UserMenu';
 
 export const AdminLayout = () => {
@@ -23,7 +24,8 @@ export const AdminLayout = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <UserMenu />
           </div>
         </header>
