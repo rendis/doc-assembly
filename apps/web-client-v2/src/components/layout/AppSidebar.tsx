@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { LayoutGrid, FileText, FolderOpen, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Logo } from '@/components/common/Logo'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -79,15 +78,10 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'flex h-full flex-col border-r bg-sidebar-background',
+        'flex h-full flex-col border-r bg-sidebar-background pt-16',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b px-6">
-        <Logo showText={!isCollapsed} size="md" />
-      </div>
-
       <ScrollArea className="flex-1 px-4 py-6">
         {/* Current Workspace */}
         {!isCollapsed && currentWorkspace && (

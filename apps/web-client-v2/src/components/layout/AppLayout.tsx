@@ -1,17 +1,45 @@
 import { Outlet } from '@tanstack/react-router'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { AppSidebar } from './AppSidebar'
+import { AppHeader } from './AppHeader'
 import { useSidebarStore } from '@/stores/sidebar-store'
-import { ThemeToggle } from '@/components/common/ThemeToggle'
-import { LanguageSelector } from '@/components/common/LanguageSelector'
+
+// Variantes de animación
+const sidebarVariants = {
+  initial: { x: -280, opacity: 0 },
+  animate: {
+    x: 0,
+    opacity: 1,
+    transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] as const },
+  },
+}
+
+const contentVariants = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.35, ease: 'easeOut' as const, delay: 0.1 },
+  },
+}
+
+const overlayVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+}
 
 export function AppLayout() {
-  const { isMobileOpen, toggleMobileOpen, closeMobile } = useSidebarStore()
+  const { isMobileOpen, toggleMobileOpen, closeMobile, isCollapsed } = useSidebarStore()
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Header completo con border */}
+      <AppHeader variant="full" />
+
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -23,36 +51,47 @@ export function AppLayout() {
       </Button>
 
       {/* Mobile overlay */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={closeMobile}
-        />
-      )}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            variants={overlayVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={closeMobile}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
-      <div
+      {/* Sidebar con animación de entrada */}
+      <motion.div
+        variants={sidebarVariants}
+        initial="initial"
+        animate="animate"
         className={cn(
-          'fixed inset-y-0 left-0 z-40 transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-40 pt-16 lg:relative lg:pt-0',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         <AppSidebar />
-      </div>
+      </motion.div>
 
-      {/* Main content */}
-      <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="flex h-16 shrink-0 items-center justify-end gap-2 border-b px-4 lg:px-6">
-          <LanguageSelector />
-          <ThemeToggle />
-        </header>
-
+      {/* Contenido principal con scale+fade */}
+      <motion.main
+        variants={contentVariants}
+        initial="initial"
+        animate="animate"
+        className={cn(
+          'flex flex-1 flex-col overflow-hidden pt-16',
+          !isCollapsed ? 'lg:pl-64' : 'lg:pl-16'
+        )}
+      >
         {/* Page content */}
         <div className="flex-1 overflow-auto">
           <Outlet />
         </div>
-      </main>
+      </motion.main>
     </div>
   )
 }

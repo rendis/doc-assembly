@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Search, Box, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Search, Plus, ChevronLeft, ChevronRight, Box } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { LanguageSelector } from '@/components/common/LanguageSelector'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
@@ -216,15 +218,33 @@ function SelectTenantPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center bg-background pt-32 lg:pt-40">
-      {/* Logo */}
-      <div className="absolute left-6 top-8 flex items-center gap-3 md:left-12 lg:left-32">
-        <div className="flex h-6 w-6 items-center justify-center border-2 border-foreground text-foreground">
-          <Box size={12} fill="currentColor" />
-        </div>
-        <span className="font-display text-sm font-bold uppercase tracking-tight text-foreground">
+      {/* Logo pequeño en posición original con layoutId para animación */}
+      <motion.div
+        layoutId="app-logo"
+        className="absolute left-6 top-8 flex items-center gap-3 md:left-12 lg:left-32"
+      >
+        <motion.div
+          layoutId="app-logo-icon"
+          className="flex h-6 w-6 items-center justify-center border-2 border-foreground"
+        >
+          <Box size={12} fill="currentColor" className="text-foreground" />
+        </motion.div>
+        <motion.span
+          layoutId="app-logo-text"
+          className="font-display text-sm font-bold uppercase tracking-tight text-foreground"
+        >
           Doc-Assembly
-        </span>
-      </div>
+        </motion.span>
+      </motion.div>
+
+      {/* Iconos arriba derecha con layoutId para animación */}
+      <motion.div
+        layoutId="app-controls"
+        className="absolute right-6 top-8 flex items-center gap-1 md:right-12 lg:right-32"
+      >
+        <LanguageSelector />
+        <ThemeToggle />
+      </motion.div>
 
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32">
         {/* Left column */}
