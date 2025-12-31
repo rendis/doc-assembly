@@ -1,0 +1,294 @@
+package controller
+
+import (
+	"log/slog"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
+	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
+	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+)
+
+// DocumentController handles document HTTP requests.
+type DocumentController struct {
+	documentUC usecase.DocumentUseCase
+}
+
+// NewDocumentController creates a new document controller.
+func NewDocumentController(
+	documentUC usecase.DocumentUseCase,
+) *DocumentController {
+	return &DocumentController{
+		documentUC: documentUC,
+	}
+}
+
+// RegisterRoutes registers all document routes.
+func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup) {
+	docs := api.Group("/documents")
+	{
+		// List documents in workspace
+		docs.GET("", middleware.RequireViewer(), c.ListDocuments)
+
+		// Get document statistics
+		docs.GET("/statistics", middleware.RequireViewer(), c.GetStatistics)
+
+		// Create and send document
+		docs.POST("", middleware.RequireOperator(), c.CreateDocument)
+
+		// Get single document
+		docs.GET("/:documentId", middleware.RequireViewer(), c.GetDocument)
+
+		// Get document recipients
+		docs.GET("/:documentId/recipients", middleware.RequireViewer(), c.GetRecipients)
+
+		// Get signing URL for recipient
+		docs.GET("/:documentId/recipients/:recipientId/signing-url", middleware.RequireViewer(), c.GetSigningURL)
+
+		// Refresh document status from provider
+		docs.POST("/:documentId/refresh", middleware.RequireOperator(), c.RefreshStatus)
+
+		// Cancel document
+		docs.POST("/:documentId/cancel", middleware.RequireOperator(), c.CancelDocument)
+	}
+}
+
+// ListDocuments returns all documents in the workspace.
+// @Summary List documents
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param status query string false "Filter by status"
+// @Param search query string false "Search by title"
+// @Param limit query int false "Limit results"
+// @Param offset query int false "Offset for pagination"
+// @Success 200 {array} dto.DocumentListResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents [get]
+func (c *DocumentController) ListDocuments(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	var filters port.DocumentFilters
+	if status := ctx.Query("status"); status != "" {
+		// TODO: Parse status enum
+	}
+	filters.Search = ctx.Query("search")
+
+	// Parse limit/offset with defaults
+	limit := 50
+	offset := 0
+	if l := ctx.Query("limit"); l != "" {
+		// TODO: Parse int
+	}
+	if o := ctx.Query("offset"); o != "" {
+		// TODO: Parse int
+	}
+	filters.Limit = limit
+	filters.Offset = offset
+
+	docs, err := c.documentUC.ListDocuments(ctx.Request.Context(), workspaceID, filters)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, docs)
+}
+
+// GetDocument returns a single document with recipients.
+// @Summary Get document
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {object} dto.DocumentResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId} [get]
+func (c *DocumentController) GetDocument(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	doc, err := c.documentUC.GetDocumentWithRecipients(ctx.Request.Context(), documentID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, doc)
+}
+
+// GetRecipients returns recipients for a document.
+// @Summary Get document recipients
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {array} dto.RecipientResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/recipients [get]
+func (c *DocumentController) GetRecipients(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	recipients, err := c.documentUC.GetDocumentRecipients(ctx.Request.Context(), documentID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, recipients)
+}
+
+// CreateDocument creates and sends a document for signing.
+// @Summary Create and send document
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param request body dto.CreateDocumentRequest true "Document creation request"
+// @Success 201 {object} dto.DocumentResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents [post]
+func (c *DocumentController) CreateDocument(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	var req dto.CreateDocumentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	// Build command
+	cmd := usecase.CreateDocumentCommand{
+		WorkspaceID:               workspaceID,
+		TemplateVersionID:         req.TemplateVersionID,
+		Title:                     req.Title,
+		ClientExternalReferenceID: req.ClientExternalReferenceID,
+		InjectedValues:            req.InjectedValues,
+		Recipients:                make([]usecase.DocumentRecipientCommand, len(req.Recipients)),
+	}
+
+	for i, r := range req.Recipients {
+		cmd.Recipients[i] = usecase.DocumentRecipientCommand{
+			RoleID: r.RoleID,
+			Name:   r.Name,
+			Email:  r.Email,
+		}
+	}
+
+	doc, err := c.documentUC.CreateAndSendDocument(ctx.Request.Context(), cmd)
+	if err != nil {
+		slog.Error("failed to create document",
+			slog.String("workspace_id", workspaceID),
+			slog.String("error", err.Error()),
+		)
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, doc)
+}
+
+// GetSigningURL returns the signing URL for a recipient.
+// @Summary Get signing URL
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Param recipientId path string true "Recipient ID"
+// @Success 200 {object} dto.SigningURLResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/recipients/{recipientId}/signing-url [get]
+func (c *DocumentController) GetSigningURL(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+	recipientID := ctx.Param("recipientId")
+
+	url, err := c.documentUC.GetSigningURL(ctx.Request.Context(), documentID, recipientID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"signingUrl": url,
+	})
+}
+
+// RefreshStatus refreshes document status from the signing provider.
+// @Summary Refresh document status
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {object} dto.DocumentResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/refresh [post]
+func (c *DocumentController) RefreshStatus(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	doc, err := c.documentUC.RefreshDocumentStatus(ctx.Request.Context(), documentID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, doc)
+}
+
+// CancelDocument cancels a pending document.
+// @Summary Cancel document
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/cancel [post]
+func (c *DocumentController) CancelDocument(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	if err := c.documentUC.CancelDocument(ctx.Request.Context(), documentID); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "cancelled",
+	})
+}
+
+// GetStatistics returns document statistics for the workspace.
+// @Summary Get document statistics
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Success 200 {object} usecase.DocumentStatistics
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/statistics [get]
+func (c *DocumentController) GetStatistics(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	stats, err := c.documentUC.GetDocumentStatistics(ctx.Request.Context(), workspaceID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, stats)
+}

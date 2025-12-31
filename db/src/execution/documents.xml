@@ -131,4 +131,50 @@
         <rollback>DROP TRIGGER IF EXISTS trigger_documents_updated_at ON execution.documents;</rollback>
     </changeSet>
 
+    <!-- ========== MIGRATION: Use document_status enum ========== -->
+
+    <changeSet id="documents:migrate_signer_status_to_enum" author="doc-assembly">
+        <comment>Migrate signer_status from VARCHAR to document_status enum</comment>
+        <sql>
+            -- Add new column with enum type
+            ALTER TABLE execution.documents ADD COLUMN status document_status DEFAULT 'DRAFT';
+
+            -- Migrate existing data if any (map VARCHAR values to enum)
+            UPDATE execution.documents
+            SET status = CASE
+                WHEN UPPER(signer_status) = 'DRAFT' THEN 'DRAFT'::document_status
+                WHEN UPPER(signer_status) = 'PENDING' THEN 'PENDING'::document_status
+                WHEN UPPER(signer_status) = 'IN_PROGRESS' THEN 'IN_PROGRESS'::document_status
+                WHEN UPPER(signer_status) = 'COMPLETED' THEN 'COMPLETED'::document_status
+                WHEN UPPER(signer_status) = 'DECLINED' THEN 'DECLINED'::document_status
+                WHEN UPPER(signer_status) = 'VOIDED' THEN 'VOIDED'::document_status
+                WHEN UPPER(signer_status) = 'EXPIRED' THEN 'EXPIRED'::document_status
+                WHEN UPPER(signer_status) = 'ERROR' THEN 'ERROR'::document_status
+                ELSE 'DRAFT'::document_status
+            END
+            WHERE signer_status IS NOT NULL;
+
+            -- Drop old column and rename new one
+            ALTER TABLE execution.documents DROP COLUMN signer_status;
+
+            -- Create index on the new status column
+            CREATE INDEX idx_documents_status ON execution.documents(status);
+        </sql>
+        <rollback>
+            ALTER TABLE execution.documents ADD COLUMN signer_status VARCHAR(50);
+            UPDATE execution.documents SET signer_status = status::text;
+            DROP INDEX IF EXISTS execution.idx_documents_status;
+            ALTER TABLE execution.documents DROP COLUMN status;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="documents:add_title_column" author="doc-assembly">
+        <comment>Add title column for document display name</comment>
+        <addColumn schemaName="execution" tableName="documents">
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

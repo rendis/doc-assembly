@@ -45,6 +45,13 @@ export const mmToPixels = (mm: number): number => {
 };
 
 /**
+ * Convert pixels to millimeters at 96 DPI
+ */
+export const pixelsToMm = (px: number): number => {
+  return px / 3.77952755906;
+};
+
+/**
  * Convert inches to pixels at 96 DPI
  */
 export const inchesToPixels = (inches: number): number => {

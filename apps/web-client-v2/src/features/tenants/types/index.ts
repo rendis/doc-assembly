@@ -1,0 +1,32 @@
+export interface Tenant {
+  id: string
+  name: string
+  code: string
+  description?: string
+  settings?: TenantSettings
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface TenantSettings {
+  currency?: string
+  timezone?: string
+  dateFormat?: string
+  locale?: string
+}
+
+export interface TenantWithRole extends Tenant {
+  role: string
+}
+
+export interface CreateTenantRequest {
+  name: string
+  code: string
+  description?: string
+}
+
+export interface UpdateTenantRequest {
+  name?: string
+  description?: string
+  settings?: TenantSettings
+}

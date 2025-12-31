@@ -1,0 +1,5 @@
+export { DashboardPage } from './components/DashboardPage'
+export { StatCard } from './components/StatCard'
+export { RecentActivity } from './components/RecentActivity'
+export { QuickDraft } from './components/QuickDraft'
+export { IntegrationsStatus } from './components/IntegrationsStatus'

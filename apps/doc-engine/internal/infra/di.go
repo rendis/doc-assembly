@@ -10,6 +10,8 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres"
+	documentrecipientrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
+	documentrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
 	folderrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	systemrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_role_repo"
@@ -25,6 +27,7 @@ import (
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
 	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
@@ -63,6 +66,15 @@ var ProviderSet = wire.NewSet(
 	templateversioninjectablerepo.New,
 	templateversionsignerrolerepo.New,
 
+	// Repositories - Execution
+	documentrepo.New,
+	documentrecipientrepo.New,
+
+	// Signing Provider
+	ProvideDocumensoConfig,
+	ProvideSigningProvider,
+	ProvideWebhookHandlers,
+
 	// Services - Organizational
 	service.NewWorkspaceService,
 	service.NewFolderService,
@@ -77,6 +89,9 @@ var ProviderSet = wire.NewSet(
 	service.NewInjectableService,
 	service.NewTemplateService,
 	service.NewTemplateVersionService,
+
+	// Services - Execution
+	service.NewDocumentService,
 
 	// Content Validator
 	ProvideContentValidator,
@@ -103,6 +118,8 @@ var ProviderSet = wire.NewSet(
 	controller.NewAdminController,
 	controller.NewMeController,
 	controller.NewTenantController,
+	controller.NewDocumentController,
+	controller.NewWebhookController,
 
 	// HTTP Server
 	server.NewHTTPServer,
@@ -140,4 +157,30 @@ func ProvideContentValidator(injectableRepo port.InjectableRepository) port.Cont
 func ProvidePDFRenderer() (port.PDFRenderer, error) {
 	opts := pdfrenderer.DefaultChromeOptions()
 	return pdfrenderer.NewService(opts)
+}
+
+// ProvideDocumensoConfig extracts Documenso config from the main config.
+func ProvideDocumensoConfig(cfg *config.Config) *documenso.Config {
+	return &documenso.Config{
+		APIKey:        cfg.Documenso.APIKey,
+		BaseURL:       cfg.Documenso.APIURL,
+		WebhookSecret: cfg.Documenso.WebhookSecret,
+	}
+}
+
+// ProvideSigningProvider creates the signing provider (Documenso adapter).
+func ProvideSigningProvider(cfg *documenso.Config) (port.SigningProvider, error) {
+	return documenso.New(cfg)
+}
+
+// ProvideWebhookHandlers creates the map of webhook handlers by provider name.
+func ProvideWebhookHandlers(cfg *documenso.Config) (map[string]port.WebhookHandler, error) {
+	documensoAdapter, err := documenso.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]port.WebhookHandler{
+		"documenso": documensoAdapter,
+	}, nil
 }

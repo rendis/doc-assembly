@@ -141,11 +141,29 @@ var (
 
 // Document errors.
 var (
-	ErrDocumentNotFound     = errors.New("document not found")
-	ErrDocumentAlreadySent  = errors.New("document already sent for signing")
-	ErrDocumentCompleted    = errors.New("document signing already completed")
-	ErrDocumentVoided       = errors.New("document has been voided")
-	ErrInvalidDocumentState = errors.New("invalid document state for this operation")
+	ErrDocumentNotFound                  = errors.New("document not found")
+	ErrDocumentAlreadySent               = errors.New("document already sent for signing")
+	ErrDocumentCompleted                 = errors.New("document signing already completed")
+	ErrDocumentVoided                    = errors.New("document has been voided")
+	ErrInvalidDocumentState              = errors.New("invalid document state for this operation")
+	ErrInvalidDocumentStatus             = errors.New("invalid document status")
+	ErrInvalidDocumentStatusTransition   = errors.New("invalid document status transition")
+	ErrDocumentRecipientNotFound         = errors.New("document recipient not found")
+	ErrInvalidRecipientStatus            = errors.New("invalid recipient status")
+	ErrInvalidRecipientStatusTransition  = errors.New("invalid recipient status transition")
+	ErrDuplicateRecipientRole            = errors.New("duplicate recipient role assignment")
+)
+
+// Signing Provider errors.
+var (
+	ErrSigningProviderNotConfigured = errors.New("signing provider not configured")
+	ErrSigningProviderError         = errors.New("signing provider error")
+	ErrSigningUploadFailed          = errors.New("failed to upload document to signing provider")
+	ErrSigningURLFailed             = errors.New("failed to get signing URL")
+	ErrSigningStatusFailed          = errors.New("failed to get document status from provider")
+	ErrSigningCancelFailed          = errors.New("failed to cancel document")
+	ErrInvalidWebhookSignature      = errors.New("invalid webhook signature")
+	ErrWebhookProcessingFailed      = errors.New("webhook processing failed")
 )
 
 // Validation errors.

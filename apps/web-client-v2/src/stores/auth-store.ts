@@ -1,0 +1,167 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+/**
+ * System roles - platform level
+ */
+export type SystemRole = 'SUPERADMIN' | 'PLATFORM_ADMIN'
+
+/**
+ * Tenant roles
+ */
+export type TenantRole = 'TENANT_OWNER' | 'TENANT_ADMIN'
+
+/**
+ * Workspace roles
+ */
+export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'EDITOR' | 'OPERATOR' | 'VIEWER'
+
+/**
+ * All possible roles
+ */
+export type UserRole = SystemRole | TenantRole | WorkspaceRole
+
+/**
+ * Role entry from API
+ */
+export interface RoleEntry {
+  type: 'SYSTEM' | 'TENANT' | 'WORKSPACE'
+  role: string
+  resourceId: string | null
+}
+
+/**
+ * User profile
+ */
+export interface UserProfile {
+  id: string
+  email: string
+  firstName?: string
+  lastName?: string
+  username?: string
+}
+
+/**
+ * Auth store state
+ */
+interface AuthState {
+  // State
+  token: string | null
+  systemRoles: SystemRole[]
+  userProfile: UserProfile | null
+  allRoles: RoleEntry[]
+
+  // Actions
+  setToken: (token: string | null) => void
+  setSystemRoles: (roles: SystemRole[]) => void
+  setUserProfile: (profile: UserProfile | null) => void
+  setAllRoles: (roles: RoleEntry[]) => void
+  clearAuth: () => void
+
+  // Computed
+  isAuthenticated: () => boolean
+  isSuperAdmin: () => boolean
+  isPlatformAdmin: () => boolean
+  canAccessAdmin: () => boolean
+  getSystemRole: () => SystemRole | null
+}
+
+/**
+ * Auth store with persistence
+ */
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      token: null,
+      systemRoles: [],
+      userProfile: null,
+      allRoles: [],
+
+      // Actions
+      setToken: (token) => set({ token }),
+
+      setSystemRoles: (roles) => set({ systemRoles: roles }),
+
+      setUserProfile: (profile) => set({ userProfile: profile }),
+
+      setAllRoles: (roles) => {
+        // Extract system roles from all roles
+        const systemRoles = roles
+          .filter((r) => r.type === 'SYSTEM')
+          .map((r) => r.role as SystemRole)
+
+        set({ allRoles: roles, systemRoles })
+      },
+
+      clearAuth: () =>
+        set({
+          token: null,
+          systemRoles: [],
+          userProfile: null,
+          allRoles: [],
+        }),
+
+      // Computed
+      isAuthenticated: () => {
+        const { token } = get()
+        return token !== null
+      },
+
+      isSuperAdmin: () => {
+        const { systemRoles } = get()
+        return systemRoles.includes('SUPERADMIN')
+      },
+
+      isPlatformAdmin: () => {
+        const { systemRoles } = get()
+        return systemRoles.includes('PLATFORM_ADMIN')
+      },
+
+      canAccessAdmin: () => {
+        const { systemRoles } = get()
+        return (
+          systemRoles.includes('SUPERADMIN') ||
+          systemRoles.includes('PLATFORM_ADMIN')
+        )
+      },
+
+      getSystemRole: () => {
+        const { systemRoles } = get()
+        if (systemRoles.includes('SUPERADMIN')) return 'SUPERADMIN'
+        if (systemRoles.includes('PLATFORM_ADMIN')) return 'PLATFORM_ADMIN'
+        return null
+      },
+    }),
+    {
+      name: 'doc-assembly-auth',
+      partialize: (state) => ({
+        token: state.token,
+        systemRoles: state.systemRoles,
+        userProfile: state.userProfile,
+      }),
+    }
+  )
+)
+
+/**
+ * Get tenant role for a specific tenant
+ */
+export function getTenantRole(tenantId: string): TenantRole | null {
+  const { allRoles } = useAuthStore.getState()
+  const role = allRoles.find(
+    (r) => r.type === 'TENANT' && r.resourceId === tenantId
+  )
+  return role ? (role.role as TenantRole) : null
+}
+
+/**
+ * Get workspace role for a specific workspace
+ */
+export function getWorkspaceRole(workspaceId: string): WorkspaceRole | null {
+  const { allRoles } = useAuthStore.getState()
+  const role = allRoles.find(
+    (r) => r.type === 'WORKSPACE' && r.resourceId === workspaceId
+  )
+  return role ? (role.role as WorkspaceRole) : null
+}

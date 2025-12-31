@@ -269,16 +269,116 @@ func (v VersionStatus) CanTransitionTo(target VersionStatus) bool {
 type RecipientStatus string
 
 const (
-	RecipientStatusWaiting  RecipientStatus = "WAITING"
-	RecipientStatusSigned   RecipientStatus = "SIGNED"
+	// RecipientStatusPending - recipient not yet notified.
+	RecipientStatusPending RecipientStatus = "PENDING"
+	// RecipientStatusSent - email notification sent to recipient.
+	RecipientStatusSent RecipientStatus = "SENT"
+	// RecipientStatusDelivered - recipient has viewed/opened the document.
+	RecipientStatusDelivered RecipientStatus = "DELIVERED"
+	// RecipientStatusSigned - recipient has completed signing.
+	RecipientStatusSigned RecipientStatus = "SIGNED"
+	// RecipientStatusDeclined - recipient has rejected/declined signing.
+	RecipientStatusDeclined RecipientStatus = "DECLINED"
+
+	// Legacy status values for backward compatibility with existing DB data.
+	// RecipientStatusWaiting is mapped to RecipientStatusPending.
+	RecipientStatusWaiting RecipientStatus = "WAITING"
+	// RecipientStatusRejected is mapped to RecipientStatusDeclined.
 	RecipientStatusRejected RecipientStatus = "REJECTED"
 )
 
 // IsValid checks if the recipient status is valid.
 func (r RecipientStatus) IsValid() bool {
 	switch r {
-	case RecipientStatusWaiting, RecipientStatusSigned, RecipientStatusRejected:
+	case RecipientStatusPending, RecipientStatusSent, RecipientStatusDelivered,
+		RecipientStatusSigned, RecipientStatusDeclined,
+		RecipientStatusWaiting, RecipientStatusRejected:
 		return true
+	}
+	return false
+}
+
+// Normalize converts legacy status values to their current equivalents.
+func (r RecipientStatus) Normalize() RecipientStatus {
+	switch r {
+	case RecipientStatusWaiting:
+		return RecipientStatusPending
+	case RecipientStatusRejected:
+		return RecipientStatusDeclined
+	default:
+		return r
+	}
+}
+
+// String returns the string representation of the recipient status.
+func (r RecipientStatus) String() string {
+	return string(r)
+}
+
+// DocumentStatus represents the signing workflow status of a document.
+type DocumentStatus string
+
+const (
+	// DocumentStatusDraft - document created, not yet sent for signing.
+	DocumentStatusDraft DocumentStatus = "DRAFT"
+	// DocumentStatusPending - document sent to signing provider, awaiting action.
+	DocumentStatusPending DocumentStatus = "PENDING"
+	// DocumentStatusInProgress - at least one recipient has interacted with the document.
+	DocumentStatusInProgress DocumentStatus = "IN_PROGRESS"
+	// DocumentStatusCompleted - all recipients have completed signing.
+	DocumentStatusCompleted DocumentStatus = "COMPLETED"
+	// DocumentStatusDeclined - a recipient has rejected/declined signing.
+	DocumentStatusDeclined DocumentStatus = "DECLINED"
+	// DocumentStatusVoided - document was cancelled by the user.
+	DocumentStatusVoided DocumentStatus = "VOIDED"
+	// DocumentStatusExpired - document signing period has expired.
+	DocumentStatusExpired DocumentStatus = "EXPIRED"
+	// DocumentStatusError - an error occurred with the signing provider.
+	DocumentStatusError DocumentStatus = "ERROR"
+)
+
+// IsValid checks if the document status is valid.
+func (d DocumentStatus) IsValid() bool {
+	switch d {
+	case DocumentStatusDraft, DocumentStatusPending, DocumentStatusInProgress,
+		DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusVoided,
+		DocumentStatusExpired, DocumentStatusError:
+		return true
+	}
+	return false
+}
+
+// String returns the string representation of the document status.
+func (d DocumentStatus) String() string {
+	return string(d)
+}
+
+// IsTerminal returns true if the status represents a final state.
+func (d DocumentStatus) IsTerminal() bool {
+	switch d {
+	case DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusVoided, DocumentStatusExpired:
+		return true
+	}
+	return false
+}
+
+// CanTransitionTo checks if transition to target status is allowed.
+func (d DocumentStatus) CanTransitionTo(target DocumentStatus) bool {
+	switch d {
+	case DocumentStatusDraft:
+		return target == DocumentStatusPending || target == DocumentStatusError
+	case DocumentStatusPending:
+		return target == DocumentStatusInProgress || target == DocumentStatusCompleted ||
+			target == DocumentStatusDeclined || target == DocumentStatusVoided ||
+			target == DocumentStatusExpired || target == DocumentStatusError
+	case DocumentStatusInProgress:
+		return target == DocumentStatusCompleted || target == DocumentStatusDeclined ||
+			target == DocumentStatusVoided || target == DocumentStatusExpired ||
+			target == DocumentStatusError
+	case DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusVoided, DocumentStatusExpired:
+		return false // Terminal states
+	case DocumentStatusError:
+		return target == DocumentStatusDraft // Can retry from error
 	}
 	return false
 }

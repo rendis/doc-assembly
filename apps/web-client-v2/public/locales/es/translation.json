@@ -1,0 +1,169 @@
+{
+  "common": {
+    "appName": "Doc-Assembly",
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "noResults": "No se encontraron resultados",
+    "viewAll": "Ver Todo",
+    "more": "Más",
+    "less": "Menos",
+    "yes": "Sí",
+    "no": "No",
+    "all": "Todo",
+    "none": "Ninguno",
+    "selectAll": "Seleccionar Todo",
+    "actions": "Acciones"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "templates": "Plantillas",
+    "documents": "Documentos",
+    "settings": "Configuración",
+    "admin": "Administración",
+    "logout": "Cerrar Sesión"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "loginTitle": "Iniciar sesión en workspace",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "authenticate": "Autenticar",
+    "forgotPassword": "Recuperar acceso",
+    "logout": "Cerrar Sesión",
+    "loggingIn": "Iniciando sesión...",
+    "invalidCredentials": "Correo o contraseña inválidos"
+  },
+  "tenant": {
+    "selectTitle": "Selecciona tu Organización",
+    "selectDescription": "Elige un ambiente de tenant para acceder a tus espacios de trabajo y documentos.",
+    "searchPlaceholder": "Buscar organizaciones...",
+    "lastAccessed": "Último acceso",
+    "users": "usuarios",
+    "joinNew": "Unirse a Nuevo Workspace",
+    "backToLogin": "Volver al login"
+  },
+  "workspace": {
+    "current": "Workspace Actual",
+    "select": "Seleccionar Workspace",
+    "type": {
+      "SYSTEM": "Sistema",
+      "CLIENT": "Cliente"
+    },
+    "status": {
+      "ACTIVE": "Activo",
+      "SUSPENDED": "Suspendido",
+      "ARCHIVED": "Archivado"
+    }
+  },
+  "dashboard": {
+    "title": "Monitor de Estado",
+    "lastSynced": "Última sincronización",
+    "totalGenerated": "Total Generados",
+    "signedThisMonth": "Firmados (30 Días)",
+    "inProgress": "En Progreso",
+    "recentActivity": "Actividad Reciente",
+    "quickDraft": "Borrador Rápido",
+    "newDocument": "Nuevo Documento",
+    "integrations": "Integraciones"
+  },
+  "templates": {
+    "title": "Lista de Plantillas",
+    "createNew": "Crear Nueva Plantilla",
+    "searchPlaceholder": "Buscar plantillas...",
+    "folder": "Carpeta",
+    "status": "Estado",
+    "versions": "Versiones",
+    "lastModified": "Última Modificación",
+    "author": "Autor",
+    "noTemplates": "No se encontraron plantillas",
+    "createFirst": "Crea tu primera plantilla"
+  },
+  "documents": {
+    "title": "Explorador de Documentos",
+    "newFolder": "Nueva Carpeta",
+    "searchPlaceholder": "Buscar documentos...",
+    "type": "Tipo",
+    "subfolders": "Subcarpetas",
+    "noDocuments": "No se encontraron documentos"
+  },
+  "editor": {
+    "autosaved": "Guardado automático",
+    "saving": "Guardando...",
+    "publish": "Publicar Plantilla",
+    "backToDetails": "Volver a Detalles",
+    "structures": "Estructuras",
+    "variables": "Variables",
+    "signerRoles": "Roles de Firmantes",
+    "insertImage": "Imagen",
+    "insertConditional": "Condicional",
+    "insertSignature": "Firma",
+    "insertTable": "Tabla",
+    "sender": "Remitente",
+    "recipient": "Destinatario",
+    "undefined": "Sin definir"
+  },
+  "settings": {
+    "title": "Configuración del Workspace",
+    "description": "Gestiona variables de entorno, controles de acceso y configuración global de este workspace.",
+    "workspaceType": "Tipo de Workspace",
+    "development": "Desarrollo",
+    "developmentDesc": "Sandbox y Pruebas",
+    "production": "Producción",
+    "productionDesc": "Despliegue en Vivo",
+    "memberManagement": "Gestión de Miembros",
+    "allowGuests": "Permitir Acceso de Invitados",
+    "adminContact": "Contacto del Administrador Principal",
+    "globalInjectables": "Variables Globales",
+    "addVariable": "Agregar nueva variable",
+    "unsavedChanges": "Tienes cambios sin guardar",
+    "reset": "Restablecer",
+    "applyConfig": "Aplicar Configuración"
+  },
+  "admin": {
+    "title": "Administración",
+    "dashboard": "Panel",
+    "tenants": "Tenants",
+    "users": "Usuarios",
+    "systemSettings": "Configuración del Sistema",
+    "auditLog": "Registro de Auditoría"
+  },
+  "status": {
+    "draft": "Borrador",
+    "published": "Publicado",
+    "archived": "Archivado",
+    "scheduled": "Programado",
+    "finalized": "Finalizado",
+    "signed": "Firmado",
+    "actionRequired": "Acción Requerida"
+  },
+  "time": {
+    "justNow": "Justo ahora",
+    "minutesAgo": "hace {{count}} min",
+    "hoursAgo": "hace {{count}} hora",
+    "hoursAgo_plural": "hace {{count}} horas",
+    "daysAgo": "hace {{count}} día",
+    "daysAgo_plural": "hace {{count}} días",
+    "weeksAgo": "hace {{count}} semana",
+    "weeksAgo_plural": "hace {{count}} semanas",
+    "today": "Hoy"
+  },
+  "version": {
+    "label": "v{{version}}"
+  },
+  "footer": {
+    "secureEnvironment": "Entorno Seguro"
+  }
+}

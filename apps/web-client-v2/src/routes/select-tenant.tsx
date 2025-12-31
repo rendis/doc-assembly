@@ -1,0 +1,216 @@
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, ArrowRight, Search, Box, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
+import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
+import { useMyTenants, useSearchTenants } from '@/features/tenants'
+import { useWorkspaces } from '@/features/workspaces'
+
+export const Route = createFileRoute('/select-tenant')({
+  component: SelectTenantPage,
+})
+
+function SelectTenantPage() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { setCurrentTenant, setCurrentWorkspace, currentTenant } = useAppContextStore()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedTenant, setSelectedTenant] = useState<TenantWithRole | null>(
+    currentTenant as TenantWithRole | null
+  )
+
+  // Fetch tenants
+  const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants()
+  const { data: searchData, isLoading: isSearching } = useSearchTenants(searchQuery)
+
+  // Fetch workspaces for selected tenant
+  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(1, 50)
+
+  const tenants = searchQuery ? searchData?.data : tenantsData?.data
+  const workspaces = workspacesData?.data || []
+
+  // Mock data for demo
+  const mockTenants: TenantWithRole[] = [
+    { id: '1', name: 'Acme Legal Corp', code: 'ACME', createdAt: new Date().toISOString(), role: 'ADMIN' },
+    { id: '2', name: 'Global Finance Ltd', code: 'GFL', createdAt: new Date().toISOString(), role: 'MEMBER' },
+    { id: '3', name: 'Northeast Litigation', code: 'NEL', createdAt: new Date().toISOString(), role: 'OWNER' },
+    { id: '4', name: 'Orion Properties', code: 'ORION', createdAt: new Date().toISOString(), role: 'MEMBER' },
+  ]
+
+  const mockWorkspaces: WorkspaceWithRole[] = [
+    { id: 'ws-1', name: 'Legal Documents', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'ADMIN' },
+    { id: 'ws-2', name: 'HR Templates', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'EDITOR' },
+    { id: 'ws-3', name: 'System Templates', type: 'SYSTEM', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'VIEWER' },
+  ]
+
+  const displayTenants: TenantWithRole[] = (tenants?.length ? tenants : mockTenants) as TenantWithRole[]
+  const displayWorkspaces: WorkspaceWithRole[] = (workspaces.length ? workspaces : mockWorkspaces) as WorkspaceWithRole[]
+
+  const handleTenantSelect = (tenant: TenantWithRole) => {
+    setCurrentTenant(tenant as TenantWithRole)
+    setSelectedTenant(tenant)
+  }
+
+  const handleWorkspaceSelect = (workspace: WorkspaceWithRole) => {
+    setCurrentWorkspace(workspace as WorkspaceWithRole)
+    navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } })
+  }
+
+  const handleBack = () => {
+    if (selectedTenant) {
+      setSelectedTenant(null)
+      setCurrentTenant(null)
+    } else {
+      navigate({ to: '/login' })
+    }
+  }
+
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background">
+      {/* Logo */}
+      <div className="absolute left-6 top-8 flex items-center gap-3 md:left-12 lg:left-32">
+        <div className="flex h-6 w-6 items-center justify-center border-2 border-foreground text-foreground">
+          <Box size={12} fill="currentColor" />
+        </div>
+        <span className="font-display text-sm font-bold uppercase tracking-tight text-foreground">
+          Doc-Assembly
+        </span>
+      </div>
+
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32">
+        {/* Left column */}
+        <div className="lg:sticky lg:top-32 lg:col-span-4">
+          <h1 className="mb-8 font-display text-5xl font-light leading-[1.05] tracking-tighter text-foreground md:text-6xl">
+            {selectedTenant ? (
+              <>
+                Select your
+                <br />
+                <span className="font-semibold">Workspace.</span>
+              </>
+            ) : (
+              <>
+                {t('selectTenant.title', 'Select your')}
+                <br />
+                <span className="font-semibold">{t('selectTenant.subtitle', 'Organization.')}</span>
+              </>
+            )}
+          </h1>
+          <p className="mb-12 max-w-sm text-lg font-light leading-relaxed text-muted-foreground">
+            {selectedTenant
+              ? 'Choose a workspace to access document templates and assembly tools.'
+              : t(
+                  'selectTenant.description',
+                  'Choose a tenant environment to access your document templates and assembly tools.'
+                )}
+          </p>
+          <button
+            onClick={handleBack}
+            className="group inline-flex items-center gap-2 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+            <span>{selectedTenant ? 'Back to organizations' : t('selectTenant.back', 'Back to login')}</span>
+          </button>
+        </div>
+
+        {/* Right column */}
+        <div className="flex flex-col justify-center lg:col-span-8">
+          {/* Search */}
+          <div className="group relative mb-8 w-full">
+            <Search
+              className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-foreground"
+              size={20}
+            />
+            <input
+              type="text"
+              placeholder={selectedTenant ? 'Filter by workspace...' : t('selectTenant.filter', 'Filter by organization...')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-none border-b border-border bg-transparent py-3 pl-10 pr-4 font-display text-xl text-foreground outline-none transition-colors placeholder:text-muted-foreground/30 focus:border-foreground focus:ring-0"
+            />
+          </div>
+
+          {/* List */}
+          <div className="flex w-full flex-col">
+            {selectedTenant ? (
+              // Workspaces list
+              isLoadingWorkspaces ? (
+                <div className="py-8 text-center text-muted-foreground">Loading workspaces...</div>
+              ) : (
+                displayWorkspaces.map((ws: WorkspaceWithRole) => (
+                  <button
+                    key={ws.id}
+                    onClick={() => handleWorkspaceSelect(ws)}
+                    className={cn(
+                      'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
+                        {ws.name}
+                      </h3>
+                      {ws.type === 'SYSTEM' && (
+                        <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                          System
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-6 md:gap-8">
+                      <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">
+                        Role: {ws.role}
+                      </span>
+                      <ArrowRight
+                        className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
+                        size={24}
+                      />
+                    </div>
+                  </button>
+                ))
+              )
+            ) : (
+              // Tenants list
+              isLoadingTenants || isSearching ? (
+                <div className="py-8 text-center text-muted-foreground">Loading organizations...</div>
+              ) : (
+                displayTenants.map((tenant: TenantWithRole) => (
+                  <button
+                    key={tenant.id}
+                    onClick={() => handleTenantSelect(tenant)}
+                    className={cn(
+                      'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
+                    )}
+                  >
+                    <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
+                      {tenant.name}
+                    </h3>
+                    <div className="flex items-center gap-6 md:gap-8">
+                      <span className="hidden whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:inline md:text-xs">
+                        Role: {tenant.role}
+                      </span>
+                      <ArrowRight
+                        className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
+                        size={24}
+                      />
+                    </div>
+                  </button>
+                ))
+              )
+            )}
+          </div>
+
+          {/* Join new button */}
+          <div className="mt-12 border-t border-border pt-8">
+            <button className="group flex w-full items-center gap-4 rounded-sm border border-dashed border-border px-6 py-4 opacity-60 outline-none transition-all duration-200 hover:border-foreground hover:bg-accent hover:opacity-100">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground pb-0.5 text-lg font-light transition-colors group-hover:border-foreground">
+                <Plus size={14} />
+              </div>
+              <span className="font-display text-lg font-medium tracking-tight text-muted-foreground transition-colors group-hover:text-foreground">
+                {selectedTenant ? 'Create New Workspace' : t('selectTenant.join', 'Join New Organization')}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,5 +1,4 @@
 import { useEditor } from '@tiptap/react';
-import { useEffect } from 'react';
 // @ts-expect-error - TipTap types compatibility
 import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -10,7 +9,7 @@ import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import PaginationExtension, { PageNode, HeaderFooterNode, BodyNode } from 'tiptap-extension-pagination';
+import { PaginationPlus } from 'tiptap-pagination-plus';
 import {
   InjectorExtension,
   SignatureExtension,
@@ -57,24 +56,19 @@ export const useEditorState = ({
         class: 'tiptap-dropcursor',
       }),
       // Pagination extension - visual page separation
-      PaginationExtension.configure({
-        defaultPaperSize: 'A4',
-        defaultPaperOrientation: 'portrait',
-        useDeviceThemeForPaperColour: true, // Auto-detect dark/light mode
-        defaultMarginConfig: {
-          top: config.format.margins.top / 3.78, // px to mm (approx)
-          bottom: config.format.margins.bottom / 3.78,
-          left: config.format.margins.left / 3.78,
-          right: config.format.margins.right / 3.78,
-        },
-        pageAmendmentOptions: {
-          enableHeader: false,
-          enableFooter: false,
-        },
+      PaginationPlus.configure({
+        pageHeight: config.format.height,
+        pageWidth: config.format.width,
+        marginTop: config.format.margins.top,
+        marginBottom: config.format.margins.bottom,
+        marginLeft: config.format.margins.left,
+        marginRight: config.format.margins.right,
+        pageGap: config.pageGap,
+        headerLeft: '',
+        headerRight: '',
+        footerLeft: '',
+        footerRight: '',
       }),
-      PageNode,
-      HeaderFooterNode,
-      BodyNode,
       ImageExtension.configure({
         inline: false,
         allowBase64: true,
@@ -122,37 +116,8 @@ export const useEditorState = ({
     },
   });
 
-  // Dynamically adjust container height for multiple pages
-  useEffect(() => {
-    if (!editor) return;
-
-    const updatePageHeight = () => {
-      const container = editor.view.dom as HTMLElement;
-      const pageBreaks = container.querySelectorAll('.page-break');
-      const pageHeight = config.format.height;
-
-      if (pageBreaks.length === 0) {
-        // 1 page - remove inline style, let CSS handle it
-        container.style.removeProperty('min-height');
-        return;
-      }
-
-      // Calculate total height: pages + page-break heights
-      const totalPages = pageBreaks.length + 1;
-      const pageBreakHeight = 80; // 40px height + 20px*2 margins
-      const totalHeight = totalPages * pageHeight + pageBreaks.length * pageBreakHeight;
-
-      // Use setProperty with 'important' to override CSS !important
-      container.style.setProperty('min-height', `${totalHeight}px`, 'important');
-    };
-
-    const observer = new MutationObserver(updatePageHeight);
-    observer.observe(editor.view.dom, { childList: true, subtree: true });
-
-    updatePageHeight();
-
-    return () => observer.disconnect();
-  }, [editor, config.format.height]);
+  // Note: tiptap-pagination-plus handles page height internally
+  // The MutationObserver was causing infinite loops with the new extension
 
   return { editor };
 };

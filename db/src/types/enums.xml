@@ -79,4 +79,25 @@
         <rollback>DROP TYPE IF EXISTS recipient_status;</rollback>
     </changeSet>
 
+    <changeSet id="enum:document_status" author="doc-assembly">
+        <comment>Document signing workflow status</comment>
+        <sql>CREATE TYPE document_status AS ENUM ('DRAFT', 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'DECLINED', 'VOIDED', 'EXPIRED', 'ERROR');</sql>
+        <rollback>DROP TYPE IF EXISTS document_status;</rollback>
+    </changeSet>
+
+    <changeSet id="enum:recipient_status:add_values" author="doc-assembly">
+        <comment>Add PENDING, SENT, DELIVERED, DECLINED values to recipient_status. Migrate WAITING->PENDING, REJECTED->DECLINED</comment>
+        <sql>
+            -- Add new values to the enum
+            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'PENDING' BEFORE 'WAITING';
+            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'SENT' AFTER 'PENDING';
+            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'DELIVERED' AFTER 'SENT';
+            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'DECLINED' AFTER 'SIGNED';
+        </sql>
+        <rollback>
+            -- Note: PostgreSQL does not support removing enum values directly
+            -- Rollback would require recreating the type which is complex with existing data
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

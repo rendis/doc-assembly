@@ -1,0 +1,169 @@
+{
+  "common": {
+    "appName": "Doc-Assembly",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "noResults": "No results found",
+    "viewAll": "View All",
+    "more": "More",
+    "less": "Less",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "none": "None",
+    "selectAll": "Select All",
+    "actions": "Actions"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "templates": "Templates",
+    "documents": "Documents",
+    "settings": "Settings",
+    "admin": "Admin",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "loginTitle": "Login to workspace",
+    "email": "Email",
+    "password": "Password",
+    "authenticate": "Authenticate",
+    "forgotPassword": "Recover password access",
+    "logout": "Logout",
+    "loggingIn": "Signing in...",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "tenant": {
+    "selectTitle": "Select your Organization",
+    "selectDescription": "Choose a tenant environment to access your workspaces and documents.",
+    "searchPlaceholder": "Search organizations...",
+    "lastAccessed": "Last accessed",
+    "users": "users",
+    "joinNew": "Join New Workspace",
+    "backToLogin": "Back to login"
+  },
+  "workspace": {
+    "current": "Current Workspace",
+    "select": "Select Workspace",
+    "type": {
+      "SYSTEM": "System",
+      "CLIENT": "Client"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "ARCHIVED": "Archived"
+    }
+  },
+  "dashboard": {
+    "title": "Status Monitor",
+    "lastSynced": "Last Synced",
+    "totalGenerated": "Total Generated",
+    "signedThisMonth": "Signed (30 Days)",
+    "inProgress": "In Progress",
+    "recentActivity": "Recent Activity",
+    "quickDraft": "Quick Draft",
+    "newDocument": "New Document",
+    "integrations": "Integrations"
+  },
+  "templates": {
+    "title": "Template List",
+    "createNew": "Create New Template",
+    "searchPlaceholder": "Search templates...",
+    "folder": "Folder",
+    "status": "Status",
+    "versions": "Versions",
+    "lastModified": "Last Modified",
+    "author": "Author",
+    "noTemplates": "No templates found",
+    "createFirst": "Create your first template"
+  },
+  "documents": {
+    "title": "Document Explorer",
+    "newFolder": "New Folder",
+    "searchPlaceholder": "Search documents...",
+    "type": "Type",
+    "subfolders": "Subfolders",
+    "noDocuments": "No documents found"
+  },
+  "editor": {
+    "autosaved": "Autosaved",
+    "saving": "Saving...",
+    "publish": "Publish Template",
+    "backToDetails": "Back to Template Details",
+    "structures": "Structures",
+    "variables": "Variables",
+    "signerRoles": "Signer Roles",
+    "insertImage": "Image",
+    "insertConditional": "Conditional",
+    "insertSignature": "Signature",
+    "insertTable": "Table",
+    "sender": "Sender",
+    "recipient": "Recipient",
+    "undefined": "Undefined"
+  },
+  "settings": {
+    "title": "Workspace Configuration",
+    "description": "Manage environment variables, access controls, and global settings for this workspace.",
+    "workspaceType": "Workspace Type",
+    "development": "Development",
+    "developmentDesc": "Sandbox & Testing",
+    "production": "Production",
+    "productionDesc": "Live Deployment",
+    "memberManagement": "Member Management",
+    "allowGuests": "Allow Guest Access",
+    "adminContact": "Primary Admin Contact",
+    "globalInjectables": "Global Injectables",
+    "addVariable": "Inject new variable",
+    "unsavedChanges": "You have unsaved changes",
+    "reset": "Reset",
+    "applyConfig": "Apply Config"
+  },
+  "admin": {
+    "title": "Administration",
+    "dashboard": "Dashboard",
+    "tenants": "Tenants",
+    "users": "Users",
+    "systemSettings": "System Settings",
+    "auditLog": "Audit Log"
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "scheduled": "Scheduled",
+    "finalized": "Finalized",
+    "signed": "Signed",
+    "actionRequired": "Action Required"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hour ago",
+    "hoursAgo_plural": "{{count}} hours ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_plural": "{{count}} days ago",
+    "weeksAgo": "{{count}} week ago",
+    "weeksAgo_plural": "{{count}} weeks ago",
+    "today": "Today"
+  },
+  "version": {
+    "label": "v{{version}}"
+  },
+  "footer": {
+    "secureEnvironment": "Secure Environment"
+  }
+}
