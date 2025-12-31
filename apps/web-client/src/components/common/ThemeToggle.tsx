@@ -1,13 +1,13 @@
-import { Moon, Sun, Laptop } from 'lucide-react';
 import { useThemeStore } from '@/stores/theme-store';
+import { Laptop, Moon, Sun } from 'lucide-react';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useThemeStore();
 
   const cycleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
+    if (theme === 'system') setTheme('light');
+    else if (theme === 'light') setTheme('dark');
+    else setTheme('system');
   };
 
   const Icon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Laptop;
