@@ -126,6 +126,11 @@ function SelectTenantPage() {
   const [tenantTotalPages, setTenantTotalPages] = useState(1)
   const [workspaceTotalPages, setWorkspaceTotalPages] = useState(1)
 
+  // Animation orchestration states
+  const [selectedWorkspaceForAnim, setSelectedWorkspaceForAnim] = useState<WorkspaceWithRole | null>(null)
+  const [animationPhase, setAnimationPhase] = useState<'idle' | 'fadeOthers' | 'transition'>('idle')
+  const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
+
   // Fetch tenants
   const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants(tenantPage, ITEMS_PER_PAGE)
   const { data: searchData, isLoading: isSearching } = useSearchTenants(searchQuery)
@@ -201,9 +206,33 @@ function SelectTenantPage() {
     recordAccess('TENANT', tenant.id).catch(() => {})
   }
 
-  const handleWorkspaceSelect = (workspace: WorkspaceWithRole) => {
+  const handleWorkspaceSelect = async (workspace: WorkspaceWithRole, event: React.MouseEvent) => {
+    // Capture full button dimensions
+    const button = event.currentTarget as HTMLElement
+    const rect = button.getBoundingClientRect()
+    setSelectedPosition({
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+    })
+
+    // Phase 1: Mark as selected, fade out everything
+    setSelectedWorkspaceForAnim(workspace)
+    setAnimationPhase('fadeOthers')
+
+    // Wait for fade out + highlight + centering effect (450ms)
+    await new Promise(r => setTimeout(r, 450))
+
+    // Phase 2: Start transition + lines
+    setAnimationPhase('transition')
     setCurrentWorkspace(workspace as WorkspaceWithRole)
     recordAccess('WORKSPACE', workspace.id).catch(() => {})
+
+    // Wait for transition (600ms)
+    await new Promise(r => setTimeout(r, 600))
+
+    // Phase 3: Navigate
     navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } })
   }
 
@@ -246,7 +275,14 @@ function SelectTenantPage() {
         <ThemeToggle />
       </motion.div>
 
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32">
+      {/* Main content - fades out when workspace is selected */}
+      <motion.div
+        animate={{
+          opacity: selectedWorkspaceForAnim ? 0 : 1,
+        }}
+        transition={{ duration: 0.3 }}
+        className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32"
+      >
         {/* Left column */}
         <div className="lg:sticky lg:top-32 lg:col-span-4">
           <h1 className="mb-8 font-display text-5xl font-light leading-[1.05] tracking-tighter text-foreground md:text-6xl">
@@ -326,13 +362,15 @@ function SelectTenantPage() {
                       <motion.button
                         key={ws.id}
                         variants={itemVariants}
-                        onClick={() => handleWorkspaceSelect(ws)}
+                        onClick={(e) => handleWorkspaceSelect(ws, e)}
+                        disabled={!!selectedWorkspaceForAnim}
                         className={cn(
-                          'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
+                          'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent',
+                          selectedWorkspaceForAnim && 'pointer-events-none'
                         )}
                       >
                         <div className="flex items-center gap-3">
-                          <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
+                          <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground md:text-2xl">
                             {ws.name}
                           </h3>
                           {ws.type === 'SYSTEM' && (
@@ -430,7 +468,129 @@ function SelectTenantPage() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Transition overlay - lines and floating card */}
+      <AnimatePresence>
+        {selectedWorkspaceForAnim && selectedPosition && (
+          <>
+            {/* Header bottom line - slides from left (only during transition) */}
+            {animationPhase === 'transition' && (
+              <motion.div
+                key="header-line"
+                className="fixed left-0 right-0 top-16 z-50 h-px bg-border"
+                style={{ transformOrigin: 'left' }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+              />
+            )}
+
+            {/* Sidebar right line - slides from top (only during transition) */}
+            {animationPhase === 'transition' && (
+              <motion.div
+                key="sidebar-line"
+                className="fixed bottom-0 left-64 top-16 z-50 w-px bg-border"
+                style={{ transformOrigin: 'top' }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+              />
+            )}
+
+            {/* Floating card - EXACT REPLICA of original layout, then transforms */}
+            <motion.div
+              key="floating-card"
+              className="pointer-events-none fixed z-50 bg-background"
+              style={{ transformOrigin: 'center center', borderStyle: 'solid' }}
+              initial={{
+                left: selectedPosition.x,
+                top: selectedPosition.y,
+                width: selectedPosition.width,
+                scale: 1,
+                borderTopWidth: 1,
+                borderBottomWidth: 1,
+                borderLeftWidth: 0,
+                borderRightWidth: 0,
+                borderColor: 'hsl(var(--border))',
+              }}
+              animate={{
+                left: animationPhase === 'transition' ? 16 : selectedPosition.x,
+                top: animationPhase === 'transition' ? 64 + 24 : selectedPosition.y,
+                width: animationPhase === 'transition' ? 256 - 32 : selectedPosition.width,
+                // Highlight effect: grows slightly during fadeOthers
+                scale: animationPhase === 'fadeOthers' ? 1.03 : 1,
+                // Borders fade out during transition
+                borderTopWidth: animationPhase === 'transition' ? 0 : 1,
+                borderBottomWidth: animationPhase === 'transition' ? 0 : 1,
+                borderColor: animationPhase === 'transition' ? 'transparent' : 'hsl(var(--border))',
+              }}
+              transition={{
+                type: 'spring',
+                damping: 25,
+                stiffness: 200,
+              }}
+            >
+              {/* Container - ROW layout, name slides to center during fadeOthers */}
+              <motion.div
+                className="flex items-center justify-between relative"
+                initial={{ padding: '1.5rem 1rem' }}
+                animate={{
+                  flexDirection: animationPhase === 'transition' ? 'column' : 'row',
+                  justifyContent: animationPhase === 'transition' ? 'flex-start' : 'space-between',
+                  alignItems: animationPhase === 'transition' ? 'flex-start' : 'center',
+                  padding: animationPhase === 'transition' ? '0 0.5rem' : '1.5rem 1rem',
+                }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Label "Workspace" - only appears during transition */}
+                <motion.label
+                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  animate={{
+                    opacity: animationPhase === 'transition' ? 1 : 0,
+                    height: animationPhase === 'transition' ? 'auto' : 0,
+                    marginBottom: animationPhase === 'transition' ? 8 : 0
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className="block text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
+                >
+                  Workspace
+                </motion.label>
+
+                {/* Name - slides to center during fadeOthers using x transform */}
+                <motion.h3
+                  initial={{ fontSize: '1.5rem', x: 0 }}
+                  animate={{
+                    fontSize: animationPhase === 'transition' ? '1.125rem' : '1.5rem',
+                    // Move to center during fadeOthers (roughly half the metadata width)
+                    x: animationPhase === 'fadeOthers' ? 120 :
+                       animationPhase === 'transition' ? 0 : 0,
+                  }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 80 }}
+                  className="text-left font-display font-medium tracking-tight text-foreground"
+                >
+                  {selectedWorkspaceForAnim.name}
+                </motion.h3>
+
+                {/* Metadata - fades out while name slides to center */}
+                <motion.div
+                  initial={{ opacity: 1 }}
+                  animate={{
+                    opacity: animationPhase !== 'idle' ? 0 : 1,
+                  }}
+                  transition={{ duration: 0.25 }}
+                  className="flex items-center gap-6"
+                >
+                  <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+                    Last accessed: {formatRelativeTime(selectedWorkspaceForAnim.lastAccessedAt)}
+                  </span>
+                  <ArrowRight className="text-muted-foreground" size={24} />
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
