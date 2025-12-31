@@ -89,16 +89,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository, userAccessHistoryUseCase)
 	tenantMemberUseCase := service.NewTenantMemberService(tenantMemberRepository, userRepository)
 	tenantController := controller.NewTenantController(tenantUseCase, workspaceUseCase, tenantMemberUseCase)
-	llmConfig := infra.ProvideLLMConfig(configConfig)
-	llmClient, err := infra.ProvideLLMClient(llmConfig)
-	if err != nil {
-		return nil, err
-	}
-	factory := infra.ProvideExtractorFactory()
-	promptLoader := infra.ProvidePromptLoader(llmConfig)
-	contractgeneratorService := infra.ProvideContractGeneratorService(llmClient, factory, promptLoader)
-	contractGeneratorController := controller.NewContractGeneratorController(contractgeneratorService, injectableUseCase)
-	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, contractGeneratorController)
+	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController)
 	initializer := infra.NewInitializer(httpServer, pool)
 	return initializer, nil
 }
