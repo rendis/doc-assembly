@@ -23,11 +23,10 @@ const containerVariants = {
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.3 },
   },
 }
 
@@ -76,7 +75,7 @@ function SelectTenantPage() {
   const { data: searchData, isLoading: isSearching } = useSearchTenants(searchQuery)
 
   // Fetch workspaces for selected tenant (only when a tenant is selected)
-  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(1, 50, !!selectedTenant)
+  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(selectedTenant?.id ?? null, 1, 50)
 
   // Minimum loading time state
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
