@@ -13,16 +13,21 @@ import (
 
 // PromptLoader handles loading and processing prompt templates.
 type PromptLoader struct {
-	promptFile string
-	template   string
-	once       sync.Once
-	loadErr    error
+	promptFile         string
+	markdownPromptFile string
+	template           string
+	markdownTemplate   string
+	once               sync.Once
+	markdownOnce       sync.Once
+	loadErr            error
+	markdownLoadErr    error
 }
 
 // NewPromptLoader creates a new prompt loader for the given file.
 func NewPromptLoader(promptFile string) *PromptLoader {
 	return &PromptLoader{
-		promptFile: promptFile,
+		promptFile:         promptFile,
+		markdownPromptFile: "contract_to_markdown_prompt.txt",
 	}
 }
 
@@ -86,14 +91,70 @@ DO NOT create injector nodes - only use text nodes with the [[...]] markers.`
 	return sb.String()
 }
 
+// LoadMarkdownPrompt loads the markdown conversion prompt template.
+// It replaces the language, extracted text, and injectables placeholders.
+func (pl *PromptLoader) LoadMarkdownPrompt(lang string, extractedText string, injectables []usecase.InjectableInfo) (string, error) {
+	pl.markdownOnce.Do(func() {
+		pl.markdownTemplate, pl.markdownLoadErr = pl.loadTemplateByName(pl.markdownPromptFile)
+	})
+
+	if pl.markdownLoadErr != nil {
+		return "", pl.markdownLoadErr
+	}
+
+	// Replace language placeholder
+	result := strings.ReplaceAll(pl.markdownTemplate, "{{OUTPUT_LANG}}", mapLangName(lang))
+
+	// Replace extracted text placeholder
+	result = strings.ReplaceAll(result, "{{EXTRACTED_TEXT}}", extractedText)
+
+	// Replace injectables placeholder
+	injectablesList := buildInjectablesListForMarkdown(injectables)
+	result = strings.ReplaceAll(result, "{{AVAILABLE_INJECTABLES}}", injectablesList)
+
+	return result, nil
+}
+
+// buildInjectablesListForMarkdown builds a formatted list of available injectables for the markdown prompt.
+func buildInjectablesListForMarkdown(injectables []usecase.InjectableInfo) string {
+	if len(injectables) == 0 {
+		return `No injectables are currently defined in the workspace.
+For ANY placeholder or blank space you detect, use a descriptive suggestion:
+[[ descriptive_name_here ]]
+
+Examples:
+- "Nombre: ____" → [[ nombre_cliente ]]
+- "Fecha: __/__/____" → [[ fecha_contrato ]]
+- "Monto: $____" → [[ monto_total ]]`
+	}
+
+	var sb strings.Builder
+	sb.WriteString("The following injectables are available. Use these EXACT keys when you detect matching placeholders:\n\n")
+	sb.WriteString("| Key | Label | Data Type |\n")
+	sb.WriteString("|-----|-------|----------|\n")
+
+	for _, inj := range injectables {
+		sb.WriteString(fmt.Sprintf("| `%s` | %s | %s |\n", inj.Key, inj.Label, inj.DataType))
+	}
+
+	sb.WriteString("\nFor placeholders that don't match any key above, use a descriptive suggestion like `[[ suggested_name ]]`")
+
+	return sb.String()
+}
+
 // loadTemplate reads the prompt template from the file system.
 func (pl *PromptLoader) loadTemplate() (string, error) {
+	return pl.loadTemplateByName(pl.promptFile)
+}
+
+// loadTemplateByName reads a prompt template by name from the file system.
+func (pl *PromptLoader) loadTemplateByName(fileName string) (string, error) {
 	// Search paths in order of priority
 	searchPaths := []string{
-		filepath.Join("./settings", pl.promptFile),
-		filepath.Join("../settings", pl.promptFile),
-		filepath.Join("../../settings", pl.promptFile),
-		pl.promptFile,
+		filepath.Join("./settings", fileName),
+		filepath.Join("../settings", fileName),
+		filepath.Join("../../settings", fileName),
+		fileName,
 	}
 
 	for _, path := range searchPaths {
@@ -103,5 +164,5 @@ func (pl *PromptLoader) loadTemplate() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("prompt file not found: %s (searched in settings directories)", pl.promptFile)
+	return "", fmt.Errorf("prompt file not found: %s (searched in settings directories)", fileName)
 }

@@ -94,8 +94,9 @@ func InitializeApp() (*infra.Initializer, error) {
 	if err != nil {
 		return nil, err
 	}
+	factory := infra.ProvideExtractorFactory()
 	promptLoader := infra.ProvidePromptLoader(llmConfig)
-	contractgeneratorService := infra.ProvideContractGeneratorService(llmClient, promptLoader)
+	contractgeneratorService := infra.ProvideContractGeneratorService(llmClient, factory, promptLoader)
 	contractGeneratorController := controller.NewContractGeneratorController(contractgeneratorService, injectableUseCase)
 	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, contractGeneratorController)
 	initializer := infra.NewInitializer(httpServer, pool)

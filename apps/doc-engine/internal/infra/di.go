@@ -27,6 +27,7 @@ import (
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/extractor"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/llm"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
@@ -93,6 +94,8 @@ var ProviderSet = wire.NewSet(
 	ProvideLLMConfig,
 	ProvideLLMClient,
 	ProvidePromptLoader,
+	ProvideExtractorFactory,
+	wire.Bind(new(port.ContentExtractorFactory), new(*extractor.Factory)),
 	ProvideContractGeneratorService,
 	wire.Bind(new(usecase.ContractGeneratorUseCase), new(*contractgenerator.Service)),
 
@@ -201,10 +204,16 @@ func ProvidePromptLoader(cfg *config.LLMConfig) *contractgenerator.PromptLoader 
 	return contractgenerator.NewPromptLoader(promptFile)
 }
 
+// ProvideExtractorFactory creates the content extractor factory.
+func ProvideExtractorFactory() *extractor.Factory {
+	return extractor.NewFactory()
+}
+
 // ProvideContractGeneratorService creates the contract generator service.
 func ProvideContractGeneratorService(
 	llmClient port.LLMClient,
+	extractorFactory port.ContentExtractorFactory,
 	promptLoader *contractgenerator.PromptLoader,
 ) *contractgenerator.Service {
-	return contractgenerator.NewService(llmClient, promptLoader)
+	return contractgenerator.NewService(llmClient, extractorFactory, promptLoader)
 }

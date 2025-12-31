@@ -48,16 +48,20 @@ func (c *Client) GenerateStructured(ctx context.Context, req *port.LLMGeneration
 	}
 	messages = append(messages, userMessage)
 
-	// Create chat completion request with JSON output format
-	// We use json_object mode since the schema is complex and defined in the prompt
+	// Create chat completion request
 	chatReq := openai.ChatCompletionRequest{
 		Model:       c.config.Model,
 		Messages:    messages,
 		MaxTokens:   c.config.MaxTokens,
 		Temperature: float32(c.config.Temperature),
-		ResponseFormat: &openai.ChatCompletionResponseFormat{
+	}
+
+	// Only use JSON mode if a schema is provided
+	// When no schema is provided, we want plain text output (e.g., Markdown)
+	if len(req.JSONSchema) > 0 {
+		chatReq.ResponseFormat = &openai.ChatCompletionResponseFormat{
 			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-		},
+		}
 	}
 
 	// Make the API call
