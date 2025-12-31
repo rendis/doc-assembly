@@ -85,18 +85,59 @@
         <rollback>DROP TYPE IF EXISTS document_status;</rollback>
     </changeSet>
 
-    <changeSet id="enum:recipient_status:add_values" author="doc-assembly">
-        <comment>Add PENDING, SENT, DELIVERED, DECLINED values to recipient_status. Migrate WAITING->PENDING, REJECTED->DECLINED</comment>
-        <sql>
-            -- Add new values to the enum
-            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'PENDING' BEFORE 'WAITING';
-            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'SENT' AFTER 'PENDING';
-            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'DELIVERED' AFTER 'SENT';
-            ALTER TYPE recipient_status ADD VALUE IF NOT EXISTS 'DECLINED' AFTER 'SIGNED';
+    <changeSet id="enum:recipient_status:migrate_to_new_values" author="doc-assembly">
+        <comment>Migrate recipient_status enum: WAITING->PENDING, REJECTED->DECLINED, add SENT, DELIVERED</comment>
+        <sql splitStatements="false">
+            -- Step 1: Create new enum with desired values
+            CREATE TYPE recipient_status_new AS ENUM ('PENDING', 'SENT', 'DELIVERED', 'SIGNED', 'DECLINED');
+
+            -- Step 2: Update default value (remove old default first)
+            ALTER TABLE execution.document_recipients
+                ALTER COLUMN status DROP DEFAULT;
+
+            -- Step 3: Migrate data and change column type
+            ALTER TABLE execution.document_recipients
+                ALTER COLUMN status TYPE recipient_status_new
+                USING (
+                    CASE status::text
+                        WHEN 'WAITING' THEN 'PENDING'::recipient_status_new
+                        WHEN 'REJECTED' THEN 'DECLINED'::recipient_status_new
+                        WHEN 'SIGNED' THEN 'SIGNED'::recipient_status_new
+                        ELSE 'PENDING'::recipient_status_new
+                    END
+                );
+
+            -- Step 4: Drop old enum and rename new one
+            DROP TYPE recipient_status;
+            ALTER TYPE recipient_status_new RENAME TO recipient_status;
+
+            -- Step 5: Set new default
+            ALTER TABLE execution.document_recipients
+                ALTER COLUMN status SET DEFAULT 'PENDING'::recipient_status;
         </sql>
         <rollback>
-            -- Note: PostgreSQL does not support removing enum values directly
-            -- Rollback would require recreating the type which is complex with existing data
+            -- Recreate old enum
+            CREATE TYPE recipient_status_old AS ENUM ('WAITING', 'SIGNED', 'REJECTED');
+
+            ALTER TABLE execution.document_recipients
+                ALTER COLUMN status DROP DEFAULT;
+
+            ALTER TABLE execution.document_recipients
+                ALTER COLUMN status TYPE recipient_status_old
+                USING (
+                    CASE status::text
+                        WHEN 'PENDING' THEN 'WAITING'::recipient_status_old
+                        WHEN 'DECLINED' THEN 'REJECTED'::recipient_status_old
+                        WHEN 'SIGNED' THEN 'SIGNED'::recipient_status_old
+                        ELSE 'WAITING'::recipient_status_old
+                    END
+                );
+
+            DROP TYPE recipient_status;
+            ALTER TYPE recipient_status_old RENAME TO recipient_status;
+
+            ALTER TABLE execution.document_recipients
+                ALTER COLUMN status SET DEFAULT 'WAITING'::recipient_status;
         </rollback>
     </changeSet>
 

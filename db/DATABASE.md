@@ -326,7 +326,7 @@ erDiagram
         varchar_255 name "NOT NULL"
         varchar_255 email "NOT NULL"
         varchar_255 signer_recipient_id "Provider ID"
-        recipient_status status "DEFAULT WAITING"
+        recipient_status status "DEFAULT PENDING"
         timestamptz created_at "NOT NULL"
         timestamptz updated_at
     }
@@ -978,7 +978,7 @@ Documents reference a specific `template_version_id`, not just the template. Thi
 | `name` | VARCHAR(255) | NOT NULL | Recipient display name |
 | `email` | VARCHAR(255) | NOT NULL | Recipient email for notifications |
 | `signer_recipient_id` | VARCHAR(255) | - | ID from signature provider |
-| `status` | recipient_status | NOT NULL, DEFAULT 'WAITING' | `WAITING`, `SIGNED`, `REJECTED` |
+| `status` | recipient_status | NOT NULL, DEFAULT 'PENDING' | `PENDING`, `SENT`, `DELIVERED`, `SIGNED`, `DECLINED` |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | - | Last status change |
 
@@ -1208,13 +1208,22 @@ LIMIT 10;
 
 ### 7.9 `recipient_status`
 
-**Purpose**: Individual signer's progress.
+**Purpose**: Individual signer's progress through the signing workflow.
 
 | Value | Description |
 |-------|-------------|
-| `WAITING` | Awaiting their turn or action |
+| `PENDING` | Initial state, awaiting processing |
+| `SENT` | Invitation sent to recipient |
+| `DELIVERED` | Recipient received/opened the document |
 | `SIGNED` | Successfully signed |
-| `REJECTED` | Declined to sign |
+| `DECLINED` | Recipient declined to sign |
+
+**Status Flow**:
+```
+PENDING → SENT → DELIVERED → SIGNED
+                          ↘
+                         DECLINED
+```
 
 ---
 
@@ -1421,7 +1430,7 @@ JOIN content.template_versions tv ON d.template_version_id = tv.id
 JOIN content.templates t ON tv.template_id = t.id
 JOIN execution.document_recipients dr ON dr.document_id = d.id
 WHERE dr.email = 'jane@example.com'
-  AND dr.status = 'WAITING'
+  AND dr.status = 'PENDING'
 ORDER BY d.created_at DESC;
 ```
 
