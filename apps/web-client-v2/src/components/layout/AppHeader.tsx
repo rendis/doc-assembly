@@ -17,14 +17,8 @@ export function AppHeader({ variant = 'minimal', className }: AppHeaderProps) {
       className={cn(
         'fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between bg-background',
         isMinimal ? 'px-6 md:px-12 lg:px-32' : 'px-6',
-        !isMinimal && 'border-b',
         className
       )}
-      initial={false}
-      animate={{
-        borderBottomColor: isMinimal ? 'transparent' : 'hsl(var(--border))',
-      }}
-      transition={{ duration: 0.3 }}
     >
       {/* Logo grande con layoutId para animación */}
       <motion.div
@@ -53,6 +47,14 @@ export function AppHeader({ variant = 'minimal', className }: AppHeaderProps) {
         <LanguageSelector />
         <ThemeToggle />
       </motion.div>
+
+      {/* Línea del borde - slide desde izquierda */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-px bg-border origin-left"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: isMinimal ? 0 : 1 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      />
     </motion.header>
   )
 }

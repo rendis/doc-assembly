@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
+import { motion } from 'framer-motion'
 import { LayoutGrid, FileText, FolderOpen, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -15,6 +16,16 @@ interface NavItem {
   label: string
   icon: typeof LayoutGrid
   href: string
+}
+
+const navItemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 },
+}
+
+const footerItemVariants = {
+  hidden: { opacity: 0, scale: 0 },
+  visible: { opacity: 1, scale: 1 },
 }
 
 export function AppSidebar() {
@@ -78,10 +89,17 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'flex h-full flex-col border-r bg-sidebar-background pt-16',
+        'relative flex h-full flex-col bg-sidebar-background pt-16',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
+      {/* Línea derecha animada - de arriba hacia abajo */}
+      <motion.div
+        className="absolute right-0 top-0 bottom-0 w-px bg-border origin-top"
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: 1 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      />
       <ScrollArea className="flex-1 px-4 py-6">
         {/* Current Workspace */}
         {!isCollapsed && currentWorkspace && (
@@ -97,33 +115,40 @@ export function AppSidebar() {
 
         {/* Navigation */}
         <nav className="space-y-1">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const active = isActive(item.href)
             return (
-              <Link
+              <motion.div
                 key={item.href}
-                to={item.href}
-                onClick={closeMobile}
-                className={cn(
-                  'group flex w-full items-center gap-4 rounded-md px-3 py-3 text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                  isCollapsed && 'justify-center px-2'
-                )}
+                variants={navItemVariants}
+                initial="hidden"
+                animate="visible"
+                transition={{ duration: 0.3, delay: 0.8 + index * 0.08 }}
               >
-                <item.icon
-                  size={20}
-                  strokeWidth={1.5}
+                <Link
+                  to={item.href}
+                  onClick={closeMobile}
                   className={cn(
-                    'shrink-0',
+                    'group flex w-full items-center gap-4 rounded-md px-3 py-3 text-sm font-medium transition-colors',
                     active
-                      ? 'text-sidebar-accent-foreground'
-                      : 'text-muted-foreground group-hover:text-sidebar-accent-foreground'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    isCollapsed && 'justify-center px-2'
                   )}
-                />
-                {!isCollapsed && item.label}
-              </Link>
+                >
+                  <item.icon
+                    size={20}
+                    strokeWidth={1.5}
+                    className={cn(
+                      'shrink-0',
+                      active
+                        ? 'text-sidebar-accent-foreground'
+                        : 'text-muted-foreground group-hover:text-sidebar-accent-foreground'
+                    )}
+                  />
+                  {!isCollapsed && item.label}
+                </Link>
+              </motion.div>
             )
           })}
         </nav>
@@ -131,23 +156,35 @@ export function AppSidebar() {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <button
-          onClick={handleLogout}
-          className={cn(
-            'group flex w-full items-center gap-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
-            isCollapsed && 'justify-center'
-          )}
+        <motion.div
+          variants={footerItemVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.3, delay: 0.8 }}
         >
-          <LogOut
-            size={20}
-            strokeWidth={1.5}
-            className="shrink-0 transition-transform group-hover:-translate-x-1"
-          />
-          {!isCollapsed && t('nav.logout')}
-        </button>
+          <button
+            onClick={handleLogout}
+            className={cn(
+              'group flex w-full items-center gap-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
+              isCollapsed && 'justify-center'
+            )}
+          >
+            <LogOut
+              size={20}
+              strokeWidth={1.5}
+              className="shrink-0 transition-transform group-hover:-translate-x-1"
+            />
+            {!isCollapsed && t('nav.logout')}
+          </button>
+        </motion.div>
 
         {!isCollapsed && (
-          <>
+          <motion.div
+            variants={footerItemVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.3, delay: 0.88 }}
+          >
             <Separator className="my-4" />
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
@@ -162,7 +199,7 @@ export function AppSidebar() {
                 </div>
               </div>
             </div>
-          </>
+          </motion.div>
         )}
       </div>
     </aside>

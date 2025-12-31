@@ -7,14 +7,10 @@ import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
 import { useSidebarStore } from '@/stores/sidebar-store'
 
-// Variantes de animación
+// Variantes de animación - sidebar aparece inmediatamente, las líneas y contenido se animan
 const sidebarVariants = {
-  initial: { x: -280, opacity: 0 },
-  animate: {
-    x: 0,
-    opacity: 1,
-    transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] as const },
-  },
+  initial: { opacity: 1 },
+  animate: { opacity: 1 },
 }
 
 const contentVariants = {

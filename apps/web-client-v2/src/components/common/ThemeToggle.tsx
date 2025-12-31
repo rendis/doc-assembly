@@ -1,45 +1,54 @@
 import { Moon, Sun, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useThemeStore, type Theme } from '@/stores/theme-store'
+import { cn } from '@/lib/utils'
 
-const themeOptions: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
-]
+const themeOrder: Theme[] = ['system', 'light', 'dark']
 
 export function ThemeToggle() {
-  const { theme, setTheme, getEffectiveTheme } = useThemeStore()
-  const effectiveTheme = getEffectiveTheme()
+  const { theme, setTheme } = useThemeStore()
 
-  const CurrentIcon = effectiveTheme === 'dark' ? Moon : Sun
+  const toggleTheme = () => {
+    const currentTheme = theme ?? 'system'
+    const currentIndex = themeOrder.indexOf(currentTheme)
+    const nextIndex = (currentIndex + 1) % themeOrder.length
+    setTheme(themeOrder[nextIndex] ?? 'system')
+  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-          <CurrentIcon className="h-4 w-4" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {themeOptions.map((option) => (
-          <DropdownMenuItem
-            key={option.value}
-            onClick={() => setTheme(option.value)}
-            className={theme === option.value ? 'bg-accent' : ''}
-          >
-            <option.icon className="mr-2 h-4 w-4" />
-            {option.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-9 w-9"
+      onClick={toggleTheme}
+    >
+      <div className="relative h-4 w-4">
+        <Monitor
+          className={cn(
+            'absolute inset-0 h-4 w-4 transition-all duration-300',
+            (theme ?? 'system') === 'system'
+              ? 'scale-100 rotate-0 opacity-100'
+              : 'scale-0 rotate-90 opacity-0'
+          )}
+        />
+        <Sun
+          className={cn(
+            'absolute inset-0 h-4 w-4 transition-all duration-300',
+            (theme ?? 'system') === 'light'
+              ? 'scale-100 rotate-0 opacity-100'
+              : 'scale-0 -rotate-90 opacity-0'
+          )}
+        />
+        <Moon
+          className={cn(
+            'absolute inset-0 h-4 w-4 transition-all duration-300',
+            (theme ?? 'system') === 'dark'
+              ? 'scale-100 rotate-0 opacity-100'
+              : 'scale-0 rotate-90 opacity-0'
+          )}
+        />
+      </div>
+      <span className="sr-only">Toggle theme</span>
+    </Button>
   )
 }
