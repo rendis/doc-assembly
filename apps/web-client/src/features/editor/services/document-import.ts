@@ -124,13 +124,14 @@ function resolveVariables(
 
 /**
  * Validates the document structure and semantics
+ * Returns the transformed document from Zod validation
  */
 function validateImport(
   document: PortableDocument,
   options: ImportOptions,
   backendVariables: BackendVariable[] = []
-): ValidationResult {
-  // Schema validation
+): ValidationResult & { transformedDocument?: PortableDocument } {
+  // Schema validation (transforms null arrays to empty arrays)
   const schemaResult = validateDocument(document);
 
   if (!schemaResult.success) {
@@ -145,9 +146,12 @@ function validateImport(
     };
   }
 
+  // Use transformed document from Zod (null values are now empty arrays)
+  const validatedDoc = schemaResult.data as PortableDocument;
+
   // Version check
-  if (!isVersionCompatible(document.version)) {
-    const comparison = compareVersions(document.version, DOCUMENT_FORMAT_VERSION);
+  if (!isVersionCompatible(validatedDoc.version)) {
+    const comparison = compareVersions(validatedDoc.version, DOCUMENT_FORMAT_VERSION);
 
     if (comparison > 0) {
       return {
@@ -155,7 +159,7 @@ function validateImport(
         errors: [{
           code: 'VERSION_TOO_NEW',
           path: 'version',
-          message: `Versión del documento (${document.version}) es más nueva que la soportada (${DOCUMENT_FORMAT_VERSION})`,
+          message: `Versión del documento (${validatedDoc.version}) es más nueva que la soportada (${DOCUMENT_FORMAT_VERSION})`,
         }],
         warnings: [],
       };
@@ -168,7 +172,7 @@ function validateImport(
         errors: [{
           code: 'VERSION_MISMATCH',
           path: 'version',
-          message: `Versión del documento (${document.version}) requiere migración`,
+          message: `Versión del documento (${validatedDoc.version}) requiere migración`,
         }],
         warnings: [],
       };
@@ -177,10 +181,11 @@ function validateImport(
 
   // Semantic validation
   if (options.validateReferences !== false) {
-    return validateDocumentSemantics(document, options, backendVariables);
+    const semanticResult = validateDocumentSemantics(validatedDoc, options, backendVariables);
+    return { ...semanticResult, transformedDocument: validatedDoc };
   }
 
-  return { valid: true, errors: [], warnings: [] };
+  return { valid: true, errors: [], warnings: [], transformedDocument: validatedDoc };
 }
 
 // =============================================================================
@@ -315,7 +320,7 @@ export function importDocument(
     };
   }
 
-  // Validate document
+  // Validate document (also transforms null arrays to empty arrays)
   const validation = validateImport(document, opts, backendVariables);
 
   if (!validation.valid) {
@@ -326,11 +331,14 @@ export function importDocument(
     };
   }
 
+  // Use transformed document from validation (null values are now empty arrays)
+  const validatedDocument = validation.transformedDocument ?? document;
+
   // Migrate if needed
-  let migratedDocument = document;
-  if (compareVersions(document.version, DOCUMENT_FORMAT_VERSION) < 0) {
+  let migratedDocument = validatedDocument;
+  if (compareVersions(validatedDocument.version, DOCUMENT_FORMAT_VERSION) < 0) {
     try {
-      migratedDocument = migrateDocument(document);
+      migratedDocument = migrateDocument(validatedDocument);
     } catch (error) {
       return {
         success: false,

@@ -46,9 +46,9 @@ function createContext(
   backendVariables: BackendVariable[] = []
 ): ValidationContext {
   return {
-    documentVariableIds: new Set(document.variableIds),
+    documentVariableIds: new Set(document.variableIds ?? []),
     backendVariableIds: new Set(backendVariables.map((v) => v.variableId)),
-    roleIds: new Set(document.signerRoles.map((r) => r.id)),
+    roleIds: new Set((document.signerRoles ?? []).map((r) => r.id)),
     errors: [],
     warnings: [],
     options,

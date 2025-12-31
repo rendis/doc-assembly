@@ -321,8 +321,14 @@ export const PortableDocumentSchema = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Versión debe ser formato semántico (x.y.z)'),
   meta: DocumentMetaSchema,
   pageConfig: PageConfigSchema,
-  variableIds: z.array(VariableIdSchema),
-  signerRoles: z.array(SignerRoleDefinitionSchema),
+  variableIds: z
+    .array(VariableIdSchema)
+    .nullable()
+    .transform((v) => v ?? []),
+  signerRoles: z
+    .array(SignerRoleDefinitionSchema)
+    .nullable()
+    .transform((v) => v ?? []),
   signingWorkflow: SigningWorkflowConfigSchema.optional(),
   content: ProseMirrorDocumentSchema,
   exportInfo: ExportInfoSchema,
