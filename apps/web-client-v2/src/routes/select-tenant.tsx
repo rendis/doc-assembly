@@ -75,8 +75,8 @@ function SelectTenantPage() {
   const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants()
   const { data: searchData, isLoading: isSearching } = useSearchTenants(searchQuery)
 
-  // Fetch workspaces for selected tenant
-  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(1, 50)
+  // Fetch workspaces for selected tenant (only when a tenant is selected)
+  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(1, 50, !!selectedTenant)
 
   // Minimum loading time state
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)

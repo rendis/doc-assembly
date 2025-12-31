@@ -8,10 +8,11 @@ import {
 } from '../api/workspaces-api'
 import type { CreateWorkspaceRequest, UpdateWorkspaceRequest } from '../types'
 
-export function useWorkspaces(page = 1, perPage = 20) {
+export function useWorkspaces(page = 1, perPage = 20, enabled = true) {
   return useQuery({
     queryKey: ['workspaces', page, perPage],
     queryFn: () => fetchWorkspaces(page, perPage),
+    enabled,
   })
 }
 
