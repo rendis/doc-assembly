@@ -37,7 +37,7 @@
   },
   "auth": {
     "login": "Login",
-    "loginTitle": "Login to workspace",
+    "loginTitle": "Login to your account",
     "email": "Email",
     "password": "Password",
     "authenticate": "Authenticate",

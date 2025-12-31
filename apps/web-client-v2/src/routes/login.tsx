@@ -43,7 +43,7 @@ function LoginPage() {
           <h1 className="font-display text-5xl font-light leading-[1.05] tracking-tight text-foreground md:text-6xl lg:text-7xl">
             {t('login.title', 'Login to')}
             <br />
-            <span className="font-semibold">{t('login.subtitle', 'workspace.')}</span>
+            <span className="font-semibold">{t('login.subtitle', 'your account.')}</span>
           </h1>
         </div>
 
