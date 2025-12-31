@@ -128,7 +128,7 @@ function SelectTenantPage() {
 
   // Animation orchestration states
   const [selectedWorkspaceForAnim, setSelectedWorkspaceForAnim] = useState<WorkspaceWithRole | null>(null)
-  const [animationPhase, setAnimationPhase] = useState<'idle' | 'fadeOthers' | 'transition'>('idle')
+  const [animationPhase, setAnimationPhase] = useState<'idle' | 'toCenter' | 'toSidebar'>('idle')
   const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
   // Fetch tenants
@@ -217,20 +217,16 @@ function SelectTenantPage() {
       height: rect.height,
     })
 
-    // Phase 1: Mark as selected, fade out everything
+    // Phase 1: Everything happens together - fade + move to center + text centers
     setSelectedWorkspaceForAnim(workspace)
-    setAnimationPhase('fadeOthers')
+    setAnimationPhase('toCenter')
+    await new Promise(r => setTimeout(r, 800)) // includes pause at center
 
-    // Wait for fade out + highlight + centering effect (450ms)
-    await new Promise(r => setTimeout(r, 450))
-
-    // Phase 2: Start transition + lines
-    setAnimationPhase('transition')
+    // Phase 2: Move to sidebar
+    setAnimationPhase('toSidebar')
     setCurrentWorkspace(workspace as WorkspaceWithRole)
     recordAccess('WORKSPACE', workspace.id).catch(() => {})
-
-    // Wait for transition (600ms)
-    await new Promise(r => setTimeout(r, 600))
+    await new Promise(r => setTimeout(r, 500))
 
     // Phase 3: Navigate
     navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } })
@@ -474,8 +470,8 @@ function SelectTenantPage() {
       <AnimatePresence>
         {selectedWorkspaceForAnim && selectedPosition && (
           <>
-            {/* Header bottom line - slides from left (only during transition) */}
-            {animationPhase === 'transition' && (
+            {/* Header bottom line - slides from left (during toSidebar) */}
+            {animationPhase === 'toSidebar' && (
               <motion.div
                 key="header-line"
                 className="fixed left-0 right-0 top-16 z-50 h-px bg-border"
@@ -486,8 +482,8 @@ function SelectTenantPage() {
               />
             )}
 
-            {/* Sidebar right line - slides from top (only during transition) */}
-            {animationPhase === 'transition' && (
+            {/* Sidebar right line - slides from top (during toSidebar) */}
+            {animationPhase === 'toSidebar' && (
               <motion.div
                 key="sidebar-line"
                 className="fixed bottom-0 left-64 top-16 z-50 w-px bg-border"
@@ -498,7 +494,7 @@ function SelectTenantPage() {
               />
             )}
 
-            {/* Floating card - EXACT REPLICA of original layout, then transforms */}
+            {/* Floating card - moves to center then to sidebar */}
             <motion.div
               key="floating-card"
               className="pointer-events-none fixed z-50 bg-background"
@@ -513,43 +509,58 @@ function SelectTenantPage() {
                 borderLeftWidth: 0,
                 borderRightWidth: 0,
                 borderColor: 'hsl(var(--border))',
+                boxShadow: '0 0 0 rgba(0,0,0,0)',
               }}
               animate={{
-                left: animationPhase === 'transition' ? 16 : selectedPosition.x,
-                top: animationPhase === 'transition' ? 64 + 24 : selectedPosition.y,
-                width: animationPhase === 'transition' ? 256 - 32 : selectedPosition.width,
-                // Highlight effect: grows slightly during fadeOthers
-                scale: animationPhase === 'fadeOthers' ? 1.03 : 1,
-                // Borders fade out during transition
-                borderTopWidth: animationPhase === 'transition' ? 0 : 1,
-                borderBottomWidth: animationPhase === 'transition' ? 0 : 1,
-                borderColor: animationPhase === 'transition' ? 'transparent' : 'hsl(var(--border))',
+                // Position: original -> center of CONTENT AREA (excluding sidebar) -> sidebar
+                // Sidebar width = 256px, so content area starts at 256px
+                left: animationPhase === 'toCenter'
+                  ? (typeof window !== 'undefined' ? 256 + (window.innerWidth - 256) / 2 - selectedPosition.width / 2 : selectedPosition.x)
+                  : animationPhase === 'toSidebar'
+                    ? 16
+                    : selectedPosition.x,
+                top: animationPhase === 'toCenter'
+                  ? (typeof window !== 'undefined' ? window.innerHeight / 2 - 40 : selectedPosition.y)
+                  : animationPhase === 'toSidebar'
+                    ? 64 + 24
+                    : selectedPosition.y,
+                width: animationPhase === 'toSidebar' ? 256 - 32 : selectedPosition.width,
+                // Scale: grows at center, back to 1 at sidebar
+                scale: animationPhase === 'toCenter' ? 1.1 : 1,
+                // Borders fade out during toSidebar
+                borderColor: animationPhase === 'toSidebar' ? 'transparent' : 'hsl(var(--border))',
+                // Shadow appears during toSidebar (floating effect)
+                boxShadow: animationPhase === 'toSidebar'
+                  ? '0 8px 30px rgba(0,0,0,0.12)'
+                  : '0 0 0 rgba(0,0,0,0)',
               }}
               transition={{
                 type: 'spring',
                 damping: 25,
                 stiffness: 200,
+                borderColor: { duration: 0.5, ease: 'easeInOut' },
+                boxShadow: { duration: 0.4, ease: 'easeOut' },
               }}
             >
-              {/* Container - ROW layout, name slides to center during fadeOthers */}
+              {/* Container - ROW layout, changes to column during toSidebar */}
               <motion.div
                 className="flex items-center justify-between relative"
                 initial={{ padding: '1.5rem 1rem' }}
                 animate={{
-                  flexDirection: animationPhase === 'transition' ? 'column' : 'row',
-                  justifyContent: animationPhase === 'transition' ? 'flex-start' : 'space-between',
-                  alignItems: animationPhase === 'transition' ? 'flex-start' : 'center',
-                  padding: animationPhase === 'transition' ? '0 0.5rem' : '1.5rem 1rem',
+                  flexDirection: animationPhase === 'toSidebar' ? 'column' : 'row',
+                  justifyContent: animationPhase === 'toSidebar' ? 'flex-start' : 'space-between',
+                  alignItems: animationPhase === 'toSidebar' ? 'flex-start' : 'center',
+                  padding: animationPhase === 'toSidebar' ? '0 0.5rem' : '1.5rem 1rem',
                 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Label "Workspace" - only appears during transition */}
+                {/* Label "Workspace" - only appears during toSidebar */}
                 <motion.label
                   initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                   animate={{
-                    opacity: animationPhase === 'transition' ? 1 : 0,
-                    height: animationPhase === 'transition' ? 'auto' : 0,
-                    marginBottom: animationPhase === 'transition' ? 8 : 0
+                    opacity: animationPhase === 'toSidebar' ? 1 : 0,
+                    height: animationPhase === 'toSidebar' ? 'auto' : 0,
+                    marginBottom: animationPhase === 'toSidebar' ? 8 : 0
                   }}
                   transition={{ duration: 0.3 }}
                   className="block text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
@@ -557,28 +568,27 @@ function SelectTenantPage() {
                   Workspace
                 </motion.label>
 
-                {/* Name - slides to center during fadeOthers using x transform */}
+                {/* Name - slides to center during toCenter, back to left during toSidebar */}
                 <motion.h3
                   initial={{ fontSize: '1.5rem', x: 0 }}
                   animate={{
-                    fontSize: animationPhase === 'transition' ? '1.125rem' : '1.5rem',
-                    // Move to center during fadeOthers (roughly half the metadata width)
-                    x: animationPhase === 'fadeOthers' ? 120 :
-                       animationPhase === 'transition' ? 0 : 0,
+                    fontSize: animationPhase === 'toSidebar' ? '1.125rem' : '1.5rem',
+                    // Slide to center during toCenter, back to 0 during toSidebar
+                    x: animationPhase === 'toCenter' ? 120 : 0,
                   }}
-                  transition={{ type: 'spring', damping: 30, stiffness: 80 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                   className="text-left font-display font-medium tracking-tight text-foreground"
                 >
                   {selectedWorkspaceForAnim.name}
                 </motion.h3>
 
-                {/* Metadata - fades out while name slides to center */}
+                {/* Metadata - fades out during toCenter */}
                 <motion.div
                   initial={{ opacity: 1 }}
                   animate={{
-                    opacity: animationPhase !== 'idle' ? 0 : 1,
+                    opacity: animationPhase === 'idle' ? 1 : 0,
                   }}
-                  transition={{ duration: 0.25 }}
+                  transition={{ duration: 0.3 }}
                   className="flex items-center gap-6"
                 >
                   <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
