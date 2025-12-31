@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowRight, Box } from 'lucide-react'
+import { ArrowRight, Box, Loader2, AlertCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
+import { loginWithCredentials, getUserInfo } from '@/lib/keycloak'
+import { fetchMyRoles } from '@/features/auth/api/auth-api'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -10,21 +13,56 @@ export const Route = createFileRoute('/login')({
 function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { setToken, setSystemRoles, setUserProfile } = useAuthStore()
+  const { setTokens, setUserProfile, setAllRoles } = useAuthStore()
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock login - in production this would be handled by Keycloak
-    setToken('mock-token')
-    setSystemRoles([])
-    setUserProfile({
-      id: 'user-1',
-      email: 'user@example.com',
-      username: 'demo',
-      firstName: 'Demo',
-      lastName: 'User',
-    })
-    navigate({ to: '/select-tenant' })
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      // Authenticate with Keycloak
+      const tokens = await loginWithCredentials(username, password)
+
+      // Store tokens
+      setTokens(tokens.access_token, tokens.refresh_token, tokens.expires_in)
+
+      // Get user info from Keycloak
+      const userInfo = await getUserInfo()
+      setUserProfile({
+        id: userInfo.sub,
+        email: userInfo.email || '',
+        firstName: userInfo.given_name,
+        lastName: userInfo.family_name,
+        username: userInfo.preferred_username,
+      })
+
+      // Fetch roles from backend API
+      try {
+        const roles = await fetchMyRoles()
+        setAllRoles(roles)
+      } catch (rolesError) {
+        console.warn('[Auth] Failed to fetch roles:', rolesError)
+        // Continue without roles - user can still access basic features
+      }
+
+      // Navigate to tenant selection
+      navigate({ to: '/select-tenant' })
+    } catch (err) {
+      console.error('[Auth] Login failed:', err)
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('login.error', 'Invalid username or password')
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -49,15 +87,26 @@ function LoginPage() {
 
         <div className="w-full max-w-[400px]">
           <form className="space-y-12" onSubmit={handleLogin}>
+            {error && (
+              <div className="flex items-center gap-3 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <AlertCircle size={18} />
+                <span>{error}</span>
+              </div>
+            )}
+
             <div className="space-y-8">
               <div className="group">
                 <label className="mb-2 block font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground transition-colors group-focus-within:text-foreground">
                   {t('login.email', 'Username / Email')}
                 </label>
                 <input
-                  type="email"
-                  defaultValue="user@domain.com"
-                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus:border-foreground focus:ring-0"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  autoComplete="username"
+                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus:border-foreground focus:ring-0 disabled:opacity-50"
                 />
               </div>
               <div className="group">
@@ -66,8 +115,12 @@ function LoginPage() {
                 </label>
                 <input
                   type="password"
-                  defaultValue="password123"
-                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus:border-foreground focus:ring-0"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus:border-foreground focus:ring-0 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -75,10 +128,20 @@ function LoginPage() {
             <div className="flex flex-col items-start gap-8 pt-4">
               <button
                 type="submit"
-                className="group flex h-14 w-full items-center justify-between gap-3 rounded-none bg-foreground px-8 text-sm font-medium tracking-wide text-background transition-colors hover:bg-foreground/90"
+                disabled={isLoading || !username || !password}
+                className="group flex h-14 w-full items-center justify-between gap-3 rounded-none bg-foreground px-8 text-sm font-medium tracking-wide text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <span>{t('login.authenticate', 'AUTHENTICATE')}</span>
-                <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                {isLoading ? (
+                  <>
+                    <span>{t('login.authenticating', 'AUTHENTICATING...')}</span>
+                    <Loader2 size={18} className="animate-spin" />
+                  </>
+                ) : (
+                  <>
+                    <span>{t('login.authenticate', 'AUTHENTICATE')}</span>
+                    <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </button>
               <a
                 href="#"

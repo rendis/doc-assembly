@@ -1,9 +1,28 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppContextStore } from '@/stores/app-context-store'
+import { refreshAccessToken } from '@/lib/keycloak'
 
 // API Base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+
+// Flag to prevent multiple simultaneous refresh attempts
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
+
+const processQueue = (error: Error | null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve()
+    }
+  })
+  failedQueue = []
+}
 
 /**
  * Create Axios instance with base configuration
@@ -46,15 +65,60 @@ apiClient.interceptors.request.use(
 )
 
 /**
- * Response interceptor - Handle errors globally
+ * Response interceptor - Handle errors globally with token refresh
  */
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    // Handle 401 Unauthorized - Clear auth and redirect to login
-    if (error.response?.status === 401) {
-      useAuthStore.getState().clearAuth()
-      // Redirect will be handled by the router
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    // Handle 401 Unauthorized - Try to refresh token first
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const { refreshToken } = useAuthStore.getState()
+
+      // If no refresh token, clear auth immediately
+      if (!refreshToken) {
+        useAuthStore.getState().clearAuth()
+        return Promise.reject(error)
+      }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then(() => {
+            // Update the token in the original request
+            const newToken = useAuthStore.getState().token
+            if (newToken) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`
+            }
+            return apiClient(originalRequest)
+          })
+          .catch((err) => Promise.reject(err))
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        await refreshAccessToken()
+        processQueue(null)
+
+        // Update the token in the original request
+        const newToken = useAuthStore.getState().token
+        if (newToken) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+        }
+
+        return apiClient(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError as Error)
+        useAuthStore.getState().clearAuth()
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
     }
 
     // Handle 403 Forbidden

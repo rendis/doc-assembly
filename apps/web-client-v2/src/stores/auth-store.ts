@@ -47,12 +47,19 @@ export interface UserProfile {
 interface AuthState {
   // State
   token: string | null
+  refreshToken: string | null
+  tokenExpiresAt: number | null
+  isAuthLoading: boolean
   systemRoles: SystemRole[]
   userProfile: UserProfile | null
   allRoles: RoleEntry[]
 
   // Actions
   setToken: (token: string | null) => void
+  setRefreshToken: (token: string | null) => void
+  setTokenExpiry: (expiresAt: number | null) => void
+  setAuthLoading: (loading: boolean) => void
+  setTokens: (accessToken: string, refreshToken: string, expiresIn: number) => void
   setSystemRoles: (roles: SystemRole[]) => void
   setUserProfile: (profile: UserProfile | null) => void
   setAllRoles: (roles: RoleEntry[]) => void
@@ -60,6 +67,8 @@ interface AuthState {
 
   // Computed
   isAuthenticated: () => boolean
+  isTokenExpired: () => boolean
+  hasValidRefreshToken: () => boolean
   isSuperAdmin: () => boolean
   isPlatformAdmin: () => boolean
   canAccessAdmin: () => boolean
@@ -74,12 +83,30 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       // Initial state
       token: null,
+      refreshToken: null,
+      tokenExpiresAt: null,
+      isAuthLoading: true,
       systemRoles: [],
       userProfile: null,
       allRoles: [],
 
       // Actions
       setToken: (token) => set({ token }),
+
+      setRefreshToken: (refreshToken) => set({ refreshToken }),
+
+      setTokenExpiry: (tokenExpiresAt) => set({ tokenExpiresAt }),
+
+      setAuthLoading: (isAuthLoading) => set({ isAuthLoading }),
+
+      setTokens: (accessToken, refreshToken, expiresIn) => {
+        const tokenExpiresAt = Date.now() + expiresIn * 1000
+        set({
+          token: accessToken,
+          refreshToken,
+          tokenExpiresAt,
+        })
+      },
 
       setSystemRoles: (roles) => set({ systemRoles: roles }),
 
@@ -97,6 +124,8 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () =>
         set({
           token: null,
+          refreshToken: null,
+          tokenExpiresAt: null,
           systemRoles: [],
           userProfile: null,
           allRoles: [],
@@ -106,6 +135,18 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: () => {
         const { token } = get()
         return token !== null
+      },
+
+      isTokenExpired: () => {
+        const { tokenExpiresAt } = get()
+        if (!tokenExpiresAt) return true
+        // Consider token expired 30 seconds before actual expiry
+        return Date.now() > tokenExpiresAt - 30000
+      },
+
+      hasValidRefreshToken: () => {
+        const { refreshToken } = get()
+        return refreshToken !== null
       },
 
       isSuperAdmin: () => {
@@ -137,6 +178,8 @@ export const useAuthStore = create<AuthState>()(
       name: 'doc-assembly-auth',
       partialize: (state) => ({
         token: state.token,
+        refreshToken: state.refreshToken,
+        tokenExpiresAt: state.tokenExpiresAt,
         systemRoles: state.systemRoles,
         userProfile: state.userProfile,
       }),

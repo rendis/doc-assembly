@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Search, Box, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
@@ -10,6 +11,56 @@ import { useWorkspaces } from '@/features/workspaces'
 export const Route = createFileRoute('/select-tenant')({
   component: SelectTenantPage,
 })
+
+const containerVariants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: 'easeOut' },
+  },
+}
+
+function LoadingDots() {
+  const [dots, setDots] = useState('')
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'))
+    }, 400)
+    return () => clearInterval(interval)
+  }, [])
+
+  return <span className="inline-block w-6 text-left">{dots}</span>
+}
+
+function formatRelativeTime(isoDate: string | null | undefined): string {
+  if (!isoDate) return 'Never'
+
+  const date = new Date(isoDate)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  const diffWeeks = Math.floor(diffDays / 7)
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`
+}
 
 function SelectTenantPage() {
   const { t } = useTranslation()
@@ -27,15 +78,29 @@ function SelectTenantPage() {
   // Fetch workspaces for selected tenant
   const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(1, 50)
 
+  // Minimum loading time state
+  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+
+  // Start minimum loading timer on mount and when context changes
+  useEffect(() => {
+    setMinLoadingComplete(false)
+    const timer = setTimeout(() => setMinLoadingComplete(true), 2000)
+    return () => clearTimeout(timer)
+  }, [selectedTenant])
+
+  // Combined loading conditions
+  const showTenantLoading = !minLoadingComplete || isLoadingTenants || isSearching
+  const showWorkspaceLoading = !minLoadingComplete || isLoadingWorkspaces
+
   const tenants = searchQuery ? searchData?.data : tenantsData?.data
   const workspaces = workspacesData?.data || []
 
   // Mock data for demo
   const mockTenants: TenantWithRole[] = [
-    { id: '1', name: 'Acme Legal Corp', code: 'ACME', createdAt: new Date().toISOString(), role: 'ADMIN' },
-    { id: '2', name: 'Global Finance Ltd', code: 'GFL', createdAt: new Date().toISOString(), role: 'MEMBER' },
-    { id: '3', name: 'Northeast Litigation', code: 'NEL', createdAt: new Date().toISOString(), role: 'OWNER' },
-    { id: '4', name: 'Orion Properties', code: 'ORION', createdAt: new Date().toISOString(), role: 'MEMBER' },
+    { id: '1', name: 'Acme Legal Corp', code: 'ACME', createdAt: new Date().toISOString(), role: 'ADMIN', lastAccessedAt: new Date(Date.now() - 2 * 60000).toISOString() },
+    { id: '2', name: 'Global Finance Ltd', code: 'GFL', createdAt: new Date().toISOString(), role: 'MEMBER', lastAccessedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
+    { id: '3', name: 'Northeast Litigation', code: 'NEL', createdAt: new Date().toISOString(), role: 'OWNER', lastAccessedAt: new Date(Date.now() - 7 * 86400000).toISOString() },
+    { id: '4', name: 'Orion Properties', code: 'ORION', createdAt: new Date().toISOString(), role: 'MEMBER', lastAccessedAt: null },
   ]
 
   const mockWorkspaces: WorkspaceWithRole[] = [
@@ -67,7 +132,7 @@ function SelectTenantPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background">
+    <div className="relative flex min-h-screen flex-col items-center bg-background pt-32 lg:pt-40">
       {/* Logo */}
       <div className="absolute left-6 top-8 flex items-center gap-3 md:left-12 lg:left-32">
         <div className="flex h-6 w-6 items-center justify-center border-2 border-foreground text-foreground">
@@ -132,70 +197,106 @@ function SelectTenantPage() {
 
           {/* List */}
           <div className="flex w-full flex-col">
-            {selectedTenant ? (
-              // Workspaces list
-              isLoadingWorkspaces ? (
-                <div className="py-8 text-center text-muted-foreground">Loading workspaces...</div>
-              ) : (
-                displayWorkspaces.map((ws: WorkspaceWithRole) => (
-                  <button
-                    key={ws.id}
-                    onClick={() => handleWorkspaceSelect(ws)}
-                    className={cn(
-                      'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
-                    )}
+            <AnimatePresence mode="wait">
+              {selectedTenant ? (
+                // Workspaces list
+                showWorkspaceLoading ? (
+                  <motion.div
+                    key="loading-workspaces"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                    className="py-8 text-center text-muted-foreground"
                   >
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
-                        {ws.name}
-                      </h3>
-                      {ws.type === 'SYSTEM' && (
-                        <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                          System
-                        </span>
+                    Loading workspaces
+                    <LoadingDots />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="workspaces-list"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="flex w-full flex-col"
+                  >
+                    {displayWorkspaces.map((ws: WorkspaceWithRole) => (
+                      <motion.button
+                        key={ws.id}
+                        variants={itemVariants}
+                        onClick={() => handleWorkspaceSelect(ws)}
+                        className={cn(
+                          'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
+                            {ws.name}
+                          </h3>
+                          {ws.type === 'SYSTEM' && (
+                            <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                              System
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-6 md:gap-8">
+                          <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">
+                            Role: {ws.role}
+                          </span>
+                          <ArrowRight
+                            className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
+                            size={24}
+                          />
+                        </div>
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )
+              ) : // Tenants list
+              showTenantLoading ? (
+                <motion.div
+                  key="loading-tenants"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                  className="py-8 text-center text-muted-foreground"
+                >
+                  Loading organizations
+                  <LoadingDots />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="tenants-list"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="flex w-full flex-col"
+                >
+                  {displayTenants.map((tenant: TenantWithRole) => (
+                    <motion.button
+                      key={tenant.id}
+                      variants={itemVariants}
+                      onClick={() => handleTenantSelect(tenant)}
+                      className={cn(
+                        'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
                       )}
-                    </div>
-                    <div className="flex items-center gap-6 md:gap-8">
-                      <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">
-                        Role: {ws.role}
-                      </span>
-                      <ArrowRight
-                        className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
-                        size={24}
-                      />
-                    </div>
-                  </button>
-                ))
-              )
-            ) : (
-              // Tenants list
-              isLoadingTenants || isSearching ? (
-                <div className="py-8 text-center text-muted-foreground">Loading organizations...</div>
-              ) : (
-                displayTenants.map((tenant: TenantWithRole) => (
-                  <button
-                    key={tenant.id}
-                    onClick={() => handleTenantSelect(tenant)}
-                    className={cn(
-                      'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
-                    )}
-                  >
-                    <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
-                      {tenant.name}
-                    </h3>
-                    <div className="flex items-center gap-6 md:gap-8">
-                      <span className="hidden whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:inline md:text-xs">
-                        Role: {tenant.role}
-                      </span>
-                      <ArrowRight
-                        className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
-                        size={24}
-                      />
-                    </div>
-                  </button>
-                ))
-              )
-            )}
+                    >
+                      <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
+                        {tenant.name}
+                      </h3>
+                      <div className="flex items-center gap-6 md:gap-8">
+                        <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">
+                          Last accessed: {formatRelativeTime(tenant.lastAccessedAt)}
+                        </span>
+                        <ArrowRight
+                          className="text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-foreground"
+                          size={24}
+                        />
+                      </div>
+                    </motion.button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Join new button */}

@@ -19,6 +19,7 @@ export interface Tenant {
  */
 export interface TenantWithRole extends Tenant {
   role: string
+  lastAccessedAt?: string | null
 }
 
 /**

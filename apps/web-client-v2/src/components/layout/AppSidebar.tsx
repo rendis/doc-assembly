@@ -1,4 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { LayoutGrid, FileText, FolderOpen, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/common/Logo'
@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { useSidebarStore } from '@/stores/sidebar-store'
+import { logout } from '@/lib/keycloak'
 import { getInitials } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
@@ -20,7 +21,8 @@ interface NavItem {
 export function AppSidebar() {
   const { t } = useTranslation()
   const location = useLocation()
-  const { userProfile, clearAuth } = useAuthStore()
+  const navigate = useNavigate()
+  const { userProfile } = useAuthStore()
   const { currentWorkspace, clearContext } = useAppContextStore()
   const { isCollapsed, closeMobile } = useSidebarStore()
 
@@ -58,10 +60,11 @@ export function AppSidebar() {
   const email = userProfile?.email || 'user@example.com'
   const initials = getInitials(displayName)
 
-  const handleLogout = () => {
-    clearAuth()
-    clearContext()
+  const handleLogout = async () => {
     closeMobile()
+    clearContext()
+    await logout()
+    navigate({ to: '/login' })
   }
 
   const isActive = (href: string) => {

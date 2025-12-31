@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  initKeycloak,
-  useMockAuth,
-  getToken,
-  getUserProfile,
+  refreshAccessToken,
+  getUserInfo,
+  setupTokenRefresh,
 } from '@/lib/keycloak'
+import { fetchMyRoles } from '@/features/auth/api/auth-api'
 import { initializeTheme } from '@/stores/theme-store'
 import { LoadingOverlay } from '@/components/common/LoadingSpinner'
 
@@ -14,8 +14,16 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isInitializing, setIsInitializing] = useState(true)
-  const { setToken, setUserProfile, setAllRoles } = useAuthStore()
+  const {
+    token,
+    refreshToken,
+    isAuthLoading,
+    setAuthLoading,
+    setUserProfile,
+    setAllRoles,
+    clearAuth,
+    isTokenExpired,
+  } = useAuthStore()
 
   useEffect(() => {
     // Initialize theme system
@@ -23,61 +31,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const init = async () => {
       try {
-        if (useMockAuth) {
-          // Mock authentication
-          setToken('mock-token')
-          setUserProfile({
-            id: 'mock-user-id',
-            email: 'admin@doc-assembly.io',
-            firstName: 'John',
-            lastName: 'Doe',
-            username: 'admin',
-          })
-          // Mock roles - give superadmin for development
-          setAllRoles([
-            { type: 'SYSTEM', role: 'SUPERADMIN', resourceId: null },
-          ])
-        } else {
-          // Real Keycloak authentication
-          const authenticated = await initKeycloak()
-
-          if (authenticated) {
-            const token = getToken()
-            if (token) {
-              setToken(token)
+        // Check if we have existing tokens
+        if (token && refreshToken) {
+          // If token is expired, try to refresh
+          if (isTokenExpired()) {
+            console.log('[Auth] Token expired, attempting refresh...')
+            try {
+              await refreshAccessToken()
+              console.log('[Auth] Token refreshed successfully')
+            } catch (error) {
+              console.error('[Auth] Failed to refresh token:', error)
+              clearAuth()
+              setAuthLoading(false)
+              return
             }
+          }
 
-            const profile = await getUserProfile()
-            if (profile) {
-              setUserProfile({
-                id: profile.id || '',
-                email: profile.email || '',
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                username: profile.username,
-              })
-            }
+          // Token is valid, load user info and roles
+          try {
+            const userInfo = await getUserInfo()
+            setUserProfile({
+              id: userInfo.sub,
+              email: userInfo.email || '',
+              firstName: userInfo.given_name,
+              lastName: userInfo.family_name,
+              username: userInfo.preferred_username,
+            })
 
-            // TODO: Fetch roles from API
-            // const roles = await fetchUserRoles()
-            // setAllRoles(roles)
+            // Fetch roles from API
+            const roles = await fetchMyRoles()
+            setAllRoles(roles)
+            console.log('[Auth] User info and roles loaded')
+          } catch (error) {
+            console.error('[Auth] Failed to load user info or roles:', error)
+            // Don't clear auth here - user is still authenticated
+            // Roles will be empty but user can still navigate
           }
         }
       } catch (error) {
         console.error('[Auth] Initialization failed:', error)
+        clearAuth()
       } finally {
-        setIsInitializing(false)
+        setAuthLoading(false)
       }
     }
 
     init()
 
+    // Setup automatic token refresh
+    const cleanupRefresh = setupTokenRefresh()
+
     return () => {
       cleanupTheme?.()
+      cleanupRefresh()
     }
-  }, [setToken, setUserProfile, setAllRoles])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isInitializing) {
+  if (isAuthLoading) {
     return <LoadingOverlay message="Initializing..." />
   }
 
