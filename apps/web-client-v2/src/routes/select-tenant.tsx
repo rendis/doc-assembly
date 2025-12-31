@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Search, Box, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Search, Box, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,10 @@ const containerVariants = {
       staggerChildren: 0.08,
     },
   },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.2 },
+  },
 }
 
 const itemVariants = {
@@ -29,6 +33,50 @@ const itemVariants = {
     opacity: 1,
     transition: { duration: 0.3 },
   },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.15 },
+  },
+}
+
+const ITEMS_PER_PAGE = 5
+
+function PaginationControls({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}) {
+  if (totalPages <= 1) return null
+
+  return (
+    <div className="flex items-center justify-between py-6">
+      <button
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground/50 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+      >
+        <ChevronLeft size={14} />
+        <span>Previous</span>
+      </button>
+
+      <span className="font-mono text-xs text-muted-foreground/50">
+        Page {page} / {totalPages}
+      </span>
+
+      <button
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground/50 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+      >
+        <span>Next</span>
+        <ChevronRight size={14} />
+      </button>
+    </div>
+  )
 }
 
 function LoadingDots() {
@@ -70,13 +118,19 @@ function SelectTenantPage() {
   const [selectedTenant, setSelectedTenant] = useState<TenantWithRole | null>(
     currentTenant as TenantWithRole | null
   )
+  const [tenantPage, setTenantPage] = useState(1)
+  const [workspacePage, setWorkspacePage] = useState(1)
 
   // Fetch tenants
-  const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants()
+  const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants(tenantPage, ITEMS_PER_PAGE)
   const { data: searchData, isLoading: isSearching } = useSearchTenants(searchQuery)
 
   // Fetch workspaces for selected tenant (only when a tenant is selected)
-  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(selectedTenant?.id ?? null, 1, 50)
+  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(selectedTenant?.id ?? null, workspacePage, ITEMS_PER_PAGE)
+
+  // Pagination metadata
+  const tenantPagination = tenantsData?.pagination
+  const workspacePagination = workspacesData?.pagination
 
   // Minimum loading time state
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
@@ -87,6 +141,16 @@ function SelectTenantPage() {
     const timer = setTimeout(() => setMinLoadingComplete(true), 1000)
     return () => clearTimeout(timer)
   }, [selectedTenant])
+
+  // Reset workspace page when tenant changes
+  useEffect(() => {
+    setWorkspacePage(1)
+  }, [selectedTenant?.id])
+
+  // Reset tenant page when search changes
+  useEffect(() => {
+    setTenantPage(1)
+  }, [searchQuery])
 
   // Combined loading conditions
   const showTenantLoading = !minLoadingComplete || isLoadingTenants || isSearching
@@ -198,7 +262,7 @@ function SelectTenantPage() {
           </div>
 
           {/* List */}
-          <div className="flex w-full flex-col">
+          <div className="flex w-full flex-col" style={{ minHeight: '400px' }}>
             <AnimatePresence mode="wait">
               {selectedTenant ? (
                 // Workspaces list
@@ -215,10 +279,11 @@ function SelectTenantPage() {
                   </motion.div>
                 ) : (
                   <motion.div
-                    key="workspaces-list"
+                    key={`workspaces-page-${workspacePage}`}
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
+                    exit="exit"
                     className="flex w-full flex-col"
                   >
                     {displayWorkspaces.map((ws: WorkspaceWithRole) => (
@@ -267,10 +332,11 @@ function SelectTenantPage() {
                 </motion.div>
               ) : (
                 <motion.div
-                  key="tenants-list"
+                  key={`tenants-page-${tenantPage}`}
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
+                  exit="exit"
                   className="flex w-full flex-col"
                 >
                   {displayTenants.map((tenant: TenantWithRole) => (
@@ -300,6 +366,22 @@ function SelectTenantPage() {
               )}
             </AnimatePresence>
           </div>
+
+          {/* Pagination */}
+          {!selectedTenant && !showTenantLoading && tenantPagination && (
+            <PaginationControls
+              page={tenantPagination.page}
+              totalPages={tenantPagination.totalPages}
+              onPageChange={setTenantPage}
+            />
+          )}
+          {selectedTenant && !showWorkspaceLoading && workspacePagination && (
+            <PaginationControls
+              page={workspacePagination.page}
+              totalPages={workspacePagination.totalPages}
+              onPageChange={setWorkspacePage}
+            />
+          )}
 
           {/* Join new button */}
           <div className="mt-12 border-t border-border pt-8">
