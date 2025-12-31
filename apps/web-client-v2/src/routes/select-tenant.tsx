@@ -128,7 +128,7 @@ function SelectTenantPage() {
 
   // Animation orchestration states
   const [selectedWorkspaceForAnim, setSelectedWorkspaceForAnim] = useState<WorkspaceWithRole | null>(null)
-  const [animationPhase, setAnimationPhase] = useState<'idle' | 'toCenter' | 'toSidebar'>('idle')
+  const [animationPhase, setAnimationPhase] = useState<'idle' | 'toCenter' | 'fadeBorders' | 'toSidebar'>('idle')
   const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
   // Fetch tenants
@@ -217,18 +217,22 @@ function SelectTenantPage() {
       height: rect.height,
     })
 
-    // Phase 1: Everything happens together - fade + move to center + text centers
+    // Phase 1: Move to center
     setSelectedWorkspaceForAnim(workspace)
     setAnimationPhase('toCenter')
-    await new Promise(r => setTimeout(r, 800)) // includes pause at center
+    await new Promise(r => setTimeout(r, 600))
 
-    // Phase 2: Move to sidebar
+    // Phase 2: Fade borders while centered
+    setAnimationPhase('fadeBorders')
+    await new Promise(r => setTimeout(r, 400))
+
+    // Phase 3: Move to sidebar (sin bordes)
     setAnimationPhase('toSidebar')
     setCurrentWorkspace(workspace as WorkspaceWithRole)
     recordAccess('WORKSPACE', workspace.id).catch(() => {})
     await new Promise(r => setTimeout(r, 500))
 
-    // Phase 3: Navigate
+    // Phase 4: Navigate
     navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } })
   }
 
@@ -466,69 +470,69 @@ function SelectTenantPage() {
         </div>
       </motion.div>
 
-      {/* Transition overlay - lines and floating card */}
+      {/* Header bottom line - slides from left, fades out on exit */}
+      <AnimatePresence>
+        {animationPhase === 'toSidebar' && (
+          <motion.div
+            key="header-line"
+            className="fixed left-0 right-0 top-16 z-50 h-px bg-border"
+            style={{ transformOrigin: 'left' }}
+            initial={{ scaleX: 0, opacity: 1 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar right line - slides from top, fades out on exit */}
+      <AnimatePresence>
+        {animationPhase === 'toSidebar' && (
+          <motion.div
+            key="sidebar-line"
+            className="fixed bottom-0 left-64 top-16 z-50 w-px bg-border"
+            style={{ transformOrigin: 'top' }}
+            initial={{ scaleY: 0, opacity: 1 }}
+            animate={{ scaleY: 1, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Floating card */}
       <AnimatePresence>
         {selectedWorkspaceForAnim && selectedPosition && (
           <>
-            {/* Header bottom line - slides from left (during toSidebar) */}
-            {animationPhase === 'toSidebar' && (
-              <motion.div
-                key="header-line"
-                className="fixed left-0 right-0 top-16 z-50 h-px bg-border"
-                style={{ transformOrigin: 'left' }}
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              />
-            )}
-
-            {/* Sidebar right line - slides from top (during toSidebar) */}
-            {animationPhase === 'toSidebar' && (
-              <motion.div
-                key="sidebar-line"
-                className="fixed bottom-0 left-64 top-16 z-50 w-px bg-border"
-                style={{ transformOrigin: 'top' }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              />
-            )}
 
             {/* Floating card - moves to center then to sidebar */}
             <motion.div
               key="floating-card"
               className="pointer-events-none fixed z-50 bg-background"
-              style={{ transformOrigin: 'center center', borderStyle: 'solid' }}
+              style={{ transformOrigin: 'center center' }}
               initial={{
                 left: selectedPosition.x,
                 top: selectedPosition.y,
                 width: selectedPosition.width,
                 scale: 1,
-                borderTopWidth: 1,
-                borderBottomWidth: 1,
-                borderLeftWidth: 0,
-                borderRightWidth: 0,
-                borderColor: 'hsl(var(--border))',
                 boxShadow: '0 0 0 rgba(0,0,0,0)',
               }}
               animate={{
-                // Position: original -> center of CONTENT AREA (excluding sidebar) -> sidebar
+                // Position: original -> center (stays during fadeBorders) -> sidebar
                 // Sidebar width = 256px, so content area starts at 256px
-                left: animationPhase === 'toCenter'
+                left: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders')
                   ? (typeof window !== 'undefined' ? 256 + (window.innerWidth - 256) / 2 - selectedPosition.width / 2 : selectedPosition.x)
                   : animationPhase === 'toSidebar'
                     ? 16
                     : selectedPosition.x,
-                top: animationPhase === 'toCenter'
+                top: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders')
                   ? (typeof window !== 'undefined' ? window.innerHeight / 2 - 40 : selectedPosition.y)
                   : animationPhase === 'toSidebar'
                     ? 64 + 24
                     : selectedPosition.y,
                 width: animationPhase === 'toSidebar' ? 256 - 32 : selectedPosition.width,
-                // Scale: grows at center, back to 1 at sidebar
-                scale: animationPhase === 'toCenter' ? 1.1 : 1,
-                // Borders fade out during toSidebar
-                borderColor: animationPhase === 'toSidebar' ? 'transparent' : 'hsl(var(--border))',
+                // Scale: grows at center (and stays during fadeBorders), back to 1 at sidebar
+                scale: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 1.1 : 1,
                 // Shadow appears during toSidebar (floating effect)
                 boxShadow: animationPhase === 'toSidebar'
                   ? '0 8px 30px rgba(0,0,0,0.12)'
@@ -538,10 +542,29 @@ function SelectTenantPage() {
                 type: 'spring',
                 damping: 25,
                 stiffness: 200,
-                borderColor: { duration: 0.5, ease: 'easeInOut' },
                 boxShadow: { duration: 0.4, ease: 'easeOut' },
               }}
             >
+              {/* Top border - shrinks from ends to center */}
+              <motion.div
+                className="absolute left-0 right-0 top-0 h-px bg-border"
+                style={{ transformOrigin: 'center' }}
+                initial={{ scaleX: 1 }}
+                animate={{
+                  scaleX: (animationPhase === 'fadeBorders' || animationPhase === 'toSidebar') ? 0 : 1,
+                }}
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+              />
+              {/* Bottom border - shrinks from ends to center */}
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-px bg-border"
+                style={{ transformOrigin: 'center' }}
+                initial={{ scaleX: 1 }}
+                animate={{
+                  scaleX: (animationPhase === 'fadeBorders' || animationPhase === 'toSidebar') ? 0 : 1,
+                }}
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+              />
               {/* Container - ROW layout, changes to column during toSidebar */}
               <motion.div
                 className="flex items-center justify-between relative"
@@ -568,13 +591,13 @@ function SelectTenantPage() {
                   Workspace
                 </motion.label>
 
-                {/* Name - slides to center during toCenter, back to left during toSidebar */}
+                {/* Name - slides to center during toCenter, stays during fadeBorders, back to left during toSidebar */}
                 <motion.h3
                   initial={{ fontSize: '1.5rem', x: 0 }}
                   animate={{
                     fontSize: animationPhase === 'toSidebar' ? '1.125rem' : '1.5rem',
-                    // Slide to center during toCenter, back to 0 during toSidebar
-                    x: animationPhase === 'toCenter' ? 120 : 0,
+                    // Slide to center during toCenter (stays during fadeBorders), back to 0 during toSidebar
+                    x: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 120 : 0,
                   }}
                   transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                   className="text-left font-display font-medium tracking-tight text-foreground"
