@@ -86,14 +86,15 @@ func TenantWithRoleToResponse(t *entity.TenantWithRole) *dto.TenantWithRoleRespo
 	}
 
 	return &dto.TenantWithRoleResponse{
-		ID:          t.Tenant.ID,
-		Name:        t.Tenant.Name,
-		Code:        t.Tenant.Code,
-		Description: t.Tenant.Description,
-		Role:        string(t.Role),
-		Settings:    settings,
-		CreatedAt:   t.Tenant.CreatedAt,
-		UpdatedAt:   t.Tenant.UpdatedAt,
+		ID:             t.Tenant.ID,
+		Name:           t.Tenant.Name,
+		Code:           t.Tenant.Code,
+		Description:    t.Tenant.Description,
+		Role:           string(t.Role),
+		Settings:       settings,
+		CreatedAt:      t.Tenant.CreatedAt,
+		UpdatedAt:      t.Tenant.UpdatedAt,
+		LastAccessedAt: t.LastAccessedAt,
 	}
 }
 
@@ -127,31 +128,27 @@ func UpdateTenantRequestToCommand(id string, req dto.UpdateTenantRequest) usecas
 
 // TenantListRequestToFilters converts a list request to port filters.
 func TenantListRequestToFilters(req dto.TenantListRequest) port.TenantFilters {
+	offset := (req.Page - 1) * req.PerPage
 	return port.TenantFilters{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		Limit:  req.PerPage,
+		Offset: offset,
 	}
 }
 
 // TenantsToPaginatedResponse converts tenants to a paginated response.
-func TenantsToPaginatedResponse(tenants []*entity.Tenant, total int64, limit, offset int) *dto.PaginatedTenantsResponse {
+func TenantsToPaginatedResponse(tenants []*entity.Tenant, total int64, page, perPage int) *dto.PaginatedTenantsResponse {
 	responses := TenantsToResponses(tenants)
 
-	totalPages := int(total) / limit
-	if int(total)%limit > 0 {
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
 		totalPages++
-	}
-
-	page := 1
-	if limit > 0 {
-		page = (offset / limit) + 1
 	}
 
 	return &dto.PaginatedTenantsResponse{
 		Data: responses,
 		Pagination: dto.PaginationMeta{
 			Page:       page,
-			PerPage:    limit,
+			PerPage:    perPage,
 			Total:      total,
 			TotalPages: totalPages,
 		},
@@ -160,31 +157,27 @@ func TenantsToPaginatedResponse(tenants []*entity.Tenant, total int64, limit, of
 
 // TenantMemberListRequestToFilters converts a list request to tenant member filters.
 func TenantMemberListRequestToFilters(req dto.TenantListRequest) port.TenantMemberFilters {
+	offset := (req.Page - 1) * req.PerPage
 	return port.TenantMemberFilters{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		Limit:  req.PerPage,
+		Offset: offset,
 	}
 }
 
 // TenantsWithRoleToPaginatedResponse converts tenants with roles to a paginated response.
-func TenantsWithRoleToPaginatedResponse(tenants []*entity.TenantWithRole, total int64, limit, offset int) *dto.PaginatedTenantsWithRoleResponse {
+func TenantsWithRoleToPaginatedResponse(tenants []*entity.TenantWithRole, total int64, page, perPage int) *dto.PaginatedTenantsWithRoleResponse {
 	responses := TenantsWithRoleToResponses(tenants)
 
-	totalPages := int(total) / limit
-	if int(total)%limit > 0 {
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
 		totalPages++
-	}
-
-	page := 1
-	if limit > 0 {
-		page = (offset / limit) + 1
 	}
 
 	return &dto.PaginatedTenantsWithRoleResponse{
 		Data: responses,
 		Pagination: dto.PaginationMeta{
 			Page:       page,
-			PerPage:    limit,
+			PerPage:    perPage,
 			Total:      total,
 			TotalPages: totalPages,
 		},

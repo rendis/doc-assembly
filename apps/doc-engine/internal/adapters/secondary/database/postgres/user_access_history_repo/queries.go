@@ -23,6 +23,13 @@ const (
 		ORDER BY accessed_at DESC
 		LIMIT $3`
 
+	queryGetAccessTimesForEntities = `
+		SELECT entity_id, accessed_at
+		FROM identity.user_access_history
+		WHERE user_id = $1
+		  AND entity_type = $2
+		  AND entity_id = ANY($3)`
+
 	queryDeleteOldAccesses = `
 		DELETE FROM identity.user_access_history
 		WHERE id IN (

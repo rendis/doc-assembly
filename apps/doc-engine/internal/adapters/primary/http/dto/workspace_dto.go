@@ -4,14 +4,15 @@ import "time"
 
 // WorkspaceResponse represents a workspace in API responses.
 type WorkspaceResponse struct {
-	ID        string         `json:"id"`
-	TenantID  *string        `json:"tenantId,omitempty"`
-	Name      string         `json:"name"`
-	Type      string         `json:"type"`
-	Status    string         `json:"status"`
-	Settings  map[string]any `json:"settings,omitempty"`
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt *time.Time     `json:"updatedAt,omitempty"`
+	ID             string         `json:"id"`
+	TenantID       *string        `json:"tenantId,omitempty"`
+	Name           string         `json:"name"`
+	Type           string         `json:"type"`
+	Status         string         `json:"status"`
+	Settings       map[string]any `json:"settings,omitempty"`
+	CreatedAt      time.Time      `json:"createdAt"`
+	UpdatedAt      *time.Time     `json:"updatedAt,omitempty"`
+	LastAccessedAt *time.Time     `json:"lastAccessedAt,omitempty"`
 }
 
 // CreateWorkspaceRequest represents a request to create a workspace.
@@ -63,8 +64,8 @@ type WorkspaceSearchRequest struct {
 
 // WorkspaceListRequest represents a request to list workspaces with pagination.
 type WorkspaceListRequest struct {
-	Limit  int `form:"limit,default=20"`
-	Offset int `form:"offset,default=0"`
+	Page    int `form:"page,default=1"`
+	PerPage int `form:"perPage,default=10"`
 }
 
 // PaginatedWorkspacesResponse represents a paginated list of workspaces.

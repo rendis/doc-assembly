@@ -10,6 +10,7 @@ import (
 type TenantFilters struct {
 	Limit  int
 	Offset int
+	UserID string // Used for access-based sorting
 }
 
 // TenantRepository defines the interface for tenant data access.

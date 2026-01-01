@@ -66,8 +66,8 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	templateVersionSignerRoleRepo := templateversionsignerrolerepo.New(pool)
 
 	// Create services - Identity & Tenancy
-	tenantService := service.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo)
-	workspaceService := service.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo)
+	tenantService := service.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
+	workspaceService := service.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo, userAccessHistoryRepo)
 	systemRoleService := service.NewSystemRoleService(systemRoleRepo, userRepo)
 	tenantMemberService := service.NewTenantMemberService(tenantMemberRepo, userRepo)
 	folderService := service.NewFolderService(folderRepo)

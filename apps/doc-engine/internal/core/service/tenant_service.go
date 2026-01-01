@@ -18,19 +18,25 @@ func NewTenantService(
 	tenantRepo port.TenantRepository,
 	workspaceRepo port.WorkspaceRepository,
 	tenantMemberRepo port.TenantMemberRepository,
+	systemRoleRepo port.SystemRoleRepository,
+	accessHistoryRepo port.UserAccessHistoryRepository,
 ) usecase.TenantUseCase {
 	return &TenantService{
-		tenantRepo:       tenantRepo,
-		workspaceRepo:    workspaceRepo,
-		tenantMemberRepo: tenantMemberRepo,
+		tenantRepo:        tenantRepo,
+		workspaceRepo:     workspaceRepo,
+		tenantMemberRepo:  tenantMemberRepo,
+		systemRoleRepo:    systemRoleRepo,
+		accessHistoryRepo: accessHistoryRepo,
 	}
 }
 
 // TenantService implements tenant business logic.
 type TenantService struct {
-	tenantRepo       port.TenantRepository
-	workspaceRepo    port.WorkspaceRepository
-	tenantMemberRepo port.TenantMemberRepository
+	tenantRepo        port.TenantRepository
+	workspaceRepo     port.WorkspaceRepository
+	tenantMemberRepo  port.TenantMemberRepository
+	systemRoleRepo    port.SystemRoleRepository
+	accessHistoryRepo port.UserAccessHistoryRepository
 }
 
 // CreateTenant creates a new tenant with its system workspace.
@@ -119,21 +125,81 @@ func (s *TenantService) ListUserTenants(ctx context.Context, userID string) ([]*
 }
 
 // SearchUserTenants searches tenants by name or code similarity for a user.
+// If the user has a system role (SUPERADMIN or PLATFORM_ADMIN), returns all tenants.
 func (s *TenantService) SearchUserTenants(ctx context.Context, userID, query string) ([]*entity.TenantWithRole, error) {
 	const maxResults = 10
-	tenants, err := s.tenantMemberRepo.SearchTenantsWithRoleByUser(ctx, userID, query, maxResults)
-	if err != nil {
-		return nil, fmt.Errorf("searching user tenants: %w", err)
+
+	var tenants []*entity.TenantWithRole
+
+	// Check if user has a system role
+	systemRoleAssignment, err := s.systemRoleRepo.FindByUserID(ctx, userID)
+	if err == nil && systemRoleAssignment != nil {
+		virtualRole := s.getVirtualTenantRole(systemRoleAssignment.Role)
+		if virtualRole != "" {
+			allTenants, err := s.tenantRepo.SearchByNameOrCode(ctx, query, maxResults)
+			if err != nil {
+				return nil, fmt.Errorf("searching all tenants: %w", err)
+			}
+			tenants = s.mapTenantsWithRole(allTenants, virtualRole)
+		}
 	}
+
+	// Regular users: search only their tenants
+	if tenants == nil {
+		var err error
+		tenants, err = s.tenantMemberRepo.SearchTenantsWithRoleByUser(ctx, userID, query, maxResults)
+		if err != nil {
+			return nil, fmt.Errorf("searching user tenants: %w", err)
+		}
+	}
+
+	// Enrich with access history
+	if err := s.enrichTenantsWithAccessHistory(ctx, userID, tenants); err != nil {
+		slog.Warn("failed to enrich tenants with access history", slog.String("error", err.Error()))
+	}
+
 	return tenants, nil
 }
 
 // ListUserTenantsPaginated lists tenants a user belongs to with pagination.
+// If the user has a system role (SUPERADMIN or PLATFORM_ADMIN), returns all tenants.
 func (s *TenantService) ListUserTenantsPaginated(ctx context.Context, userID string, filters port.TenantMemberFilters) ([]*entity.TenantWithRole, int64, error) {
-	tenants, total, err := s.tenantMemberRepo.FindTenantsWithRoleByUserPaginated(ctx, userID, filters)
-	if err != nil {
-		return nil, 0, fmt.Errorf("listing user tenants paginated: %w", err)
+	var tenants []*entity.TenantWithRole
+	var total int64
+
+	// Check if user has a system role
+	systemRoleAssignment, err := s.systemRoleRepo.FindByUserID(ctx, userID)
+	if err == nil && systemRoleAssignment != nil {
+		virtualRole := s.getVirtualTenantRole(systemRoleAssignment.Role)
+		if virtualRole != "" {
+			tenantFilters := port.TenantFilters{
+				Limit:  filters.Limit,
+				Offset: filters.Offset,
+				UserID: userID,
+			}
+			allTenants, t, err := s.tenantRepo.FindAllPaginated(ctx, tenantFilters)
+			if err != nil {
+				return nil, 0, fmt.Errorf("listing all tenants paginated: %w", err)
+			}
+			tenants = s.mapTenantsWithRole(allTenants, virtualRole)
+			total = t
+		}
 	}
+
+	// Regular users: list only their tenants
+	if tenants == nil {
+		var err error
+		tenants, total, err = s.tenantMemberRepo.FindTenantsWithRoleByUserPaginated(ctx, userID, filters)
+		if err != nil {
+			return nil, 0, fmt.Errorf("listing user tenants paginated: %w", err)
+		}
+	}
+
+	// Enrich with access history
+	if err := s.enrichTenantsWithAccessHistory(ctx, userID, tenants); err != nil {
+		slog.Warn("failed to enrich tenants with access history", slog.String("error", err.Error()))
+	}
+
 	return tenants, total, nil
 }
 
@@ -196,5 +262,57 @@ func (s *TenantService) DeleteTenant(ctx context.Context, id string) error {
 	}
 
 	slog.Info("tenant deleted", slog.String("tenant_id", id))
+	return nil
+}
+
+// getVirtualTenantRole returns the virtual tenant role for a system role.
+func (s *TenantService) getVirtualTenantRole(role entity.SystemRole) entity.TenantRole {
+	switch role {
+	case entity.SystemRoleSuperAdmin:
+		return entity.TenantRoleOwner
+	case entity.SystemRolePlatformAdmin:
+		return entity.TenantRoleAdmin
+	default:
+		return ""
+	}
+}
+
+// mapTenantsWithRole converts Tenant slice to TenantWithRole with virtual role.
+func (s *TenantService) mapTenantsWithRole(tenants []*entity.Tenant, role entity.TenantRole) []*entity.TenantWithRole {
+	result := make([]*entity.TenantWithRole, len(tenants))
+	for i, t := range tenants {
+		result[i] = &entity.TenantWithRole{
+			Tenant: t,
+			Role:   role,
+		}
+	}
+	return result
+}
+
+// enrichTenantsWithAccessHistory adds LastAccessedAt to tenants.
+func (s *TenantService) enrichTenantsWithAccessHistory(ctx context.Context, userID string, tenants []*entity.TenantWithRole) error {
+	if len(tenants) == 0 {
+		return nil
+	}
+
+	// Extract tenant IDs
+	ids := make([]string, len(tenants))
+	for i, t := range tenants {
+		ids[i] = t.Tenant.ID
+	}
+
+	// Get access times
+	accessTimes, err := s.accessHistoryRepo.GetAccessTimesForEntities(ctx, userID, entity.AccessEntityTypeTenant, ids)
+	if err != nil {
+		return fmt.Errorf("getting access times: %w", err)
+	}
+
+	// Enrich tenants
+	for _, t := range tenants {
+		if accessedAt, ok := accessTimes[t.Tenant.ID]; ok {
+			t.LastAccessedAt = &accessedAt
+		}
+	}
+
 	return nil
 }

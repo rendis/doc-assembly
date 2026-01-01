@@ -73,12 +73,17 @@ const (
 		LIMIT $3`
 
 	// queryFindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination.
+	// Orders by most recent access first, then by name for those without access history.
 	queryFindTenantsWithRoleByUserPaginated = `
 		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
 		FROM identity.tenant_members m
 		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
+		LEFT JOIN identity.user_access_history h
+			ON t.id = h.entity_id
+			AND h.entity_type = 'TENANT'
+			AND h.user_id = $1
 		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
-		ORDER BY t.name
+		ORDER BY h.accessed_at DESC NULLS LAST, t.name ASC
 		LIMIT $2 OFFSET $3`
 
 	// queryCountTenantsWithRoleByUser counts tenants a user belongs to.

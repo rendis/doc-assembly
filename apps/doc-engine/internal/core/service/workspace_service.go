@@ -18,19 +18,22 @@ func NewWorkspaceService(
 	workspaceRepo port.WorkspaceRepository,
 	tenantRepo port.TenantRepository,
 	memberRepo port.WorkspaceMemberRepository,
+	accessHistoryRepo port.UserAccessHistoryRepository,
 ) usecase.WorkspaceUseCase {
 	return &WorkspaceService{
-		workspaceRepo: workspaceRepo,
-		tenantRepo:    tenantRepo,
-		memberRepo:    memberRepo,
+		workspaceRepo:     workspaceRepo,
+		tenantRepo:        tenantRepo,
+		memberRepo:        memberRepo,
+		accessHistoryRepo: accessHistoryRepo,
 	}
 }
 
 // WorkspaceService implements workspace business logic.
 type WorkspaceService struct {
-	workspaceRepo port.WorkspaceRepository
-	tenantRepo    port.TenantRepository
-	memberRepo    port.WorkspaceMemberRepository
+	workspaceRepo     port.WorkspaceRepository
+	tenantRepo        port.TenantRepository
+	memberRepo        port.WorkspaceMemberRepository
+	accessHistoryRepo port.UserAccessHistoryRepository
 }
 
 // CreateWorkspace creates a new workspace.
@@ -106,7 +109,7 @@ func (s *WorkspaceService) ListUserWorkspaces(ctx context.Context, userID string
 
 // SearchWorkspaces searches workspaces by name within a tenant.
 func (s *WorkspaceService) SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error) {
-	workspaces, err := s.workspaceRepo.SearchByNameInTenant(ctx, tenantID, query, 20)
+	workspaces, err := s.workspaceRepo.SearchByNameInTenant(ctx, tenantID, query, 10)
 	if err != nil {
 		return nil, fmt.Errorf("searching workspaces: %w", err)
 	}
@@ -114,11 +117,18 @@ func (s *WorkspaceService) SearchWorkspaces(ctx context.Context, tenantID, query
 }
 
 // ListWorkspacesPaginated lists workspaces for a tenant with pagination.
-func (s *WorkspaceService) ListWorkspacesPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
+func (s *WorkspaceService) ListWorkspacesPaginated(ctx context.Context, tenantID, userID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
+	filters.UserID = userID
 	workspaces, total, err := s.workspaceRepo.FindByTenantPaginated(ctx, tenantID, filters)
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing workspaces paginated: %w", err)
 	}
+
+	// Enrich with access history
+	if err := s.enrichWorkspacesWithAccessHistory(ctx, userID, workspaces); err != nil {
+		slog.Warn("failed to enrich workspaces with access history", slog.String("error", err.Error()))
+	}
+
 	return workspaces, total, nil
 }
 
@@ -186,4 +196,32 @@ func (s *WorkspaceService) GetSystemWorkspace(ctx context.Context, tenantID *str
 		return nil, fmt.Errorf("finding system workspace: %w", err)
 	}
 	return workspace, nil
+}
+
+// enrichWorkspacesWithAccessHistory adds LastAccessedAt to workspaces.
+func (s *WorkspaceService) enrichWorkspacesWithAccessHistory(ctx context.Context, userID string, workspaces []*entity.Workspace) error {
+	if len(workspaces) == 0 {
+		return nil
+	}
+
+	// Extract workspace IDs
+	ids := make([]string, len(workspaces))
+	for i, w := range workspaces {
+		ids[i] = w.ID
+	}
+
+	// Get access times
+	accessTimes, err := s.accessHistoryRepo.GetAccessTimesForEntities(ctx, userID, entity.AccessEntityTypeWorkspace, ids)
+	if err != nil {
+		return fmt.Errorf("getting access times: %w", err)
+	}
+
+	// Enrich workspaces
+	for _, w := range workspaces {
+		if accessedAt, ok := accessTimes[w.ID]; ok {
+			w.LastAccessedAt = &accessedAt
+		}
+	}
+
+	return nil
 }

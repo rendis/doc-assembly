@@ -20,7 +20,7 @@ const (
 	queryFindAll = `
 		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.tenants
-		ORDER BY name`
+		ORDER BY is_system DESC, name`
 
 	queryFindSystemTenant = `
 		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
@@ -37,11 +37,17 @@ const (
 	queryExistsByCode = `
 		SELECT EXISTS(SELECT 1 FROM tenancy.tenants WHERE code = $1)`
 
+	// queryFindAllPaginated lists tenants with pagination.
+	// Orders by most recent access first, then by name for those without access history.
 	queryFindAllPaginated = `
-		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
-		FROM tenancy.tenants
-		ORDER BY name
-		LIMIT $1 OFFSET $2`
+		SELECT t.id, t.code, t.name, t.description, t.is_system, COALESCE(t.settings, '{}'), t.created_at, t.updated_at
+		FROM tenancy.tenants t
+		LEFT JOIN identity.user_access_history h
+			ON t.id = h.entity_id
+			AND h.entity_type = 'TENANT'
+			AND h.user_id = $1
+		ORDER BY h.accessed_at DESC NULLS LAST, t.name ASC
+		LIMIT $2 OFFSET $3`
 
 	queryCountAll = `SELECT COUNT(*) FROM tenancy.tenants`
 
@@ -49,6 +55,6 @@ const (
 		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
 		FROM tenancy.tenants
 		WHERE name % $1 OR code % $1
-		ORDER BY GREATEST(similarity(name, $1), similarity(code, $1)) DESC
+		ORDER BY is_system DESC, GREATEST(similarity(name, $1), similarity(code, $1)) DESC
 		LIMIT $2`
 )

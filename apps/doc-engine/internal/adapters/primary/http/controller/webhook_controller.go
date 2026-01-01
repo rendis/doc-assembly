@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	_ "github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"

@@ -66,7 +66,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Workspace
 
 // FindByTenantPaginated lists workspaces for a tenant with pagination.
 func (r *Repository) FindByTenantPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
-	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.Limit, filters.Offset)
+	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.UserID, filters.Limit, filters.Offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying workspaces: %w", err)
 	}

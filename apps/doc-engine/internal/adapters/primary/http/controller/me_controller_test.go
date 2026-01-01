@@ -50,7 +50,7 @@ func TestMeController_ListMyTenantsPaginated(t *testing.T) {
 		assert.Len(t, paginatedResp.Data, 2)
 		assert.Equal(t, int64(2), paginatedResp.Pagination.Total)
 		assert.Equal(t, 1, paginatedResp.Pagination.Page)
-		assert.Equal(t, 20, paginatedResp.Pagination.PerPage)
+		assert.Equal(t, 10, paginatedResp.Pagination.PerPage)
 	})
 
 	t.Run("success with custom limit and offset", func(t *testing.T) {

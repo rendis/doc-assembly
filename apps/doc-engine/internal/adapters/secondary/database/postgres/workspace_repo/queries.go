@@ -13,11 +13,15 @@ const (
 		WHERE id = $1`
 
 	queryFindByTenantPaginated = `
-		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'), created_at, updated_at
-		FROM tenancy.workspaces
-		WHERE tenant_id = $1
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3`
+		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'), w.created_at, w.updated_at
+		FROM tenancy.workspaces w
+		LEFT JOIN identity.user_access_history h
+			ON w.id = h.entity_id
+			AND h.entity_type = 'WORKSPACE'
+			AND h.user_id = $2
+		WHERE w.tenant_id = $1
+		ORDER BY h.accessed_at DESC NULLS LAST, w.name ASC
+		LIMIT $3 OFFSET $4`
 
 	queryCountByTenant = `
 		SELECT COUNT(*) FROM tenancy.workspaces WHERE tenant_id = $1`

@@ -15,14 +15,15 @@ func WorkspaceToResponse(ws *entity.Workspace) dto.WorkspaceResponse {
 		"primaryColor": ws.Settings.PrimaryColor,
 	}
 	return dto.WorkspaceResponse{
-		ID:        ws.ID,
-		TenantID:  ws.TenantID,
-		Name:      ws.Name,
-		Type:      string(ws.Type),
-		Status:    string(ws.Status),
-		Settings:  settings,
-		CreatedAt: ws.CreatedAt,
-		UpdatedAt: ws.UpdatedAt,
+		ID:             ws.ID,
+		TenantID:       ws.TenantID,
+		Name:           ws.Name,
+		Type:           string(ws.Type),
+		Status:         string(ws.Status),
+		Settings:       settings,
+		CreatedAt:      ws.CreatedAt,
+		UpdatedAt:      ws.UpdatedAt,
+		LastAccessedAt: ws.LastAccessedAt,
 	}
 }
 
@@ -81,35 +82,31 @@ func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) 
 
 // WorkspaceListRequestToFilters converts a list request to port filters.
 func WorkspaceListRequestToFilters(req dto.WorkspaceListRequest) port.WorkspaceFilters {
+	offset := (req.Page - 1) * req.PerPage
 	return port.WorkspaceFilters{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		Limit:  req.PerPage,
+		Offset: offset,
 	}
 }
 
 // WorkspacesToPaginatedResponse converts workspaces to a paginated response.
-func WorkspacesToPaginatedResponse(workspaces []*entity.Workspace, total int64, limit, offset int) *dto.PaginatedWorkspacesResponse {
+func WorkspacesToPaginatedResponse(workspaces []*entity.Workspace, total int64, page, perPage int) *dto.PaginatedWorkspacesResponse {
 	responses := make([]*dto.WorkspaceResponse, len(workspaces))
 	for i, ws := range workspaces {
 		resp := WorkspaceToResponse(ws)
 		responses[i] = &resp
 	}
 
-	totalPages := int(total) / limit
-	if int(total)%limit > 0 {
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
 		totalPages++
-	}
-
-	page := 1
-	if limit > 0 {
-		page = (offset / limit) + 1
 	}
 
 	return &dto.PaginatedWorkspacesResponse{
 		Data: responses,
 		Pagination: dto.PaginationMeta{
 			Page:       page,
-			PerPage:    limit,
+			PerPage:    perPage,
 			Total:      total,
 			TotalPages: totalPages,
 		},

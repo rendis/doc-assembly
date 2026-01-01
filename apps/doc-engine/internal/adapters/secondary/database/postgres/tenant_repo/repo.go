@@ -190,7 +190,7 @@ func (r *Repository) FindAllPaginated(ctx context.Context, filters port.TenantFi
 	}
 
 	// Get paginated results
-	rows, err := r.pool.Query(ctx, queryFindAllPaginated, filters.Limit, filters.Offset)
+	rows, err := r.pool.Query(ctx, queryFindAllPaginated, filters.UserID, filters.Limit, filters.Offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying tenants paginated: %w", err)
 	}

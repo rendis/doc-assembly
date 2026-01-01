@@ -229,6 +229,7 @@ type TenantMemberWithUser struct {
 
 // TenantWithRole represents a tenant with the user's role in it.
 type TenantWithRole struct {
-	Tenant *Tenant    `json:"tenant"`
-	Role   TenantRole `json:"role"`
+	Tenant         *Tenant    `json:"tenant"`
+	Role           TenantRole `json:"role"`
+	LastAccessedAt *time.Time `json:"lastAccessedAt,omitempty"`
 }

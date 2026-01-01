@@ -55,6 +55,27 @@ definitions:
     required:
     - newTitle
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentRequest:
+    properties:
+      clientExternalReferenceId:
+        type: string
+      injectedValues:
+        additionalProperties: {}
+        type: object
+      recipients:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateRecipientRequest'
+        minItems: 1
+        type: array
+      templateVersionId:
+        type: string
+      title:
+        type: string
+    required:
+    - recipients
+    - templateVersionId
+    - title
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateFolderRequest:
     properties:
       name:
@@ -65,6 +86,19 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateRecipientRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      roleId:
+        type: string
+    required:
+    - email
+    - name
+    - roleId
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTagRequest:
     properties:
@@ -157,6 +191,54 @@ definitions:
     required:
     - name
     - type
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentListResponse:
+    properties:
+      clientExternalReferenceId:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      signerProvider:
+        type: string
+      status:
+        type: string
+      templateVersionId:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+      workspaceId:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse:
+    properties:
+      clientExternalReferenceId:
+        type: string
+      completedPdfUrl:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      recipients:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse'
+        type: array
+      signerProvider:
+        type: string
+      status:
+        type: string
+      templateVersionId:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+      workspaceId:
+        type: string
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse:
     properties:
@@ -421,6 +503,29 @@ definitions:
       totalPages:
         type: integer
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      roleId:
+        type: string
+      roleName:
+        type: string
+      signedAt:
+        type: string
+      signerOrder:
+        type: integer
+      status:
+        type: string
+      updatedAt:
+        type: string
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest:
     properties:
       entityId:
@@ -465,6 +570,13 @@ definitions:
         type: string
     required:
     - publishAt
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SigningURLResponse:
+    properties:
+      expiresAt:
+        type: string
+      signingUrl:
+        type: string
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemRoleResponse:
     properties:
@@ -839,6 +951,8 @@ definitions:
         type: string
       id:
         type: string
+      lastAccessedAt:
+        type: string
       name:
         type: string
       role:
@@ -952,6 +1066,8 @@ definitions:
         type: string
       id:
         type: string
+      lastAccessedAt:
+        type: string
       name:
         type: string
       settings:
@@ -965,6 +1081,23 @@ definitions:
         type: string
       updatedAt:
         type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_core_usecase.DocumentStatistics:
+    properties:
+      byStatus:
+        additionalProperties:
+          type: integer
+        type: object
+      completed:
+        type: integer
+      declined:
+        type: integer
+      inProgress:
+        type: integer
+      pending:
+        type: integer
+      total:
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -1783,6 +1916,287 @@ paths:
       summary: Create version from existing
       tags:
       - Template Versions
+  /api/v1/documents:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search by title
+        in: query
+        name: search
+        type: string
+      - description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentListResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: List documents
+      tags:
+      - Documents
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Document creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Create and send document
+      tags:
+      - Documents
+  /api/v1/documents/{documentId}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Get document
+      tags:
+      - Documents
+  /api/v1/documents/{documentId}/cancel:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Cancel document
+      tags:
+      - Documents
+  /api/v1/documents/{documentId}/recipients:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Get document recipients
+      tags:
+      - Documents
+  /api/v1/documents/{documentId}/recipients/{recipientId}/signing-url:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        type: string
+      - description: Recipient ID
+        in: path
+        name: recipientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SigningURLResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Get signing URL
+      tags:
+      - Documents
+  /api/v1/documents/{documentId}/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Refresh document status
+      tags:
+      - Documents
+  /api/v1/documents/statistics:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_core_usecase.DocumentStatistics'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Get document statistics
+      tags:
+      - Documents
   /api/v1/me/access:
     post:
       consumes:
@@ -1857,15 +2271,15 @@ paths:
       - application/json
       description: Lists tenants where the user is an active member. Supports pagination.
       parameters:
-      - default: 20
-        description: Number of items per page
+      - default: 1
+        description: Page number
         in: query
-        name: limit
+        name: page
         type: integer
-      - default: 0
-        description: Offset for pagination
+      - default: 10
+        description: Items per page
         in: query
-        name: offset
+        name: perPage
         type: integer
       produces:
       - application/json
@@ -2067,7 +2481,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 20
+      - default: 10
         description: Number of items per page
         in: query
         name: limit
@@ -2594,15 +3008,15 @@ paths:
         name: X-Tenant-ID
         required: true
         type: string
-      - default: 20
-        description: Number of items per page
+      - default: 1
+        description: Page number
         in: query
-        name: limit
+        name: page
         type: integer
-      - default: 0
-        description: Number of items to skip
+      - default: 10
+        description: Items per page
         in: query
-        name: offset
+        name: perPage
         type: integer
       produces:
       - application/json
@@ -3296,6 +3710,48 @@ paths:
       summary: Update tag
       tags:
       - Tags
+  /webhooks/signing/{provider}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Provider name (e.g., documenso)
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Webhook signature (for Documenso)
+        in: header
+        name: X-Documenso-Secret
+        type: string
+      - description: Webhook signature (generic)
+        in: header
+        name: X-Webhook-Signature
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Handle signing provider webhook
+      tags:
+      - Webhooks
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token

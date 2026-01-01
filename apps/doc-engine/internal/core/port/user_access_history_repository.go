@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"time"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 )
@@ -18,6 +19,10 @@ type UserAccessHistoryRepository interface {
 
 	// GetRecentAccesses returns full access records for a user and entity type.
 	GetRecentAccesses(ctx context.Context, userID string, entityType entity.AccessEntityType, limit int) ([]*entity.UserAccessHistory, error)
+
+	// GetAccessTimesForEntities returns the last access time for multiple entities.
+	// Returns a map of entityID -> accessedAt. Missing entries mean no access recorded.
+	GetAccessTimesForEntities(ctx context.Context, userID string, entityType entity.AccessEntityType, entityIDs []string) (map[string]time.Time, error)
 
 	// DeleteOldAccesses removes entries beyond the most recent N for cleanup.
 	// This is called after recording access to maintain the limit.

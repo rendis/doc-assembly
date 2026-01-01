@@ -5,14 +5,15 @@ import "time"
 // Workspace is the root operational entity where all work happens.
 // Every resource (templates, documents, users) belongs to a workspace.
 type Workspace struct {
-	ID        string            `json:"id"`
-	TenantID  *string           `json:"tenantId,omitempty"` // NULL for global workspace
-	Name      string            `json:"name"`
-	Type      WorkspaceType     `json:"type"`
-	Status    WorkspaceStatus   `json:"status"`
-	Settings  WorkspaceSettings `json:"settings"`
-	CreatedAt time.Time         `json:"createdAt"`
-	UpdatedAt *time.Time        `json:"updatedAt,omitempty"`
+	ID             string            `json:"id"`
+	TenantID       *string           `json:"tenantId,omitempty"` // NULL for global workspace
+	Name           string            `json:"name"`
+	Type           WorkspaceType     `json:"type"`
+	Status         WorkspaceStatus   `json:"status"`
+	Settings       WorkspaceSettings `json:"settings"`
+	CreatedAt      time.Time         `json:"createdAt"`
+	UpdatedAt      *time.Time        `json:"updatedAt,omitempty"`
+	LastAccessedAt *time.Time        `json:"-"` // Access metadata, not persisted
 }
 
 // WorkspaceSettings holds workspace-specific configuration.

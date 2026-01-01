@@ -38,7 +38,8 @@ type WorkspaceUseCase interface {
 	SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error)
 
 	// ListWorkspacesPaginated lists workspaces for a tenant with pagination.
-	ListWorkspacesPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error)
+	// userID is used to enrich with access history.
+	ListWorkspacesPaginated(ctx context.Context, tenantID, userID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error)
 
 	// UpdateWorkspace updates a workspace's details.
 	UpdateWorkspace(ctx context.Context, cmd UpdateWorkspaceCommand) (*entity.Workspace, error)

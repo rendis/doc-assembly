@@ -91,8 +91,8 @@ func (c *MeController) SearchMyTenants(ctx *gin.Context) {
 // @Tags Me
 // @Accept json
 // @Produce json
-// @Param limit query int false "Number of items per page" default(20)
-// @Param offset query int false "Offset for pagination" default(0)
+// @Param page query int false "Page number" default(1)
+// @Param perPage query int false "Items per page" default(10)
 // @Success 200 {object} dto.PaginatedTenantsWithRoleResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Router /api/v1/me/tenants/list [get]
@@ -117,7 +117,7 @@ func (c *MeController) ListMyTenantsPaginated(ctx *gin.Context) {
 		return
 	}
 
-	response := mapper.TenantsWithRoleToPaginatedResponse(tenants, total, filters.Limit, filters.Offset)
+	response := mapper.TenantsWithRoleToPaginatedResponse(tenants, total, req.Page, req.PerPage)
 	ctx.JSON(http.StatusOK, response)
 }
 

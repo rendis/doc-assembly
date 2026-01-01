@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -67,6 +68,31 @@ func (r *Repository) GetRecentAccesses(ctx context.Context, userID string, entit
 			return nil, fmt.Errorf("scanning access history: %w", err)
 		}
 		result = append(result, &h)
+	}
+
+	return result, rows.Err()
+}
+
+// GetAccessTimesForEntities returns access times for multiple entities.
+func (r *Repository) GetAccessTimesForEntities(ctx context.Context, userID string, entityType entity.AccessEntityType, entityIDs []string) (map[string]time.Time, error) {
+	if len(entityIDs) == 0 {
+		return make(map[string]time.Time), nil
+	}
+
+	rows, err := r.pool.Query(ctx, queryGetAccessTimesForEntities, userID, entityType, entityIDs)
+	if err != nil {
+		return nil, fmt.Errorf("querying access times: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]time.Time, len(entityIDs))
+	for rows.Next() {
+		var entityID string
+		var accessedAt time.Time
+		if err := rows.Scan(&entityID, &accessedAt); err != nil {
+			return nil, fmt.Errorf("scanning access time: %w", err)
+		}
+		result[entityID] = accessedAt
 	}
 
 	return result, rows.Err()

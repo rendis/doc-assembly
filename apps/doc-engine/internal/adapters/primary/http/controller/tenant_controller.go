@@ -170,8 +170,8 @@ func (c *TenantController) SearchWorkspaces(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Tenant-ID header string true "Tenant ID"
-// @Param limit query int false "Number of items per page" default(20)
-// @Param offset query int false "Number of items to skip" default(0)
+// @Param page query int false "Page number" default(1)
+// @Param perPage query int false "Items per page" default(10)
 // @Success 200 {object} dto.PaginatedWorkspacesResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
@@ -184,6 +184,12 @@ func (c *TenantController) ListWorkspacesPaginated(ctx *gin.Context) {
 		return
 	}
 
+	userID, ok := middleware.GetInternalUserID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, dto.NewErrorResponse(entity.ErrUnauthorized))
+		return
+	}
+
 	var req dto.WorkspaceListRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
@@ -191,13 +197,13 @@ func (c *TenantController) ListWorkspacesPaginated(ctx *gin.Context) {
 	}
 
 	filters := mapper.WorkspaceListRequestToFilters(req)
-	workspaces, total, err := c.workspaceUC.ListWorkspacesPaginated(ctx.Request.Context(), tenantID, filters)
+	workspaces, total, err := c.workspaceUC.ListWorkspacesPaginated(ctx.Request.Context(), tenantID, userID, filters)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, mapper.WorkspacesToPaginatedResponse(workspaces, total, req.Limit, req.Offset))
+	ctx.JSON(http.StatusOK, mapper.WorkspacesToPaginatedResponse(workspaces, total, req.Page, req.PerPage))
 }
 
 // CreateWorkspace creates a new workspace in the current tenant.

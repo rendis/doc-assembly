@@ -10,6 +10,7 @@ import (
 type WorkspaceFilters struct {
 	Limit  int
 	Offset int
+	UserID string // Used for access-based sorting
 }
 
 // WorkspaceRepository defines the interface for workspace data access.

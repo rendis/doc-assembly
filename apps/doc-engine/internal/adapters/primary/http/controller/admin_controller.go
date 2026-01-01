@@ -89,8 +89,8 @@ func (c *AdminController) SearchTenants(ctx *gin.Context) {
 // @Tags System - Tenants
 // @Accept json
 // @Produce json
-// @Param limit query int false "Number of items per page" default(20)
-// @Param offset query int false "Number of items to skip" default(0)
+// @Param page query int false "Page number" default(1)
+// @Param perPage query int false "Items per page" default(10)
 // @Success 200 {object} dto.PaginatedTenantsResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
@@ -110,7 +110,7 @@ func (c *AdminController) ListTenantsPaginated(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, mapper.TenantsToPaginatedResponse(tenants, total, req.Limit, req.Offset))
+	ctx.JSON(http.StatusOK, mapper.TenantsToPaginatedResponse(tenants, total, req.Page, req.PerPage))
 }
 
 // CreateTenant creates a new tenant.

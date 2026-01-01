@@ -15,14 +15,15 @@ type TenantResponse struct {
 
 // TenantWithRoleResponse represents a tenant with the user's role in API responses.
 type TenantWithRoleResponse struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Code        string                 `json:"code"`
-	Description string                 `json:"description,omitempty"`
-	Role        string                 `json:"role"`
-	Settings    map[string]interface{} `json:"settings,omitempty"`
-	CreatedAt   time.Time              `json:"createdAt"`
-	UpdatedAt   *time.Time             `json:"updatedAt,omitempty"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Code           string                 `json:"code"`
+	Description    string                 `json:"description,omitempty"`
+	Role           string                 `json:"role"`
+	Settings       map[string]interface{} `json:"settings,omitempty"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	UpdatedAt      *time.Time             `json:"updatedAt,omitempty"`
+	LastAccessedAt *time.Time             `json:"lastAccessedAt,omitempty"`
 }
 
 // CreateTenantRequest represents a request to create a tenant.
@@ -74,8 +75,8 @@ type TenantSearchRequest struct {
 
 // TenantListRequest represents a request to list tenants with pagination.
 type TenantListRequest struct {
-	Limit  int `form:"limit,default=20"`
-	Offset int `form:"offset,default=0"`
+	Page    int `form:"page,default=1"`
+	PerPage int `form:"perPage,default=10"`
 }
 
 // PaginatedTenantsResponse represents a paginated list of tenants.
