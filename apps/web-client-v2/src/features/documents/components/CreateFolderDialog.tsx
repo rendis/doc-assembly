@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { FolderPlus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -52,12 +53,13 @@ export function CreateFolderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <FolderPlus className="h-5 w-5 text-primary" />
             {t('folders.createDialog.title', 'Create New Folder')}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="space-y-2">
             {t(
               'folders.createDialog.description',
               'Enter a name for your new folder.'
