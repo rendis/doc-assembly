@@ -40,7 +40,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:px-12 lg:px-20 lg:py-16">
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 lg:px-6 lg:py-16">
         {/* Header */}
         <header className="mb-20 flex flex-col justify-between gap-6 md:mb-24 md:flex-row md:items-end">
           <div>

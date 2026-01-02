@@ -78,10 +78,7 @@ export function AppLayout() {
         variants={contentVariants}
         initial="initial"
         animate="animate"
-        className={cn(
-          'flex flex-1 flex-col overflow-hidden pt-16',
-          !isCollapsed ? 'lg:pl-64' : 'lg:pl-16'
-        )}
+        className="flex flex-1 flex-col overflow-hidden pt-16"
       >
         {/* Page content */}
         <div className="flex-1 overflow-auto">

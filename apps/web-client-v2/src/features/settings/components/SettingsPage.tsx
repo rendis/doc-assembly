@@ -53,7 +53,7 @@ export function SettingsPage() {
     <div className="flex-1 overflow-y-auto bg-background">
       {/* Header */}
       <header className="sticky left-0 top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-6 md:px-12 lg:px-20">
+        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 md:px-6 lg:px-6">
           <div className="flex items-center gap-4">
             <nav className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest">
               <a href="#" className="text-muted-foreground transition-colors hover:text-foreground">
@@ -77,7 +77,7 @@ export function SettingsPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-6 pb-24 pt-20 md:px-12 lg:px-20">
+      <main className="mx-auto w-full max-w-7xl px-4 pb-24 pt-20 md:px-6 lg:px-6">
         {/* Title */}
         <div className="mb-16 max-w-3xl md:mb-20">
           <h1 className="mb-6 font-display text-4xl font-light leading-[1.1] tracking-tight text-foreground md:text-5xl lg:text-6xl">

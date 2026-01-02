@@ -23,7 +23,7 @@ export function SelectionToolbar({
   if (count === 0) return null
 
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-8 py-3 md:px-16">
+    <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-4 py-3 md:px-6 lg:px-6">
       <div className="flex items-center gap-4">
         <button
           onClick={stopSelecting}

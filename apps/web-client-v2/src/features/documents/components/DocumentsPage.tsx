@@ -230,7 +230,7 @@ function DocumentsPageContent() {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       {/* Header */}
-      <header className="shrink-0 px-8 pb-6 pt-12 md:px-16">
+      <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -276,7 +276,7 @@ function DocumentsPageContent() {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 overflow-y-auto px-8 pb-12 md:px-16">
+        <div className="flex-1 overflow-y-auto px-4 pb-12 md:px-6 lg:px-6">
           {/* Droppable Breadcrumb */}
           <DroppableBreadcrumb
             items={breadcrumbs.map((b, i) => ({

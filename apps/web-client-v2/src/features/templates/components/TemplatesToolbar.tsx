@@ -79,7 +79,7 @@ export function TemplatesToolbar({
   }
 
   return (
-    <div className="flex shrink-0 flex-col justify-between gap-6 border-b border-border bg-background px-8 py-6 md:flex-row md:items-center md:px-16">
+    <div className="flex shrink-0 flex-col justify-between gap-6 border-b border-border bg-background px-4 py-6 md:flex-row md:items-center md:px-6 lg:px-6">
       {/* Search */}
       <div className="group relative w-full md:max-w-md">
         <Search
