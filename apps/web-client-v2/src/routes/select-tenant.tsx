@@ -275,12 +275,12 @@ function SelectTenantPage() {
         <ThemeToggle />
       </motion.div>
 
-      {/* Main content - fades out when workspace is selected */}
+      {/* Main content - hides instantly when workspace is selected */}
       <motion.div
         animate={{
           opacity: selectedWorkspaceForAnim ? 0 : 1,
         }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0 }}
         className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32"
       >
         {/* Left column */}
