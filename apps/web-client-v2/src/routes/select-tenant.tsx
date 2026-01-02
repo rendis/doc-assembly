@@ -24,20 +24,25 @@ const containerVariants = {
     },
   },
   exit: {
-    opacity: 0,
-    transition: { duration: 0.2 },
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      staggerDirection: 1,
+    },
   },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 0, x: 0 },
   visible: {
     opacity: 1,
+    x: 0,
     transition: { duration: 0.3 },
   },
   exit: {
     opacity: 0,
-    transition: { duration: 0.15 },
+    x: -50,
+    transition: { duration: 0.25, ease: 'easeIn' },
   },
 }
 
@@ -342,8 +347,8 @@ function SelectTenantPage() {
                 showWorkspaceLoading ? (
                   <motion.div
                     key="loading-workspaces"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.2 } }}
                     exit={{ opacity: 0, transition: { duration: 0.3 } }}
                     className="flex h-full items-start justify-center py-8 text-muted-foreground"
                   >
