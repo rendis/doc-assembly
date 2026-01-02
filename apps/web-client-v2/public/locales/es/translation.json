@@ -6,9 +6,14 @@
     "retry": "Reintentar",
     "cancel": "Cancelar",
     "save": "Guardar",
+    "saving": "Guardando...",
     "delete": "Eliminar",
+    "deleting": "Eliminando...",
     "edit": "Editar",
     "create": "Crear",
+    "creating": "Creando...",
+    "move": "Mover",
+    "moving": "Moviendo...",
     "close": "Cerrar",
     "confirm": "Confirmar",
     "back": "Volver",
@@ -81,15 +86,26 @@
   },
   "templates": {
     "title": "Lista de Plantillas",
+    "section": "Plantillas",
     "createNew": "Crear Nueva Plantilla",
     "searchPlaceholder": "Buscar plantillas...",
     "folder": "Carpeta",
-    "status": "Estado",
+    "status": {
+      "label": "Estado",
+      "published": "Publicado",
+      "draft": "Borrador"
+    },
     "versions": "Versiones",
     "lastModified": "Última Modificación",
     "author": "Autor",
     "noTemplates": "No se encontraron plantillas",
-    "createFirst": "Crea tu primera plantilla"
+    "empty": "No hay plantillas en esta carpeta",
+    "createFirst": "Crea tu primera plantilla",
+    "moveDialog": {
+      "title": "Mover Plantilla",
+      "message": "¿Estás seguro de que deseas mover \"{{name}}\" a \"{{folder}}\"?",
+      "toRoot": "Raíz"
+    }
   },
   "documents": {
     "title": "Explorador de Documentos",
@@ -97,7 +113,62 @@
     "searchPlaceholder": "Buscar documentos...",
     "type": "Tipo",
     "subfolders": "Subcarpetas",
-    "noDocuments": "No se encontraron documentos"
+    "documents": "Documentos",
+    "noDocuments": "No se encontraron documentos",
+    "header": {
+      "label": "Repositorio"
+    },
+    "filters": {
+      "type": "Tipo: Todos",
+      "sort": "Orden: Más reciente"
+    }
+  },
+  "folders": {
+    "subfolders": "Subcarpetas",
+    "empty": "Aún no hay carpetas. Crea una para comenzar.",
+    "createDialog": {
+      "title": "Crear Nueva Carpeta",
+      "description": "Ingresa un nombre para tu nueva carpeta.",
+      "nameLabel": "Nombre de la Carpeta",
+      "namePlaceholder": "Ingresa el nombre de la carpeta..."
+    },
+    "renameDialog": {
+      "title": "Renombrar Carpeta",
+      "description": "Ingresa un nuevo nombre para esta carpeta.",
+      "nameLabel": "Nombre de la Carpeta",
+      "namePlaceholder": "Ingresa el nombre de la carpeta..."
+    },
+    "deleteDialog": {
+      "title": "Eliminar Carpeta",
+      "thisFolder": "esta carpeta",
+      "multipleFolders": "{{count}} carpetas",
+      "confirmMessage": "¿Estás seguro de que deseas eliminar {{name}}?",
+      "warning": "Esto también eliminará todas las subcarpetas y documentos dentro. Esta acción no se puede deshacer."
+    },
+    "moveDialog": {
+      "title": "Mover a Carpeta",
+      "description": "Selecciona una carpeta de destino.",
+      "root": "Raíz (Sin padre)",
+      "noFolders": "No hay carpetas disponibles"
+    },
+    "actions": {
+      "newFolder": "NUEVA CARPETA",
+      "rename": "Renombrar",
+      "move": "Mover a...",
+      "delete": "Eliminar"
+    },
+    "selection": {
+      "count": "{{count}} seleccionados",
+      "selectAll": "Seleccionar Todos",
+      "start": "Seleccionar elementos"
+    },
+    "stats": {
+      "folders_one": "carpeta",
+      "folders_other": "carpetas",
+      "templates_one": "plantilla",
+      "templates_other": "plantillas",
+      "empty": "Vacío"
+    }
   },
   "editor": {
     "autosaved": "Guardado automático",

@@ -6,9 +6,14 @@
     "retry": "Retry",
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving...",
     "delete": "Delete",
+    "deleting": "Deleting...",
     "edit": "Edit",
     "create": "Create",
+    "creating": "Creating...",
+    "move": "Move",
+    "moving": "Moving...",
     "close": "Close",
     "confirm": "Confirm",
     "back": "Back",
@@ -81,15 +86,26 @@
   },
   "templates": {
     "title": "Template List",
+    "section": "Templates",
     "createNew": "Create New Template",
     "searchPlaceholder": "Search templates...",
     "folder": "Folder",
-    "status": "Status",
+    "status": {
+      "label": "Status",
+      "published": "Published",
+      "draft": "Draft"
+    },
     "versions": "Versions",
     "lastModified": "Last Modified",
     "author": "Author",
     "noTemplates": "No templates found",
-    "createFirst": "Create your first template"
+    "empty": "No templates in this folder",
+    "createFirst": "Create your first template",
+    "moveDialog": {
+      "title": "Move Template",
+      "message": "Are you sure you want to move \"{{name}}\" to \"{{folder}}\"?",
+      "toRoot": "Root"
+    }
   },
   "documents": {
     "title": "Document Explorer",
@@ -97,7 +113,62 @@
     "searchPlaceholder": "Search documents...",
     "type": "Type",
     "subfolders": "Subfolders",
-    "noDocuments": "No documents found"
+    "documents": "Documents",
+    "noDocuments": "No documents found",
+    "header": {
+      "label": "Repository"
+    },
+    "filters": {
+      "type": "Type: All",
+      "sort": "Sort: Newest"
+    }
+  },
+  "folders": {
+    "subfolders": "Subfolders",
+    "empty": "No folders yet. Create one to get started.",
+    "createDialog": {
+      "title": "Create New Folder",
+      "description": "Enter a name for your new folder.",
+      "nameLabel": "Folder Name",
+      "namePlaceholder": "Enter folder name..."
+    },
+    "renameDialog": {
+      "title": "Rename Folder",
+      "description": "Enter a new name for this folder.",
+      "nameLabel": "Folder Name",
+      "namePlaceholder": "Enter folder name..."
+    },
+    "deleteDialog": {
+      "title": "Delete Folder",
+      "thisFolder": "this folder",
+      "multipleFolders": "{{count}} folders",
+      "confirmMessage": "Are you sure you want to delete {{name}}?",
+      "warning": "This will also delete all subfolders and documents inside. This action cannot be undone."
+    },
+    "moveDialog": {
+      "title": "Move to Folder",
+      "description": "Select a destination folder.",
+      "root": "Root (No parent)",
+      "noFolders": "No folders available"
+    },
+    "actions": {
+      "newFolder": "NEW FOLDER",
+      "rename": "Rename",
+      "move": "Move to...",
+      "delete": "Delete"
+    },
+    "selection": {
+      "count": "{{count}} selected",
+      "selectAll": "Select All",
+      "start": "Select items"
+    },
+    "stats": {
+      "folders_one": "folder",
+      "folders_other": "folders",
+      "templates_one": "template",
+      "templates_other": "templates",
+      "empty": "Empty"
+    }
   },
   "editor": {
     "autosaved": "Autosaved",

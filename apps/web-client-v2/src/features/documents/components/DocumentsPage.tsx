@@ -1,40 +1,231 @@
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useParams } from '@tanstack/react-router'
+import {
+  DndContext,
+  DragEndEvent,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
 import { DocumentsToolbar } from './DocumentsToolbar'
-import { Breadcrumb } from './Breadcrumb'
+import { DroppableBreadcrumb } from './DroppableBreadcrumb'
 import { FolderCard } from './FolderCard'
-import { DocumentCard } from './DocumentCard'
-import type { DocumentStatus } from '../types'
+import { TemplateCard } from './TemplateCard'
+import { CreateFolderDialog } from './CreateFolderDialog'
+import { RenameFolderDialog } from './RenameFolderDialog'
+import { DeleteFolderDialog } from './DeleteFolderDialog'
+import { MoveFolderDialog } from './MoveFolderDialog'
+import { MoveTemplateDialog } from './MoveTemplateDialog'
+import { SelectionToolbar } from './SelectionToolbar'
+import { DraggableFolderCard } from './DraggableFolderCard'
+import { DraggableTemplateCard } from './DraggableTemplateCard'
+import { DroppableFolderZone } from './DroppableFolderZone'
+import {
+  FolderSelectionProvider,
+  useFolderSelection,
+} from '../context/FolderSelectionContext'
+import { useFolders, useMoveFolder } from '../hooks/useFolders'
+import { useFolderNavigation } from '../hooks/useFolderNavigation'
+import { useTemplatesByFolder, useMoveTemplate } from '../hooks/useTemplates'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { Folder, TemplateListItem } from '@/types/api'
 
-// Mock data
-const mockFolders = [
-  { id: '1', name: 'Contracts', itemCount: 12 },
-  { id: '2', name: 'Invoices', itemCount: 8 },
-  { id: '3', name: 'Archived', itemCount: 24 },
-]
-
-const mockDocuments: {
-  name: string
-  type: DocumentStatus
-  size: string
-  date: string
-}[] = [
-  { name: 'Acme_MSA_Executed.pdf', type: 'FINALIZED', size: '2.4 MB', date: 'Oct 24, 2023' },
-  { name: 'Offer_Letter_Draft_v2.docx', type: 'DRAFT', size: '145 KB', date: '2 hours ago' },
-  { name: 'NDA_Standard_Signed.pdf', type: 'FINALIZED', size: '890 KB', date: 'Yesterday' },
-  { name: 'Memo_Internal_Policy.docx', type: 'DRAFT', size: '55 KB', date: 'Aug 15, 2023' },
-]
-
-export function DocumentsPage() {
+function DocumentsPageContent() {
   const { t } = useTranslation()
+  const { workspaceId } = useParams({ strict: false })
+
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const breadcrumbItems = [
-    { label: 'Documents' },
-    { label: 'Client Matter' },
-    { label: 'Acme Corp 2024', isActive: true },
-  ]
+  // DnD sensors - require 8px movement before drag starts (allows clicks to pass)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
+
+  // Folder dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false)
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null)
+  const [foldersToMove, setFoldersToMove] = useState<string[]>([])
+  const [foldersToDelete, setFoldersToDelete] = useState<string[]>([])
+
+  // Template move dialog state
+  const [moveTemplateDialogOpen, setMoveTemplateDialogOpen] = useState(false)
+  const [templateToMove, setTemplateToMove] = useState<TemplateListItem | null>(
+    null
+  )
+  const [targetFolder, setTargetFolder] = useState<{
+    id: string | null
+    name: string
+  } | null>(null)
+
+  // Navigation state
+  const {
+    currentFolderId,
+    breadcrumbs,
+    navigateToFolder,
+    isLoading: navLoading,
+  } = useFolderNavigation(workspaceId ?? '')
+
+  // Data fetching
+  const {
+    data: foldersData,
+    isLoading: foldersLoading,
+    refetch: refetchFolders,
+  } = useFolders(workspaceId ?? null)
+
+  // Refetch folders when navigating to a different folder
+  useEffect(() => {
+    refetchFolders()
+  }, [currentFolderId, refetchFolders])
+
+  const { data: templatesData, isLoading: templatesLoading } =
+    useTemplatesByFolder(currentFolderId)
+
+  // Mutations
+  const moveFolder = useMoveFolder()
+  const moveTemplate = useMoveTemplate()
+
+  // Selection
+  const { selectedIds, clearSelection, isSelecting, startSelecting } =
+    useFolderSelection()
+
+  // Filter folders for current directory
+  const currentFolders =
+    foldersData?.data.filter((f) =>
+      currentFolderId ? f.parentId === currentFolderId : !f.parentId
+    ) ?? []
+
+  // Helper to get folder name by id
+  const getFolderName = useCallback(
+    (folderId: string | null): string => {
+      if (!folderId) return t('templates.moveDialog.toRoot', 'Root')
+      const folder = foldersData?.data.find((f) => f.id === folderId)
+      return folder?.name ?? ''
+    },
+    [foldersData, t]
+  )
+
+  // Handle drag end for both folders and templates
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event
+
+      if (!over) return
+
+      const dragType = active.data.current?.type
+
+      if (dragType === 'folder') {
+        // Handle folder drag
+        const draggedFolderId = active.data.current?.folder?.id
+        const targetFolderId = over.data.current?.folderId
+
+        if (
+          draggedFolderId &&
+          targetFolderId &&
+          draggedFolderId !== targetFolderId
+        ) {
+          try {
+            await moveFolder.mutateAsync({
+              folderId: draggedFolderId,
+              data: { parentId: targetFolderId },
+            })
+          } catch {
+            // Error is handled by mutation
+          }
+        }
+      } else if (dragType === 'template') {
+        // Handle template drag - show confirmation dialog
+        const template = active.data.current?.template as
+          | TemplateListItem
+          | undefined
+        const targetFolderId = over.data.current?.folderId as
+          | string
+          | null
+          | undefined
+
+        // Only proceed if template exists and target is different from current
+        if (template && targetFolderId !== template.folderId) {
+          setTemplateToMove(template)
+          setTargetFolder({
+            id: targetFolderId ?? null,
+            name: getFolderName(targetFolderId ?? null),
+          })
+          setMoveTemplateDialogOpen(true)
+        }
+      }
+    },
+    [moveFolder, getFolderName]
+  )
+
+  // Handle template move confirmation
+  const handleConfirmMoveTemplate = async () => {
+    if (!templateToMove || targetFolder === null) return
+
+    try {
+      await moveTemplate.mutateAsync({
+        templateId: templateToMove.id,
+        folderId: targetFolder.id,
+      })
+      setMoveTemplateDialogOpen(false)
+      setTemplateToMove(null)
+      setTargetFolder(null)
+    } catch {
+      // Error is handled by mutation
+    }
+  }
+
+  // Handle folder actions
+  const handleRenameFolder = (folder: Folder) => {
+    setSelectedFolder(folder)
+    setRenameDialogOpen(true)
+  }
+
+  const handleMoveFolder = (folder: Folder) => {
+    setFoldersToMove([folder.id])
+    setMoveDialogOpen(true)
+  }
+
+  const handleDeleteFolder = (folder: Folder) => {
+    setFoldersToDelete([folder.id])
+    setDeleteDialogOpen(true)
+  }
+
+  // Handle bulk actions
+  const handleBulkDelete = () => {
+    setFoldersToDelete(Array.from(selectedIds))
+    setDeleteDialogOpen(true)
+  }
+
+  const handleBulkMove = () => {
+    setFoldersToMove(Array.from(selectedIds))
+    setMoveDialogOpen(true)
+  }
+
+  const handleDeleteSuccess = () => {
+    clearSelection()
+    setFoldersToDelete([])
+  }
+
+  const handleMoveSuccess = () => {
+    clearSelection()
+    setFoldersToMove([])
+  }
+
+  const isLoading = navLoading || foldersLoading || templatesLoading
+
+  // Get folder names for delete dialog
+  const folderNamesToDelete = foldersToDelete
+    .map((id) => foldersData?.data.find((f) => f.id === id)?.name)
+    .filter(Boolean) as string[]
 
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
@@ -43,15 +234,18 @@ export function DocumentsPage() {
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Repository
+              {t('documents.header.label', 'Repository')}
             </div>
             <h1 className="font-display text-4xl font-light leading-tight tracking-tight text-foreground md:text-5xl">
               {t('documents.title', 'Document Explorer')}
             </h1>
           </div>
-          <button className="group flex h-12 items-center gap-2 rounded-none border border-foreground bg-background px-6 text-sm font-medium tracking-wide text-foreground shadow-none transition-colors hover:bg-foreground hover:text-background">
+          <button
+            onClick={() => setCreateDialogOpen(true)}
+            className="group flex h-12 items-center gap-2 rounded-none border border-foreground bg-background px-6 text-sm font-medium tracking-wide text-foreground shadow-none transition-colors hover:bg-foreground hover:text-background"
+          >
             <span className="text-xl leading-none">+</span>
-            <span>NEW FOLDER</span>
+            <span>{t('folders.actions.newFolder', 'NEW FOLDER')}</span>
           </button>
         </div>
       </header>
@@ -62,46 +256,168 @@ export function DocumentsPage() {
         onViewModeChange={setViewMode}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onStartSelection={startSelecting}
+        isSelecting={isSelecting}
       />
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 pb-12 md:px-16">
-        <Breadcrumb items={breadcrumbItems} />
+      {/* Selection toolbar */}
+      {isSelecting && selectedIds.size > 0 && (
+        <SelectionToolbar
+          onMove={handleBulkMove}
+          onDelete={handleBulkDelete}
+          totalCount={currentFolders.length}
+          allFolderIds={currentFolders.map((f) => f.id)}
+        />
+      )}
 
-        {/* Subfolders */}
-        <div className="mb-10">
-          <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Subfolders
-          </h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {mockFolders.map((folder) => (
-              <FolderCard
-                key={folder.id}
-                name={folder.name}
-                itemCount={folder.itemCount}
-              />
-            ))}
-          </div>
-        </div>
+      {/* Content with DnD context wrapping everything */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex-1 overflow-y-auto px-8 pb-12 md:px-16">
+          {/* Droppable Breadcrumb */}
+          <DroppableBreadcrumb
+            items={breadcrumbs.map((b, i) => ({
+              id: b.id,
+              label: b.label,
+              isActive: i === breadcrumbs.length - 1,
+            }))}
+            onNavigate={navigateToFolder}
+          />
 
-        {/* Documents */}
-        <div>
-          <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Documents
-          </h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {mockDocuments.map((doc, i) => (
-              <DocumentCard
-                key={i}
-                name={doc.name}
-                type={doc.type}
-                size={doc.size}
-                date={doc.date}
-              />
-            ))}
-          </div>
+          {/* Loading state */}
+          {isLoading && (
+            <div className="mb-10">
+              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t('folders.subfolders', 'Subfolders')}
+              </h2>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-40" />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Folders section */}
+          {!isLoading && (
+            <div className="mb-10">
+              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t('folders.subfolders', 'Subfolders')}
+              </h2>
+
+              {currentFolders.length === 0 ? (
+                <p className="text-muted-foreground">
+                  {t(
+                    'folders.empty',
+                    'No folders yet. Create one to get started.'
+                  )}
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {currentFolders.map((folder) => (
+                    <DroppableFolderZone key={folder.id} folderId={folder.id}>
+                      <DraggableFolderCard
+                        folder={folder}
+                        disabled={isSelecting}
+                      >
+                        <FolderCard
+                          folder={folder}
+                          onClick={() => navigateToFolder(folder.id)}
+                          onRename={() => handleRenameFolder(folder)}
+                          onMove={() => handleMoveFolder(folder)}
+                          onDelete={() => handleDeleteFolder(folder)}
+                        />
+                      </DraggableFolderCard>
+                    </DroppableFolderZone>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Templates section */}
+          {!isLoading && (
+            <div className="mb-10">
+              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t('templates.section', 'Templates')}
+              </h2>
+
+              {!templatesData?.items || templatesData.items.length === 0 ? (
+                <p className="text-muted-foreground">
+                  {t('templates.empty', 'No templates in this folder')}
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {templatesData.items.map((template) => (
+                    <DraggableTemplateCard
+                      key={template.id}
+                      template={template}
+                      disabled={isSelecting}
+                    >
+                      <TemplateCard
+                        template={template}
+                        onClick={() => {
+                          // TODO: Navigate to template editor
+                        }}
+                      />
+                    </DraggableTemplateCard>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      </DndContext>
+
+      {/* Folder Dialogs */}
+      <CreateFolderDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        parentId={currentFolderId}
+      />
+
+      <RenameFolderDialog
+        open={renameDialogOpen}
+        onOpenChange={setRenameDialogOpen}
+        folder={selectedFolder}
+      />
+
+      <DeleteFolderDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        folderIds={foldersToDelete}
+        folderNames={folderNamesToDelete}
+        onSuccess={handleDeleteSuccess}
+      />
+
+      <MoveFolderDialog
+        open={moveDialogOpen}
+        onOpenChange={setMoveDialogOpen}
+        folderIds={foldersToMove}
+        workspaceId={workspaceId ?? ''}
+        onSuccess={handleMoveSuccess}
+      />
+
+      {/* Template Move Dialog */}
+      <MoveTemplateDialog
+        open={moveTemplateDialogOpen}
+        onOpenChange={setMoveTemplateDialogOpen}
+        template={templateToMove}
+        targetFolderName={targetFolder?.name ?? ''}
+        onConfirm={handleConfirmMoveTemplate}
+        isLoading={moveTemplate.isPending}
+      />
     </div>
+  )
+}
+
+export function DocumentsPage() {
+  return (
+    <FolderSelectionProvider>
+      <DocumentsPageContent />
+    </FolderSelectionProvider>
   )
 }

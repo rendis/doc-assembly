@@ -1,9 +1,10 @@
 import { ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface BreadcrumbItem {
   label: string
-  href?: string
   isActive?: boolean
+  onClick?: () => void
 }
 
 interface BreadcrumbProps {
@@ -21,9 +22,15 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
               {item.label}
             </span>
           ) : (
-            <a href={item.href || '#'} className="transition-colors hover:text-foreground">
+            <button
+              onClick={item.onClick}
+              className={cn(
+                'transition-colors hover:text-foreground',
+                'cursor-pointer bg-transparent border-none p-0'
+              )}
+            >
               {item.label}
-            </a>
+            </button>
           )}
         </div>
       ))}

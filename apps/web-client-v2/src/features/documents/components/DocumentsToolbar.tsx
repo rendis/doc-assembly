@@ -1,4 +1,5 @@
-import { Search, ChevronDown, List, Grid } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Search, ChevronDown, List, Grid, CheckSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DocumentsToolbarProps {
@@ -6,6 +7,8 @@ interface DocumentsToolbarProps {
   onViewModeChange: (mode: 'list' | 'grid') => void
   searchQuery: string
   onSearchChange: (query: string) => void
+  onStartSelection?: () => void
+  isSelecting?: boolean
 }
 
 export function DocumentsToolbar({
@@ -13,7 +16,11 @@ export function DocumentsToolbar({
   onViewModeChange,
   searchQuery,
   onSearchChange,
+  onStartSelection,
+  isSelecting = false,
 }: DocumentsToolbarProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="flex shrink-0 flex-col justify-between gap-6 border-b border-border bg-background px-8 py-6 md:flex-row md:items-center md:px-16">
       {/* Search */}
@@ -24,7 +31,7 @@ export function DocumentsToolbar({
         />
         <input
           type="text"
-          placeholder="Search documents..."
+          placeholder={t('documents.searchPlaceholder', 'Search documents...')}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-8 pr-4 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
@@ -34,19 +41,34 @@ export function DocumentsToolbar({
       {/* Filters */}
       <div className="flex items-center gap-6">
         <button className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
-          <span>Type: All</span>
+          <span>{t('documents.filters.type', 'Type: All')}</span>
           <ChevronDown size={16} />
         </button>
         <button className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
-          <span>Sort: Newest</span>
+          <span>{t('documents.filters.sort', 'Sort: Newest')}</span>
           <ChevronDown size={16} />
         </button>
+
         <div className="ml-2 flex items-center gap-2 border-l border-border pl-6">
+          {/* Selection toggle */}
+          {onStartSelection && !isSelecting && (
+            <button
+              onClick={onStartSelection}
+              className="mr-2 text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+              title={t('folders.selection.start', 'Select items')}
+            >
+              <CheckSquare size={20} />
+            </button>
+          )}
+
+          {/* View mode toggle */}
           <button
             onClick={() => onViewModeChange('list')}
             className={cn(
               'transition-colors',
-              viewMode === 'list' ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
+              viewMode === 'list'
+                ? 'text-foreground'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
             )}
           >
             <List size={20} />
@@ -55,7 +77,9 @@ export function DocumentsToolbar({
             onClick={() => onViewModeChange('grid')}
             className={cn(
               'transition-colors',
-              viewMode === 'grid' ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
+              viewMode === 'grid'
+                ? 'text-foreground'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
             )}
           >
             <Grid size={20} />

@@ -101,6 +101,8 @@ export interface Folder {
   workspaceId: string
   parentId?: string
   name: string
+  childFolderCount: number
+  templateCount: number
   createdAt: string
   updatedAt?: string
 }
