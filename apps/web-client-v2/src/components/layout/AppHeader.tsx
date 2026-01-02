@@ -3,6 +3,7 @@ import { Box } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { LanguageSelector } from '@/components/common/LanguageSelector'
+import { ContextBreadcrumb } from '@/components/common/ContextBreadcrumb'
 
 interface AppHeaderProps {
   variant?: 'minimal' | 'full'
@@ -20,24 +21,30 @@ export function AppHeader({ variant = 'minimal', className }: AppHeaderProps) {
         className
       )}
     >
-      {/* Logo grande con layoutId para animación */}
-      <motion.div
-        layoutId="app-logo"
-        className="flex items-center gap-3"
-      >
+      {/* Logo and context breadcrumb */}
+      <div className="flex items-center gap-3">
+        {/* Logo grande con layoutId para animación */}
         <motion.div
-          layoutId="app-logo-icon"
-          className="flex h-8 w-8 items-center justify-center border-2 border-foreground"
+          layoutId="app-logo"
+          className="flex items-center gap-3"
         >
-          <Box size={16} fill="currentColor" className="text-foreground" />
+          <motion.div
+            layoutId="app-logo-icon"
+            className="flex h-8 w-8 items-center justify-center border-2 border-foreground"
+          >
+            <Box size={16} fill="currentColor" className="text-foreground" />
+          </motion.div>
+          <motion.span
+            layoutId="app-logo-text"
+            className="font-display text-lg font-bold uppercase tracking-tight text-foreground"
+          >
+            Doc-Assembly
+          </motion.span>
         </motion.div>
-        <motion.span
-          layoutId="app-logo-text"
-          className="font-display text-lg font-bold uppercase tracking-tight text-foreground"
-        >
-          Doc-Assembly
-        </motion.span>
-      </motion.div>
+
+        {/* Context breadcrumb - only in full variant */}
+        {!isMinimal && <ContextBreadcrumb />}
+      </div>
 
       {/* Controles de idioma y tema con layoutId para animación */}
       <motion.div
