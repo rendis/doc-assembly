@@ -165,11 +165,72 @@ export interface Template {
 export interface TemplateListItem extends Template {
   tags: Tag[]
   hasPublishedVersion: boolean
+  publishedVersionNumber?: number
   versionCount: number
 }
 
 export interface TemplateWithVersions extends Template {
   versions: TemplateVersionListItem[]
+}
+
+// Template with all versions (from /all-versions endpoint)
+export interface TemplateWithAllVersionsResponse {
+  id: string
+  workspaceId: string
+  title: string
+  folderId?: string
+  folder?: Folder
+  isPublicLibrary: boolean
+  tags: Tag[]
+  versions: TemplateVersionSummaryResponse[]
+  createdAt: string
+  updatedAt?: string
+}
+
+// Version summary (includes injectables and signer roles)
+export interface TemplateVersionSummaryResponse {
+  id: string
+  templateId: string
+  versionNumber: number
+  name: string
+  description?: string
+  status: VersionStatus
+  injectables: TemplateVersionInjectable[]
+  signerRoles: SignerRole[]
+  createdAt: string
+  createdBy?: string
+  publishedAt?: string
+  publishedBy?: string
+  archivedAt?: string
+  archivedBy?: string
+  scheduledPublishAt?: string
+  scheduledArchiveAt?: string
+  updatedAt?: string
+}
+
+// List versions response
+export interface ListTemplateVersionsResponse {
+  items: TemplateVersionSummaryResponse[]
+  total: number
+}
+
+// Template version response (for create/update)
+export interface TemplateVersionResponse {
+  id: string
+  templateId: string
+  versionNumber: number
+  name: string
+  description?: string
+  status: VersionStatus
+  createdAt: string
+  createdBy?: string
+  publishedAt?: string
+  publishedBy?: string
+  archivedAt?: string
+  archivedBy?: string
+  scheduledPublishAt?: string
+  scheduledArchiveAt?: string
+  updatedAt?: string
 }
 
 export interface TemplateCreateResponse {

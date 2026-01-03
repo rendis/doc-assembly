@@ -3,6 +3,9 @@ import type {
   TemplateListItem,
   CreateTemplateRequest,
   TemplateCreateResponse,
+  TemplateWithAllVersionsResponse,
+  TemplateVersionResponse,
+  CreateVersionRequest,
 } from '@/types/api'
 
 export interface TemplatesListParams {
@@ -82,4 +85,28 @@ export async function removeTagFromTemplate(
   tagId: string
 ): Promise<void> {
   await apiClient.delete<void>(`/content/templates/${templateId}/tags/${tagId}`)
+}
+
+// ============================================
+// Template Detail & Versions API
+// ============================================
+
+export async function fetchTemplateWithVersions(
+  templateId: string
+): Promise<TemplateWithAllVersionsResponse> {
+  const response = await apiClient.get<TemplateWithAllVersionsResponse>(
+    `/content/templates/${templateId}/all-versions`
+  )
+  return response.data
+}
+
+export async function createVersion(
+  templateId: string,
+  data: CreateVersionRequest
+): Promise<TemplateVersionResponse> {
+  const response = await apiClient.post<TemplateVersionResponse>(
+    `/content/templates/${templateId}/versions`,
+    data
+  )
+  return response.data
 }

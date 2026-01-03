@@ -1,4 +1,4 @@
-import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash } from 'lucide-react'
+import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash, Layers, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
@@ -71,11 +71,20 @@ export function TemplateListRow({
         </div>
       </td>
       <td className="border-b border-border py-6 pt-7 align-top">
-        <div className="inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
-          {template.versionCount}{' '}
-          {template.versionCount === 1
-            ? t('templates.version', 'version')
-            : t('templates.versions', 'versions')}
+        <div className="flex items-center gap-2">
+          {/* Total de versiones */}
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <Layers size={14} />
+            <span className="font-mono text-xs">{template.versionCount}</span>
+          </span>
+
+          {/* Versión publicada (solo si existe) */}
+          {template.hasPublishedVersion && template.publishedVersionNumber && (
+            <span className="inline-flex items-center gap-1 border border-green-500/50 bg-green-500/10 px-1.5 py-0.5 text-green-600 dark:text-green-400">
+              <Check size={12} />
+              <span className="font-mono text-[10px]">v{template.publishedVersionNumber}</span>
+            </span>
+          )}
         </div>
       </td>
       <td className="border-b border-border py-6 pt-7 align-top">

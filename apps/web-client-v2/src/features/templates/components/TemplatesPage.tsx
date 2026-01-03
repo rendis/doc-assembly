@@ -85,11 +85,11 @@ export function TemplatesPage() {
     })
   }, [page, total, t])
 
-  const handleEditTemplate = (templateId: string) => {
+  const handleViewTemplateDetail = (templateId: string) => {
     if (currentWorkspace) {
       navigate({
-        to: '/workspace/$workspaceId/editor/$versionId',
-        params: { workspaceId: currentWorkspace.id, versionId: templateId },
+        to: '/workspace/$workspaceId/templates/$templateId',
+        params: { workspaceId: currentWorkspace.id, templateId },
       })
     }
   }
@@ -212,7 +212,7 @@ export function TemplatesPage() {
                 <TemplateListRow
                   key={template.id}
                   template={template}
-                  onClick={() => handleEditTemplate(template.id)}
+                  onClick={() => handleViewTemplateDetail(template.id)}
                   onGoToFolder={handleGoToFolder}
                   onEdit={() => handleOpenEditDialog(template)}
                   onDelete={() => handleOpenDeleteDialog(template)}
