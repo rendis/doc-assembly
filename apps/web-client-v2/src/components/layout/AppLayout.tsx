@@ -1,8 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
 import { useSidebarStore } from '@/stores/sidebar-store'
@@ -33,18 +31,13 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Header completo con border */}
-      <AppHeader variant="full" />
-
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleMobileOpen}
-        className="fixed right-4 top-4 z-50 lg:hidden"
-      >
-        {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </Button>
+      {/* Header completo con border y botón de menú móvil integrado */}
+      <AppHeader
+        variant="full"
+        showMobileMenu={true}
+        isMobileMenuOpen={isMobileOpen}
+        onMobileMenuToggle={toggleMobileOpen}
+      />
 
       {/* Mobile overlay */}
       <AnimatePresence>

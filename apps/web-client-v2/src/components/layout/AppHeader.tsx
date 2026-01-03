@@ -1,16 +1,26 @@
 import { motion } from 'framer-motion'
-import { Box } from 'lucide-react'
+import { Box, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { LanguageSelector } from '@/components/common/LanguageSelector'
 import { ContextBreadcrumb } from '@/components/common/ContextBreadcrumb'
+import { Button } from '@/components/ui/button'
 
 interface AppHeaderProps {
   variant?: 'minimal' | 'full'
   className?: string
+  showMobileMenu?: boolean
+  isMobileMenuOpen?: boolean
+  onMobileMenuToggle?: () => void
 }
 
-export function AppHeader({ variant = 'minimal', className }: AppHeaderProps) {
+export function AppHeader({
+  variant = 'minimal',
+  className,
+  showMobileMenu = false,
+  isMobileMenuOpen = false,
+  onMobileMenuToggle
+}: AppHeaderProps) {
   const isMinimal = variant === 'minimal'
 
   return (
@@ -53,6 +63,18 @@ export function AppHeader({ variant = 'minimal', className }: AppHeaderProps) {
       >
         <LanguageSelector />
         <ThemeToggle />
+
+        {/* Mobile menu button - only visible on mobile when showMobileMenu is true */}
+        {showMobileMenu && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMobileMenuToggle}
+            className="lg:hidden"
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        )}
       </motion.div>
 
       {/* Línea del borde - slide desde izquierda */}
