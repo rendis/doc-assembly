@@ -147,3 +147,4 @@ secrets/
 # Agents
 CLAUDE.md
 GEMINI.md
+apps/doc-engine/tmp
