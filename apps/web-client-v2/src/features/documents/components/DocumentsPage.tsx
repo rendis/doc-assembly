@@ -3,13 +3,16 @@ import { useTranslation } from 'react-i18next'
 import { useParams } from '@tanstack/react-router'
 import {
   DndContext,
+  DragOverlay,
   DragEndEvent,
+  DragStartEvent,
   rectIntersection,
   PointerSensor,
   useSensor,
   useSensors,
   type CollisionDetection,
   type Collision,
+  type Modifier,
 } from '@dnd-kit/core'
 import { DocumentsToolbar } from './DocumentsToolbar'
 import { DroppableBreadcrumb } from './DroppableBreadcrumb'
@@ -22,6 +25,7 @@ import { DeleteFolderDialog } from './DeleteFolderDialog'
 import { MoveFolderDialog } from './MoveFolderDialog'
 import { MoveTemplateDialog } from './MoveTemplateDialog'
 import { ConfirmMoveFolderDialog } from './ConfirmMoveFolderDialog'
+import { DragPreview } from './DragPreview'
 import { SelectionToolbar } from './SelectionToolbar'
 import { DraggableFolderCard } from './DraggableFolderCard'
 import { DraggableTemplateCard } from './DraggableTemplateCard'
@@ -35,6 +39,35 @@ import { useFolderNavigation } from '../hooks/useFolderNavigation'
 import { useTemplatesByFolder, useMoveTemplate } from '../hooks/useTemplates'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Folder, TemplateListItem } from '@/types/api'
+
+// Custom modifier: center on cursor, then offset below so it doesn't cover drop targets
+const snapBelowCursor: Modifier = ({
+  activatorEvent,
+  draggingNodeRect,
+  transform,
+}) => {
+  // Si no hay datos necesarios, usar transform original
+  if (!activatorEvent || !draggingNodeRect) {
+    return transform
+  }
+
+  // Obtener posición del evento (donde se hizo click)
+  const activatorCoordinates = {
+    x: (activatorEvent as MouseEvent).clientX,
+    y: (activatorEvent as MouseEvent).clientY,
+  }
+
+  // Calcular offset desde esquina del elemento al punto de click
+  const offsetX = activatorCoordinates.x - draggingNodeRect.left
+  const offsetY = activatorCoordinates.y - draggingNodeRect.top
+
+  // Ajustar transform para centrar en cursor y luego mover abajo
+  return {
+    ...transform,
+    x: transform.x + offsetX - draggingNodeRect.width / 2,
+    y: transform.y + offsetY + 16, // 16px debajo del cursor
+  }
+}
 
 function DocumentsPageContent() {
   const { t } = useTranslation()
@@ -86,6 +119,13 @@ function DocumentsPageContent() {
 
     return collisions
   }, [])
+
+  // Active drag item state for DragOverlay
+  const [activeDragItem, setActiveDragItem] = useState<{
+    type: 'folder' | 'template'
+    id: string
+    name: string
+  } | null>(null)
 
   // Folder dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -163,10 +203,33 @@ function DocumentsPageContent() {
     [foldersData, t]
   )
 
+  // Handle drag start - set active item for DragOverlay
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event
+    const type = active.data.current?.type
+
+    if (type === 'folder') {
+      setActiveDragItem({
+        type: 'folder',
+        id: active.data.current?.folder?.id,
+        name: active.data.current?.folder?.name,
+      })
+    } else if (type === 'template') {
+      setActiveDragItem({
+        type: 'template',
+        id: active.data.current?.template?.id,
+        name: active.data.current?.template?.title,
+      })
+    }
+  }, [])
+
   // Handle drag end for both folders and templates
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event
+
+      // Always clear active drag item first
+      setActiveDragItem(null)
 
       if (!over) return
 
@@ -232,6 +295,11 @@ function DocumentsPageContent() {
     },
     [moveFolder, getFolderName]
   )
+
+  // Handle drag cancel
+  const handleDragCancel = useCallback(() => {
+    setActiveDragItem(null)
+  }, [])
 
   // Handle template move confirmation
   const handleConfirmMoveTemplate = async () => {
@@ -367,7 +435,9 @@ function DocumentsPageContent() {
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <div className="flex-1 overflow-y-auto px-4 pb-12 md:px-6 lg:px-6">
           {/* Droppable Breadcrumb */}
@@ -415,6 +485,7 @@ function DocumentsPageContent() {
                       <DraggableFolderCard
                         folder={folder}
                         disabled={isSelecting}
+                        isOtherDragging={activeDragItem !== null}
                       >
                         <FolderCard
                           folder={folder}
@@ -449,6 +520,7 @@ function DocumentsPageContent() {
                       key={template.id}
                       template={template}
                       disabled={isSelecting}
+                      isOtherDragging={activeDragItem !== null}
                     >
                       <TemplateCard
                         template={template}
@@ -463,6 +535,16 @@ function DocumentsPageContent() {
             </div>
           )}
         </div>
+
+        {/* Drag Overlay - shows custom preview while dragging */}
+        <DragOverlay dropAnimation={null} modifiers={[snapBelowCursor]}>
+          {activeDragItem && (
+            <DragPreview
+              type={activeDragItem.type}
+              name={activeDragItem.name}
+            />
+          )}
+        </DragOverlay>
       </DndContext>
 
       {/* Folder Dialogs */}
