@@ -65,3 +65,21 @@ export async function addTagsToTemplate(
     tagIds,
   })
 }
+
+export async function updateTemplate(
+  templateId: string,
+  data: { title?: string; folderId?: string; isPublicLibrary?: boolean }
+): Promise<void> {
+  await apiClient.put<void>(`/content/templates/${templateId}`, data)
+}
+
+export async function deleteTemplate(templateId: string): Promise<void> {
+  await apiClient.delete<void>(`/content/templates/${templateId}`)
+}
+
+export async function removeTagFromTemplate(
+  templateId: string,
+  tagId: string
+): Promise<void> {
+  await apiClient.delete<void>(`/content/templates/${templateId}/tags/${tagId}`)
+}

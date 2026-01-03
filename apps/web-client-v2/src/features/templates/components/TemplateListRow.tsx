@@ -1,13 +1,29 @@
-import { FileText, Edit, MoreHorizontal } from 'lucide-react'
+import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { TemplateListItem } from '@/types/api'
 
 interface TemplateListRowProps {
   template: TemplateListItem
   onClick?: () => void
+  onGoToFolder?: (folderId: string | undefined) => void
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
-export function TemplateListRow({ template, onClick }: TemplateListRowProps) {
+export function TemplateListRow({
+  template,
+  onClick,
+  onGoToFolder,
+  onEdit,
+  onDelete,
+}: TemplateListRowProps) {
   const { t } = useTranslation()
   const Icon = template.hasPublishedVersion ? FileText : Edit
   const status = template.hasPublishedVersion ? 'PUBLISHED' : 'DRAFT'
@@ -82,12 +98,36 @@ export function TemplateListRow({ template, onClick }: TemplateListRowProps) {
         {formatDate(template.updatedAt)}
       </td>
       <td className="border-b border-border py-6 pt-7 pr-4 text-right align-top">
-        <button
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal size={20} />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal size={20} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem
+              onClick={() => onGoToFolder?.(template.folderId)}
+            >
+              <FolderOpen className="mr-2 h-4 w-4" />
+              {t('templates.actions.goToFolder', 'Go to folder')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit?.()}>
+              <Pencil className="mr-2 h-4 w-4" />
+              {t('templates.actions.edit', 'Edit')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete?.()}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              {t('templates.actions.delete', 'Delete')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </td>
     </tr>
   )

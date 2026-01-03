@@ -6,9 +6,12 @@ import { useAppContextStore } from '@/stores/app-context-store'
 import { TemplatesToolbar } from './TemplatesToolbar'
 import { TemplateListRow } from './TemplateListRow'
 import { CreateTemplateDialog } from './CreateTemplateDialog'
+import { EditTemplateDialog } from './EditTemplateDialog'
+import { DeleteTemplateDialog } from './DeleteTemplateDialog'
 import { useTemplates } from '../hooks/useTemplates'
 import { useTags } from '../hooks/useTags'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { TemplateListItem } from '@/types/api'
 
 const PAGE_SIZE = 20
 
@@ -35,6 +38,11 @@ export function TemplatesPage() {
 
   // Create dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  // Edit/Delete dialogs
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateListItem | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -84,6 +92,29 @@ export function TemplatesPage() {
         params: { workspaceId: currentWorkspace.id, versionId: templateId },
       })
     }
+  }
+
+  const handleGoToFolder = (folderId: string | undefined) => {
+    if (!currentWorkspace) return
+
+    // Si folderId es null, undefined, o 'root', navegar al root de documents (sin search param)
+    const isRoot = !folderId || folderId === 'root'
+
+    navigate({
+      to: '/workspace/$workspaceId/documents',
+      params: { workspaceId: currentWorkspace.id },
+      search: isRoot ? undefined : { folderId },
+    })
+  }
+
+  const handleOpenEditDialog = (template: TemplateListItem) => {
+    setSelectedTemplate(template)
+    setEditDialogOpen(true)
+  }
+
+  const handleOpenDeleteDialog = (template: TemplateListItem) => {
+    setSelectedTemplate(template)
+    setDeleteDialogOpen(true)
   }
 
   return (
@@ -182,6 +213,9 @@ export function TemplatesPage() {
                   key={template.id}
                   template={template}
                   onClick={() => handleEditTemplate(template.id)}
+                  onGoToFolder={handleGoToFolder}
+                  onEdit={() => handleOpenEditDialog(template)}
+                  onDelete={() => handleOpenDeleteDialog(template)}
                 />
               ))}
             </tbody>
@@ -218,6 +252,20 @@ export function TemplatesPage() {
       <CreateTemplateDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
+      />
+
+      {/* Edit Template Dialog */}
+      <EditTemplateDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        template={selectedTemplate}
+      />
+
+      {/* Delete Template Dialog */}
+      <DeleteTemplateDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        template={selectedTemplate}
       />
     </div>
   )

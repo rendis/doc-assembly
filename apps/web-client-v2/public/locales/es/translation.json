@@ -124,7 +124,23 @@
       "submit": "Crear Plantilla"
     },
     "actions": {
-      "newTemplate": "NUEVA PLANTILLA"
+      "newTemplate": "NUEVA PLANTILLA",
+      "goToFolder": "Ir a carpeta",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "editDialog": {
+      "title": "Editar Plantilla",
+      "description": "Actualizar nombre y etiquetas de la plantilla",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingresa el título de la plantilla...",
+      "tagsLabel": "Etiquetas",
+      "submit": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Plantilla",
+      "message": "¿Estás seguro de que deseas eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar"
     },
     "moveDialog": {
       "title": "Mover Plantilla",

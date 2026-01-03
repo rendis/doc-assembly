@@ -7,6 +7,10 @@ import {
 import {
   fetchTemplates,
   createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  addTagsToTemplate,
+  removeTagFromTemplate,
   type TemplatesListParams,
 } from '../api/templates-api'
 import type { CreateTemplateRequest } from '@/types/api'
@@ -32,6 +36,63 @@ export function useCreateTemplate() {
 
   return useMutation({
     mutationFn: (data: CreateTemplateRequest) => createTemplate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: templateKeys.all })
+    },
+  })
+}
+
+export function useUpdateTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      data,
+    }: {
+      templateId: string
+      data: { title?: string; folderId?: string; isPublicLibrary?: boolean }
+    }) => updateTemplate(templateId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: templateKeys.all })
+    },
+  })
+}
+
+export function useDeleteTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (templateId: string) => deleteTemplate(templateId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: templateKeys.all })
+    },
+  })
+}
+
+export function useAddTagsToTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      tagIds,
+    }: {
+      templateId: string
+      tagIds: string[]
+    }) => addTagsToTemplate(templateId, tagIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: templateKeys.all })
+    },
+  })
+}
+
+export function useRemoveTagFromTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId, tagId }: { templateId: string; tagId: string }) =>
+      removeTagFromTemplate(templateId, tagId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
     },

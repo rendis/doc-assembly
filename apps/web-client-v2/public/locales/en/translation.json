@@ -124,7 +124,23 @@
       "submit": "Create Template"
     },
     "actions": {
-      "newTemplate": "NEW TEMPLATE"
+      "newTemplate": "NEW TEMPLATE",
+      "goToFolder": "Go to folder",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "editDialog": {
+      "title": "Edit Template",
+      "description": "Update template name and tags",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter template title...",
+      "tagsLabel": "Tags",
+      "submit": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "confirm": "Delete"
     },
     "moveDialog": {
       "title": "Move Template",
