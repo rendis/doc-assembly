@@ -14,8 +14,14 @@ type FolderRepository interface {
 	// FindByID finds a folder by ID.
 	FindByID(ctx context.Context, id string) (*entity.Folder, error)
 
+	// FindByIDWithCounts finds a folder by ID including item counts.
+	FindByIDWithCounts(ctx context.Context, id string) (*entity.FolderWithCounts, error)
+
 	// FindByWorkspace lists all folders in a workspace.
 	FindByWorkspace(ctx context.Context, workspaceID string) ([]*entity.Folder, error)
+
+	// FindByWorkspaceWithCounts lists all folders in a workspace including item counts.
+	FindByWorkspaceWithCounts(ctx context.Context, workspaceID string) ([]*entity.FolderWithCounts, error)
 
 	// FindByParent lists all child folders of a parent folder.
 	FindByParent(ctx context.Context, workspaceID string, parentID *string) ([]*entity.Folder, error)

@@ -62,6 +62,30 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Folder, e
 	return &folder, nil
 }
 
+// FindByIDWithCounts finds a folder by ID including item counts.
+func (r *Repository) FindByIDWithCounts(ctx context.Context, id string) (*entity.FolderWithCounts, error) {
+	var folder entity.FolderWithCounts
+	err := r.pool.QueryRow(ctx, queryFindByIDWithCounts, id).Scan(
+		&folder.ID,
+		&folder.WorkspaceID,
+		&folder.ParentID,
+		&folder.Name,
+		&folder.Path,
+		&folder.CreatedAt,
+		&folder.UpdatedAt,
+		&folder.ChildFolderCount,
+		&folder.TemplateCount,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrFolderNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying folder with counts: %w", err)
+	}
+
+	return &folder, nil
+}
+
 // FindByWorkspace lists all folders in a workspace.
 func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string) ([]*entity.Folder, error) {
 	rows, err := r.pool.Query(ctx, queryFindByWorkspace, workspaceID)
@@ -71,6 +95,17 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string) ([
 	defer rows.Close()
 
 	return scanFolders(rows)
+}
+
+// FindByWorkspaceWithCounts lists all folders in a workspace including item counts.
+func (r *Repository) FindByWorkspaceWithCounts(ctx context.Context, workspaceID string) ([]*entity.FolderWithCounts, error) {
+	rows, err := r.pool.Query(ctx, queryFindByWorkspaceWithCounts, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("querying folders with counts: %w", err)
+	}
+	defer rows.Close()
+
+	return scanFoldersWithCounts(rows)
 }
 
 // FindByParent lists all child folders of a parent folder.
@@ -201,6 +236,30 @@ func scanFolders(rows pgx.Rows) ([]*entity.Folder, error) {
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scanning folder: %w", err)
+		}
+		result = append(result, &folder)
+	}
+	return result, rows.Err()
+}
+
+// scanFoldersWithCounts scans folder rows with counts into a slice.
+func scanFoldersWithCounts(rows pgx.Rows) ([]*entity.FolderWithCounts, error) {
+	var result []*entity.FolderWithCounts
+	for rows.Next() {
+		var folder entity.FolderWithCounts
+		err := rows.Scan(
+			&folder.ID,
+			&folder.WorkspaceID,
+			&folder.ParentID,
+			&folder.Name,
+			&folder.Path,
+			&folder.CreatedAt,
+			&folder.UpdatedAt,
+			&folder.ChildFolderCount,
+			&folder.TemplateCount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning folder with counts: %w", err)
 		}
 		result = append(result, &folder)
 	}

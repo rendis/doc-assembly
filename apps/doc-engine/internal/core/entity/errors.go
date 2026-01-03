@@ -24,17 +24,17 @@ var (
 
 // System Role errors.
 var (
-	ErrSystemRoleNotFound  = errors.New("system role not found")
-	ErrSystemRoleExists    = errors.New("user already has a system role")
-	ErrInvalidSystemRole   = errors.New("invalid system role")
+	ErrSystemRoleNotFound = errors.New("system role not found")
+	ErrSystemRoleExists   = errors.New("user already has a system role")
+	ErrInvalidSystemRole  = errors.New("invalid system role")
 )
 
 // Tenant Member errors.
 var (
-	ErrTenantMemberNotFound  = errors.New("tenant member not found")
-	ErrTenantMemberExists    = errors.New("user is already a member of this tenant")
-	ErrTenantAccessDenied    = errors.New("tenant access denied")
-	ErrInvalidTenantRole     = errors.New("invalid tenant role")
+	ErrTenantMemberNotFound    = errors.New("tenant member not found")
+	ErrTenantMemberExists      = errors.New("user is already a member of this tenant")
+	ErrTenantAccessDenied      = errors.New("tenant access denied")
+	ErrInvalidTenantRole       = errors.New("invalid tenant role")
 	ErrCannotRemoveTenantOwner = errors.New("cannot remove tenant owner")
 )
 
@@ -47,16 +47,16 @@ var (
 
 // Workspace errors.
 var (
-	ErrWorkspaceNotFound       = errors.New("workspace not found")
-	ErrWorkspaceAlreadyExists  = errors.New("workspace already exists")
-	ErrWorkspaceAccessDenied   = errors.New("workspace access denied")
-	ErrWorkspaceSuspended      = errors.New("workspace is suspended")
-	ErrWorkspaceArchived       = errors.New("workspace is archived")
-	ErrSystemWorkspaceExists   = errors.New("system workspace already exists for this tenant")
-	ErrGlobalWorkspaceExists   = errors.New("global system workspace already exists")
-	ErrInvalidWorkspaceType    = errors.New("invalid workspace type")
-	ErrInvalidWorkspaceStatus  = errors.New("invalid workspace status")
-	ErrCannotArchiveSystem     = errors.New("cannot archive system workspace")
+	ErrWorkspaceNotFound      = errors.New("workspace not found")
+	ErrWorkspaceAlreadyExists = errors.New("workspace already exists")
+	ErrWorkspaceAccessDenied  = errors.New("workspace access denied")
+	ErrWorkspaceSuspended     = errors.New("workspace is suspended")
+	ErrWorkspaceArchived      = errors.New("workspace is archived")
+	ErrSystemWorkspaceExists  = errors.New("system workspace already exists for this tenant")
+	ErrGlobalWorkspaceExists  = errors.New("global system workspace already exists")
+	ErrInvalidWorkspaceType   = errors.New("invalid workspace type")
+	ErrInvalidWorkspaceStatus = errors.New("invalid workspace status")
+	ErrCannotArchiveSystem    = errors.New("cannot archive system workspace")
 )
 
 // User errors.
@@ -72,11 +72,11 @@ var (
 
 // Workspace Member errors.
 var (
-	ErrMemberNotFound        = errors.New("workspace member not found")
-	ErrMemberAlreadyExists   = errors.New("user is already a member of this workspace")
-	ErrMembershipPending     = errors.New("membership is pending")
-	ErrCannotRemoveOwner     = errors.New("cannot remove workspace owner")
-	ErrInvalidRole           = errors.New("invalid workspace role")
+	ErrMemberNotFound          = errors.New("workspace member not found")
+	ErrMemberAlreadyExists     = errors.New("user is already a member of this workspace")
+	ErrMembershipPending       = errors.New("membership is pending")
+	ErrCannotRemoveOwner       = errors.New("cannot remove workspace owner")
+	ErrInvalidRole             = errors.New("invalid workspace role")
 	ErrInvalidMembershipStatus = errors.New("invalid membership status")
 )
 
@@ -137,21 +137,22 @@ var (
 	ErrVersionInjectableNotFound       = errors.New("version injectable not found")
 	ErrContentValidationFailed         = errors.New("content validation failed")
 	ErrMissingRequiredContent          = errors.New("content structure is required for publishing")
+	ErrVersionDoesNotBelongToTemplate  = errors.New("version does not belong to the specified template")
 )
 
 // Document errors.
 var (
-	ErrDocumentNotFound                  = errors.New("document not found")
-	ErrDocumentAlreadySent               = errors.New("document already sent for signing")
-	ErrDocumentCompleted                 = errors.New("document signing already completed")
-	ErrDocumentVoided                    = errors.New("document has been voided")
-	ErrInvalidDocumentState              = errors.New("invalid document state for this operation")
-	ErrInvalidDocumentStatus             = errors.New("invalid document status")
-	ErrInvalidDocumentStatusTransition   = errors.New("invalid document status transition")
-	ErrDocumentRecipientNotFound         = errors.New("document recipient not found")
-	ErrInvalidRecipientStatus            = errors.New("invalid recipient status")
-	ErrInvalidRecipientStatusTransition  = errors.New("invalid recipient status transition")
-	ErrDuplicateRecipientRole            = errors.New("duplicate recipient role assignment")
+	ErrDocumentNotFound                 = errors.New("document not found")
+	ErrDocumentAlreadySent              = errors.New("document already sent for signing")
+	ErrDocumentCompleted                = errors.New("document signing already completed")
+	ErrDocumentVoided                   = errors.New("document has been voided")
+	ErrInvalidDocumentState             = errors.New("invalid document state for this operation")
+	ErrInvalidDocumentStatus            = errors.New("invalid document status")
+	ErrInvalidDocumentStatusTransition  = errors.New("invalid document status transition")
+	ErrDocumentRecipientNotFound        = errors.New("document recipient not found")
+	ErrInvalidRecipientStatus           = errors.New("invalid recipient status")
+	ErrInvalidRecipientStatusTransition = errors.New("invalid recipient status transition")
+	ErrDuplicateRecipientRole           = errors.New("duplicate recipient role assignment")
 )
 
 // Signing Provider errors.

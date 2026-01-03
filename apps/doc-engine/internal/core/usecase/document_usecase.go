@@ -75,12 +75,12 @@ type DocumentUseCase interface {
 
 // DocumentStatistics contains aggregate statistics about documents in a workspace.
 type DocumentStatistics struct {
-	Total      int                     `json:"total"`
-	ByStatus   map[string]int          `json:"byStatus"`
-	Pending    int                     `json:"pending"`
-	InProgress int                     `json:"inProgress"`
-	Completed  int                     `json:"completed"`
-	Declined   int                     `json:"declined"`
+	Total      int            `json:"total"`
+	ByStatus   map[string]int `json:"byStatus"`
+	Pending    int            `json:"pending"`
+	InProgress int            `json:"inProgress"`
+	Completed  int            `json:"completed"`
+	Declined   int            `json:"declined"`
 }
 
 // RenderDocumentRequest contains the data needed to render a document PDF.

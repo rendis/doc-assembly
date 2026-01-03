@@ -5,6 +5,9 @@ BINARY_NAME=doc-engine
 BUILD_DIR=bin
 CMD_DIR=cmd/api
 
+# Environment file (default: .env in workspace root)
+ENV_FILE?=.env
+
 # Default target
 all: build
 
@@ -14,9 +17,16 @@ build: wire swagger lint
 	@go build -o $(BUILD_DIR)/$(BINARY_NAME) ./$(CMD_DIR)
 
 # Run the application
+# Usage: make run [ENV_FILE=path/to/.env]
 run: build
-	@echo "Running $(BINARY_NAME)..."
-	@./$(BUILD_DIR)/$(BINARY_NAME)
+	@echo "Running $(BINARY_NAME) with env from $(ENV_FILE)..."
+	@if [ -f $(ENV_FILE) ]; then \
+		export $$(cat $(ENV_FILE) | grep -v '^#' | xargs) && \
+		./$(BUILD_DIR)/$(BINARY_NAME); \
+	else \
+		echo "Warning: $(ENV_FILE) not found, running without environment file"; \
+		./$(BUILD_DIR)/$(BINARY_NAME); \
+	fi
 
 # Run tests with race detection and coverage
 test:
@@ -89,7 +99,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all              - Build the application (default)"
 	@echo "  build            - Build the binary"
-	@echo "  run              - Build and run the application"
+	@echo "  run [ENV_FILE]   - Build and run the application (default: .env)"
 	@echo "  test             - Run unit tests with coverage"
 	@echo "  test-integration - Run integration tests (requires Docker)"
 	@echo "  test-all         - Run all tests (unit + integration)"

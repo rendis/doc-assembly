@@ -103,11 +103,14 @@ export DOC_ENGINE_AUTH_ISSUER=https://your-keycloak/realms/your-realm
 ### 3. Build and Run
 
 ```bash
-# Using Makefile
+# Using Makefile with default .env
 make build
 make run
 
-# Or directly
+# Or specify a custom env file
+make run ENV_FILE=.env.production
+
+# Or directly (requires manually setting env vars)
 go build -o bin/doc-engine ./cmd/api
 ./bin/doc-engine
 ```
@@ -141,7 +144,7 @@ For a complete list of API endpoints, authentication requirements, roles, and re
 ```bash
 make help             # Show all available commands
 make build            # Build the binary
-make run              # Build and run
+make run [ENV_FILE]   # Build and run (default: .env)
 make test             # Run unit tests with coverage
 make test-integration # Run integration tests (requires Docker)
 make test-all         # Run all tests (unit + integration)

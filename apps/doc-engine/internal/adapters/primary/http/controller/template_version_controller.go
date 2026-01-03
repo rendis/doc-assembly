@@ -418,4 +418,3 @@ func (c *TemplateVersionController) RemoveInjectable(ctx *gin.Context) {
 
 	ctx.Status(http.StatusNoContent)
 }
-

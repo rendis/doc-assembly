@@ -42,6 +42,13 @@ func (f *Folder) Validate() error {
 	return nil
 }
 
+// FolderWithCounts represents a folder with item counts.
+type FolderWithCounts struct {
+	Folder
+	ChildFolderCount int `json:"childFolderCount"`
+	TemplateCount    int `json:"templateCount"`
+}
+
 // FolderTree represents a folder with its children for tree display.
 type FolderTree struct {
 	Folder

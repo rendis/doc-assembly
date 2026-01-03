@@ -46,7 +46,7 @@ func (b *HTMLBuilder) Build(doc *portabledoc.Document) string {
 	sb.WriteString("</title>\n")
 	sb.WriteString("  <style>\n")
 	sb.WriteString(b.styles)
-	sb.WriteString(b.pageStyles(doc.PageConfig))
+	sb.WriteString(b.pageStyles(&doc.PageConfig))
 	sb.WriteString("  </style>\n")
 	sb.WriteString("</head>\n")
 
@@ -73,7 +73,7 @@ func (b *HTMLBuilder) Build(doc *portabledoc.Document) string {
 }
 
 // pageStyles generates CSS for page configuration.
-func (b *HTMLBuilder) pageStyles(config portabledoc.PageConfig) string {
+func (b *HTMLBuilder) pageStyles(config *portabledoc.PageConfig) string {
 	// Convert pixels to mm for @page rule (96 DPI)
 	const pxToMm = 25.4 / 96.0
 

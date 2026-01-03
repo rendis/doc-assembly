@@ -118,7 +118,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by folder ID",
+                        "description": "Filter by folder ID. Use 'root' to get only root-level templates (no folder)",
                         "name": "folderId",
                         "in": "query"
                     },
@@ -260,6 +260,7 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "description": "Updates a template's metadata. Use folderId=\"root\" to move the template to the root folder.",
                 "consumes": [
                     "application/json"
                 ],
@@ -279,7 +280,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Template data",
+                        "description": "Template data (folderId can be a folder UUID or 'root' to move to root)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -381,6 +382,7 @@ const docTemplate = `{
         },
         "/api/v1/content/templates/{templateId}/clone": {
             "post": {
+                "description": "Clones a template using the content from a specific version (identified by versionId in request body). The versionId must belong to the specified templateId.",
                 "consumes": [
                     "application/json"
                 ],
@@ -390,8 +392,15 @@ const docTemplate = `{
                 "tags": [
                     "Templates"
                 ],
-                "summary": "Clone template",
+                "summary": "Clone template from specific version",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -400,7 +409,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Clone data",
+                        "description": "Clone data (versionId is required and must belong to the template)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -417,19 +426,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad request (invalid versionId, version doesn't belong to template, validation error)",
                         "schema": {
                             "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Template or version not found",
                         "schema": {
                             "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "Template title already exists",
                         "schema": {
                             "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
                         }
@@ -1953,16 +1962,16 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 10,
-                        "description": "Number of items per page",
-                        "name": "limit",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Number of items to skip",
-                        "name": "offset",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "perPage",
                         "in": "query"
                     }
                 ],
@@ -4140,7 +4149,8 @@ const docTemplate = `{
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CloneTemplateRequest": {
             "type": "object",
             "required": [
-                "newTitle"
+                "newTitle",
+                "versionId"
             ],
             "properties": {
                 "newTitle": {
@@ -4149,6 +4159,9 @@ const docTemplate = `{
                     "minLength": 1
                 },
                 "targetFolderId": {
+                    "type": "string"
+                },
+                "versionId": {
                     "type": "string"
                 }
             }
@@ -4438,6 +4451,9 @@ const docTemplate = `{
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse": {
             "type": "object",
             "properties": {
+                "childFolderCount": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -4449,6 +4465,9 @@ const docTemplate = `{
                 },
                 "parentId": {
                     "type": "string"
+                },
+                "templateCount": {
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -5071,6 +5090,9 @@ const docTemplate = `{
                 "isPublicLibrary": {
                     "type": "boolean"
                 },
+                "publishedVersionNumber": {
+                    "type": "integer"
+                },
                 "tags": {
                     "type": "array",
                     "items": {
@@ -5082,6 +5104,9 @@ const docTemplate = `{
                 },
                 "updatedAt": {
                     "type": "string"
+                },
+                "versionCount": {
+                    "type": "integer"
                 },
                 "workspaceId": {
                     "type": "string"
@@ -5567,6 +5592,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "folderId": {
+                    "description": "Use \"root\" to move template to root folder",
                     "type": "string"
                 },
                 "isPublicLibrary": {

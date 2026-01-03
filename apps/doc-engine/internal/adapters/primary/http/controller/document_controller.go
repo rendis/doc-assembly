@@ -3,11 +3,13 @@ package controller
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 )
@@ -75,21 +77,24 @@ func (c *DocumentController) ListDocuments(ctx *gin.Context) {
 
 	var filters port.DocumentFilters
 	if status := ctx.Query("status"); status != "" {
-		// TODO: Parse status enum
+		docStatus := entity.DocumentStatus(status)
+		filters.Status = &docStatus
 	}
 	filters.Search = ctx.Query("search")
 
 	// Parse limit/offset with defaults
-	limit := 50
-	offset := 0
+	filters.Limit = 50
+	filters.Offset = 0
 	if l := ctx.Query("limit"); l != "" {
-		// TODO: Parse int
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			filters.Limit = parsed
+		}
 	}
 	if o := ctx.Query("offset"); o != "" {
-		// TODO: Parse int
+		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
+			filters.Offset = parsed
+		}
 	}
-	filters.Limit = limit
-	filters.Offset = offset
 
 	docs, err := c.documentUC.ListDocuments(ctx.Request.Context(), workspaceID, filters)
 	if err != nil {

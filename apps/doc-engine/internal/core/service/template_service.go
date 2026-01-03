@@ -161,7 +161,11 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, cmd usecase.Update
 	}
 
 	if cmd.FolderID != nil {
-		template.FolderID = cmd.FolderID
+		if *cmd.FolderID == "root" {
+			template.FolderID = nil
+		} else {
+			template.FolderID = cmd.FolderID
+		}
 	}
 
 	if cmd.IsPublicLibrary != nil {
@@ -187,16 +191,23 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, cmd usecase.Update
 	return template, nil
 }
 
-// CloneTemplate creates a copy of an existing template from its published version.
+// CloneTemplate creates a copy of an existing template from a specific version.
 func (s *TemplateService) CloneTemplate(ctx context.Context, cmd usecase.CloneTemplateCommand) (*entity.Template, *entity.TemplateVersion, error) {
-	// Get source template with published version
+	// Get source version to clone
+	sourceVersion, err := s.versionRepo.FindByID(ctx, cmd.VersionID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("finding source version: %w", err)
+	}
+
+	// Verify version belongs to the specified template
+	if sourceVersion.TemplateID != cmd.SourceTemplateID {
+		return nil, nil, entity.ErrVersionDoesNotBelongToTemplate
+	}
+
+	// Get source template metadata
 	source, err := s.templateRepo.FindByIDWithDetails(ctx, cmd.SourceTemplateID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("finding source template: %w", err)
-	}
-
-	if source.PublishedVersion == nil {
-		return nil, nil, entity.ErrNoPublishedVersion
 	}
 
 	// Check for duplicate title
@@ -224,10 +235,10 @@ func (s *TemplateService) CloneTemplate(ctx context.Context, cmd usecase.CloneTe
 	}
 	newTemplate.ID = id
 
-	// Create initial version with cloned content
+	// Create initial version with content from specified version
 	version := entity.NewTemplateVersion(newTemplate.ID, 1, "Initial Version", &cmd.ClonedBy)
 	version.ID = uuid.NewString()
-	version.ContentStructure = source.PublishedVersion.ContentStructure
+	version.ContentStructure = sourceVersion.ContentStructure
 
 	versionID, err := s.versionRepo.Create(ctx, version)
 	if err != nil {
@@ -248,6 +259,7 @@ func (s *TemplateService) CloneTemplate(ctx context.Context, cmd usecase.CloneTe
 
 	slog.Info("template cloned",
 		slog.String("source_id", cmd.SourceTemplateID),
+		slog.String("source_version_id", cmd.VersionID),
 		slog.String("new_id", newTemplate.ID),
 		slog.String("version_id", version.ID),
 		slog.String("title", newTemplate.Title),

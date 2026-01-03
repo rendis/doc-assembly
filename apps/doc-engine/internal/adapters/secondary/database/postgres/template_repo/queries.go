@@ -61,7 +61,8 @@ const (
 			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
-			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
+			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
+			(SELECT version_number FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED' LIMIT 1) as published_version_number
 		FROM content.templates t
 		LEFT JOIN organizer.folders f ON t.folder_id = f.id
 		WHERE t.workspace_id = $1`
@@ -71,7 +72,8 @@ const (
 			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
-			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
+			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
+			(SELECT version_number FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED' LIMIT 1) as published_version_number
 		FROM content.templates t
 		WHERE t.folder_id = $1
 		ORDER BY t.title`
@@ -81,7 +83,8 @@ const (
 			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
 			t.created_at, t.updated_at,
 			true as has_published,
-			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id) as version_count
+			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
+			(SELECT version_number FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED' LIMIT 1) as published_version_number
 		FROM content.templates t
 		WHERE t.is_public_library = true
 			AND EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED')

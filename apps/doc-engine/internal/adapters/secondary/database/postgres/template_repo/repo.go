@@ -291,17 +291,16 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 	argPos := 2
 
 	// Apply filters
-	if filters.FolderID != nil {
-		// Recursive search: find templates in folder and all its descendants using materialized path
-		query += fmt.Sprintf(` AND t.folder_id IN (
-			SELECT f2.id FROM organizer.folders f1
-			JOIN organizer.folders f2 ON f2.id = f1.id OR f2.path LIKE f1.path || '/%%'
-			WHERE f1.id = $%d
-		)`, argPos)
+	if filters.RootOnly {
+		// Filter for root folder only (templates with no folder)
+		query += " AND t.folder_id IS NULL"
+	} else if filters.FolderID != nil {
+		// Direct search: find templates only in the specified folder
+		query += fmt.Sprintf(` AND t.folder_id = $%d`, argPos)
 		args = append(args, *filters.FolderID)
 		argPos++
 	}
-	// If folderId is nil, no filter is applied (returns all templates)
+	// If neither RootOnly nor FolderID is set, no filter is applied (returns all templates)
 
 	if filters.HasPublishedVersion != nil {
 		if *filters.HasPublishedVersion {
@@ -358,6 +357,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 			&item.UpdatedAt,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
+			&item.PublishedVersionNumber,
 		); err != nil {
 			return nil, fmt.Errorf("scanning template: %w", err)
 		}
@@ -397,6 +397,7 @@ func (r *Repository) FindByFolder(ctx context.Context, folderID string) ([]*enti
 			&item.UpdatedAt,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
+			&item.PublishedVersionNumber,
 		); err != nil {
 			return nil, fmt.Errorf("scanning template: %w", err)
 		}
@@ -436,6 +437,7 @@ func (r *Repository) FindPublicLibrary(ctx context.Context, workspaceID string) 
 			&item.UpdatedAt,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
+			&item.PublishedVersionNumber,
 		); err != nil {
 			return nil, fmt.Errorf("scanning template: %w", err)
 		}

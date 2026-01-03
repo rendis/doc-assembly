@@ -92,7 +92,8 @@ func HandleError(ctx *gin.Context, err error) {
 		errors.Is(err, entity.ErrInvalidSystemRole),
 		errors.Is(err, entity.ErrMissingTenantID),
 		errors.Is(err, entity.ErrCannotRemoveTenantOwner),
-		errors.Is(err, entity.ErrInvalidTenantRole):
+		errors.Is(err, entity.ErrInvalidTenantRole),
+		errors.Is(err, entity.ErrVersionDoesNotBelongToTemplate):
 		statusCode = http.StatusBadRequest
 
 	// 403 Forbidden - Access denied errors

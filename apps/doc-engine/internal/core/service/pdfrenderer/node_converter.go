@@ -425,45 +425,47 @@ func (c *NodeConverter) parseSignatureAttrs(attrs map[string]any) portabledoc.Si
 
 	if sigsRaw, ok := attrs["signatures"].([]any); ok {
 		for _, sigRaw := range sigsRaw {
-			if sigMap, ok := sigRaw.(map[string]any); ok {
-				item := portabledoc.SignatureItem{}
-				if id, ok := sigMap["id"].(string); ok {
-					item.ID = id
-				}
-				if roleID, ok := sigMap["roleId"].(string); ok {
-					item.RoleID = &roleID
-				}
-				if label, ok := sigMap["label"].(string); ok {
-					item.Label = label
-				}
-				if subtitle, ok := sigMap["subtitle"].(string); ok {
-					item.Subtitle = &subtitle
-				}
-				// Image fields
-				if imageData, ok := sigMap["imageData"].(string); ok {
-					item.ImageData = &imageData
-				}
-				if imageOriginal, ok := sigMap["imageOriginal"].(string); ok {
-					item.ImageOriginal = &imageOriginal
-				}
-				if imageOpacity, ok := sigMap["imageOpacity"].(float64); ok {
-					item.ImageOpacity = &imageOpacity
-				}
-				if imageRotation, ok := sigMap["imageRotation"].(float64); ok {
-					rotation := int(imageRotation)
-					item.ImageRotation = &rotation
-				}
-				if imageScale, ok := sigMap["imageScale"].(float64); ok {
-					item.ImageScale = &imageScale
-				}
-				if imageX, ok := sigMap["imageX"].(float64); ok {
-					item.ImageX = &imageX
-				}
-				if imageY, ok := sigMap["imageY"].(float64); ok {
-					item.ImageY = &imageY
-				}
-				result.Signatures = append(result.Signatures, item)
+			sigMap, ok := sigRaw.(map[string]any)
+			if !ok {
+				continue
 			}
+			item := portabledoc.SignatureItem{}
+			if id, ok := sigMap["id"].(string); ok {
+				item.ID = id
+			}
+			if roleID, ok := sigMap["roleId"].(string); ok {
+				item.RoleID = &roleID
+			}
+			if label, ok := sigMap["label"].(string); ok {
+				item.Label = label
+			}
+			if subtitle, ok := sigMap["subtitle"].(string); ok {
+				item.Subtitle = &subtitle
+			}
+			// Image fields
+			if imageData, ok := sigMap["imageData"].(string); ok {
+				item.ImageData = &imageData
+			}
+			if imageOriginal, ok := sigMap["imageOriginal"].(string); ok {
+				item.ImageOriginal = &imageOriginal
+			}
+			if imageOpacity, ok := sigMap["imageOpacity"].(float64); ok {
+				item.ImageOpacity = &imageOpacity
+			}
+			if imageRotation, ok := sigMap["imageRotation"].(float64); ok {
+				rotation := int(imageRotation)
+				item.ImageRotation = &rotation
+			}
+			if imageScale, ok := sigMap["imageScale"].(float64); ok {
+				item.ImageScale = &imageScale
+			}
+			if imageX, ok := sigMap["imageX"].(float64); ok {
+				item.ImageX = &imageX
+			}
+			if imageY, ok := sigMap["imageY"].(float64); ok {
+				item.ImageY = &imageY
+			}
+			result.Signatures = append(result.Signatures, item)
 		}
 	}
 
@@ -476,7 +478,8 @@ func (c *NodeConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) s
 	sb.WriteString("<div class=\"signature-block\">\n")
 	sb.WriteString(fmt.Sprintf("  <div class=\"signature-container layout-%s\">\n", attrs.Layout))
 
-	for _, sig := range attrs.Signatures {
+	for i := range attrs.Signatures {
+		sig := &attrs.Signatures[i]
 		sb.WriteString("    <div class=\"signature-item\">\n")
 
 		// Signature line with anchor string
@@ -510,7 +513,7 @@ func (c *NodeConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) s
 
 // renderSignatureImage generates HTML for a signature image with transformations.
 // Uses a wrapper div for centering to avoid interfering with user-defined transforms.
-func (c *NodeConverter) renderSignatureImage(sig portabledoc.SignatureItem) string {
+func (c *NodeConverter) renderSignatureImage(sig *portabledoc.SignatureItem) string {
 	if sig.ImageData == nil || *sig.ImageData == "" {
 		return ""
 	}
@@ -559,7 +562,7 @@ func (c *NodeConverter) renderSignatureImage(sig portabledoc.SignatureItem) stri
 		styleBuilder.String())
 }
 
-func (c *NodeConverter) getAnchorString(sig portabledoc.SignatureItem) string {
+func (c *NodeConverter) getAnchorString(sig *portabledoc.SignatureItem) string {
 	// Generate anchor string for external signing platforms
 	// Format: __sig_{roleLabel}__ or __sig_{id}__
 	if sig.RoleID != nil && *sig.RoleID != "" {

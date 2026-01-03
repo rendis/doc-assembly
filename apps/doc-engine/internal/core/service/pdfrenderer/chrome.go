@@ -83,8 +83,8 @@ func (r *ChromeRenderer) GeneratePDF(ctx context.Context, html string, pageConfi
 	defer cancel()
 
 	// Convert page config to PDF parameters
-	paperWidth, paperHeight := r.pageSizeInches(pageConfig)
-	marginTop, marginBottom, marginLeft, marginRight := r.marginsInches(pageConfig)
+	paperWidth, paperHeight := r.pageSizeInches(&pageConfig)
+	marginTop, marginBottom, marginLeft, marginRight := r.marginsInches(&pageConfig)
 
 	var pdfBuf []byte
 
@@ -115,13 +115,13 @@ func (r *ChromeRenderer) GeneratePDF(ctx context.Context, html string, pageConfi
 }
 
 // pageSizeInches converts page config dimensions (pixels at 96 DPI) to inches.
-func (r *ChromeRenderer) pageSizeInches(config portabledoc.PageConfig) (width, height float64) {
+func (r *ChromeRenderer) pageSizeInches(config *portabledoc.PageConfig) (width, height float64) {
 	const ppi = 96.0
 	return config.Width / ppi, config.Height / ppi
 }
 
 // marginsInches converts margin config (pixels at 96 DPI) to inches.
-func (r *ChromeRenderer) marginsInches(config portabledoc.PageConfig) (top, bottom, left, right float64) {
+func (r *ChromeRenderer) marginsInches(config *portabledoc.PageConfig) (top, bottom, left, right float64) {
 	const ppi = 96.0
 	return config.Margins.Top / ppi,
 		config.Margins.Bottom / ppi,

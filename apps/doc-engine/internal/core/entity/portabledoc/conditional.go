@@ -19,7 +19,7 @@ type LogicRule struct {
 
 // RuleValue represents the value in a rule.
 type RuleValue struct {
-	Mode  string `json:"mode"`  // "text" | "variable"
+	Mode  string `json:"mode"` // "text" | "variable"
 	Value string `json:"value"`
 }
 

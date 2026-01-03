@@ -12,11 +12,28 @@ const (
 		FROM organizer.folders
 		WHERE id = $1`
 
+	queryFindByIDWithCounts = `
+		SELECT
+			f.id, f.workspace_id, f.parent_id, f.name, f.path, f.created_at, f.updated_at,
+			(SELECT COUNT(*) FROM organizer.folders WHERE parent_id = f.id) AS child_folder_count,
+			(SELECT COUNT(*) FROM content.templates WHERE folder_id = f.id) AS template_count
+		FROM organizer.folders f
+		WHERE f.id = $1`
+
 	queryFindByWorkspace = `
 		SELECT id, workspace_id, parent_id, name, path, created_at, updated_at
 		FROM organizer.folders
 		WHERE workspace_id = $1
 		ORDER BY name`
+
+	queryFindByWorkspaceWithCounts = `
+		SELECT
+			f.id, f.workspace_id, f.parent_id, f.name, f.path, f.created_at, f.updated_at,
+			(SELECT COUNT(*) FROM organizer.folders WHERE parent_id = f.id) AS child_folder_count,
+			(SELECT COUNT(*) FROM content.templates WHERE folder_id = f.id) AS template_count
+		FROM organizer.folders f
+		WHERE f.workspace_id = $1
+		ORDER BY f.name`
 
 	queryFindByParentNull = `
 		SELECT id, workspace_id, parent_id, name, path, created_at, updated_at

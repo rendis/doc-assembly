@@ -47,15 +47,17 @@ func (m *TemplateMapper) ToListItemResponse(item *entity.TemplateListItem) *dto.
 	}
 
 	return &dto.TemplateListItemResponse{
-		ID:                  item.ID,
-		WorkspaceID:         item.WorkspaceID,
-		FolderID:            item.FolderID,
-		Title:               item.Title,
-		IsPublicLibrary:     item.IsPublicLibrary,
-		HasPublishedVersion: item.HasPublishedVersion,
-		Tags:                m.toSimpleTagList(item.Tags),
-		CreatedAt:           item.CreatedAt,
-		UpdatedAt:           item.UpdatedAt,
+		ID:                     item.ID,
+		WorkspaceID:            item.WorkspaceID,
+		FolderID:               item.FolderID,
+		Title:                  item.Title,
+		IsPublicLibrary:        item.IsPublicLibrary,
+		HasPublishedVersion:    item.HasPublishedVersion,
+		VersionCount:           item.VersionCount,
+		PublishedVersionNumber: item.PublishedVersionNumber,
+		Tags:                   m.toSimpleTagList(item.Tags),
+		CreatedAt:              item.CreatedAt,
+		UpdatedAt:              item.UpdatedAt,
 	}
 }
 
@@ -184,6 +186,7 @@ func (m *TemplateMapper) ToUpdateCommand(id string, req *dto.UpdateTemplateReque
 func (m *TemplateMapper) ToCloneCommand(sourceID string, req *dto.CloneTemplateRequest, userID string) usecase.CloneTemplateCommand {
 	return usecase.CloneTemplateCommand{
 		SourceTemplateID: sourceID,
+		VersionID:        req.VersionID,
 		NewTitle:         req.NewTitle,
 		TargetFolderID:   req.TargetFolderID,
 		ClonedBy:         userID,
@@ -192,12 +195,21 @@ func (m *TemplateMapper) ToCloneCommand(sourceID string, req *dto.CloneTemplateR
 
 // ToFilters converts filter request parameters to port filters.
 func (m *TemplateMapper) ToFilters(req *dto.TemplateFiltersRequest) port.TemplateFilters {
-	return port.TemplateFilters{
-		FolderID:            req.FolderID,
+	filters := port.TemplateFilters{
 		HasPublishedVersion: req.HasPublishedVersion,
 		Search:              req.Search,
 		TagIDs:              req.TagIDs,
 		Limit:               req.Limit,
 		Offset:              req.Offset,
 	}
+
+	if req.FolderID != nil {
+		if *req.FolderID == "root" {
+			filters.RootOnly = true
+		} else {
+			filters.FolderID = req.FolderID
+		}
+	}
+
+	return filters
 }

@@ -20,12 +20,14 @@ func (m *FolderMapper) ToResponse(f *entity.Folder) *dto.FolderResponse {
 		return nil
 	}
 	return &dto.FolderResponse{
-		ID:          f.ID,
-		WorkspaceID: f.WorkspaceID,
-		ParentID:    f.ParentID,
-		Name:        f.Name,
-		CreatedAt:   f.CreatedAt,
-		UpdatedAt:   f.UpdatedAt,
+		ID:               f.ID,
+		WorkspaceID:      f.WorkspaceID,
+		ParentID:         f.ParentID,
+		Name:             f.Name,
+		ChildFolderCount: 0,
+		TemplateCount:    0,
+		CreatedAt:        f.CreatedAt,
+		UpdatedAt:        f.UpdatedAt,
 	}
 }
 
@@ -34,12 +36,28 @@ func (m *FolderMapper) ToResponse(f *entity.Folder) *dto.FolderResponse {
 // FolderToResponse converts a Folder entity to a response DTO.
 func FolderToResponse(f *entity.Folder) dto.FolderResponse {
 	return dto.FolderResponse{
-		ID:          f.ID,
-		WorkspaceID: f.WorkspaceID,
-		ParentID:    f.ParentID,
-		Name:        f.Name,
-		CreatedAt:   f.CreatedAt,
-		UpdatedAt:   f.UpdatedAt,
+		ID:               f.ID,
+		WorkspaceID:      f.WorkspaceID,
+		ParentID:         f.ParentID,
+		Name:             f.Name,
+		ChildFolderCount: 0,
+		TemplateCount:    0,
+		CreatedAt:        f.CreatedAt,
+		UpdatedAt:        f.UpdatedAt,
+	}
+}
+
+// FolderWithCountsToResponse converts a FolderWithCounts entity to a response DTO.
+func FolderWithCountsToResponse(f *entity.FolderWithCounts) dto.FolderResponse {
+	return dto.FolderResponse{
+		ID:               f.ID,
+		WorkspaceID:      f.WorkspaceID,
+		ParentID:         f.ParentID,
+		Name:             f.Name,
+		ChildFolderCount: f.ChildFolderCount,
+		TemplateCount:    f.TemplateCount,
+		CreatedAt:        f.CreatedAt,
+		UpdatedAt:        f.UpdatedAt,
 	}
 }
 
@@ -48,6 +66,15 @@ func FoldersToResponses(folders []*entity.Folder) []dto.FolderResponse {
 	result := make([]dto.FolderResponse, len(folders))
 	for i, f := range folders {
 		result[i] = FolderToResponse(f)
+	}
+	return result
+}
+
+// FoldersWithCountsToResponses converts a slice of FolderWithCounts entities to response DTOs.
+func FoldersWithCountsToResponses(folders []*entity.FolderWithCounts) []dto.FolderResponse {
+	result := make([]dto.FolderResponse, len(folders))
+	for i, f := range folders {
+		result[i] = FolderWithCountsToResponse(f)
 	}
 	return result
 }

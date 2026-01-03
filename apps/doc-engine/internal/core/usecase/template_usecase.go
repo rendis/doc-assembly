@@ -30,6 +30,7 @@ type UpdateTemplateCommand struct {
 // CloneTemplateCommand represents the command to clone a template.
 type CloneTemplateCommand struct {
 	SourceTemplateID string
+	VersionID        string
 	NewTitle         string
 	TargetFolderID   *string
 	ClonedBy         string

@@ -314,13 +314,13 @@ func (c *WorkspaceController) RemoveMember(ctx *gin.Context) {
 func (c *WorkspaceController) ListFolders(ctx *gin.Context) {
 	workspaceID, _ := middleware.GetWorkspaceID(ctx)
 
-	folders, err := c.folderUC.ListFolders(ctx.Request.Context(), workspaceID)
+	folders, err := c.folderUC.ListFoldersWithCounts(ctx.Request.Context(), workspaceID)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
-	responses := mapper.FoldersToResponses(folders)
+	responses := mapper.FoldersWithCountsToResponses(folders)
 	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
 }
 
@@ -396,13 +396,13 @@ func (c *WorkspaceController) CreateFolder(ctx *gin.Context) {
 func (c *WorkspaceController) GetFolder(ctx *gin.Context) {
 	folderID := ctx.Param("folderId")
 
-	folder, err := c.folderUC.GetFolder(ctx.Request.Context(), folderID)
+	folder, err := c.folderUC.GetFolderWithCounts(ctx.Request.Context(), folderID)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, mapper.FolderToResponse(folder))
+	ctx.JSON(http.StatusOK, mapper.FolderWithCountsToResponse(folder))
 }
 
 // UpdateFolder updates a folder.

@@ -201,7 +201,7 @@ func (r *Repository) FindByTemplateIDWithDetails(ctx context.Context, templateID
 		return nil, err
 	}
 
-	var results []*entity.TemplateVersionWithDetails
+	results := make([]*entity.TemplateVersionWithDetails, 0, len(versions))
 	for _, v := range versions {
 		details, err := r.FindByIDWithDetails(ctx, v.ID)
 		if err != nil {

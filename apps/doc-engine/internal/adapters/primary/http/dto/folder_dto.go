@@ -4,12 +4,14 @@ import "time"
 
 // FolderResponse represents a folder in API responses.
 type FolderResponse struct {
-	ID          string     `json:"id"`
-	WorkspaceID string     `json:"workspaceId"`
-	ParentID    *string    `json:"parentId,omitempty"`
-	Name        string     `json:"name"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
+	ID               string     `json:"id"`
+	WorkspaceID      string     `json:"workspaceId"`
+	ParentID         *string    `json:"parentId,omitempty"`
+	Name             string     `json:"name"`
+	ChildFolderCount int        `json:"childFolderCount"`
+	TemplateCount    int        `json:"templateCount"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        *time.Time `json:"updatedAt,omitempty"`
 }
 
 // FolderTreeResponse represents a folder with its children in a tree structure.

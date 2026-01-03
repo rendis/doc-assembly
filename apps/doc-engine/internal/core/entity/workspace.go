@@ -18,8 +18,8 @@ type Workspace struct {
 
 // WorkspaceSettings holds workspace-specific configuration.
 type WorkspaceSettings struct {
-	Theme       string `json:"theme,omitempty"`
-	LogoURL     string `json:"logoUrl,omitempty"`
+	Theme        string `json:"theme,omitempty"`
+	LogoURL      string `json:"logoUrl,omitempty"`
 	PrimaryColor string `json:"primaryColor,omitempty"`
 }
 

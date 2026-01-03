@@ -48,14 +48,15 @@ type TemplateTag struct {
 
 // TemplateListItem represents a template in list views (without version details).
 type TemplateListItem struct {
-	ID                  string     `json:"id"`
-	WorkspaceID         string     `json:"workspaceId"`
-	FolderID            *string    `json:"folderId,omitempty"`
-	Title               string     `json:"title"`
-	IsPublicLibrary     bool       `json:"isPublicLibrary"`
-	Tags                []*Tag     `json:"tags"`
-	HasPublishedVersion bool       `json:"hasPublishedVersion"`
-	VersionCount        int        `json:"versionCount"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	UpdatedAt           *time.Time `json:"updatedAt,omitempty"`
+	ID                     string     `json:"id"`
+	WorkspaceID            string     `json:"workspaceId"`
+	FolderID               *string    `json:"folderId,omitempty"`
+	Title                  string     `json:"title"`
+	IsPublicLibrary        bool       `json:"isPublicLibrary"`
+	Tags                   []*Tag     `json:"tags"`
+	HasPublishedVersion    bool       `json:"hasPublishedVersion"`
+	VersionCount           int        `json:"versionCount"`
+	PublishedVersionNumber *int       `json:"publishedVersionNumber,omitempty"`
+	CreatedAt              time.Time  `json:"createdAt"`
+	UpdatedAt              *time.Time `json:"updatedAt,omitempty"`
 }

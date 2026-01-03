@@ -26,7 +26,6 @@ type ListInjectablesResponse struct {
 	Total int                   `json:"total"`
 }
 
-
 // TemplateResponse represents a template in API responses (metadata only).
 type TemplateResponse struct {
 	ID              string     `json:"id"`
@@ -47,15 +46,17 @@ type TagSimpleResponse struct {
 
 // TemplateListItemResponse represents a template in list views.
 type TemplateListItemResponse struct {
-	ID                  string               `json:"id"`
-	WorkspaceID         string               `json:"workspaceId"`
-	FolderID            *string              `json:"folderId,omitempty"`
-	Title               string               `json:"title"`
-	IsPublicLibrary     bool                 `json:"isPublicLibrary"`
-	HasPublishedVersion bool                 `json:"hasPublishedVersion"`
-	Tags                []*TagSimpleResponse `json:"tags"`
-	CreatedAt           time.Time            `json:"createdAt"`
-	UpdatedAt           *time.Time           `json:"updatedAt,omitempty"`
+	ID                     string               `json:"id"`
+	WorkspaceID            string               `json:"workspaceId"`
+	FolderID               *string              `json:"folderId,omitempty"`
+	Title                  string               `json:"title"`
+	IsPublicLibrary        bool                 `json:"isPublicLibrary"`
+	HasPublishedVersion    bool                 `json:"hasPublishedVersion"`
+	VersionCount           int                  `json:"versionCount"`
+	PublishedVersionNumber *int                 `json:"publishedVersionNumber,omitempty"`
+	Tags                   []*TagSimpleResponse `json:"tags"`
+	CreatedAt              time.Time            `json:"createdAt"`
+	UpdatedAt              *time.Time           `json:"updatedAt,omitempty"`
 }
 
 // TemplateWithDetailsResponse represents a template with published version and metadata.
@@ -92,13 +93,14 @@ type CreateTemplateRequest struct {
 // All fields are optional to support partial updates.
 type UpdateTemplateRequest struct {
 	Title           *string `json:"title,omitempty" binding:"omitempty,min=1,max=255"`
-	FolderID        *string `json:"folderId,omitempty"`
+	FolderID        *string `json:"folderId,omitempty"` // Use "root" to move template to root folder
 	IsPublicLibrary *bool   `json:"isPublicLibrary,omitempty"`
 }
 
 // CloneTemplateRequest represents the request to clone a template.
 type CloneTemplateRequest struct {
 	NewTitle       string  `json:"newTitle" binding:"required,min=1,max=255"`
+	VersionID      string  `json:"versionId" binding:"required"`
 	TargetFolderID *string `json:"targetFolderId,omitempty"`
 }
 

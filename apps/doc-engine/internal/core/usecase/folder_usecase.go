@@ -34,8 +34,14 @@ type FolderUseCase interface {
 	// GetFolder retrieves a folder by ID.
 	GetFolder(ctx context.Context, id string) (*entity.Folder, error)
 
+	// GetFolderWithCounts retrieves a folder by ID including item counts.
+	GetFolderWithCounts(ctx context.Context, id string) (*entity.FolderWithCounts, error)
+
 	// ListFolders lists all folders in a workspace.
 	ListFolders(ctx context.Context, workspaceID string) ([]*entity.Folder, error)
+
+	// ListFoldersWithCounts lists all folders in a workspace including item counts.
+	ListFoldersWithCounts(ctx context.Context, workspaceID string) ([]*entity.FolderWithCounts, error)
 
 	// ListChildFolders lists all child folders of a parent.
 	ListChildFolders(ctx context.Context, workspaceID string, parentID *string) ([]*entity.Folder, error)

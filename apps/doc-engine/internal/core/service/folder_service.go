@@ -83,11 +83,29 @@ func (s *FolderService) GetFolder(ctx context.Context, id string) (*entity.Folde
 	return folder, nil
 }
 
+// GetFolderWithCounts retrieves a folder by ID including item counts.
+func (s *FolderService) GetFolderWithCounts(ctx context.Context, id string) (*entity.FolderWithCounts, error) {
+	folder, err := s.folderRepo.FindByIDWithCounts(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("finding folder %s with counts: %w", id, err)
+	}
+	return folder, nil
+}
+
 // ListFolders lists all folders in a workspace.
 func (s *FolderService) ListFolders(ctx context.Context, workspaceID string) ([]*entity.Folder, error) {
 	folders, err := s.folderRepo.FindByWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("listing folders: %w", err)
+	}
+	return folders, nil
+}
+
+// ListFoldersWithCounts lists all folders in a workspace including item counts.
+func (s *FolderService) ListFoldersWithCounts(ctx context.Context, workspaceID string) ([]*entity.FolderWithCounts, error) {
+	folders, err := s.folderRepo.FindByWorkspaceWithCounts(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("listing folders with counts: %w", err)
 	}
 	return folders, nil
 }

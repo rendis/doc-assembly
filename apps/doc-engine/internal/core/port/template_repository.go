@@ -9,6 +9,7 @@ import (
 // TemplateFilters contains optional filters for template queries.
 type TemplateFilters struct {
 	FolderID            *string
+	RootOnly            bool  // Filter for root folder only (folder_id IS NULL)
 	HasPublishedVersion *bool // Filter by whether template has a published version
 	TagIDs              []string
 	Search              string

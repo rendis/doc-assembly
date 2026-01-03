@@ -133,6 +133,45 @@ func TestContentTemplateController_ListTemplates(t *testing.T) {
 		assert.Equal(t, 1, listResp.Total)
 	})
 
+	t.Run("success with folder filter excludes child folders", func(t *testing.T) {
+		// Create parent folder
+		parentFolderID := testhelper.CreateTestFolder(t, pool, workspaceID, "Parent Folder", nil)
+		defer testhelper.CleanupFolder(t, pool, parentFolderID)
+
+		// Create child folder under parent
+		childFolderID := testhelper.CreateTestFolder(t, pool, workspaceID, "Child Folder", &parentFolderID)
+		defer testhelper.CleanupFolder(t, pool, childFolderID)
+
+		// Create template in parent folder
+		templateInParent := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template In Parent", &parentFolderID)
+		defer testhelper.CleanupTemplate(t, pool, templateInParent)
+
+		// Create template in child folder
+		templateInChild := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template In Child", &childFolderID)
+		defer testhelper.CleanupTemplate(t, pool, templateInChild)
+
+		// Query templates by parent folder ID
+		resp, body := client.
+			WithAuth(owner.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET(fmt.Sprintf("/api/v1/content/templates?folderId=%s", parentFolderID))
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var listResp dto.ListTemplatesResponse
+		err := json.Unmarshal(body, &listResp)
+		require.NoError(t, err)
+
+		// Should only return 1 template (the one in parent folder, NOT the one in child folder)
+		assert.Equal(t, 1, listResp.Total, "Should only return templates directly in parent folder, not child folders")
+
+		// Verify it's the parent template
+		if assert.Len(t, listResp.Items, 1) {
+			assert.Equal(t, "Template In Parent", listResp.Items[0].Title)
+			assert.Equal(t, parentFolderID, *listResp.Items[0].FolderID)
+		}
+	})
+
 	t.Run("success with hasPublishedVersion filter", func(t *testing.T) {
 		// Create template with published version
 		templateWithPublished := testhelper.CreateTestTemplate(t, pool, workspaceID, "Published Template", nil)
@@ -153,6 +192,68 @@ func TestContentTemplateController_ListTemplates(t *testing.T) {
 
 		// At least our published template should be in the results
 		assert.GreaterOrEqual(t, listResp.Total, 1)
+	})
+
+	t.Run("success returns versionCount and publishedVersionNumber", func(t *testing.T) {
+		// Create template with multiple versions including published
+		templateWithVersions := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template With Versions", nil)
+		defer testhelper.CleanupTemplate(t, pool, templateWithVersions)
+
+		// Create 3 versions: archived (should NOT be counted), draft, and published (v2)
+		testhelper.CreateTestTemplateVersion(t, pool, templateWithVersions, 1, "v1.0 Archived", entity.VersionStatusArchived)
+		testhelper.CreateTestTemplateVersion(t, pool, templateWithVersions, 2, "v2.0 Published", entity.VersionStatusPublished)
+		testhelper.CreateTestTemplateVersion(t, pool, templateWithVersions, 3, "v3.0 Draft", entity.VersionStatusDraft)
+
+		resp, body := client.
+			WithAuth(owner.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/content/templates?search=Template+With+Versions")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var listResp dto.ListTemplatesResponse
+		err := json.Unmarshal(body, &listResp)
+		require.NoError(t, err)
+
+		require.Equal(t, 1, listResp.Total)
+		require.Len(t, listResp.Items, 1)
+
+		item := listResp.Items[0]
+		assert.Equal(t, templateWithVersions, item.ID)
+		assert.True(t, item.HasPublishedVersion)
+		// VersionCount should be 2 (v2 published + v3 draft, excluding v1 archived)
+		assert.Equal(t, 2, item.VersionCount)
+		// PublishedVersionNumber should be 2 (v2 is published)
+		require.NotNil(t, item.PublishedVersionNumber)
+		assert.Equal(t, 2, *item.PublishedVersionNumber)
+	})
+
+	t.Run("success returns nil publishedVersionNumber when no published version", func(t *testing.T) {
+		// Create template with only draft version
+		templateDraftOnly := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template Draft Only", nil)
+		defer testhelper.CleanupTemplate(t, pool, templateDraftOnly)
+
+		testhelper.CreateTestTemplateVersion(t, pool, templateDraftOnly, 1, "v1.0 Draft", entity.VersionStatusDraft)
+
+		resp, body := client.
+			WithAuth(owner.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/content/templates?search=Template+Draft+Only")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var listResp dto.ListTemplatesResponse
+		err := json.Unmarshal(body, &listResp)
+		require.NoError(t, err)
+
+		require.Equal(t, 1, listResp.Total)
+		require.Len(t, listResp.Items, 1)
+
+		item := listResp.Items[0]
+		assert.Equal(t, templateDraftOnly, item.ID)
+		assert.False(t, item.HasPublishedVersion)
+		assert.Equal(t, 1, item.VersionCount)
+		assert.Nil(t, item.PublishedVersionNumber)
 	})
 
 	t.Run("forbidden without workspace membership", func(t *testing.T) {
@@ -994,13 +1095,14 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 		// Create source template with published version
 		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
 		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-		testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+		versionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
 
 		resp, body := client.
 			WithAuth(editor.BearerHeader).
 			WithWorkspaceID(workspaceID).
 			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
-				"newTitle": "Cloned Template",
+				"newTitle":  "Cloned Template",
+				"versionId": versionID,
 			})
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
@@ -1027,13 +1129,14 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 
 		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Admin Source", nil)
 		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-		testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+		versionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
 
 		resp, body := client.
 			WithAuth(admin.BearerHeader).
 			WithWorkspaceID(workspaceID).
 			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
-				"newTitle": "Admin Cloned",
+				"newTitle":  "Admin Cloned",
+				"versionId": versionID,
 			})
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
@@ -1057,7 +1160,7 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 
 		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
 		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-		testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+		versionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
 
 		targetFolderID := testhelper.CreateTestFolder(t, pool, workspaceID, "Target Folder", nil)
 		defer testhelper.CleanupFolder(t, pool, targetFolderID)
@@ -1068,6 +1171,7 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
 				"newTitle":       "Cloned To Folder",
 				"targetFolderId": targetFolderID,
+				"versionId":      versionID,
 			})
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
@@ -1093,42 +1197,17 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 
 		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
 		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-		testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+		versionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
 
 		resp, _ := client.
 			WithAuth(viewer.BearerHeader).
 			WithWorkspaceID(workspaceID).
 			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
-				"newTitle": "Viewer Clone",
+				"newTitle":  "Viewer Clone",
+				"versionId": versionID,
 			})
 
 		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
-	})
-
-	t.Run("bad request - no published version", func(t *testing.T) {
-		tenantID := testhelper.CreateTestTenant(t, pool, "Clone Template Tenant 5", "CLST05")
-		defer testhelper.CleanupTenant(t, pool, tenantID)
-
-		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
-		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
-
-		editor := testhelper.CreateTestUser(t, pool, "editor-cl3@test.com", "Editor User", nil)
-		defer testhelper.CleanupUser(t, pool, editor.ID)
-		testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
-
-		// Create template with only draft version (no published)
-		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Draft Only", nil)
-		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-		testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0 Draft", entity.VersionStatusDraft)
-
-		resp, _ := client.
-			WithAuth(editor.BearerHeader).
-			WithWorkspaceID(workspaceID).
-			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
-				"newTitle": "Clone Draft",
-			})
-
-		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("not found - source template not found", func(t *testing.T) {
@@ -1146,7 +1225,8 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 			WithAuth(editor.BearerHeader).
 			WithWorkspaceID(workspaceID).
 			POST("/api/v1/content/templates/00000000-0000-0000-0000-000000000000/clone", map[string]interface{}{
-				"newTitle": "Clone Not Found",
+				"newTitle":  "Clone Not Found",
+				"versionId": "00000000-0000-0000-0000-000000000000",
 			})
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -1165,13 +1245,160 @@ func TestContentTemplateController_CloneTemplate(t *testing.T) {
 
 		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
 		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-		testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+		versionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
 
 		resp, _ := client.
 			WithAuth(editor.BearerHeader).
 			WithWorkspaceID(workspaceID).
 			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
-				"newTitle": "",
+				"newTitle":  "",
+				"versionId": versionID,
+			})
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("success clones draft version", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Clone Template Tenant Draft", "CLSTDR")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
+		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+		editor := testhelper.CreateTestUser(t, pool, "editor-cldraft@test.com", "Editor User", nil)
+		defer testhelper.CleanupUser(t, pool, editor.ID)
+		testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+		// Create template with DRAFT version (no published)
+		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
+		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
+		draftVersionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0 Draft", entity.VersionStatusDraft)
+
+		resp, body := client.
+			WithAuth(editor.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
+				"newTitle":  "Cloned From Draft",
+				"versionId": draftVersionID,
+			})
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var createResp dto.TemplateCreateResponse
+		err := json.Unmarshal(body, &createResp)
+		require.NoError(t, err)
+
+		assert.Equal(t, "Cloned From Draft", createResp.Template.Title)
+		assert.NotEqual(t, sourceTemplateID, createResp.Template.ID)
+		defer testhelper.CleanupTemplate(t, pool, createResp.Template.ID)
+	})
+
+	t.Run("success clones archived version", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Clone Template Tenant Archived", "CLSTAR")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
+		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+		editor := testhelper.CreateTestUser(t, pool, "editor-clarch@test.com", "Editor User", nil)
+		defer testhelper.CleanupUser(t, pool, editor.ID)
+		testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
+		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
+		archivedVersionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0 Archived", entity.VersionStatusArchived)
+
+		resp, body := client.
+			WithAuth(editor.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
+				"newTitle":  "Cloned From Archived",
+				"versionId": archivedVersionID,
+			})
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var createResp dto.TemplateCreateResponse
+		err := json.Unmarshal(body, &createResp)
+		require.NoError(t, err)
+		defer testhelper.CleanupTemplate(t, pool, createResp.Template.ID)
+	})
+
+	t.Run("bad request - versionId belongs to different template", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Clone Template Tenant Wrong", "CLSTWRG")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
+		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+		editor := testhelper.CreateTestUser(t, pool, "editor-clwrong@test.com", "Editor User", nil)
+		defer testhelper.CleanupUser(t, pool, editor.ID)
+		testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+		// Create TWO templates
+		template1ID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template 1", nil)
+		defer testhelper.CleanupTemplate(t, pool, template1ID)
+
+		template2ID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Template 2", nil)
+		defer testhelper.CleanupTemplate(t, pool, template2ID)
+		version2ID := testhelper.CreateTestTemplateVersion(t, pool, template2ID, 1, "v1.0", entity.VersionStatusPublished)
+
+		// Try to clone template1 using version from template2
+		resp, _ := client.
+			WithAuth(editor.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", template1ID), map[string]interface{}{
+				"newTitle":  "Invalid Clone",
+				"versionId": version2ID,
+			})
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("not found - versionId does not exist", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Clone Template Tenant NoVer", "CLSTNV")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
+		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+		editor := testhelper.CreateTestUser(t, pool, "editor-clnover@test.com", "Editor User", nil)
+		defer testhelper.CleanupUser(t, pool, editor.ID)
+		testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
+		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
+
+		resp, _ := client.
+			WithAuth(editor.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
+				"newTitle":  "Clone Non-Existent Version",
+				"versionId": "00000000-0000-0000-0000-000000000000",
+			})
+
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	})
+
+	t.Run("validation error - missing versionId", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Clone Template Tenant NoID", "CLSTNID")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
+		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+		editor := testhelper.CreateTestUser(t, pool, "editor-clnoid@test.com", "Editor User", nil)
+		defer testhelper.CleanupUser(t, pool, editor.ID)
+		testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
+
+		sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source Template", nil)
+		defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
+
+		resp, _ := client.
+			WithAuth(editor.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
+				"newTitle": "Clone Without Version",
 			})
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -1476,7 +1703,7 @@ func TestContentTemplateController_CloneTemplate_PreservesTags(t *testing.T) {
 	// Create source template with published version
 	sourceTemplateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Source With Tags", nil)
 	defer testhelper.CleanupTemplate(t, pool, sourceTemplateID)
-	testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
+	versionID := testhelper.CreateTestTemplateVersion(t, pool, sourceTemplateID, 1, "v1.0", entity.VersionStatusPublished)
 
 	// Add tags to source template
 	tag1 := testhelper.CreateTestTag(t, pool, workspaceID, "Contract", "#FF0000")
@@ -1491,7 +1718,8 @@ func TestContentTemplateController_CloneTemplate_PreservesTags(t *testing.T) {
 		WithAuth(editor.BearerHeader).
 		WithWorkspaceID(workspaceID).
 		POST(fmt.Sprintf("/api/v1/content/templates/%s/clone", sourceTemplateID), map[string]interface{}{
-			"newTitle": "Cloned With Tags",
+			"newTitle":  "Cloned With Tags",
+			"versionId": versionID,
 		})
 
 	assert.Equal(t, http.StatusCreated, cloneResp.StatusCode)

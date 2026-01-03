@@ -44,7 +44,7 @@ func (d *Document) NodesOfType(nodeType string) iter.Seq2[int, Node] {
 
 // CollectNodesOfType collects all nodes of a specific type into a slice.
 func (d *Document) CollectNodesOfType(nodeType string) []Node {
-	var nodes []Node
+	nodes := make([]Node, 0, 8) // Pre-allocate small capacity; unknown final size
 	for _, node := range d.NodesOfType(nodeType) {
 		nodes = append(nodes, node)
 	}

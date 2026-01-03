@@ -66,7 +66,7 @@ func (c *ContentTemplateController) RegisterRoutes(rg *gin.RouterGroup, middlewa
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
-// @Param folderId query string false "Filter by folder ID"
+// @Param folderId query string false "Filter by folder ID. Use 'root' to get only root-level templates (no folder)"
 // @Param hasPublishedVersion query bool false "Filter by published status"
 // @Param tagIds query []string false "Filter by tag IDs"
 // @Param search query string false "Search by title"
@@ -173,11 +173,12 @@ func (c *ContentTemplateController) GetTemplateWithAllVersions(ctx *gin.Context)
 
 // UpdateTemplate updates a template's metadata.
 // @Summary Update template
+// @Description Updates a template's metadata. Use folderId="root" to move the template to the root folder.
 // @Tags Templates
 // @Accept json
 // @Produce json
 // @Param templateId path string true "Template ID"
-// @Param request body dto.UpdateTemplateRequest true "Template data"
+// @Param request body dto.UpdateTemplateRequest true "Template data (folderId can be a folder UUID or 'root' to move to root)"
 // @Success 200 {object} dto.TemplateResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -221,17 +222,19 @@ func (c *ContentTemplateController) DeleteTemplate(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// CloneTemplate creates a copy of an existing template from its published version.
-// @Summary Clone template
+// CloneTemplate creates a copy of an existing template from a specific version.
+// @Summary Clone template from specific version
+// @Description Clones a template using the content from a specific version (identified by versionId in request body). The versionId must belong to the specified templateId.
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
 // @Param templateId path string true "Template ID"
-// @Param request body dto.CloneTemplateRequest true "Clone data"
+// @Param request body dto.CloneTemplateRequest true "Clone data (versionId is required and must belong to the template)"
 // @Success 201 {object} dto.TemplateCreateResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 409 {object} dto.ErrorResponse
+// @Failure 400 {object} dto.ErrorResponse "Bad request (invalid versionId, version doesn't belong to template, validation error)"
+// @Failure 404 {object} dto.ErrorResponse "Template or version not found"
+// @Failure 409 {object} dto.ErrorResponse "Template title already exists"
 // @Router /api/v1/content/templates/{templateId}/clone [post]
 func (c *ContentTemplateController) CloneTemplate(ctx *gin.Context) {
 	templateID := ctx.Param("templateId")
