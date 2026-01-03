@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { toast } from '@/components/ui/use-toast'
 
 /**
  * System roles - platform level
@@ -121,7 +122,10 @@ export const useAuthStore = create<AuthState>()(
         set({ allRoles: roles, systemRoles })
       },
 
-      clearAuth: () =>
+      clearAuth: () => {
+        // Show notification if user was previously authenticated
+        const wasAuthenticated = get().token !== null
+
         set({
           token: null,
           refreshToken: null,
@@ -129,7 +133,17 @@ export const useAuthStore = create<AuthState>()(
           systemRoles: [],
           userProfile: null,
           allRoles: [],
-        }),
+        })
+
+        // Show toast only if session expired (not on initial load)
+        if (wasAuthenticated) {
+          toast({
+            variant: 'destructive',
+            title: 'Session Expired',
+            description: 'Your session has expired. Please login again.',
+          })
+        }
+      },
 
       // Computed
       isAuthenticated: () => {

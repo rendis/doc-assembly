@@ -76,9 +76,11 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       const { refreshToken } = useAuthStore.getState()
 
-      // If no refresh token, clear auth immediately
+      // If no refresh token, clear auth and reject immediately
       if (!refreshToken) {
+        console.warn('[API] 401 without refresh token - clearing auth')
         useAuthStore.getState().clearAuth()
+        // Note: Root route guard will handle redirect to /login
         return Promise.reject(error)
       }
 
@@ -113,8 +115,10 @@ apiClient.interceptors.response.use(
 
         return apiClient(originalRequest)
       } catch (refreshError) {
+        console.error('[API] Token refresh failed - clearing auth')
         processQueue(refreshError as Error)
         useAuthStore.getState().clearAuth()
+        // Note: Root route guard will handle redirect to /login
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

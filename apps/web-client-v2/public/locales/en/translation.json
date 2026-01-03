@@ -30,7 +30,21 @@
     "all": "All",
     "none": "None",
     "selectAll": "Select All",
-    "actions": "Actions"
+    "actions": "Actions",
+    "clear": "Clear all"
+  },
+  "tags": {
+    "searchPlaceholder": "Search or create tags...",
+    "noTags": "No tags available",
+    "createNew": "Create \"{{name}}\"",
+    "create": {
+      "title": "Create New Tag",
+      "nameLabel": "Name",
+      "namePlaceholder": "Tag name (3-50 chars)",
+      "colorLabel": "Color",
+      "submit": "Create Tag",
+      "minLength": "Minimum 3 characters"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -101,6 +115,17 @@
     "noTemplates": "No templates found",
     "empty": "No templates in this folder",
     "createFirst": "Create your first template",
+    "createDialog": {
+      "title": "New Template",
+      "description": "Create a new document template",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter template title...",
+      "tagsLabel": "Tags",
+      "submit": "Create Template"
+    },
+    "actions": {
+      "newTemplate": "NEW TEMPLATE"
+    },
     "moveDialog": {
       "title": "Move Template",
       "message": "Are you sure you want to move \"{{name}}\" to \"{{folder}}\"?",
@@ -127,10 +152,11 @@
     "subfolders": "Subfolders",
     "empty": "No folders yet. Create one to get started.",
     "createDialog": {
-      "title": "Create New Folder",
-      "description": "Enter a name for your new folder.",
-      "nameLabel": "Folder Name",
-      "namePlaceholder": "Enter folder name..."
+      "title": "New Folder",
+      "description": "Create a new folder to organize your templates",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter folder name...",
+      "submit": "Create Folder"
     },
     "renameDialog": {
       "title": "Rename Folder",

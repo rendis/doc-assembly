@@ -1,5 +1,9 @@
 import apiClient from '@/lib/api-client'
-import type { TemplateListItem } from '@/types/api'
+import type {
+  TemplateListItem,
+  CreateTemplateRequest,
+  TemplateCreateResponse,
+} from '@/types/api'
 
 export interface TemplatesListParams {
   search?: string
@@ -36,4 +40,28 @@ export async function fetchTemplates(
     `/content/templates${query ? `?${query}` : ''}`
   )
   return response.data
+}
+
+export async function createTemplate(
+  data: CreateTemplateRequest
+): Promise<TemplateCreateResponse> {
+  const response = await apiClient.post<TemplateCreateResponse>(
+    '/content/templates',
+    data
+  )
+  return response.data
+}
+
+export interface AddTagsToTemplateRequest {
+  tagIds: string[]
+}
+
+export async function addTagsToTemplate(
+  templateId: string,
+  tagIds: string[]
+): Promise<void> {
+  if (tagIds.length === 0) return
+  await apiClient.post<void>(`/content/templates/${templateId}/tags`, {
+    tagIds,
+  })
 }

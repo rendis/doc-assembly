@@ -30,7 +30,21 @@
     "all": "Todo",
     "none": "Ninguno",
     "selectAll": "Seleccionar Todo",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "clear": "Limpiar todo"
+  },
+  "tags": {
+    "searchPlaceholder": "Buscar o crear etiquetas...",
+    "noTags": "No hay etiquetas disponibles",
+    "createNew": "Crear \"{{name}}\"",
+    "create": {
+      "title": "Crear Nueva Etiqueta",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Nombre de la etiqueta (3-50 caracteres)",
+      "colorLabel": "Color",
+      "submit": "Crear Etiqueta",
+      "minLength": "Mínimo 3 caracteres"
+    }
   },
   "nav": {
     "dashboard": "Panel",
@@ -101,6 +115,17 @@
     "noTemplates": "No se encontraron plantillas",
     "empty": "No hay plantillas en esta carpeta",
     "createFirst": "Crea tu primera plantilla",
+    "createDialog": {
+      "title": "Nueva Plantilla",
+      "description": "Crea una nueva plantilla de documento",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingresa el título de la plantilla...",
+      "tagsLabel": "Etiquetas",
+      "submit": "Crear Plantilla"
+    },
+    "actions": {
+      "newTemplate": "NUEVA PLANTILLA"
+    },
     "moveDialog": {
       "title": "Mover Plantilla",
       "message": "¿Estás seguro de que deseas mover \"{{name}}\" a \"{{folder}}\"?",
@@ -127,10 +152,11 @@
     "subfolders": "Subcarpetas",
     "empty": "Aún no hay carpetas. Crea una para comenzar.",
     "createDialog": {
-      "title": "Crear Nueva Carpeta",
-      "description": "Ingresa un nombre para tu nueva carpeta.",
-      "nameLabel": "Nombre de la Carpeta",
-      "namePlaceholder": "Ingresa el nombre de la carpeta..."
+      "title": "Nueva Carpeta",
+      "description": "Crea una nueva carpeta para organizar tus plantillas",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Ingresa el nombre de la carpeta...",
+      "submit": "Crear Carpeta"
     },
     "renameDialog": {
       "title": "Renombrar Carpeta",

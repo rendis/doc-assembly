@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { routeTree } from './routeTree.gen'
 import { AuthProvider } from '@/features/auth/components/AuthProvider'
+import { Toaster } from '@/components/ui/toaster'
 import './index.css'
 
 // Create a new router instance
@@ -40,6 +41,7 @@ createRoot(rootElement).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RouterProvider router={router} />
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>

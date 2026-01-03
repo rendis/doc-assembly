@@ -5,6 +5,7 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { TemplatesToolbar } from './TemplatesToolbar'
 import { TemplateListRow } from './TemplateListRow'
+import { CreateTemplateDialog } from './CreateTemplateDialog'
 import { useTemplates } from '../hooks/useTemplates'
 import { useTags } from '../hooks/useTags'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,6 +32,9 @@ export function TemplatesPage() {
 
   // Pagination
   const [page, setPage] = useState(0)
+
+  // Create dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -73,15 +77,6 @@ export function TemplatesPage() {
     })
   }, [page, total, t])
 
-  const handleCreateTemplate = () => {
-    if (currentWorkspace) {
-      navigate({
-        to: '/workspace/$workspaceId/editor/$versionId',
-        params: { workspaceId: currentWorkspace.id, versionId: 'new' },
-      })
-    }
-  }
-
   const handleEditTemplate = (templateId: string) => {
     if (currentWorkspace) {
       navigate({
@@ -105,7 +100,7 @@ export function TemplatesPage() {
             </h1>
           </div>
           <button
-            onClick={handleCreateTemplate}
+            onClick={() => setCreateDialogOpen(true)}
             className="group flex h-12 items-center gap-2 rounded-none bg-foreground px-6 text-sm font-medium tracking-wide text-background shadow-lg shadow-muted transition-colors hover:bg-foreground/90"
           >
             <Plus size={20} />
@@ -218,6 +213,12 @@ export function TemplatesPage() {
           </div>
         )}
       </div>
+
+      {/* Create Template Dialog */}
+      <CreateTemplateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </div>
   )
 }

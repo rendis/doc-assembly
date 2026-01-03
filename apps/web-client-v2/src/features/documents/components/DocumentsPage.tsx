@@ -14,6 +14,7 @@ import { DroppableBreadcrumb } from './DroppableBreadcrumb'
 import { FolderCard } from './FolderCard'
 import { TemplateCard } from './TemplateCard'
 import { CreateFolderDialog } from './CreateFolderDialog'
+import { CreateTemplateDialog } from '@/features/templates/components/CreateTemplateDialog'
 import { RenameFolderDialog } from './RenameFolderDialog'
 import { DeleteFolderDialog } from './DeleteFolderDialog'
 import { MoveFolderDialog } from './MoveFolderDialog'
@@ -57,7 +58,9 @@ function DocumentsPageContent() {
   const [foldersToMove, setFoldersToMove] = useState<string[]>([])
   const [foldersToDelete, setFoldersToDelete] = useState<string[]>([])
 
-  // Template move dialog state
+  // Template dialog states
+  const [createTemplateDialogOpen, setCreateTemplateDialogOpen] =
+    useState(false)
   const [moveTemplateDialogOpen, setMoveTemplateDialogOpen] = useState(false)
   const [templateToMove, setTemplateToMove] = useState<TemplateListItem | null>(
     null
@@ -240,13 +243,22 @@ function DocumentsPageContent() {
               {t('documents.title', 'Document Explorer')}
             </h1>
           </div>
-          <button
-            onClick={() => setCreateDialogOpen(true)}
-            className="group flex h-12 items-center gap-2 rounded-none border border-foreground bg-background px-6 text-sm font-medium tracking-wide text-foreground shadow-none transition-colors hover:bg-foreground hover:text-background"
-          >
-            <span className="text-xl leading-none">+</span>
-            <span>{t('folders.actions.newFolder', 'NEW FOLDER')}</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCreateTemplateDialogOpen(true)}
+              className="group flex h-12 items-center gap-2 rounded-none bg-foreground px-6 text-sm font-medium tracking-wide text-background shadow-lg shadow-muted transition-colors hover:bg-foreground/90"
+            >
+              <span className="text-xl leading-none">+</span>
+              <span>{t('templates.actions.newTemplate', 'NEW TEMPLATE')}</span>
+            </button>
+            <button
+              onClick={() => setCreateDialogOpen(true)}
+              className="group flex h-12 items-center gap-2 rounded-none border border-foreground bg-background px-6 text-sm font-medium tracking-wide text-foreground shadow-none transition-colors hover:bg-foreground hover:text-background"
+            >
+              <span className="text-xl leading-none">+</span>
+              <span>{t('folders.actions.newFolder', 'NEW FOLDER')}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -399,6 +411,13 @@ function DocumentsPageContent() {
         folderIds={foldersToMove}
         workspaceId={workspaceId ?? ''}
         onSuccess={handleMoveSuccess}
+      />
+
+      {/* Template Create Dialog */}
+      <CreateTemplateDialog
+        open={createTemplateDialogOpen}
+        onOpenChange={setCreateTemplateDialogOpen}
+        folderId={currentFolderId}
       />
 
       {/* Template Move Dialog */}

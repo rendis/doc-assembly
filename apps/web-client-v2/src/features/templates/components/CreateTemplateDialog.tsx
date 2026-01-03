@@ -1,44 +1,73 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { useCreateFolder } from '../hooks/useFolders'
+import { useCreateTemplate } from '../hooks/useTemplates'
+import { addTagsToTemplate } from '../api/templates-api'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { TagSelector } from './TagSelector'
 
-interface CreateFolderDialogProps {
+interface CreateTemplateDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  parentId: string | null
+  folderId?: string | null
 }
 
-export function CreateFolderDialog({
+export function CreateTemplateDialog({
   open,
   onOpenChange,
-  parentId,
-}: CreateFolderDialogProps) {
+  folderId,
+}: CreateTemplateDialogProps) {
   const { t } = useTranslation()
-  const [name, setName] = useState('')
-  const createFolder = useCreateFolder()
+  const navigate = useNavigate()
+  const { currentWorkspace } = useAppContextStore()
+  const [title, setTitle] = useState('')
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const createTemplate = useCreateTemplate()
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setName('')
+      setTitle('')
+      setSelectedTagIds([])
+      setIsSubmitting(false)
     }
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!title.trim() || !currentWorkspace || isSubmitting) return
+
+    setIsSubmitting(true)
 
     try {
-      await createFolder.mutateAsync({
-        name: name.trim(),
-        parentId: parentId ?? undefined,
+      // 1. Create the template
+      const response = await createTemplate.mutateAsync({
+        title: title.trim(),
+        folderId: folderId ?? undefined,
+        isPublicLibrary: false,
       })
+
+      // 2. Add tags to the template (if any selected)
+      if (selectedTagIds.length > 0) {
+        await addTagsToTemplate(response.template.id, selectedTagIds)
+      }
+
+      // 3. Close dialog and navigate
       onOpenChange(false)
+      navigate({
+        to: '/workspace/$workspaceId/editor/$versionId',
+        params: {
+          workspaceId: currentWorkspace.id,
+          versionId: response.initialVersion.id,
+        },
+      })
     } catch {
       // Error is handled by mutation
+      setIsSubmitting(false)
     }
   }
 
@@ -48,7 +77,7 @@ export function CreateFolderDialog({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className={cn(
-            'fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
+            'fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
             'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]'
           )}
         >
@@ -56,12 +85,12 @@ export function CreateFolderDialog({
           <div className="flex items-start justify-between border-b border-border p-6">
             <div>
               <h2 className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
-                {t('folders.createDialog.title', 'New Folder')}
+                {t('templates.createDialog.title', 'New Template')}
               </h2>
               <p className="mt-1 text-sm font-light text-muted-foreground">
                 {t(
-                  'folders.createDialog.description',
-                  'Create a new folder to organize your templates'
+                  'templates.createDialog.description',
+                  'Create a new document template'
                 )}
               </p>
             </div>
@@ -73,27 +102,38 @@ export function CreateFolderDialog({
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
-            <div className="p-6">
-              {/* Name field */}
+            <div className="space-y-6 p-6">
+              {/* Title field */}
               <div>
                 <label
-                  htmlFor="folder-name"
+                  htmlFor="template-title"
                   className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
                 >
-                  {t('folders.createDialog.nameLabel', 'Name')}
+                  {t('templates.createDialog.titleLabel', 'Title')}
                 </label>
                 <input
-                  id="folder-name"
+                  id="template-title"
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder={t(
-                    'folders.createDialog.namePlaceholder',
-                    'Enter folder name...'
+                    'templates.createDialog.titlePlaceholder',
+                    'Enter template title...'
                   )}
                   maxLength={255}
                   autoFocus
                   className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                />
+              </div>
+
+              {/* Tags field */}
+              <div>
+                <label className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  {t('templates.createDialog.tagsLabel', 'Tags')}
+                </label>
+                <TagSelector
+                  selectedTagIds={selectedTagIds}
+                  onSelectionChange={setSelectedTagIds}
                 />
               </div>
             </div>
@@ -103,19 +143,19 @@ export function CreateFolderDialog({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                disabled={createFolder.isPending}
+                disabled={isSubmitting}
                 className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
               >
                 {t('common.cancel', 'Cancel')}
               </button>
               <button
                 type="submit"
-                disabled={!name.trim() || createFolder.isPending}
+                disabled={!title.trim() || isSubmitting}
                 className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
               >
-                {createFolder.isPending
+                {isSubmitting
                   ? t('common.creating', 'Creating...')
-                  : t('folders.createDialog.submit', 'Create Folder')}
+                  : t('templates.createDialog.submit', 'Create Template')}
               </button>
             </div>
           </form>

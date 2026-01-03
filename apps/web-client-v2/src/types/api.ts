@@ -172,6 +172,11 @@ export interface TemplateWithVersions extends Template {
   versions: TemplateVersionListItem[]
 }
 
+export interface TemplateCreateResponse {
+  template: Template
+  initialVersion: TemplateVersionListItem
+}
+
 // ============================================
 // Member Types
 // ============================================
