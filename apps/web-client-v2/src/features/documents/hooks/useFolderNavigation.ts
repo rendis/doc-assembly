@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useNavigate, useSearch, useParams } from '@tanstack/react-router'
-import { useFolderTree, useFolder } from './useFolders'
+import { useFolderTree } from './useFolders'
 import type { Folder, FolderTree } from '@/types/api'
 
 export interface BreadcrumbItem {
@@ -25,15 +25,14 @@ export function useFolderNavigation(workspaceId: string): FolderNavigationState 
   const currentFolderId = search.folderId ?? null
   const currentWorkspaceId = params.workspaceId ?? workspaceId
 
-  const { data: currentFolder, isLoading: folderLoading } = useFolder(currentFolderId)
   const { data: tree, isLoading: treeLoading } = useFolderTree(workspaceId)
 
-  // Build breadcrumbs from tree structure
-  const breadcrumbs = useMemo(() => {
+  // Build breadcrumbs from tree structure and get current node
+  const { breadcrumbs, currentNode } = useMemo(() => {
     const path: BreadcrumbItem[] = [{ id: null, label: 'Documents' }]
 
     if (!currentFolderId || !tree) {
-      return path
+      return { breadcrumbs: path, currentNode: null }
     }
 
     // Find path to current folder in tree
@@ -58,9 +57,11 @@ export function useFolderNavigation(workspaceId: string): FolderNavigationState 
     const folderPath = findPath(tree, currentFolderId)
     if (folderPath) {
       path.push(...folderPath.map((f) => ({ id: f.id, label: f.name })))
+      // Return the last node in the path as the current node
+      return { breadcrumbs: path, currentNode: folderPath[folderPath.length - 1] }
     }
 
-    return path
+    return { breadcrumbs: path, currentNode: null }
   }, [tree, currentFolderId])
 
   const navigateToFolder = useCallback(
@@ -75,18 +76,33 @@ export function useFolderNavigation(workspaceId: string): FolderNavigationState 
   )
 
   const navigateUp = useCallback(() => {
-    if (currentFolder?.parentId) {
-      navigateToFolder(currentFolder.parentId)
+    if (currentNode?.parentId) {
+      navigateToFolder(currentNode.parentId)
     } else {
       navigateToFolder(null)
     }
-  }, [currentFolder, navigateToFolder])
+  }, [currentNode, navigateToFolder])
+
+  // Maintain backward compatibility by constructing currentFolder from currentNode
+  const currentFolder: Folder | undefined = currentNode
+    ? {
+        id: currentNode.id,
+        name: currentNode.name,
+        parentId: currentNode.parentId ?? undefined,
+        workspaceId: currentNode.workspaceId,
+        createdAt: currentNode.createdAt,
+        updatedAt: currentNode.updatedAt,
+        // Note: childFolderCount and templateCount are not available in FolderTree
+        childFolderCount: 0,
+        templateCount: 0,
+      }
+    : undefined
 
   return {
     currentFolderId,
     currentFolder,
     breadcrumbs,
-    isLoading: folderLoading || treeLoading,
+    isLoading: treeLoading,
     navigateToFolder,
     navigateUp,
   }

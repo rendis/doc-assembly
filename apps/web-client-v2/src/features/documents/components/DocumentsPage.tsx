@@ -4,10 +4,12 @@ import { useParams } from '@tanstack/react-router'
 import {
   DndContext,
   DragEndEvent,
-  closestCenter,
+  rectIntersection,
   PointerSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
+  type Collision,
 } from '@dnd-kit/core'
 import { DocumentsToolbar } from './DocumentsToolbar'
 import { DroppableBreadcrumb } from './DroppableBreadcrumb'
@@ -19,6 +21,7 @@ import { RenameFolderDialog } from './RenameFolderDialog'
 import { DeleteFolderDialog } from './DeleteFolderDialog'
 import { MoveFolderDialog } from './MoveFolderDialog'
 import { MoveTemplateDialog } from './MoveTemplateDialog'
+import { ConfirmMoveFolderDialog } from './ConfirmMoveFolderDialog'
 import { SelectionToolbar } from './SelectionToolbar'
 import { DraggableFolderCard } from './DraggableFolderCard'
 import { DraggableTemplateCard } from './DraggableTemplateCard'
@@ -49,6 +52,41 @@ function DocumentsPageContent() {
     })
   )
 
+  // Custom collision detection: ONLY uses cursor position, ignores dragged element rect
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const { pointerCoordinates, droppableRects, droppableContainers } = args
+
+    // If no pointer coordinates, fallback to rect intersection
+    if (!pointerCoordinates) {
+      return rectIntersection(args)
+    }
+
+    const collisions: Collision[] = []
+
+    for (const droppableContainer of droppableContainers) {
+      const { id } = droppableContainer
+      const rect = droppableRects.get(id)
+
+      if (rect) {
+        // Check if pointer is within the droppable rect
+        const isWithin =
+          pointerCoordinates.x >= rect.left &&
+          pointerCoordinates.x <= rect.right &&
+          pointerCoordinates.y >= rect.top &&
+          pointerCoordinates.y <= rect.bottom
+
+        if (isWithin) {
+          collisions.push({
+            id,
+            data: { droppableContainer, value: 0 },
+          })
+        }
+      }
+    }
+
+    return collisions
+  }, [])
+
   // Folder dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
@@ -66,6 +104,14 @@ function DocumentsPageContent() {
     null
   )
   const [targetFolder, setTargetFolder] = useState<{
+    id: string | null
+    name: string
+  } | null>(null)
+
+  // Confirm folder move dialog state (for breadcrumb drops)
+  const [confirmMoveFolderOpen, setConfirmMoveFolderOpen] = useState(false)
+  const [folderToMove, setFolderToMove] = useState<Folder | null>(null)
+  const [folderMoveTarget, setFolderMoveTarget] = useState<{
     id: string | null
     name: string
   } | null>(null)
@@ -125,20 +171,38 @@ function DocumentsPageContent() {
       if (!over) return
 
       const dragType = active.data.current?.type
+      const overType = over.data.current?.type
 
       if (dragType === 'folder') {
         // Handle folder drag
-        const draggedFolderId = active.data.current?.folder?.id
-        const targetFolderId = over.data.current?.folderId
+        const draggedFolder = active.data.current?.folder as Folder | undefined
+        const targetFolderId = over.data.current?.folderId as
+          | string
+          | null
+          | undefined
 
-        if (
-          draggedFolderId &&
-          targetFolderId &&
-          draggedFolderId !== targetFolderId
-        ) {
+        if (!draggedFolder) return
+
+        // Prevent dropping on itself
+        if (draggedFolder.id === targetFolderId) return
+
+        // Check if dropping on breadcrumb
+        if (overType === 'breadcrumb') {
+          // Prevent no-op (same parent)
+          if (draggedFolder.parentId === targetFolderId) return
+
+          // Show confirmation dialog
+          setFolderToMove(draggedFolder)
+          setFolderMoveTarget({
+            id: targetFolderId ?? null,
+            name: getFolderName(targetFolderId ?? null),
+          })
+          setConfirmMoveFolderOpen(true)
+        } else if (targetFolderId && draggedFolder.id !== targetFolderId) {
+          // Folder-to-folder drop (immediate move, existing behavior)
           try {
             await moveFolder.mutateAsync({
-              folderId: draggedFolderId,
+              folderId: draggedFolder.id,
               data: { parentId: targetFolderId },
             })
           } catch {
@@ -181,6 +245,23 @@ function DocumentsPageContent() {
       setMoveTemplateDialogOpen(false)
       setTemplateToMove(null)
       setTargetFolder(null)
+    } catch {
+      // Error is handled by mutation
+    }
+  }
+
+  // Handle folder move confirmation (for breadcrumb drops)
+  const handleConfirmMoveFolder = async () => {
+    if (!folderToMove || folderMoveTarget === null) return
+
+    try {
+      await moveFolder.mutateAsync({
+        folderId: folderToMove.id,
+        data: { parentId: folderMoveTarget.id },
+      })
+      setConfirmMoveFolderOpen(false)
+      setFolderToMove(null)
+      setFolderMoveTarget(null)
     } catch {
       // Error is handled by mutation
     }
@@ -285,7 +366,7 @@ function DocumentsPageContent() {
       {/* Content with DnD context wrapping everything */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 overflow-y-auto px-4 pb-12 md:px-6 lg:px-6">
@@ -428,6 +509,16 @@ function DocumentsPageContent() {
         targetFolderName={targetFolder?.name ?? ''}
         onConfirm={handleConfirmMoveTemplate}
         isLoading={moveTemplate.isPending}
+      />
+
+      {/* Confirm Folder Move Dialog (for breadcrumb drops) */}
+      <ConfirmMoveFolderDialog
+        open={confirmMoveFolderOpen}
+        onOpenChange={setConfirmMoveFolderOpen}
+        folder={folderToMove}
+        targetFolderName={folderMoveTarget?.name ?? ''}
+        onConfirm={handleConfirmMoveFolder}
+        isLoading={moveFolder.isPending}
       />
     </div>
   )

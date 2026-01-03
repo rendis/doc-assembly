@@ -29,14 +29,6 @@ export async function fetchFolderTree(): Promise<FolderTree[]> {
 }
 
 /**
- * Get single folder by ID
- */
-export async function fetchFolder(folderId: string): Promise<Folder> {
-  const response = await apiClient.get<Folder>(`/workspace/folders/${folderId}`)
-  return response.data
-}
-
-/**
  * Create new folder
  */
 export async function createFolder(data: CreateFolderRequest): Promise<Folder> {

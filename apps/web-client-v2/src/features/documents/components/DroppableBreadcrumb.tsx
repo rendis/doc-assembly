@@ -58,12 +58,23 @@ function DroppableBreadcrumbItem({
     },
   })
 
-  // Only show drop indication when dragging a template
+  // Check what type is being dragged
+  const isDraggingFolder = active?.data.current?.type === 'folder'
   const isDraggingTemplate = active?.data.current?.type === 'template'
+
+  // Get current parent/folder of dragged item
+  const draggedFolderParentId = active?.data.current?.folder?.parentId
   const draggedTemplateFolderId = active?.data.current?.template?.folderId
-  // Valid drop if dragging template AND not dropping in same folder AND not dropping on active item
-  const isValidDrop =
+
+  // Folder valid: not dropping in same parent, not on active breadcrumb
+  const isValidFolderDrop =
+    isDraggingFolder && draggedFolderParentId !== id && !isActive
+
+  // Template valid: not dropping in same folder, not on active breadcrumb
+  const isValidTemplateDrop =
     isDraggingTemplate && draggedTemplateFolderId !== id && !isActive
+
+  const isValidDrop = isValidFolderDrop || isValidTemplateDrop
 
   if (isActive) {
     return (
@@ -81,10 +92,10 @@ function DroppableBreadcrumbItem({
       ref={setNodeRef}
       onClick={() => onNavigate(id)}
       className={cn(
-        'cursor-pointer border-none bg-transparent p-0 transition-all hover:text-foreground',
+        'cursor-pointer border-none bg-transparent px-2 py-1 transition-all hover:text-foreground',
         isOver &&
           isValidDrop &&
-          'rounded bg-primary/10 px-2 text-primary ring-2 ring-primary'
+          'rounded bg-primary/10 text-primary ring-2 ring-primary'
       )}
     >
       {label}

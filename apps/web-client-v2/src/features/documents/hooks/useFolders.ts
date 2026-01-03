@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchFolders,
   fetchFolderTree,
-  fetchFolder,
   createFolder,
   updateFolder,
   deleteFolder,
@@ -23,8 +22,6 @@ export const folderKeys = {
   list: (workspaceId: string) => [...folderKeys.lists(), workspaceId] as const,
   trees: () => [...folderKeys.all, 'tree'] as const,
   tree: (workspaceId: string) => [...folderKeys.trees(), workspaceId] as const,
-  details: () => [...folderKeys.all, 'detail'] as const,
-  detail: (id: string) => [...folderKeys.details(), id] as const,
 }
 
 export function useFolders(workspaceId: string | null) {
@@ -42,16 +39,6 @@ export function useFolderTree(workspaceId: string | null) {
     queryKey: folderKeys.tree(workspaceId ?? ''),
     queryFn: fetchFolderTree,
     enabled: !!workspaceId,
-    staleTime: 0,
-    gcTime: 0,
-  })
-}
-
-export function useFolder(folderId: string | null) {
-  return useQuery({
-    queryKey: folderKeys.detail(folderId ?? ''),
-    queryFn: () => fetchFolder(folderId!),
-    enabled: !!folderId,
     staleTime: 0,
     gcTime: 0,
   })
