@@ -110,6 +110,8 @@
       "draft": "Borrador"
     },
     "versions": "Versiones",
+    "version": "versión",
+    "versionsLabel": "versiones",
     "lastModified": "Última Modificación",
     "author": "Autor",
     "noTemplates": "No se encontraron plantillas",
@@ -146,6 +148,38 @@
       "title": "Mover Plantilla",
       "message": "¿Estás seguro de que deseas mover \"{{name}}\" a \"{{folder}}\"?",
       "toRoot": "Raíz"
+    },
+    "detail": {
+      "header": "Detalles de Plantilla",
+      "backToList": "Volver a Plantillas",
+      "notFound": "Plantilla no encontrada",
+      "metadata": "Metadatos",
+      "folder": "Carpeta",
+      "createdAt": "Creado",
+      "updatedAt": "Última Actualización",
+      "versionsCount": "Versiones",
+      "tags": "Etiquetas",
+      "noTags": "Sin etiquetas",
+      "versionsSection": "Historial de Versiones",
+      "versionsTotal": "{{count}} versión(es)",
+      "noVersions": "Aún no hay versiones",
+      "createVersion": "Crear Nueva Versión",
+      "createFirstVersion": "Crear primera versión"
+    },
+    "versionInfo": {
+      "createdAt": "Creado",
+      "publishedAt": "Publicado",
+      "archivedAt": "Archivado",
+      "openEditor": "Abrir en Editor"
+    },
+    "createVersionDialog": {
+      "title": "Nueva Versión",
+      "description": "Crear una nueva versión de esta plantilla",
+      "nameLabel": "Nombre de Versión",
+      "namePlaceholder": "ej., Borrador Inicial, Revisión de Cambios...",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Descripción opcional de los cambios...",
+      "submit": "Crear Versión"
     }
   },
   "documents": {

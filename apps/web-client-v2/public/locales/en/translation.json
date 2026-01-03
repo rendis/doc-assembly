@@ -110,6 +110,8 @@
       "draft": "Draft"
     },
     "versions": "Versions",
+    "version": "version",
+    "versionsLabel": "versions",
     "lastModified": "Last Modified",
     "author": "Author",
     "noTemplates": "No templates found",
@@ -146,6 +148,38 @@
       "title": "Move Template",
       "message": "Are you sure you want to move \"{{name}}\" to \"{{folder}}\"?",
       "toRoot": "Root"
+    },
+    "detail": {
+      "header": "Template Details",
+      "backToList": "Back to Templates",
+      "notFound": "Template not found",
+      "metadata": "Metadata",
+      "folder": "Folder",
+      "createdAt": "Created",
+      "updatedAt": "Last Updated",
+      "versionsCount": "Versions",
+      "tags": "Tags",
+      "noTags": "No tags",
+      "versionsSection": "Version History",
+      "versionsTotal": "{{count}} version(s)",
+      "noVersions": "No versions yet",
+      "createVersion": "Create New Version",
+      "createFirstVersion": "Create first version"
+    },
+    "versionInfo": {
+      "createdAt": "Created",
+      "publishedAt": "Published",
+      "archivedAt": "Archived",
+      "openEditor": "Open in Editor"
+    },
+    "createVersionDialog": {
+      "title": "New Version",
+      "description": "Create a new version of this template",
+      "nameLabel": "Version Name",
+      "namePlaceholder": "e.g., Initial Draft, Review Changes...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description of changes...",
+      "submit": "Create Version"
     }
   },
   "documents": {
