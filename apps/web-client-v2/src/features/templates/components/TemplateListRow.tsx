@@ -81,7 +81,7 @@ export function TemplateListRow({ template, onClick }: TemplateListRowProps) {
       <td className="border-b border-border py-6 pt-8 align-top font-mono text-sm text-muted-foreground">
         {formatDate(template.updatedAt)}
       </td>
-      <td className="border-b border-border py-6 pt-7 text-right align-top">
+      <td className="border-b border-border py-6 pt-7 text-center align-top">
         <button
           className="text-muted-foreground transition-colors hover:text-foreground"
           onClick={(e) => e.stopPropagation()}
