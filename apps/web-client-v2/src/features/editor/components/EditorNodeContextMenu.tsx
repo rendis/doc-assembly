@@ -64,7 +64,7 @@ export const EditorNodeContextMenu = ({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-popover border border-gray-100 rounded-lg shadow-lg py-1 min-w-[160px]"
+      className="fixed z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
       style={{
         left: adjustedPosition.x,
         top: adjustedPosition.y,
@@ -76,7 +76,7 @@ export const EditorNodeContextMenu = ({
             onEdit()
             onClose()
           }}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-black hover:bg-gray-50 transition-colors text-left"
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-left"
         >
           <Pencil className="h-4 w-4" />
           <span>Editar {NODE_TYPE_LABELS[nodeType]}</span>
@@ -88,7 +88,7 @@ export const EditorNodeContextMenu = ({
           onDelete()
           onClose()
         }}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-gray-50 transition-colors text-left"
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-accent transition-colors text-left"
       >
         <Trash2 className="h-4 w-4" />
         <span>Eliminar</span>

@@ -72,8 +72,8 @@ export const ConditionalComponent = (props: NodeViewProps) => {
         className={cn(
           'border-2 border-dashed rounded-lg p-4 transition-all pt-6',
           selected
-            ? 'border-amber-500 bg-amber-50'
-            : 'border-amber-300 hover:border-amber-400'
+            ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
+            : 'border-amber-300 hover:border-amber-400 dark:border-amber-700 dark:hover:border-amber-600'
         )}
       >
         <div className="absolute -top-3 left-4 flex items-center gap-2 z-10">
@@ -81,10 +81,10 @@ export const ConditionalComponent = (props: NodeViewProps) => {
             <DialogTrigger asChild>
               <button
                 className={cn(
-                  'px-2 h-7 bg-white flex items-center gap-2 text-xs font-medium border rounded shadow-sm transition-colors cursor-pointer',
+                  'px-2 h-7 bg-card flex items-center gap-2 text-xs font-medium border rounded shadow-sm transition-colors cursor-pointer',
                   selected
-                    ? 'text-amber-600 border-amber-300'
-                    : 'text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-600'
+                    ? 'text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-600'
+                    : 'text-muted-foreground border-border hover:border-amber-300 hover:text-amber-600 dark:hover:border-amber-600 dark:hover:text-amber-400'
                 )}
               >
                 <GitBranch className="h-3.5 w-3.5" />
@@ -113,13 +113,13 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                 <Button
                   variant="outline"
                   onClick={() => setOpen(false)}
-                  className="border-gray-200"
+                  className="border-border"
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="bg-black text-white hover:bg-gray-800"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Guardar Configuración
                 </Button>

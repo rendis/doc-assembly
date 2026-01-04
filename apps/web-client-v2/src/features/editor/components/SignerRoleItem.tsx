@@ -56,14 +56,14 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 w-14 shrink-0">
+      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-14 shrink-0">
         {label}:
       </span>
 
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 shrink-0 text-gray-400 hover:text-black"
+        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
         onClick={handleTypeToggle}
         title={isText ? 'Cambiar a variable' : 'Cambiar a texto'}
       >
@@ -81,19 +81,19 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
           placeholder={
             label === 'Nombre' ? 'Nombre del firmante' : 'email@ejemplo.com'
           }
-          className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-gray-200 rounded-none bg-transparent focus:border-black focus-visible:ring-0"
+          className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus-visible:ring-0"
         />
       ) : (
         <Select
           value={field.value}
           onValueChange={(value) => onChange({ type: 'injectable', value })}
         >
-          <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-gray-200 rounded-none bg-transparent focus:border-black focus:ring-0">
+          <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus:ring-0">
             <SelectValue placeholder="Seleccionar variable" />
           </SelectTrigger>
           <SelectContent>
             {textVariables.length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-gray-400">
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
                 No hay variables de texto disponibles
               </div>
             ) : (
@@ -160,9 +160,9 @@ export function SignerRoleItem({
         ref={setNodeRef}
         style={style}
         className={cn(
-          'border border-gray-100 rounded p-3 bg-white transition-all',
-          isDragging && 'shadow-lg ring-2 ring-black/10 opacity-90 z-50',
-          'hover:border-gray-200'
+          'border border-border rounded p-3 bg-card transition-all',
+          isDragging && 'shadow-lg ring-2 ring-ring/20 opacity-90 z-50',
+          'hover:border-border/80'
         )}
       >
         {/* Header */}
@@ -170,7 +170,7 @@ export function SignerRoleItem({
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-gray-300 hover:text-gray-600 touch-none"
+            className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground/50 hover:text-muted-foreground touch-none"
           >
             <GripVertical className="h-4 w-4" />
           </div>
@@ -179,13 +179,13 @@ export function SignerRoleItem({
             value={role.label}
             onChange={(e) => onUpdate(role.id, { label: e.target.value })}
             placeholder="Nombre del rol"
-            className="h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent hover:border-gray-200 focus:border-black px-1 rounded-none"
+            className="h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent hover:border-border focus:border-ring px-1 rounded-none"
           />
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-gray-300 hover:text-destructive shrink-0"
+            className="h-6 w-6 text-muted-foreground/50 hover:text-destructive shrink-0"
             onClick={handleDeleteClick}
           >
             <Trash2 className="h-3.5 w-3.5" />

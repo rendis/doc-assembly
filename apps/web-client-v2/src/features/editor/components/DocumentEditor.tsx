@@ -85,7 +85,7 @@ export function DocumentEditor({
         {/* Left: Main Editor Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header with Toolbar and Settings */}
-          <div className="flex items-center justify-between border-b border-gray-100 bg-white">
+          <div className="flex items-center justify-between border-b border-border bg-card">
             <EditorToolbar editor={editor} />
             <div className="pr-2">
               <PageSettings
@@ -98,9 +98,9 @@ export function DocumentEditor({
           </div>
 
           {/* Editor Content */}
-          <div className="flex-1 overflow-auto bg-[#F5F5F5] p-8">
+          <div className="flex-1 overflow-auto bg-muted/20 p-8">
             <div
-              className="mx-auto bg-white shadow-sm rounded-sm"
+              className="mx-auto bg-card shadow-sm rounded-sm"
               style={{ width: pageSize.width }}
             >
               <EditorContent editor={editor} />
@@ -111,7 +111,7 @@ export function DocumentEditor({
         {/* Right: Signer Roles Panel */}
         <SignerRolesPanel
           variables={variables}
-          className="w-72 shrink-0 border-l border-gray-100"
+          className="w-72 shrink-0 border-l border-border"
         />
       </div>
     </SignerRolesProvider>

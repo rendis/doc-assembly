@@ -90,7 +90,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
 
     if (items.length === 0) {
       return (
-        <div className="bg-popover border border-gray-100 rounded-lg shadow-lg p-3 text-sm text-gray-400">
+        <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm text-muted-foreground">
           No se encontraron variables
         </div>
       )
@@ -116,8 +116,8 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
             index === selectedIndex
               ? isRole
                 ? 'bg-role-muted text-role-foreground'
-                : 'bg-gray-100 text-black'
-              : 'hover:bg-gray-50 text-gray-600 hover:text-black'
+                : 'bg-accent text-foreground'
+              : 'hover:bg-accent text-muted-foreground hover:text-foreground'
           )}
         >
           <Icon
@@ -127,7 +127,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
                 ? index === selectedIndex
                   ? 'text-role-foreground'
                   : 'text-role'
-                : 'text-gray-400'
+                : 'text-muted-foreground'
             )}
           />
           <span
@@ -139,10 +139,10 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
             {item.label}
           </span>
           {hasOptions && (
-            <Settings2 className="h-3 w-3 text-gray-400 shrink-0" />
+            <Settings2 className="h-3 w-3 text-muted-foreground shrink-0" />
           )}
           {!isRole && (
-            <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               {item.type}
             </span>
           )}
@@ -154,7 +154,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     let currentIndex = 0
 
     return (
-      <div className="bg-popover border border-gray-100 rounded-lg shadow-lg w-72 p-1.5">
+      <div className="bg-popover border border-border rounded-lg shadow-lg w-72 p-1.5">
         <ScrollArea className="max-h-80" ref={containerRef}>
           {/* Sección: Roles de Firmantes */}
           {roleItems.length > 0 && (
@@ -176,7 +176,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
             <>
               <div
                 className={cn(
-                  'px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-gray-400 border-b border-gray-100',
+                  'px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground border-b border-border',
                   roleItems.length > 0 && 'mt-2'
                 )}
               >

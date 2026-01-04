@@ -67,19 +67,19 @@ export function SignerRolesPanel({
   return (
     <div
       className={cn(
-        'flex flex-col border-l border-gray-100 bg-white w-72',
+        'flex flex-col border-l border-border bg-card w-72',
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center h-14 px-4 border-b border-gray-100 shrink-0">
+      <div className="flex items-center h-14 px-4 border-b border-border shrink-0">
         <div className="flex items-center gap-2 flex-1">
-          <Users className="h-4 w-4 text-gray-400" />
-          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
             Roles de Firma
           </span>
         </div>
-        <span className="text-xs text-gray-300">{roles.length}</span>
+        <span className="text-xs text-muted-foreground/70">{roles.length}</span>
       </div>
 
       {/* Content */}
@@ -87,15 +87,15 @@ export function SignerRolesPanel({
         <div className="p-4 space-y-3">
           {roles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Users className="h-8 w-8 text-gray-200 mb-2" />
-              <p className="text-sm text-gray-400">No hay roles definidos</p>
-              <p className="text-xs text-gray-300 mt-1">
+              <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No hay roles definidos</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 Agrega roles para asignarlos a las firmas
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-4 border-gray-200 text-gray-600 hover:text-black hover:border-black"
+                className="mt-4 border-border text-muted-foreground hover:text-foreground hover:border-foreground"
                 onClick={addRole}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -128,7 +128,7 @@ export function SignerRolesPanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-gray-200 text-gray-600 hover:text-black hover:border-black"
+                className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
                 onClick={addRole}
               >
                 <Plus className="h-4 w-4 mr-2" />
