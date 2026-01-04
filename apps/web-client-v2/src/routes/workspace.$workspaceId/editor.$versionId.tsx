@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DocumentEditor } from '@/features/editor'
-import { useState, useCallback } from 'react'
+import { DocumentEditor, PAGE_SIZES, DEFAULT_MARGINS } from '@/features/editor'
+import { useState, useCallback, useRef } from 'react'
+import type { PageSize, PageMargins } from '@/features/editor'
 
 export const Route = createFileRoute('/workspace/$workspaceId/editor/$versionId')({
   component: EditorPage,
@@ -10,11 +11,28 @@ export const Route = createFileRoute('/workspace/$workspaceId/editor/$versionId'
 
 function EditorPage() {
   const { workspaceId, versionId } = Route.useParams()
-  const [content, setContent] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
 
+  // Estado del contenido (preservado entre cambios de page size)
+  const contentRef = useRef<string>('<p>Comienza a escribir tu documento aqui...</p>')
+
+  // Estado de configuracion de pagina
+  const [pageSize, setPageSize] = useState<PageSize>(PAGE_SIZES.A4)
+  const [margins, setMargins] = useState<PageMargins>(DEFAULT_MARGINS)
+
+  // Key unica basada en la configuracion - cuando cambia, el editor se recrea
+  const editorKey = `${pageSize.width}-${pageSize.height}-${margins.top}-${margins.bottom}-${margins.left}-${margins.right}`
+
   const handleContentChange = useCallback((newContent: string) => {
-    setContent(newContent)
+    contentRef.current = newContent
+  }, [])
+
+  const handlePageSizeChange = useCallback((size: PageSize) => {
+    setPageSize(size)
+  }, [])
+
+  const handleMarginsChange = useCallback((newMargins: PageMargins) => {
+    setMargins(newMargins)
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -22,12 +40,12 @@ function EditorPage() {
     try {
       // TODO: Implement save to API
       console.log('Saving content for version:', versionId)
-      console.log('Content:', content)
-      await new Promise(resolve => setTimeout(resolve, 500)) // Simulated delay
+      console.log('Content:', contentRef.current)
+      await new Promise(resolve => setTimeout(resolve, 500))
     } finally {
       setIsSaving(false)
     }
-  }, [content, versionId])
+  }, [versionId])
 
   return (
     <div className="flex flex-col h-screen">
@@ -50,11 +68,16 @@ function EditorPage() {
         </Button>
       </header>
 
-      {/* Editor */}
+      {/* Editor - key cambia cuando cambia la configuracion de pagina */}
       <div className="flex-1 overflow-hidden">
         <DocumentEditor
-          initialContent="<p>Comienza a escribir tu documento aqui...</p>"
+          key={editorKey}
+          initialContent={contentRef.current}
           onContentChange={handleContentChange}
+          pageSize={pageSize}
+          margins={margins}
+          onPageSizeChange={handlePageSizeChange}
+          onMarginsChange={handleMarginsChange}
         />
       </div>
     </div>

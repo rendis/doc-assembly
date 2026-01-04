@@ -33,6 +33,20 @@ export function PageSettings({
   const [open, setOpen] = useState(false)
   const [customMargins, setCustomMargins] = useState(margins)
 
+  // Detectar si hay cambios pendientes de aplicar
+  const hasChanges =
+    customMargins.top !== margins.top ||
+    customMargins.bottom !== margins.bottom ||
+    customMargins.left !== margins.left ||
+    customMargins.right !== margins.right
+
+  // Detectar si los márgenes son diferentes a los defaults
+  const isNotDefault =
+    customMargins.top !== DEFAULT_MARGINS.top ||
+    customMargins.bottom !== DEFAULT_MARGINS.bottom ||
+    customMargins.left !== DEFAULT_MARGINS.left ||
+    customMargins.right !== DEFAULT_MARGINS.right
+
   const handlePageSizeChange = (value: string) => {
     const size = PAGE_SIZES[value]
     if (size) {
@@ -43,10 +57,12 @@ export function PageSettings({
   const handleMarginChange = (key: keyof PageMargins, value: string) => {
     const numValue = parseInt(value, 10)
     if (!isNaN(numValue) && numValue >= 0) {
-      const newMargins = { ...customMargins, [key]: numValue }
-      setCustomMargins(newMargins)
-      onMarginsChange(newMargins)
+      setCustomMargins(prev => ({ ...prev, [key]: numValue }))
     }
+  }
+
+  const handleApplyMargins = () => {
+    onMarginsChange(customMargins)
   }
 
   const getCurrentSizeKey = () => {
@@ -151,17 +167,26 @@ export function PageSettings({
             </div>
           </div>
 
-          {/* Reset button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setCustomMargins(DEFAULT_MARGINS)
-              onMarginsChange(DEFAULT_MARGINS)
-            }}
-          >
-            Restablecer Margenes
-          </Button>
+          {/* Margin buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!isNotDefault}
+              onClick={() => {
+                setCustomMargins(DEFAULT_MARGINS)
+              }}
+            >
+              Restablecer
+            </Button>
+            <Button
+              size="sm"
+              disabled={!hasChanges}
+              onClick={handleApplyMargins}
+            >
+              Aplicar Margenes
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

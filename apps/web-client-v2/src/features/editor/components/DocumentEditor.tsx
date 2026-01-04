@@ -1,25 +1,29 @@
-import { useState, useCallback } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { PaginationPlus } from 'tiptap-pagination-plus'
 import { EditorToolbar } from './EditorToolbar'
 import { PageSettings } from './PageSettings'
-import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
+import { type PageSize, type PageMargins } from '../types'
 
 interface DocumentEditorProps {
   initialContent?: string
   onContentChange?: (content: string) => void
   editable?: boolean
+  pageSize: PageSize
+  margins: PageMargins
+  onPageSizeChange: (size: PageSize) => void
+  onMarginsChange: (margins: PageMargins) => void
 }
 
 export function DocumentEditor({
   initialContent = '<p>Comienza a escribir...</p>',
   onContentChange,
   editable = true,
+  pageSize,
+  margins,
+  onPageSizeChange,
+  onMarginsChange,
 }: DocumentEditorProps) {
-  const [pageSize, setPageSize] = useState<PageSize>(PAGE_SIZES.A4)
-  const [margins, setMargins] = useState<PageMargins>(DEFAULT_MARGINS)
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -54,23 +58,6 @@ export function DocumentEditor({
     },
   })
 
-  const handlePageSizeChange = useCallback((size: PageSize) => {
-    setPageSize(size)
-    if (editor) {
-      editor.chain().focus().updatePageSize({
-        width: size.width,
-        height: size.height,
-      }).run()
-    }
-  }, [editor])
-
-  const handleMarginsChange = useCallback((newMargins: PageMargins) => {
-    setMargins(newMargins)
-    if (editor) {
-      editor.chain().focus().updateMargins(newMargins).run()
-    }
-  }, [editor])
-
   if (!editor) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -88,8 +75,8 @@ export function DocumentEditor({
           <PageSettings
             pageSize={pageSize}
             margins={margins}
-            onPageSizeChange={handlePageSizeChange}
-            onMarginsChange={handleMarginsChange}
+            onPageSizeChange={onPageSizeChange}
+            onMarginsChange={onMarginsChange}
           />
         </div>
       </div>
