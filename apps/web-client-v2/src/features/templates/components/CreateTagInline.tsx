@@ -31,7 +31,7 @@ export function CreateTagInline({
 }: CreateTagInlineProps) {
   const { t } = useTranslation()
   const [name, setName] = useState(defaultName)
-  const [selectedColor, setSelectedColor] = useState(TAG_COLORS[5]) // default blue
+  const [selectedColor, setSelectedColor] = useState(TAG_COLORS[5] ?? '#3b82f6') // default blue
 
   const handleSubmit = () => {
     if (name.trim().length < 3) return

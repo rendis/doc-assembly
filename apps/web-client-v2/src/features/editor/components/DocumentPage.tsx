@@ -17,6 +17,7 @@ export function DocumentPage({
   const pageFormat = PAGE_FORMATS[format] || PAGE_FORMATS.letter
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [StarterKit],
     content: content || `
       <h1 style="text-align: center;">Mutual Non-Disclosure Agreement</h1>

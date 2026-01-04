@@ -4,7 +4,6 @@ import { Search, Check, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTags, useCreateTag } from '../hooks/useTags'
 import { CreateTagInline } from './CreateTagInline'
-import type { TagWithCount } from '../api/tags-api'
 
 interface TagSelectorProps {
   selectedTagIds: string[]
