@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -27,6 +28,20 @@ interface EditorToolbarProps {
 }
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
+  // Force re-render when editor state changes (for undo/redo buttons)
+  const [, forceUpdate] = useState({})
+
+  useEffect(() => {
+    if (!editor) return
+
+    const handler = () => forceUpdate({})
+    editor.on('transaction', handler)
+
+    return () => {
+      editor.off('transaction', handler)
+    }
+  }, [editor])
+
   if (!editor) return null
 
   return (

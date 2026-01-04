@@ -20,6 +20,7 @@ export function Editor({
   editable = true,
 }: EditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -48,7 +49,7 @@ export function Editor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none',
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none',
       },
     },
   })

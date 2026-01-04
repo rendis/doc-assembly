@@ -25,6 +25,7 @@ export function DocumentEditor({
   onMarginsChange,
 }: DocumentEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -53,7 +54,7 @@ export function DocumentEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px]',
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px]',
       },
     },
   })
