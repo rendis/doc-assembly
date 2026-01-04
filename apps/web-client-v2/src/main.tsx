@@ -6,9 +6,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { routeTree } from './routeTree.gen'
 import { AuthProvider } from '@/features/auth/components/AuthProvider'
 import { Toaster } from '@/components/ui/toaster'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import './index.css'
 
 // Create a new router instance
+// @ts-expect-error - TanStack Router requires strictNullChecks but we have it disabled
 const router = createRouter({ routeTree })
 
 // Register the router instance for type safety
@@ -39,10 +41,12 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-        <Toaster />
-      </AuthProvider>
+      <TooltipProvider delayDuration={300}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </AuthProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   </StrictMode>
 )
