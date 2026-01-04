@@ -63,7 +63,7 @@ export function CreateTemplateDialog({
         params: {
           workspaceId: currentWorkspace.id,
           versionId: response.initialVersion.id,
-        },
+        } as any,
       })
     } catch {
       // Error is handled by mutation

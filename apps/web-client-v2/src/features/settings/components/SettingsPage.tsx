@@ -28,7 +28,7 @@ export function SettingsPage() {
     if (currentWorkspace) {
       navigate({
         to: '/workspace/$workspaceId',
-        params: { workspaceId: currentWorkspace.id },
+        params: { workspaceId: currentWorkspace.id } as any,
       })
     }
   }

@@ -54,6 +54,10 @@
     "admin": "Admin",
     "logout": "Logout"
   },
+  "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Unpin sidebar"
+  },
   "auth": {
     "login": "Login",
     "loginTitle": "Login to your account",

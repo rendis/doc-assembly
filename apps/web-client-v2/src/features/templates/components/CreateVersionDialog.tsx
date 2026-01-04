@@ -55,7 +55,7 @@ export function CreateVersionDialog({
         params: {
           workspaceId: currentWorkspace.id,
           versionId: response.id,
-        },
+        } as any,
       })
     } catch {
       setIsSubmitting(false)

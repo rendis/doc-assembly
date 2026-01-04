@@ -6,6 +6,7 @@ import type {
   TemplateWithAllVersionsResponse,
   TemplateVersionResponse,
   CreateVersionRequest,
+  UpdateVersionRequest,
 } from '@/types/api'
 
 export interface TemplatesListParams {
@@ -106,6 +107,18 @@ export async function createVersion(
 ): Promise<TemplateVersionResponse> {
   const response = await apiClient.post<TemplateVersionResponse>(
     `/content/templates/${templateId}/versions`,
+    data
+  )
+  return response.data
+}
+
+export async function updateVersion(
+  templateId: string,
+  versionId: string,
+  data: UpdateVersionRequest
+): Promise<TemplateVersionResponse> {
+  const response = await apiClient.put<TemplateVersionResponse>(
+    `/content/templates/${templateId}/versions/${versionId}`,
     data
   )
   return response.data

@@ -89,7 +89,7 @@ export function TemplatesPage() {
     if (currentWorkspace) {
       navigate({
         to: '/workspace/$workspaceId/templates/$templateId',
-        params: { workspaceId: currentWorkspace.id, templateId },
+        params: { workspaceId: currentWorkspace.id, templateId } as any,
       })
     }
   }
@@ -102,8 +102,8 @@ export function TemplatesPage() {
 
     navigate({
       to: '/workspace/$workspaceId/documents',
-      params: { workspaceId: currentWorkspace.id },
-      search: isRoot ? undefined : { folderId },
+      params: { workspaceId: currentWorkspace.id } as any,
+      search: isRoot ? undefined : { folderId } as any,
     })
   }
 

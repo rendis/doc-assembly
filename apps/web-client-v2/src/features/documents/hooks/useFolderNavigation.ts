@@ -68,8 +68,8 @@ export function useFolderNavigation(workspaceId: string): FolderNavigationState 
     (folderId: string | null) => {
       navigate({
         to: '/workspace/$workspaceId/documents',
-        params: { workspaceId: currentWorkspaceId },
-        search: folderId ? { folderId } : undefined,
+        params: { workspaceId: currentWorkspaceId } as any,
+        search: folderId ? { folderId } : undefined as any,
       })
     },
     [navigate, currentWorkspaceId]

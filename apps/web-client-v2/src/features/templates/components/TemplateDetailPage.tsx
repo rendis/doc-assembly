@@ -53,14 +53,14 @@ export function TemplateDetailPage() {
         // Volver al folder de origen (si es 'root', no pasar folderId)
         navigate({
           to: '/workspace/$workspaceId/documents',
-          params: { workspaceId: currentWorkspace.id },
-          search: fromFolderId === 'root' ? undefined : { folderId: fromFolderId },
+          params: { workspaceId: currentWorkspace.id } as any,
+          search: fromFolderId === 'root' ? undefined : { folderId: fromFolderId } as any,
         })
       } else {
         // Volver a la lista de templates
         navigate({
           to: '/workspace/$workspaceId/templates',
-          params: { workspaceId: currentWorkspace.id },
+          params: { workspaceId: currentWorkspace.id } as any,
         })
       }
     }
@@ -70,7 +70,7 @@ export function TemplateDetailPage() {
     if (currentWorkspace) {
       navigate({
         to: '/workspace/$workspaceId/editor/$versionId',
-        params: { workspaceId: currentWorkspace.id, versionId },
+        params: { workspaceId: currentWorkspace.id, versionId } as any,
       })
     }
   }
@@ -79,8 +79,8 @@ export function TemplateDetailPage() {
     if (!currentWorkspace || !template?.folderId) return
     navigate({
       to: '/workspace/$workspaceId/documents',
-      params: { workspaceId: currentWorkspace.id },
-      search: { folderId: template.folderId },
+      params: { workspaceId: currentWorkspace.id } as any,
+      search: { folderId: template.folderId } as any,
     })
   }
 

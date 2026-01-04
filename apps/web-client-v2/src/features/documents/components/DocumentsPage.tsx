@@ -562,8 +562,8 @@ function DocumentsPageContent() {
                               onClick={() => {
                                 navigate({
                                   to: '/workspace/$workspaceId/templates/$templateId',
-                                  params: { workspaceId: workspaceId ?? '', templateId: template.id },
-                                  search: { fromFolderId: currentFolderId ?? 'root' },
+                                  params: { workspaceId: workspaceId ?? '', templateId: template.id } as any,
+                                  search: { fromFolderId: currentFolderId ?? 'root' } as any,
                                 })
                               }}
                             />

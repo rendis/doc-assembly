@@ -10,7 +10,7 @@ export function QuickDraft() {
     if (currentWorkspace) {
       navigate({
         to: '/workspace/$workspaceId/templates',
-        params: { workspaceId: currentWorkspace.id },
+        params: { workspaceId: currentWorkspace.id } as any,
       })
     }
   }

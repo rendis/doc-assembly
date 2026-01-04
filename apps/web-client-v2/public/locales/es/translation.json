@@ -54,6 +54,10 @@
     "admin": "Administración",
     "logout": "Cerrar Sesión"
   },
+  "sidebar": {
+    "pin": "Anclar barra lateral",
+    "unpin": "Desanclar barra lateral"
+  },
   "auth": {
     "login": "Iniciar Sesión",
     "loginTitle": "Inicia sesión en tu cuenta",
