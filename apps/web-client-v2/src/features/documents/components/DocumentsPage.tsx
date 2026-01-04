@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -91,6 +91,7 @@ const gridItemVariants = {
 
 function DocumentsPageContent() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { workspaceId } = useParams({ strict: false })
 
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
@@ -559,7 +560,11 @@ function DocumentsPageContent() {
                             <TemplateCard
                               template={template}
                               onClick={() => {
-                                // TODO: Navigate to template editor
+                                navigate({
+                                  to: '/workspace/$workspaceId/templates/$templateId',
+                                  params: { workspaceId: workspaceId ?? '', templateId: template.id },
+                                  search: { fromFolderId: currentFolderId ?? 'root' },
+                                })
                               }}
                             />
                           </DraggableTemplateCard>

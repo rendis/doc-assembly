@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate, useParams } from '@tanstack/react-router'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
@@ -30,6 +30,9 @@ export function TemplateDetailPage() {
   const { templateId } = useParams({
     from: '/workspace/$workspaceId/templates/$templateId',
   })
+  const { fromFolderId } = useSearch({
+    from: '/workspace/$workspaceId/templates/$templateId',
+  })
   const { currentWorkspace } = useAppContextStore()
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -46,10 +49,20 @@ export function TemplateDetailPage() {
 
   const handleBackToList = () => {
     if (currentWorkspace) {
-      navigate({
-        to: '/workspace/$workspaceId/templates',
-        params: { workspaceId: currentWorkspace.id },
-      })
+      if (fromFolderId) {
+        // Volver al folder de origen (si es 'root', no pasar folderId)
+        navigate({
+          to: '/workspace/$workspaceId/documents',
+          params: { workspaceId: currentWorkspace.id },
+          search: fromFolderId === 'root' ? undefined : { folderId: fromFolderId },
+        })
+      } else {
+        // Volver a la lista de templates
+        navigate({
+          to: '/workspace/$workspaceId/templates',
+          params: { workspaceId: currentWorkspace.id },
+        })
+      }
     }
   }
 
@@ -100,7 +113,9 @@ export function TemplateDetailPage() {
           onClick={handleBackToList}
           className="mt-4 text-sm text-foreground underline underline-offset-4 hover:no-underline"
         >
-          {t('templates.detail.backToList', 'Back to Templates')}
+          {fromFolderId
+            ? t('templates.detail.backToFolder', 'Back to Folder')
+            : t('templates.detail.backToList', 'Back to Templates')}
         </button>
       </div>
     )
@@ -116,7 +131,9 @@ export function TemplateDetailPage() {
           className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft size={14} />
-          {t('templates.detail.backToList', 'Back to Templates')}
+          {fromFolderId
+            ? t('templates.detail.backToFolder', 'Back to Folder')
+            : t('templates.detail.backToList', 'Back to Templates')}
         </button>
 
         {/* Title */}

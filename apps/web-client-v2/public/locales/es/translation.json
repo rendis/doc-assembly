@@ -152,6 +152,7 @@
     "detail": {
       "header": "Detalles de Plantilla",
       "backToList": "Volver a Plantillas",
+      "backToFolder": "Volver a la carpeta",
       "notFound": "Plantilla no encontrada",
       "metadata": "Metadatos",
       "folder": "Carpeta",

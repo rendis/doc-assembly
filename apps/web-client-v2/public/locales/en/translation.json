@@ -152,6 +152,7 @@
     "detail": {
       "header": "Template Details",
       "backToList": "Back to Templates",
+      "backToFolder": "Back to Folder",
       "notFound": "Template not found",
       "metadata": "Metadata",
       "folder": "Folder",
