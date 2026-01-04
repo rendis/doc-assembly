@@ -20,7 +20,7 @@ export const Route = createFileRoute('/')({
     // If everything is set, go to workspace dashboard
     throw redirect({
       to: '/workspace/$workspaceId',
-      params: { workspaceId: currentWorkspace.id },
+      params: { workspaceId: currentWorkspace.id } as any,
     })
   },
   component: () => null,

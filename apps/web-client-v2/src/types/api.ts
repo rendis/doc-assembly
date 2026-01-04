@@ -295,7 +295,7 @@ export interface CreateVersionRequest {
 export interface UpdateVersionRequest {
   name?: string
   description?: string
-  contentStructure?: number[]
+  contentStructure?: Record<string, unknown>
 }
 
 export interface CreateFolderRequest {

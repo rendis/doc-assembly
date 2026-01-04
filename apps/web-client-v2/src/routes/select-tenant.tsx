@@ -238,7 +238,7 @@ function SelectTenantPage() {
     await new Promise(r => setTimeout(r, 500))
 
     // Phase 4: Navigate
-    navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } })
+    navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } as any })
   }
 
   const handleBack = () => {
