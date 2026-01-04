@@ -1,6 +1,26 @@
-import { Bold, Italic, Code, PenTool } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import {
+  Bold,
+  Italic,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Quote,
+  Undo,
+  Redo,
+  Heading1,
+  Heading2,
+  Heading3,
+  Minus,
+} from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface EditorToolbarProps {
   editor: Editor | null
@@ -10,51 +30,145 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor) return null
 
   return (
-    <div className="absolute left-1/2 top-6 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-background px-4 py-2 shadow-lg">
-      <button
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
-          editor.isActive('bold')
-            ? 'bg-accent text-foreground'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-        )}
-        title="Bold"
-      >
-        <Bold size={18} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
-          editor.isActive('italic')
-            ? 'bg-accent text-foreground'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-        )}
-        title="Italic"
-      >
-        <Italic size={18} />
-      </button>
+    <TooltipProvider delayDuration={300}>
+      <div className="flex items-center gap-1 p-2 border-b bg-card">
+        {/* Undo/Redo */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          tooltip="Deshacer"
+        >
+          <Undo className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          tooltip="Rehacer"
+        >
+          <Redo className="h-4 w-4" />
+        </ToolbarButton>
 
-      <div className="mx-1 h-4 w-[1px] bg-border" />
+        <Separator orientation="vertical" className="h-6 mx-1" />
 
-      <button
-        className="flex h-8 items-center gap-2 rounded-full px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        title="Insert Variable"
-      >
-        <Code size={18} />
-        <span>Insert Variable</span>
-      </button>
+        {/* Headings */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={editor.isActive('heading', { level: 1 })}
+          tooltip="Encabezado 1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+          tooltip="Encabezado 2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          isActive={editor.isActive('heading', { level: 3 })}
+          tooltip="Encabezado 3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </ToolbarButton>
 
-      <div className="mx-1 h-4 w-[1px] bg-border" />
+        <Separator orientation="vertical" className="h-6 mx-1" />
 
-      <button
-        className="flex h-8 items-center gap-2 rounded-full px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        title="Signer Field"
-      >
-        <PenTool size={18} />
-        <span>Signer Field</span>
-      </button>
-    </div>
+        {/* Text formatting */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          isActive={editor.isActive('bold')}
+          tooltip="Negrita"
+        >
+          <Bold className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          isActive={editor.isActive('italic')}
+          tooltip="Cursiva"
+        >
+          <Italic className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          isActive={editor.isActive('strike')}
+          tooltip="Tachado"
+        >
+          <Strikethrough className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Lists */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={editor.isActive('bulletList')}
+          tooltip="Lista"
+        >
+          <List className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={editor.isActive('orderedList')}
+          tooltip="Lista numerada"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Block elements */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          isActive={editor.isActive('blockquote')}
+          tooltip="Cita"
+        >
+          <Quote className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          tooltip="Linea horizontal"
+        >
+          <Minus className="h-4 w-4" />
+        </ToolbarButton>
+      </div>
+    </TooltipProvider>
+  )
+}
+
+interface ToolbarButtonProps {
+  children: React.ReactNode
+  onClick: () => void
+  isActive?: boolean
+  disabled?: boolean
+  tooltip: string
+}
+
+function ToolbarButton({
+  children,
+  onClick,
+  isActive = false,
+  disabled = false,
+  tooltip,
+}: ToolbarButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant={isActive ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={onClick}
+          disabled={disabled}
+          className="h-8 w-8 p-0"
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   )
 }
