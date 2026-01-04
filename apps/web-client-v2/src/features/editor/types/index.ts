@@ -1,3 +1,4 @@
+// Page types
 export interface PageSize {
   width: number
   height: number
@@ -31,3 +32,9 @@ export const DEFAULT_MARGINS: PageMargins = {
   left: 72,
   right: 72,
 }
+
+// Variables and injectables
+export * from './variables'
+export * from './injectable'
+export * from './role-injectable'
+export * from './signer-roles'
