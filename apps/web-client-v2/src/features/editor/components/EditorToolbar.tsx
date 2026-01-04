@@ -15,6 +15,8 @@ import {
   Heading2,
   Heading3,
   Minus,
+  PenLine,
+  GitBranch,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -146,6 +148,22 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           tooltip="Linea horizontal"
         >
           <Minus className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Document elements */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setSignature().run()}
+          tooltip="Bloque de firma"
+        >
+          <PenLine className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setConditional({}).run()}
+          tooltip="Bloque condicional"
+        >
+          <GitBranch className="h-4 w-4" />
         </ToolbarButton>
       </div>
     </TooltipProvider>
