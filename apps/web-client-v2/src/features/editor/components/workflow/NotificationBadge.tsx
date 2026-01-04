@@ -1,0 +1,40 @@
+import { Bell } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import type { NotificationTriggerMap } from '../../types/signer-roles'
+import { countActiveTriggers } from '../../types/signer-roles'
+
+interface NotificationBadgeProps {
+  triggers: NotificationTriggerMap
+  onClick: () => void
+  className?: string
+}
+
+export function NotificationBadge({
+  triggers,
+  onClick,
+  className,
+}: NotificationBadgeProps) {
+  const activeCount = countActiveTriggers(triggers)
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn('h-6 w-6 relative text-gray-400 hover:text-black', className)}
+      onClick={onClick}
+      title="Configurar notificaciones"
+    >
+      <Bell className="h-3.5 w-3.5" />
+      {activeCount > 0 && (
+        <Badge
+          variant="secondary"
+          className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] font-medium bg-black text-white"
+        >
+          {activeCount}
+        </Badge>
+      )}
+    </Button>
+  )
+}
