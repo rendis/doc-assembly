@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from '@tanstack/react-router'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
   DragOverlay,
@@ -67,6 +68,25 @@ const snapBelowCursor: Modifier = ({
     x: transform.x + offsetX - draggingNodeRect.width / 2,
     y: transform.y + offsetY + 16, // 16px debajo del cursor
   }
+}
+
+// Animation variants for folder navigation transitions
+const gridContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.03, delayChildren: 0.05 },
+  },
+  exit: { opacity: 0, transition: { duration: 0.15 } },
+}
+
+const gridItemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2, ease: 'easeOut' },
+  },
 }
 
 function DocumentsPageContent() {
@@ -373,6 +393,8 @@ function DocumentsPageContent() {
   }
 
   const isLoading = navLoading || foldersLoading || templatesLoading
+  // Only show skeleton on initial load (no data yet), not during navigation
+  const isInitialLoading = isLoading && !foldersData
 
   // Get folder names for delete dialog
   const folderNamesToDelete = foldersToDelete
@@ -450,8 +472,8 @@ function DocumentsPageContent() {
             onNavigate={navigateToFolder}
           />
 
-          {/* Loading state */}
-          {isLoading && (
+          {/* Loading state - only on initial load */}
+          {isInitialLoading && (
             <div className="mb-10">
               <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 {t('folders.subfolders', 'Subfolders')}
@@ -464,76 +486,91 @@ function DocumentsPageContent() {
             </div>
           )}
 
-          {/* Folders section */}
-          {!isLoading && (
-            <div className="mb-10">
-              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                {t('folders.subfolders', 'Subfolders')}
-              </h2>
+          {/* Animated content on folder navigation */}
+          <AnimatePresence mode="wait">
+            {!isInitialLoading && (
+              <motion.div
+                key={currentFolderId ?? 'root'}
+                variants={gridContainerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                {/* Folders section */}
+                <div className="mb-10">
+                  <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {t('folders.subfolders', 'Subfolders')}
+                  </h2>
 
-              {currentFolders.length === 0 ? (
-                <p className="text-muted-foreground">
-                  {t(
-                    'folders.empty',
-                    'No folders yet. Create one to get started.'
+                  {currentFolders.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      {t(
+                        'folders.empty',
+                        'No folders yet. Create one to get started.'
+                      )}
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {currentFolders.map((folder) => (
+                        <motion.div key={folder.id} variants={gridItemVariants}>
+                          <DroppableFolderZone folderId={folder.id}>
+                            <DraggableFolderCard
+                              folder={folder}
+                              disabled={isSelecting}
+                              isOtherDragging={activeDragItem !== null}
+                            >
+                              <FolderCard
+                                folder={folder}
+                                onClick={() => navigateToFolder(folder.id)}
+                                onRename={() => handleRenameFolder(folder)}
+                                onMove={() => handleMoveFolder(folder)}
+                                onDelete={() => handleDeleteFolder(folder)}
+                              />
+                            </DraggableFolderCard>
+                          </DroppableFolderZone>
+                        </motion.div>
+                      ))}
+                    </div>
                   )}
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {currentFolders.map((folder) => (
-                    <DroppableFolderZone key={folder.id} folderId={folder.id}>
-                      <DraggableFolderCard
-                        folder={folder}
-                        disabled={isSelecting}
-                        isOtherDragging={activeDragItem !== null}
-                      >
-                        <FolderCard
-                          folder={folder}
-                          onClick={() => navigateToFolder(folder.id)}
-                          onRename={() => handleRenameFolder(folder)}
-                          onMove={() => handleMoveFolder(folder)}
-                          onDelete={() => handleDeleteFolder(folder)}
-                        />
-                      </DraggableFolderCard>
-                    </DroppableFolderZone>
-                  ))}
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* Templates section */}
-          {!isLoading && (
-            <div className="mb-10">
-              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                {t('templates.section', 'Templates')}
-              </h2>
+                {/* Templates section */}
+                <div className="mb-10">
+                  <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {t('templates.section', 'Templates')}
+                  </h2>
 
-              {!templatesData?.items || templatesData.items.length === 0 ? (
-                <p className="text-muted-foreground">
-                  {t('templates.empty', 'No templates in this folder')}
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {templatesData.items.map((template) => (
-                    <DraggableTemplateCard
-                      key={template.id}
-                      template={template}
-                      disabled={isSelecting}
-                      isOtherDragging={activeDragItem !== null}
-                    >
-                      <TemplateCard
-                        template={template}
-                        onClick={() => {
-                          // TODO: Navigate to template editor
-                        }}
-                      />
-                    </DraggableTemplateCard>
-                  ))}
+                  {!templatesData?.items || templatesData.items.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      {t('templates.empty', 'No templates in this folder')}
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {templatesData.items.map((template) => (
+                        <motion.div
+                          key={template.id}
+                          variants={gridItemVariants}
+                        >
+                          <DraggableTemplateCard
+                            template={template}
+                            disabled={isSelecting}
+                            isOtherDragging={activeDragItem !== null}
+                          >
+                            <TemplateCard
+                              template={template}
+                              onClick={() => {
+                                // TODO: Navigate to template editor
+                              }}
+                            />
+                          </DraggableTemplateCard>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Drag Overlay - shows custom preview while dragging */}

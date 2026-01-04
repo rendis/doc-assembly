@@ -1,7 +1,14 @@
 import { Fragment } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+
+const breadcrumbItemVariants = {
+  initial: { opacity: 0, x: -8 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+  exit: { opacity: 0, x: -8, transition: { duration: 0.15 } },
+}
 
 interface BreadcrumbItem {
   id: string | null // null = root
@@ -20,19 +27,37 @@ export function DroppableBreadcrumb({
 }: DroppableBreadcrumbProps) {
   return (
     <nav className="flex items-center gap-2 py-6 font-mono text-sm text-muted-foreground">
-      {items.map((item, i) => (
-        <Fragment key={item.id ?? 'root'}>
-          {i > 0 && (
-            <ChevronRight size={14} className="text-muted-foreground/50" />
-          )}
-          <DroppableBreadcrumbItem
-            id={item.id}
-            label={item.label}
-            isActive={item.isActive}
-            onNavigate={onNavigate}
-          />
-        </Fragment>
-      ))}
+      <AnimatePresence mode="popLayout" initial={false}>
+        {items.map((item, i) => (
+          <Fragment key={item.id ?? 'root'}>
+            {i > 0 && (
+              <motion.span
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <ChevronRight size={14} className="text-muted-foreground/50" />
+              </motion.span>
+            )}
+            <motion.div
+              layout
+              variants={breadcrumbItemVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <DroppableBreadcrumbItem
+                id={item.id}
+                label={item.label}
+                isActive={item.isActive}
+                onNavigate={onNavigate}
+              />
+            </motion.div>
+          </Fragment>
+        ))}
+      </AnimatePresence>
     </nav>
   )
 }
