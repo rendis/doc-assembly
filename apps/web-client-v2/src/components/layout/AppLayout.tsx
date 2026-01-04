@@ -1,5 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useCallback, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
@@ -27,7 +28,36 @@ const overlayVariants = {
 }
 
 export function AppLayout() {
-  const { isMobileOpen, toggleMobileOpen, closeMobile } = useSidebarStore()
+  const { isMobileOpen, toggleMobileOpen, closeMobile, isPinned, setHovering } =
+    useSidebarStore()
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleMouseEnter = useCallback(() => {
+    if (isPinned) return
+
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+
+    setHovering(true)
+  }, [isPinned, setHovering])
+
+  const handleMouseLeave = useCallback(() => {
+    if (isPinned) return
+
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHovering(false)
+    }, 150)
+  }, [isPinned, setHovering])
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -62,6 +92,8 @@ export function AppLayout() {
           'fixed inset-y-0 left-0 z-40 pt-16 lg:relative lg:pt-0',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <AppSidebar />
       </motion.div>

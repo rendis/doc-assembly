@@ -8,6 +8,8 @@ interface SidebarState {
   // State
   isCollapsed: boolean
   isMobileOpen: boolean
+  isPinned: boolean
+  isHovering: boolean
 
   // Actions
   toggleCollapsed: () => void
@@ -15,6 +17,9 @@ interface SidebarState {
   toggleMobileOpen: () => void
   setMobileOpen: (open: boolean) => void
   closeMobile: () => void
+  togglePinned: () => void
+  setPinned: (pinned: boolean) => void
+  setHovering: (hovering: boolean) => void
 }
 
 /**
@@ -26,6 +31,8 @@ export const useSidebarStore = create<SidebarState>()(
       // Initial state
       isCollapsed: false,
       isMobileOpen: false,
+      isPinned: true,
+      isHovering: false,
 
       // Actions
       toggleCollapsed: () => set({ isCollapsed: !get().isCollapsed }),
@@ -37,11 +44,21 @@ export const useSidebarStore = create<SidebarState>()(
       setMobileOpen: (open) => set({ isMobileOpen: open }),
 
       closeMobile: () => set({ isMobileOpen: false }),
+
+      togglePinned: () => {
+        const newPinned = !get().isPinned
+        set({ isPinned: newPinned, isHovering: false })
+      },
+
+      setPinned: (pinned) => set({ isPinned: pinned, isHovering: false }),
+
+      setHovering: (hovering) => set({ isHovering: hovering }),
     }),
     {
       name: 'doc-assembly-sidebar',
       partialize: (state) => ({
         isCollapsed: state.isCollapsed,
+        isPinned: state.isPinned,
       }),
     }
   )
