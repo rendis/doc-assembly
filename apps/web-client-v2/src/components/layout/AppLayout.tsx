@@ -27,7 +27,7 @@ const overlayVariants = {
 }
 
 export function AppLayout() {
-  const { isMobileOpen, toggleMobileOpen, closeMobile, isCollapsed } = useSidebarStore()
+  const { isMobileOpen, toggleMobileOpen, closeMobile } = useSidebarStore()
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

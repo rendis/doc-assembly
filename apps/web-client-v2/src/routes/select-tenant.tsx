@@ -42,7 +42,7 @@ const itemVariants = {
   exit: {
     opacity: 0,
     x: -50,
-    transition: { duration: 0.25, ease: 'easeIn' },
+    transition: { duration: 0.25, ease: 'easeIn' as const },
   },
 }
 
