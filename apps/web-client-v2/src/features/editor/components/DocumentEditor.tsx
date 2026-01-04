@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { PaginationPlus } from 'tiptap-pagination-plus'
+import { useState, useEffect, useCallback } from 'react'
 import { EditorToolbar } from './EditorToolbar'
 import { PageSettings } from './PageSettings'
 import { SignerRolesPanel } from './SignerRolesPanel'
@@ -9,6 +10,8 @@ import { InjectorExtension } from '../extensions/Injector'
 import { SignatureExtension } from '../extensions/Signature'
 import { ConditionalExtension } from '../extensions/Conditional'
 import { MentionExtension } from '../extensions/Mentions'
+import { ImageExtension, type ImageShape } from '../extensions/Image'
+import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { type PageSize, type PageMargins, type Variable } from '../types'
 
 interface DocumentEditorProps {
@@ -32,6 +35,11 @@ export function DocumentEditor({
   onMarginsChange,
   variables = [],
 }: DocumentEditorProps) {
+  const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [isEditingImage, setIsEditingImage] = useState(false)
+  const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
+  const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -57,6 +65,7 @@ export function DocumentEditor({
       MentionExtension,
       SignatureExtension,
       ConditionalExtension,
+      ImageExtension,
     ],
     content: initialContent,
     editable,
@@ -70,6 +79,63 @@ export function DocumentEditor({
       },
     },
   })
+
+  // Listen for image modal events
+  useEffect(() => {
+    if (!editor) return
+
+    const handleOpenImageModal = () => {
+      setPendingImagePosition(editor.state.selection.from)
+      setIsEditingImage(false)
+      setImageModalOpen(true)
+    }
+
+    const handleEditImage = (event: CustomEvent<{ shape: ImageShape }>) => {
+      setEditingImageShape(event.detail?.shape || 'square')
+      setIsEditingImage(true)
+      setImageModalOpen(true)
+    }
+
+    const dom = editor.view.dom
+    dom.addEventListener('editor:open-image-modal', handleOpenImageModal)
+    dom.addEventListener('editor:edit-image', handleEditImage as EventListener)
+
+    return () => {
+      dom.removeEventListener('editor:open-image-modal', handleOpenImageModal)
+      dom.removeEventListener('editor:edit-image', handleEditImage as EventListener)
+    }
+  }, [editor])
+
+  const handleImageInsert = useCallback((result: ImageInsertResult) => {
+    if (!editor) return
+
+    if (isEditingImage) {
+      editor.chain().focus().updateAttributes('customImage', {
+        src: result.src,
+        shape: result.shape,
+      }).run()
+    } else {
+      if (pendingImagePosition !== null) {
+        editor.chain().focus().setTextSelection(pendingImagePosition).run()
+      }
+      editor.chain().focus().setImage({
+        src: result.src,
+        shape: result.shape,
+      }).run()
+    }
+
+    setImageModalOpen(false)
+    setIsEditingImage(false)
+    setPendingImagePosition(null)
+  }, [editor, isEditingImage, pendingImagePosition])
+
+  const handleImageModalClose = useCallback((open: boolean) => {
+    if (!open) {
+      setImageModalOpen(false)
+      setIsEditingImage(false)
+      setPendingImagePosition(null)
+    }
+  }, [])
 
   if (!editor) {
     return (
@@ -114,6 +180,13 @@ export function DocumentEditor({
           className="w-72 shrink-0 border-l border-border"
         />
       </div>
+
+      <ImageInsertModal
+        open={imageModalOpen}
+        onOpenChange={handleImageModalClose}
+        onInsert={handleImageInsert}
+        initialShape={isEditingImage ? editingImageShape : 'square'}
+      />
     </SignerRolesProvider>
   )
 }

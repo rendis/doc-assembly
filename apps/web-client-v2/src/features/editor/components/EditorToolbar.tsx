@@ -17,6 +17,7 @@ import {
   Minus,
   PenLine,
   GitBranch,
+  ImageIcon,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -148,6 +149,16 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           tooltip="Linea horizontal"
         >
           <Minus className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => {
+            editor.view.dom.dispatchEvent(
+              new CustomEvent('editor:open-image-modal', { bubbles: true })
+            )
+          }}
+          tooltip="Insertar imagen"
+        >
+          <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
 
         <Separator orientation="vertical" className="h-6 mx-1" />

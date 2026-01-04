@@ -1,8 +1,10 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { PaginationPlus, PAGE_SIZES as TIPTAP_PAGE_SIZES } from 'tiptap-pagination-plus'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
+import { ImageExtension, type ImageShape } from '../extensions/Image'
+import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 
 interface EditorProps {
   content?: string
@@ -19,6 +21,11 @@ export function Editor({
   margins = DEFAULT_MARGINS,
   editable = true,
 }: EditorProps) {
+  const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [isEditingImage, setIsEditingImage] = useState(false)
+  const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
+  const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -41,6 +48,7 @@ export function Editor({
         contentMarginTop: 10,
         contentMarginBottom: 10,
       }),
+      ImageExtension,
     ],
     content,
     editable,
@@ -71,6 +79,65 @@ export function Editor({
     }
   }, [editor, margins])
 
+  // Listen for image modal events
+  useEffect(() => {
+    if (!editor) return
+
+    const handleOpenImageModal = () => {
+      setPendingImagePosition(editor.state.selection.from)
+      setIsEditingImage(false)
+      setImageModalOpen(true)
+    }
+
+    const handleEditImage = (event: CustomEvent<{ shape: ImageShape }>) => {
+      setEditingImageShape(event.detail?.shape || 'square')
+      setIsEditingImage(true)
+      setImageModalOpen(true)
+    }
+
+    const dom = editor.view.dom
+    dom.addEventListener('editor:open-image-modal', handleOpenImageModal)
+    dom.addEventListener('editor:edit-image', handleEditImage as EventListener)
+
+    return () => {
+      dom.removeEventListener('editor:open-image-modal', handleOpenImageModal)
+      dom.removeEventListener('editor:edit-image', handleEditImage as EventListener)
+    }
+  }, [editor])
+
+  const handleImageInsert = useCallback((result: ImageInsertResult) => {
+    if (!editor) return
+
+    if (isEditingImage) {
+      // Update existing image
+      editor.chain().focus().updateAttributes('customImage', {
+        src: result.src,
+        shape: result.shape,
+      }).run()
+    } else {
+      // Insert new image
+      if (pendingImagePosition !== null) {
+        editor.chain().focus().setTextSelection(pendingImagePosition).run()
+      }
+      editor.chain().focus().setImage({
+        src: result.src,
+        shape: result.shape,
+      }).run()
+    }
+
+    setImageModalOpen(false)
+    setIsEditingImage(false)
+    setPendingImagePosition(null)
+  }, [editor, isEditingImage, pendingImagePosition])
+
+  const handleImageModalClose = useCallback((open: boolean) => {
+    if (!open) {
+      setImageModalOpen(false)
+      setIsEditingImage(false)
+      setPendingImagePosition(null)
+    }
+  }, [])
+
   const updatePageSize = useCallback((size: PageSize) => {
     if (editor) {
       editor.chain().focus().updatePageSize({
@@ -95,9 +162,18 @@ export function Editor({
   }
 
   return (
-    <div className="editor-container">
-      <EditorContent editor={editor} />
-    </div>
+    <>
+      <div className="editor-container">
+        <EditorContent editor={editor} />
+      </div>
+
+      <ImageInsertModal
+        open={imageModalOpen}
+        onOpenChange={handleImageModalClose}
+        onInsert={handleImageInsert}
+        initialShape={isEditingImage ? editingImageShape : 'square'}
+      />
+    </>
   )
 }
 
