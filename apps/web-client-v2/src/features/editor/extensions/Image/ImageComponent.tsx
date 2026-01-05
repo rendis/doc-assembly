@@ -99,16 +99,20 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
         styles.justifyContent = 'flex-end';
       }
     } else {
-      // inline mode - usar inline-block (compatible con PaginationPlus)
-      styles.display = 'inline-block';
-      styles.verticalAlign = 'top';
+      // inline/float mode - texto envuelve la imagen
       styles.maxWidth = '50%';
       styles.marginBottom = '0.5rem';
 
       if (align === 'left') {
+        styles.float = 'left';
         styles.marginRight = '1rem';
       } else if (align === 'right') {
+        styles.float = 'right';
         styles.marginLeft = '1rem';
+      } else {
+        // center fallback
+        styles.display = 'inline-block';
+        styles.verticalAlign = 'top';
       }
     }
 
