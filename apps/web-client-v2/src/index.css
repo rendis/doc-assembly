@@ -488,7 +488,56 @@ body {
    to avoid CSS cascade issues with PaginationPlus */
 
 /* ============================================
-   PaginationPlus Page Styles
+   @adalat-ai/page-extension Styles
+   ============================================ */
+
+/* Centrado de páginas */
+.Page {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-bottom: 24px;
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.PageBody {
+  color: hsl(var(--foreground));
+}
+
+/* Dark mode - CRITICAL: Forzar colores correctos */
+.dark .Page {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .Page,
+.dark .Page *,
+.dark .PageBody,
+.dark .PageBody * {
+  color: hsl(var(--foreground));
+}
+
+.dark .Page p,
+.dark .Page span,
+.dark .Page div,
+.dark .Page h1,
+.dark .Page h2,
+.dark .Page h3,
+.dark .Page li,
+.dark .Page a {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Ocultar estilos del ProseMirror cuando hay páginas */
+.ProseMirror:has(.Page) {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* ============================================
+   PaginationPlus Page Styles (Legacy)
    ============================================ */
 
 /* Centrado de páginas */
