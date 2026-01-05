@@ -1,6 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { PaginationPlus, PAGE_SIZES as TIPTAP_PAGE_SIZES } from 'tiptap-pagination-plus'
+import { PageExtension, PageDocument } from '@adalat-ai/page-extension'
 import { useCallback, useEffect, useState } from 'react'
 import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
@@ -26,27 +26,39 @@ export function Editor({
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
 
+  // Convert pixel margins to inches (96 DPI)
+  const pxToInches = (px: number) => px / 96
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
+        document: false, // PageDocument replaces this
         heading: {
           levels: [1, 2, 3],
         },
       }),
-      PaginationPlus.configure({
-        pageHeight: pageSize.height,
-        pageWidth: pageSize.width,
-        pageGap: 20,
-        pageGapBorderSize: 1,
-        pageGapBorderColor: 'hsl(var(--border))',
-        pageBreakBackground: 'hsl(var(--muted))',
-        marginTop: margins.top,
-        marginBottom: margins.bottom,
-        marginLeft: margins.left,
-        marginRight: margins.right,
-        contentMarginTop: 10,
-        contentMarginBottom: 10,
+      PageDocument,
+      PageExtension.configure({
+        bodyHeight: pageSize.height,
+        bodyWidth: pageSize.width,
+        pageLayout: {
+          margins: {
+            top: { unit: 'INCHES', value: pxToInches(margins.top) },
+            bottom: { unit: 'INCHES', value: pxToInches(margins.bottom) },
+            left: { unit: 'INCHES', value: pxToInches(margins.left) },
+            right: { unit: 'INCHES', value: pxToInches(margins.right) },
+          },
+        },
+        headerHeight: 0,
+        footerHeight: 0,
+        pageNumber: {
+          show: false,
+          showCount: false,
+          showOnFirstPage: false,
+          position: null,
+          alignment: null,
+        },
       }),
       ImageExtension,
     ],
@@ -62,22 +74,8 @@ export function Editor({
     },
   })
 
-  // Update page size when prop changes
-  useEffect(() => {
-    if (editor) {
-      editor.chain().focus().updatePageSize({
-        width: pageSize.width,
-        height: pageSize.height,
-      }).run()
-    }
-  }, [editor, pageSize])
-
-  // Update margins when prop changes
-  useEffect(() => {
-    if (editor) {
-      editor.chain().focus().updateMargins(margins).run()
-    }
-  }, [editor, margins])
+  // Note: Page size and margins are set on editor initialization
+  // To update them dynamically, the editor would need to be recreated
 
   // Listen for image modal events
   useEffect(() => {
@@ -137,21 +135,6 @@ export function Editor({
       setPendingImagePosition(null)
     }
   }, [])
-
-  const updatePageSize = useCallback((size: PageSize) => {
-    if (editor) {
-      editor.chain().focus().updatePageSize({
-        width: size.width,
-        height: size.height,
-      }).run()
-    }
-  }, [editor])
-
-  const updateMargins = useCallback((newMargins: PageMargins) => {
-    if (editor) {
-      editor.chain().focus().updateMargins(newMargins).run()
-    }
-  }, [editor])
 
   if (!editor) {
     return (
