@@ -491,7 +491,7 @@ body {
    @adalat-ai/page-extension Styles
    ============================================ */
 
-/* Centrado de páginas */
+/* Centrado de páginas y límites */
 .Page {
   margin-left: auto !important;
   margin-right: auto !important;
@@ -499,6 +499,18 @@ body {
   background-color: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden !important; /* Prevent content overflow */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  /* Ensure padding creates actual visual margins */
+  box-sizing: border-box !important;
+}
+
+/* Force PageContent to respect Page padding by using auto width */
+.PageContent {
+  width: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .PageBody {
