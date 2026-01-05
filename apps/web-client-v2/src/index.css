@@ -487,3 +487,50 @@ body {
 /* Note: Image layout styles are applied via inline styles in ImageComponent.tsx
    to avoid CSS cascade issues with PaginationPlus */
 
+/* ============================================
+   PaginationPlus Page Styles
+   ============================================ */
+
+/* Centrado de páginas */
+.page,
+[data-page] {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Colores de página */
+.page,
+[data-page] {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+[data-page-body] {
+  border-color: hsl(var(--border)) !important;
+}
+
+[data-page-header-footer] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Dark mode */
+.dark .page,
+.dark [data-page] {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark [data-page-body] {
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark [data-page-header-footer] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Ocultar estilos del ProseMirror cuando hay páginas */
+.ProseMirror:has([data-page]) {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}

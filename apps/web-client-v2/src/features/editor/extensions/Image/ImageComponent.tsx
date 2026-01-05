@@ -98,15 +98,17 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
       } else if (align === 'right') {
         styles.justifyContent = 'flex-end';
       }
-    } else if (displayMode === 'inline') {
+    } else {
+      // inline mode - usar inline-block (compatible con PaginationPlus)
+      styles.display = 'inline-block';
+      styles.verticalAlign = 'top';
+      styles.maxWidth = '50%';
+      styles.marginBottom = '0.5rem';
+
       if (align === 'left') {
-        styles.float = 'left';
         styles.marginRight = '1rem';
-        styles.marginBottom = '0.5rem';
       } else if (align === 'right') {
-        styles.float = 'right';
         styles.marginLeft = '1rem';
-        styles.marginBottom = '0.5rem';
       }
     }
 
