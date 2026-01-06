@@ -497,13 +497,15 @@ body {
   margin-right: auto !important;
   background-color: hsl(var(--card)) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: none !important;
 }
 
 /* Gap entre páginas - DEBE ser visible */
 .rm-pagination-gap {
   display: block !important;
-  background-color: hsl(var(--muted)) !important;
   min-height: 50px !important;
+  border: none !important;
+  background: #F6F6F8 !important;
 }
 
 /* Page break container */
@@ -514,11 +516,11 @@ body {
 /* Dark mode */
 .dark .rm-with-pagination {
   background-color: hsl(var(--card)) !important;
-  border-color: hsl(var(--border)) !important;
+  border: none !important;
 }
 
 .dark .rm-pagination-gap {
-  background-color: hsl(var(--background)) !important;
+  background: #22252C !important;
 }
 
 /* Ocultar estilos del ProseMirror cuando hay paginación */
