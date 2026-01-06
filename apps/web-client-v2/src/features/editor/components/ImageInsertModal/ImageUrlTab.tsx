@@ -2,11 +2,22 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Crop, Loader2, AlertCircle, ImageIcon } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Crop, Loader2, AlertCircle, ImageIcon, Shuffle } from 'lucide-react';
 import type { ImageUrlTabProps, ImagePreviewState } from './types';
 
 const URL_REGEX = /^https?:\/\/.+/i;
 const DEBOUNCE_MS = 500;
+
+const generateTestImageUrl = () => {
+  const seed = Math.random().toString(36).substring(7);
+  return `https://picsum.photos/seed/${seed}/400/300`;
+};
 
 export function ImageUrlTab({
   onImageReady,
@@ -102,17 +113,41 @@ export function ImageUrlTab({
     }
   }, [preview.src, onOpenCropper]);
 
+  const handleGenerateTestImage = useCallback(() => {
+    const testUrl = generateTestImageUrl();
+    setUrl(testUrl);
+    loadImage(testUrl);
+  }, [loadImage]);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="image-url">URL de la imagen</Label>
-        <Input
-          id="image-url"
-          type="url"
-          placeholder="https://ejemplo.com/imagen.jpg"
-          value={url}
-          onChange={(e) => handleUrlChange(e.target.value)}
-        />
+        <div className="flex gap-2">
+          <Input
+            id="image-url"
+            type="url"
+            placeholder="https://ejemplo.com/imagen.jpg"
+            value={url}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className="flex-1"
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleGenerateTestImage}
+                >
+                  <Shuffle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Imagen de prueba</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="min-h-[200px] bg-muted rounded-lg flex items-center justify-center overflow-hidden">

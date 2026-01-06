@@ -211,6 +211,10 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         >
           <Minus className="h-4 w-4" />
         </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Document elements */}
         <ToolbarButton
           onClick={() => {
             editor.view.dom.dispatchEvent(
@@ -221,10 +225,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         >
           <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
-
-        <Separator orientation="vertical" className="h-6 mx-1" />
-
-        {/* Document elements */}
         <ToolbarButton
           onClick={() => editor.chain().focus().setSignature().run()}
           tooltip="Bloque de firma"
