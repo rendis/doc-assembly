@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { PageExtension, PageDocument } from '@adalat-ai/page-extension'
 import { useState, useEffect, useCallback } from 'react'
+import { PaginationPlus, PAGE_SIZES as PAGINATION_PAGE_SIZES } from 'tiptap-pagination-plus'
 import { EditorToolbar } from './EditorToolbar'
 import { PageSettings } from './PageSettings'
 import { SignerRolesPanel } from './SignerRolesPanel'
@@ -40,39 +40,21 @@ export function DocumentEditor({
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
 
-  // Convert pixel margins to inches (96 DPI)
-  const pxToInches = (px: number) => px / 96
-
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        document: false, // PageDocument replaces this
         heading: {
           levels: [1, 2, 3],
         },
       }),
-      PageDocument,
-      PageExtension.configure({
-        bodyHeight: pageSize.height,
-        bodyWidth: pageSize.width,
-        pageLayout: {
-          margins: {
-            top: { unit: 'INCHES', value: pxToInches(margins.top) },
-            bottom: { unit: 'INCHES', value: pxToInches(margins.bottom) },
-            left: { unit: 'INCHES', value: pxToInches(margins.left) },
-            right: { unit: 'INCHES', value: pxToInches(margins.right) },
-          },
-        },
-        headerHeight: 0,
-        footerHeight: 0,
-        pageNumber: {
-          show: false,
-          showCount: false,
-          showOnFirstPage: false,
-          position: null,
-          alignment: null,
-        },
+      PaginationPlus.configure({
+        ...PAGINATION_PAGE_SIZES.A4,
+        pageGap: 50,
+        pageGapBorderSize: 2,
+        pageGapBorderColor: '#d1d5db',
+        pageBreakBackground: '#f3f4f6',
+        footerRight: '{page}',
       }),
       InjectorExtension,
       MentionExtension,

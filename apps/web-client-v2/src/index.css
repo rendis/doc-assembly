@@ -488,110 +488,40 @@ body {
    to avoid CSS cascade issues with PaginationPlus */
 
 /* ============================================
-   @adalat-ai/page-extension Styles
+   tiptap-pagination-plus Styles
    ============================================ */
 
-/* Centrado de páginas y límites */
-.Page {
+/* Centrar el editor con paginación */
+.rm-with-pagination {
   margin-left: auto !important;
   margin-right: auto !important;
-  margin-bottom: 24px;
   background-color: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--border)) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden !important; /* Prevent content overflow */
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  /* Ensure padding creates actual visual margins */
-  box-sizing: border-box !important;
 }
 
-/* Force PageContent to respect Page padding by using auto width */
-.PageContent {
-  width: auto !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
+/* Gap entre páginas - DEBE ser visible */
+.rm-pagination-gap {
+  display: block !important;
+  background-color: hsl(var(--muted)) !important;
+  min-height: 50px !important;
 }
 
-.PageBody {
-  color: hsl(var(--foreground));
-}
-
-/* Dark mode - CRITICAL: Forzar colores correctos */
-.dark .Page {
-  background-color: hsl(var(--card)) !important;
-  border-color: hsl(var(--border)) !important;
-}
-
-.dark .Page,
-.dark .Page *,
-.dark .PageBody,
-.dark .PageBody * {
-  color: hsl(var(--foreground));
-}
-
-.dark .Page p,
-.dark .Page span,
-.dark .Page div,
-.dark .Page h1,
-.dark .Page h2,
-.dark .Page h3,
-.dark .Page li,
-.dark .Page a {
-  color: hsl(var(--foreground)) !important;
-}
-
-/* Ocultar estilos del ProseMirror cuando hay páginas */
-.ProseMirror:has(.Page) {
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-}
-
-/* ============================================
-   PaginationPlus Page Styles (Legacy)
-   ============================================ */
-
-/* Centrado de páginas */
-.page,
-[data-page] {
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* Colores de página */
-.page,
-[data-page] {
-  background-color: hsl(var(--card)) !important;
-  border-color: hsl(var(--border)) !important;
-}
-
-[data-page-body] {
-  border-color: hsl(var(--border)) !important;
-}
-
-[data-page-header-footer] {
-  border-color: hsl(var(--border)) !important;
+/* Page break container */
+.rm-page-break {
+  display: block !important;
 }
 
 /* Dark mode */
-.dark .page,
-.dark [data-page] {
+.dark .rm-with-pagination {
   background-color: hsl(var(--card)) !important;
   border-color: hsl(var(--border)) !important;
 }
 
-.dark [data-page-body] {
-  border-color: hsl(var(--border)) !important;
+.dark .rm-pagination-gap {
+  background-color: hsl(var(--background)) !important;
 }
 
-.dark [data-page-header-footer] {
-  border-color: hsl(var(--border)) !important;
-}
-
-/* Ocultar estilos del ProseMirror cuando hay páginas */
-.ProseMirror:has([data-page]) {
-  background: transparent !important;
+/* Ocultar estilos del ProseMirror cuando hay paginación */
+.ProseMirror.rm-with-pagination {
   box-shadow: none !important;
-  padding: 0 !important;
 }

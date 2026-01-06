@@ -27,10 +27,10 @@ export const PAGE_SIZES: Record<string, PageSize> = {
 }
 
 export const DEFAULT_MARGINS: PageMargins = {
-  top: 72,
-  bottom: 72,
-  left: 72,
-  right: 72,
+  top: 96,
+  bottom: 96,
+  left: 96,
+  right: 96,
 }
 
 // Variables and injectables
