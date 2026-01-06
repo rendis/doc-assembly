@@ -265,7 +265,20 @@
     "insertTable": "Table",
     "sender": "Sender",
     "recipient": "Recipient",
-    "undefined": "Undefined"
+    "undefined": "Undefined",
+    "pageSettings": {
+      "title": "Page Settings",
+      "description": "Adjust page size and margins.",
+      "pageSize": "Page Size",
+      "pageSizePlaceholder": "Select a size",
+      "margins": "Margins (px)",
+      "marginTop": "Top",
+      "marginBottom": "Bottom",
+      "marginLeft": "Left",
+      "marginRight": "Right",
+      "reset": "Reset",
+      "applyMargins": "Apply Margins"
+    }
   },
   "settings": {
     "title": "Workspace Configuration",

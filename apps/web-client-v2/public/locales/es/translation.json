@@ -265,7 +265,20 @@
     "insertTable": "Tabla",
     "sender": "Remitente",
     "recipient": "Destinatario",
-    "undefined": "Sin definir"
+    "undefined": "Sin definir",
+    "pageSettings": {
+      "title": "Configuración de Página",
+      "description": "Ajusta el tamaño y los márgenes de la página.",
+      "pageSize": "Tamaño de Página",
+      "pageSizePlaceholder": "Selecciona un tamaño",
+      "margins": "Márgenes (px)",
+      "marginTop": "Superior",
+      "marginBottom": "Inferior",
+      "marginLeft": "Izquierdo",
+      "marginRight": "Derecho",
+      "reset": "Restablecer",
+      "applyMargins": "Aplicar Márgenes"
+    }
   },
   "settings": {
     "title": "Configuración del Workspace",

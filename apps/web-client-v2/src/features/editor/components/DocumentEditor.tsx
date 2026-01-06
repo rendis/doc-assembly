@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
 import { useState, useEffect, useCallback } from 'react'
 import { PaginationPlus } from 'tiptap-pagination-plus'
 import { EditorToolbar } from './EditorToolbar'
@@ -48,6 +49,9 @@ export function DocumentEditor({
           levels: [1, 2, 3],
         },
       }),
+      TextStyle,
+      FontFamily.configure({ types: ['textStyle'] }),
+      FontSize.configure({ types: ['textStyle'] }),
       PaginationPlus.configure({
         pageHeight: pageSize.height,
         pageWidth: pageSize.width,

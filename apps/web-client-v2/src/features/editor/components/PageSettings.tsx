@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -30,8 +31,25 @@ export function PageSettings({
   onPageSizeChange,
   onMarginsChange,
 }: PageSettingsProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [customMargins, setCustomMargins] = useState(margins)
+  const [inputValues, setInputValues] = useState({
+    top: String(margins.top),
+    bottom: String(margins.bottom),
+    left: String(margins.left),
+    right: String(margins.right),
+  })
+
+  // Sincronizar inputValues cuando customMargins cambie (ej: botón Restablecer)
+  useEffect(() => {
+    setInputValues({
+      top: String(customMargins.top),
+      bottom: String(customMargins.bottom),
+      left: String(customMargins.left),
+      right: String(customMargins.right),
+    })
+  }, [customMargins])
 
   // Detectar si hay cambios pendientes de aplicar
   const hasChanges =
@@ -55,12 +73,24 @@ export function PageSettings({
   }
 
   const handleMarginChange = (key: keyof PageMargins, value: string) => {
+    setInputValues(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleMarginBlur = (key: keyof PageMargins) => {
+    const value = inputValues[key]
     const numValue = parseInt(value, 10)
-    if (!isNaN(numValue) &&
-        numValue >= MARGIN_LIMITS.min &&
-        numValue <= MARGIN_LIMITS.max) {
-      setCustomMargins(prev => ({ ...prev, [key]: numValue }))
+
+    if (isNaN(numValue) || value === '') {
+      // Restaurar al valor actual si es inválido
+      setInputValues(prev => ({ ...prev, [key]: String(customMargins[key]) }))
+      return
     }
+
+    // Clampear al rango permitido
+    const clampedValue = Math.max(MARGIN_LIMITS.min, Math.min(MARGIN_LIMITS.max, numValue))
+
+    setInputValues(prev => ({ ...prev, [key]: String(clampedValue) }))
+    setCustomMargins(prev => ({ ...prev, [key]: clampedValue }))
   }
 
   const handleApplyMargins = () => {
@@ -84,21 +114,21 @@ export function PageSettings({
       <PopoverContent className="w-80" align="end">
         <div className="grid gap-4">
           <div className="space-y-2">
-            <h4 className="font-medium leading-none">Configuracion de Pagina</h4>
+            <h4 className="font-medium leading-none">{t('editor.pageSettings.title')}</h4>
             <p className="text-sm text-muted-foreground">
-              Ajusta el tamano y los margenes de la pagina.
+              {t('editor.pageSettings.description')}
             </p>
           </div>
 
           {/* Page Size */}
           <div className="grid gap-2">
-            <Label htmlFor="page-size">Tamano de Pagina</Label>
+            <Label htmlFor="page-size">{t('editor.pageSettings.pageSize')}</Label>
             <Select
               value={getCurrentSizeKey()}
               onValueChange={handlePageSizeChange}
             >
               <SelectTrigger id="page-size">
-                <SelectValue placeholder="Selecciona un tamano" />
+                <SelectValue placeholder={t('editor.pageSettings.pageSizePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(PAGE_SIZES).map(([key, size]) => (
@@ -112,61 +142,65 @@ export function PageSettings({
 
           {/* Margins */}
           <div className="grid gap-2">
-            <Label>Margenes (px)</Label>
+            <Label>{t('editor.pageSettings.margins')}</Label>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label htmlFor="margin-top" className="text-xs text-muted-foreground">
-                  Superior
+                  {t('editor.pageSettings.marginTop')}
                 </Label>
                 <Input
                   id="margin-top"
                   type="number"
                   min={MARGIN_LIMITS.min}
                   max={MARGIN_LIMITS.max}
-                  value={customMargins.top}
+                  value={inputValues.top}
                   onChange={(e) => handleMarginChange('top', e.target.value)}
+                  onBlur={() => handleMarginBlur('top')}
                   className="h-8"
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="margin-bottom" className="text-xs text-muted-foreground">
-                  Inferior
+                  {t('editor.pageSettings.marginBottom')}
                 </Label>
                 <Input
                   id="margin-bottom"
                   type="number"
                   min={MARGIN_LIMITS.min}
                   max={MARGIN_LIMITS.max}
-                  value={customMargins.bottom}
+                  value={inputValues.bottom}
                   onChange={(e) => handleMarginChange('bottom', e.target.value)}
+                  onBlur={() => handleMarginBlur('bottom')}
                   className="h-8"
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="margin-left" className="text-xs text-muted-foreground">
-                  Izquierdo
+                  {t('editor.pageSettings.marginLeft')}
                 </Label>
                 <Input
                   id="margin-left"
                   type="number"
                   min={MARGIN_LIMITS.min}
                   max={MARGIN_LIMITS.max}
-                  value={customMargins.left}
+                  value={inputValues.left}
                   onChange={(e) => handleMarginChange('left', e.target.value)}
+                  onBlur={() => handleMarginBlur('left')}
                   className="h-8"
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="margin-right" className="text-xs text-muted-foreground">
-                  Derecho
+                  {t('editor.pageSettings.marginRight')}
                 </Label>
                 <Input
                   id="margin-right"
                   type="number"
                   min={MARGIN_LIMITS.min}
                   max={MARGIN_LIMITS.max}
-                  value={customMargins.right}
+                  value={inputValues.right}
                   onChange={(e) => handleMarginChange('right', e.target.value)}
+                  onBlur={() => handleMarginBlur('right')}
                   className="h-8"
                 />
               </div>
@@ -183,14 +217,14 @@ export function PageSettings({
                 setCustomMargins(DEFAULT_MARGINS)
               }}
             >
-              Restablecer
+              {t('editor.pageSettings.reset')}
             </Button>
             <Button
               size="sm"
               disabled={!hasChanges}
               onClick={handleApplyMargins}
             >
-              Aplicar Margenes
+              {t('editor.pageSettings.applyMargins')}
             </Button>
           </div>
         </div>

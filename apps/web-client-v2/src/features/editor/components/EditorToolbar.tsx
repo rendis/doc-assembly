@@ -3,6 +3,13 @@ import type { Editor } from '@tiptap/react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Bold,
   Italic,
   Strikethrough,
@@ -25,6 +32,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+
+const FONT_FAMILIES = [
+  { label: 'Inter', value: 'Inter' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Times New Roman', value: 'Times New Roman, serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Courier New', value: 'Courier New, monospace' },
+]
+
+const FONT_SIZES = ['10', '12', '14', '16', '18', '24', '36']
 
 interface EditorToolbarProps {
   editor: Editor | null
@@ -65,6 +82,50 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         >
           <Redo className="h-4 w-4" />
         </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Font Family */}
+        <Select
+          value={editor.getAttributes('textStyle').fontFamily || 'Inter'}
+          onValueChange={(value) => {
+            editor.chain().focus().setFontFamily(value).run()
+          }}
+        >
+          <SelectTrigger className="h-8 w-[110px] text-xs">
+            <SelectValue placeholder="Fuente" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_FAMILIES.map((font) => (
+              <SelectItem
+                key={font.value}
+                value={font.value}
+                style={{ fontFamily: font.value }}
+              >
+                {font.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Font Size */}
+        <Select
+          value={editor.getAttributes('textStyle').fontSize?.replace('px', '') || '14'}
+          onValueChange={(value) => {
+            editor.chain().focus().setFontSize(`${value}px`).run()
+          }}
+        >
+          <SelectTrigger className="h-8 w-[65px] text-xs">
+            <SelectValue placeholder="Tamaño" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_SIZES.map((size) => (
+              <SelectItem key={size} value={size}>
+                {size}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
