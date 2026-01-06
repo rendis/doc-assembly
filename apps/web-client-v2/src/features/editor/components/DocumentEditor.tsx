@@ -11,7 +11,7 @@ import { InjectorExtension } from '../extensions/Injector'
 import { SignatureExtension } from '../extensions/Signature'
 import { ConditionalExtension } from '../extensions/Conditional'
 import { MentionExtension } from '../extensions/Mentions'
-import { ImageExtension, type ImageShape } from '../extensions/Image'
+import { BlockImageExtension, InlineImageExtension, type ImageShape, type ImageType } from '../extensions/Image'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { type PageSize, type PageMargins, type Variable } from '../types'
 
@@ -40,6 +40,7 @@ export function DocumentEditor({
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
+  const [editingImageType, setEditingImageType] = useState<ImageType>('block')
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -69,7 +70,8 @@ export function DocumentEditor({
       MentionExtension,
       SignatureExtension,
       ConditionalExtension,
-      ImageExtension,
+      BlockImageExtension,
+      InlineImageExtension,
     ],
     content: initialContent,
     editable,
@@ -94,8 +96,9 @@ export function DocumentEditor({
       setImageModalOpen(true)
     }
 
-    const handleEditImage = (event: CustomEvent<{ shape: ImageShape }>) => {
+    const handleEditImage = (event: CustomEvent<{ shape: ImageShape; imageType?: ImageType }>) => {
       setEditingImageShape(event.detail?.shape || 'square')
+      setEditingImageType(event.detail?.imageType || 'block')
       setIsEditingImage(true)
       setImageModalOpen(true)
     }
@@ -113,25 +116,37 @@ export function DocumentEditor({
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return
 
+    const { src, shape, imageType } = result
+
     if (isEditingImage) {
-      editor.chain().focus().updateAttributes('customImage', {
-        src: result.src,
-        shape: result.shape,
+      // When editing, update the appropriate node type
+      const nodeType = editingImageType === 'block' ? 'blockImage' : 'inlineImage'
+      editor.chain().focus().updateAttributes(nodeType, {
+        src,
+        shape,
       }).run()
     } else {
       if (pendingImagePosition !== null) {
         editor.chain().focus().setTextSelection(pendingImagePosition).run()
       }
-      editor.chain().focus().setImage({
-        src: result.src,
-        shape: result.shape,
-      }).run()
+      // Insert the appropriate image type
+      if (imageType === 'inline') {
+        editor.chain().focus().setInlineImage({
+          src,
+          shape,
+        }).run()
+      } else {
+        editor.chain().focus().setBlockImage({
+          src,
+          shape,
+        }).run()
+      }
     }
 
     setImageModalOpen(false)
     setIsEditingImage(false)
     setPendingImagePosition(null)
-  }, [editor, isEditingImage, pendingImagePosition])
+  }, [editor, isEditingImage, pendingImagePosition, editingImageType])
 
   const handleImageModalClose = useCallback((open: boolean) => {
     if (!open) {

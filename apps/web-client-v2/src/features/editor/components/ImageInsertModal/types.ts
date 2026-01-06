@@ -1,4 +1,4 @@
-import type { ImageShape } from '../../extensions/Image/types';
+import type { ImageShape, ImageType } from '../../extensions/Image/types';
 
 export type ImageInsertTab = 'url' | 'gallery';
 
@@ -7,6 +7,7 @@ export interface ImageInsertResult {
   alt?: string;
   isBase64: boolean;
   shape?: ImageShape;
+  imageType?: ImageType; // Default: 'block'
 }
 
 export interface ImagePreviewState {

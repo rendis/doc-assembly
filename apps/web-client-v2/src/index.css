@@ -527,3 +527,24 @@ body {
 .ProseMirror.rm-with-pagination {
   box-shadow: none !important;
 }
+
+/* ============================================
+   Block and Inline Image Styles
+   ============================================ */
+
+/* Block images - prevent breaking inside */
+.ProseMirror [data-type="block-image"] {
+  break-inside: avoid;
+}
+
+/* Inline images - float handling for text wrapping */
+.ProseMirror [data-type="inline-image"] {
+  break-inside: avoid;
+}
+
+/* Ensure paragraphs containing inline images establish a BFC */
+.ProseMirror p:has([data-type="inline-image"]) {
+  display: flow-root;
+}
+
+

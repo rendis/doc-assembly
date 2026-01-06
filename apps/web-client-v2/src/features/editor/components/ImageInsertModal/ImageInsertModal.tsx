@@ -22,7 +22,7 @@ export function ImageInsertModal({
   initialShape = 'square',
 }: ImageInsertModalProps) {
   const [activeTab, setActiveTab] = useState<ImageInsertTab>('url');
-  const [currentImage, setCurrentImage] = useState<ImageInsertResult | null>(null);
+  const [currentImage, setCurrentImage] = useState<Omit<ImageInsertResult, 'imageType'> | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export function ImageInsertModal({
 
   const handleInsert = useCallback(() => {
     if (currentImage) {
-      onInsert(currentImage);
+      onInsert({ ...currentImage, imageType: 'block' });
       handleClose();
     }
   }, [currentImage, onInsert]);
