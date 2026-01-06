@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useState, useEffect, useCallback } from 'react'
-import { PaginationPlus, PAGE_SIZES as PAGINATION_PAGE_SIZES } from 'tiptap-pagination-plus'
+import { PaginationPlus } from 'tiptap-pagination-plus'
 import { EditorToolbar } from './EditorToolbar'
 import { PageSettings } from './PageSettings'
 import { SignerRolesPanel } from './SignerRolesPanel'
@@ -49,7 +49,12 @@ export function DocumentEditor({
         },
       }),
       PaginationPlus.configure({
-        ...PAGINATION_PAGE_SIZES.A4,
+        pageHeight: pageSize.height,
+        pageWidth: pageSize.width,
+        marginTop: margins.top,
+        marginBottom: margins.bottom,
+        marginLeft: margins.left,
+        marginRight: margins.right,
         pageGap: 50,
         pageGapBorderSize: 2,
         pageGapBorderColor: '#d1d5db',

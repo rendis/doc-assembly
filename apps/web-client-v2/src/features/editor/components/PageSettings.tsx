@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Settings2 } from 'lucide-react'
-import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
+import { PAGE_SIZES, DEFAULT_MARGINS, MARGIN_LIMITS, type PageSize, type PageMargins } from '../types'
 
 interface PageSettingsProps {
   pageSize: PageSize
@@ -56,7 +56,9 @@ export function PageSettings({
 
   const handleMarginChange = (key: keyof PageMargins, value: string) => {
     const numValue = parseInt(value, 10)
-    if (!isNaN(numValue) && numValue >= 0) {
+    if (!isNaN(numValue) &&
+        numValue >= MARGIN_LIMITS.min &&
+        numValue <= MARGIN_LIMITS.max) {
       setCustomMargins(prev => ({ ...prev, [key]: numValue }))
     }
   }
@@ -119,7 +121,8 @@ export function PageSettings({
                 <Input
                   id="margin-top"
                   type="number"
-                  min={0}
+                  min={MARGIN_LIMITS.min}
+                  max={MARGIN_LIMITS.max}
                   value={customMargins.top}
                   onChange={(e) => handleMarginChange('top', e.target.value)}
                   className="h-8"
@@ -132,7 +135,8 @@ export function PageSettings({
                 <Input
                   id="margin-bottom"
                   type="number"
-                  min={0}
+                  min={MARGIN_LIMITS.min}
+                  max={MARGIN_LIMITS.max}
                   value={customMargins.bottom}
                   onChange={(e) => handleMarginChange('bottom', e.target.value)}
                   className="h-8"
@@ -145,7 +149,8 @@ export function PageSettings({
                 <Input
                   id="margin-left"
                   type="number"
-                  min={0}
+                  min={MARGIN_LIMITS.min}
+                  max={MARGIN_LIMITS.max}
                   value={customMargins.left}
                   onChange={(e) => handleMarginChange('left', e.target.value)}
                   className="h-8"
@@ -158,7 +163,8 @@ export function PageSettings({
                 <Input
                   id="margin-right"
                   type="number"
-                  min={0}
+                  min={MARGIN_LIMITS.min}
+                  max={MARGIN_LIMITS.max}
                   value={customMargins.right}
                   onChange={(e) => handleMarginChange('right', e.target.value)}
                   className="h-8"
