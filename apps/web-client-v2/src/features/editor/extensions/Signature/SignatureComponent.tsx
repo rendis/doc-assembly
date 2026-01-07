@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu'
 import { SignatureItemView } from './components/SignatureItemView'
 import { SignatureEditor } from './components/SignatureEditor'
@@ -64,6 +65,18 @@ export const SignatureComponent = (props: NodeViewProps) => {
   const handleEdit = useCallback(() => {
     setEditorOpen(true)
     setContextMenu(null)
+  }, [])
+
+  const handleDelete = useCallback(() => {
+    deleteNode()
+  }, [deleteNode])
+
+  const handleCopy = useCallback(() => {
+    document.execCommand('copy')
+  }, [])
+
+  const handleCut = useCallback(() => {
+    document.execCommand('cut')
   }, [])
 
   const handleSave = useCallback(
@@ -174,14 +187,41 @@ export const SignatureComponent = (props: NodeViewProps) => {
         {/* Contenedor de firmas según layout */}
         <div className={containerClasses}>{renderSignatures()}</div>
 
-        {/* Badge de edición flotante */}
-        <div
-          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/80 hover:bg-background text-info-foreground dark:text-info text-[10px] font-medium border border-info-border transition-all cursor-pointer shadow-sm backdrop-blur-sm"
-          onClick={handleDoubleClick}
-        >
-          <Pencil className="h-3 w-3" />
-          <span>Editar</span>
-        </div>
+        {/* Barra de herramientas flotante cuando está seleccionado */}
+        {selected && (
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleDoubleClick}
+              title="Editar firma"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <div className="w-px h-6 bg-border mx-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={handleDelete}
+              title="Eliminar firma"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Badge de edición cuando NO está seleccionado */}
+        {!selected && (
+          <div
+            className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/80 hover:bg-background text-info-foreground dark:text-info text-[10px] font-medium border border-info-border transition-all cursor-pointer shadow-sm backdrop-blur-sm"
+            onClick={handleDoubleClick}
+          >
+            <Pencil className="h-3 w-3" />
+            <span>Editar</span>
+          </div>
+        )}
       </div>
 
       {/* Context menu */}
@@ -192,6 +232,8 @@ export const SignatureComponent = (props: NodeViewProps) => {
           nodeType="signature"
           onDelete={deleteNode}
           onEdit={handleEdit}
+          onCopy={handleCopy}
+          onCut={handleCut}
           onClose={() => setContextMenu(null)}
         />
       )}

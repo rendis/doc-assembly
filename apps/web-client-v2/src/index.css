@@ -511,6 +511,16 @@ body {
   background: transparent;
 }
 
+/* Page gap border color */
+
+#root > div.min-h-screen.bg-background.text-foreground > div > main > div > div > div > div.flex.h-full > div > div.flex-1.overflow-auto.bg-muted\/20.p-8 > div > div > div {
+  border-bottom: 2px solid #F6F6F8 !important;
+}
+
+.dark #root > div.min-h-screen.bg-background.text-foreground > div > main > div > div > div > div.flex.h-full > div > div.flex-1.overflow-auto.bg-muted\/20.p-8 > div > div > div {
+  border-bottom: 2px solid #22252C !important;
+}
+
 /* Prose light mode - text and code styling */
 .prose {
   --tw-prose-body: hsl(220 20% 10%);
@@ -600,7 +610,7 @@ body {
   display: block !important;
   min-height: 50px !important;
   border: none !important;
-  background: transparent !important;
+  background: #F6F6F8 !important;
 }
 
 /* Page break container */
@@ -615,7 +625,7 @@ body {
 }
 
 .dark .rm-pagination-gap {
-  background: transparent !important;
+  background: #22252C !important;
 }
 
 /* Ocultar estilos del ProseMirror cuando hay paginación */

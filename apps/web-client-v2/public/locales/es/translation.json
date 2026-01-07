@@ -70,6 +70,16 @@
     "loggingIn": "Iniciando sesión...",
     "invalidCredentials": "Correo o contraseña inválidos"
   },
+  "login": {
+    "title": "Inicia sesión en",
+    "subtitle": "tu cuenta.",
+    "email": "Usuario / Correo",
+    "password": "Contraseña",
+    "authenticate": "AUTENTICAR",
+    "authenticating": "AUTENTICANDO...",
+    "recover": "Recuperar acceso",
+    "error": "Usuario o contraseña inválidos"
+  },
   "tenant": {
     "selectTitle": "Selecciona tu Organización",
     "selectDescription": "Elige un ambiente de tenant para acceder a tus espacios de trabajo y documentos.",

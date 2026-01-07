@@ -30,6 +30,8 @@ export const SignatureExtension = Node.create({
 
   atom: true,
 
+  draggable: true,
+
   allowGapCursor: false,
 
   addAttributes() {

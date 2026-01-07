@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Trash2, Pencil } from 'lucide-react'
+import { Trash2, Pencil, Copy, Scissors } from 'lucide-react'
 
 export type NodeContextType =
   | 'injector'
@@ -13,6 +13,8 @@ interface EditorNodeContextMenuProps {
   nodeType: NodeContextType
   onDelete: () => void
   onEdit?: () => void
+  onCopy?: () => void
+  onCut?: () => void
   onClose: () => void
 }
 
@@ -29,6 +31,8 @@ export const EditorNodeContextMenu = ({
   nodeType,
   onDelete,
   onEdit,
+  onCopy,
+  onCut,
   onClose,
 }: EditorNodeContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null)
@@ -80,6 +84,32 @@ export const EditorNodeContextMenu = ({
         >
           <Pencil className="h-4 w-4" />
           <span>Editar {NODE_TYPE_LABELS[nodeType]}</span>
+        </button>
+      )}
+
+      {onCopy && (
+        <button
+          onClick={() => {
+            onCopy()
+            onClose()
+          }}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-left"
+        >
+          <Copy className="h-4 w-4" />
+          <span>Copiar</span>
+        </button>
+      )}
+
+      {onCut && (
+        <button
+          onClick={() => {
+            onCut()
+            onClose()
+          }}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-left"
+        >
+          <Scissors className="h-4 w-4" />
+          <span>Cortar</span>
         </button>
       )}
 

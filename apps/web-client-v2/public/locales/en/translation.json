@@ -70,6 +70,16 @@
     "loggingIn": "Signing in...",
     "invalidCredentials": "Invalid email or password"
   },
+  "login": {
+    "title": "Login to",
+    "subtitle": "your account.",
+    "email": "Username / Email",
+    "password": "Password",
+    "authenticate": "AUTHENTICATE",
+    "authenticating": "AUTHENTICATING...",
+    "recover": "Recover password access",
+    "error": "Invalid username or password"
+  },
   "tenant": {
     "selectTitle": "Select your Organization",
     "selectDescription": "Choose a tenant environment to access your workspaces and documents.",

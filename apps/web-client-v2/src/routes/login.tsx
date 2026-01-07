@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { loginWithCredentials, getUserInfo } from '@/lib/keycloak'
 import { fetchMyRoles } from '@/features/auth/api/auth-api'
+import { LanguageSelector } from '@/components/common/LanguageSelector'
+import { ThemeToggle } from '@/components/common/ThemeToggle'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -66,7 +68,11 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center overflow-hidden bg-background">
+    <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-background">
+      <div className="absolute top-6 right-6 flex items-center gap-2">
+        <LanguageSelector />
+        <ThemeToggle />
+      </div>
       <div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-6 md:px-12 lg:px-32">
         <div className="mb-16 max-w-2xl md:mb-20">
           <div className="mb-10 flex items-center gap-3">
