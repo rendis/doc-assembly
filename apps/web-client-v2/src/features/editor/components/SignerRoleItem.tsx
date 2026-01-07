@@ -293,7 +293,9 @@ export function SignerRoleItem({
         {/* Header */}
         <motion.div
           layout
-          className={cn('flex items-center gap-2', isExpanded && 'mb-3')}
+          animate={{ marginBottom: isExpanded ? 12 : 0 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          className="flex items-center gap-2"
         >
           <div
             {...(isSelectionMode ? {} : { ...attributes, ...listeners })}
@@ -393,26 +395,32 @@ export function SignerRoleItem({
           </Button>
 
           {/* Chevron para indicar expandible (solo en modo compacto) */}
-          <AnimatePresence mode="popLayout">
-            {isCompactMode && (
-              <motion.button
-                type="button"
-                key="chevron"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  rotate: isExpanded ? 180 : 0,
-                }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-                onClick={handleCardClick}
-                className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
-              >
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </motion.button>
+          <motion.button
+            type="button"
+            initial={false}
+            animate={{
+              opacity: isCompactMode ? 1 : 0,
+              width: isCompactMode ? 'auto' : 0,
+            }}
+            transition={{
+              duration: 0.2,
+              ease: [0.4, 0, 0.2, 1],
+              opacity: { duration: 0.15 },
+            }}
+            onClick={handleCardClick}
+            className={cn(
+              'shrink-0 rounded hover:bg-muted transition-colors overflow-hidden',
+              !isCompactMode && 'pointer-events-none'
             )}
-          </AnimatePresence>
+          >
+            <motion.div
+              className="p-1"
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </motion.div>
+          </motion.button>
         </motion.div>
 
         {/* Fields con animación */}
