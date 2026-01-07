@@ -467,27 +467,6 @@ body {
 }
 
 /* ============================================
-   Image Extension Styles
-   ============================================ */
-
-/* Moveable resize handles */
-.moveable-control-box .moveable-control {
-  background: hsl(var(--primary)) !important;
-  border: 2px solid hsl(var(--background)) !important;
-  border-radius: 50% !important;
-  width: 10px !important;
-  height: 10px !important;
-}
-
-.moveable-control-box .moveable-line {
-  background: hsl(var(--primary)) !important;
-  height: 2px !important;
-}
-
-/* Note: Image layout styles are applied via inline styles in ImageComponent.tsx
-   to avoid CSS cascade issues with PaginationPlus */
-
-/* ============================================
    tiptap-pagination-plus Styles
    ============================================ */
 

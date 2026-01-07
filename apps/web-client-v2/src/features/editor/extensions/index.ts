@@ -21,7 +21,6 @@ export type {
   LogicOperator,
 } from './Conditional'
 export type {
-  ImageDisplayMode,
   ImageAlign,
   ImageShape,
   ImageAttributes,

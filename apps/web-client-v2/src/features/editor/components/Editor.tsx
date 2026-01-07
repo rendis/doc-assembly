@@ -3,7 +3,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { useCallback, useEffect, useState } from 'react'
 import { PaginationPlus, PAGE_SIZES as PAGINATION_PAGE_SIZES } from 'tiptap-pagination-plus'
 import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
-import { BlockImageExtension, InlineImageExtension, type ImageShape, type ImageType } from '../extensions/Image'
+import { ImageExtension, type ImageShape } from '../extensions/Image'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 
 interface EditorProps {
@@ -25,7 +25,6 @@ export function Editor({
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
-  const [editingImageType, setEditingImageType] = useState<ImageType>('block')
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -43,8 +42,7 @@ export function Editor({
         pageBreakBackground: '#f3f4f6',
         footerRight: '{page}',
       }),
-      BlockImageExtension,
-      InlineImageExtension,
+      ImageExtension,
     ],
     content,
     editable,
@@ -71,9 +69,8 @@ export function Editor({
       setImageModalOpen(true)
     }
 
-    const handleEditImage = (event: CustomEvent<{ shape: ImageShape; imageType?: ImageType }>) => {
+    const handleEditImage = (event: CustomEvent<{ shape: ImageShape }>) => {
       setEditingImageShape(event.detail?.shape || 'square')
-      setEditingImageType(event.detail?.imageType || 'block')
       setIsEditingImage(true)
       setImageModalOpen(true)
     }
@@ -91,37 +88,29 @@ export function Editor({
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return
 
-    const { src, shape, imageType = 'block' } = result
+    const { src, shape } = result
 
     if (isEditingImage) {
       // Update existing image
-      const nodeType = editingImageType === 'block' ? 'blockImage' : 'inlineImage'
-      editor.chain().focus().updateAttributes(nodeType, {
+      editor.chain().focus().updateAttributes('customImage', {
         src,
         shape,
       }).run()
     } else {
-      // Insert new image (always as block, user can convert via toolbar)
+      // Insert new image
       if (pendingImagePosition !== null) {
         editor.chain().focus().setTextSelection(pendingImagePosition).run()
       }
-      if (imageType === 'inline') {
-        editor.chain().focus().setInlineImage({
-          src,
-          shape,
-        }).run()
-      } else {
-        editor.chain().focus().setBlockImage({
-          src,
-          shape,
-        }).run()
-      }
+      editor.chain().focus().setImage({
+        src,
+        shape,
+      }).run()
     }
 
     setImageModalOpen(false)
     setIsEditingImage(false)
     setPendingImagePosition(null)
-  }, [editor, isEditingImage, pendingImagePosition, editingImageType])
+  }, [editor, isEditingImage, pendingImagePosition])
 
   const handleImageModalClose = useCallback((open: boolean) => {
     if (!open) {

@@ -1,34 +1,35 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import { BlockImageComponent } from './BlockImageComponent';
-import type { BlockImageAlign, ImageShape } from '../types';
+import { ImageComponent } from './ImageComponent';
+import type { ImageDisplayMode, ImageAlign, ImageShape } from './types';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    blockImage: {
-      setBlockImage: (options: {
+    customImage: {
+      setImage: (options: {
         src: string;
         alt?: string;
         title?: string;
         width?: number;
         height?: number;
-        align?: BlockImageAlign;
+        displayMode?: ImageDisplayMode;
+        align?: ImageAlign;
         shape?: ImageShape;
       }) => ReturnType;
-      setBlockImageAlign: (align: BlockImageAlign) => ReturnType;
-      setBlockImageSize: (options: { width: number; height: number }) => ReturnType;
-      setBlockImageShape: (shape: ImageShape) => ReturnType;
-      convertBlockToInline: () => ReturnType;
+      setImageAlign: (options: {
+        displayMode: ImageDisplayMode;
+        align: ImageAlign;
+      }) => ReturnType;
+      setImageSize: (options: { width: number; height: number }) => ReturnType;
+      setImageShape: (shape: ImageShape) => ReturnType;
     };
   }
 }
 
-export const BlockImageExtension = Node.create({
-  name: 'blockImage',
+export const ImageExtension = Node.create({
+  name: 'customImage',
 
   group: 'block',
-
-  atom: true,
 
   draggable: true,
 
@@ -48,6 +49,13 @@ export const BlockImageExtension = Node.create({
       },
       height: {
         default: null,
+      },
+      displayMode: {
+        default: 'block',
+        parseHTML: (element) => element.getAttribute('data-display-mode') || 'block',
+        renderHTML: (attributes) => ({
+          'data-display-mode': attributes.displayMode,
+        }),
       },
       align: {
         default: 'center',
@@ -69,7 +77,7 @@ export const BlockImageExtension = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'figure[data-type="block-image"]',
+        tag: 'figure[data-type="image"]',
       },
     ];
   },
@@ -77,18 +85,18 @@ export const BlockImageExtension = Node.create({
   renderHTML({ HTMLAttributes }) {
     return [
       'figure',
-      mergeAttributes(HTMLAttributes, { 'data-type': 'block-image' }),
+      mergeAttributes(HTMLAttributes, { 'data-type': 'image' }),
       ['img', { src: HTMLAttributes.src, alt: HTMLAttributes.alt, title: HTMLAttributes.title }],
     ];
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(BlockImageComponent);
+    return ReactNodeViewRenderer(ImageComponent);
   },
 
   addCommands() {
     return {
-      setBlockImage:
+      setImage:
         (options) =>
         ({ commands }) => {
           return commands.insertContent({
@@ -99,19 +107,23 @@ export const BlockImageExtension = Node.create({
               title: options.title,
               width: options.width,
               height: options.height,
+              displayMode: options.displayMode || 'block',
               align: options.align || 'center',
               shape: options.shape || 'square',
             },
           });
         },
 
-      setBlockImageAlign:
-        (align) =>
+      setImageAlign:
+        (options) =>
         ({ commands }) => {
-          return commands.updateAttributes(this.name, { align });
+          return commands.updateAttributes(this.name, {
+            displayMode: options.displayMode,
+            align: options.align,
+          });
         },
 
-      setBlockImageSize:
+      setImageSize:
         (options) =>
         ({ commands }) => {
           return commands.updateAttributes(this.name, {
@@ -120,39 +132,10 @@ export const BlockImageExtension = Node.create({
           });
         },
 
-      setBlockImageShape:
+      setImageShape:
         (shape) =>
         ({ commands }) => {
           return commands.updateAttributes(this.name, { shape });
-        },
-
-      convertBlockToInline:
-        () =>
-        ({ state, chain }) => {
-          const { selection } = state;
-          const node = state.doc.nodeAt(selection.from);
-
-          if (!node || node.type.name !== this.name) {
-            return false;
-          }
-
-          const { src, alt, title, width, height, shape } = node.attrs;
-
-          return chain()
-            .deleteSelection()
-            .insertContent({
-              type: 'inlineImage',
-              attrs: {
-                src,
-                alt,
-                title,
-                width,
-                height,
-                shape,
-                float: 'left', // Default float when converting from block
-              },
-            })
-            .run();
         },
     };
   },
