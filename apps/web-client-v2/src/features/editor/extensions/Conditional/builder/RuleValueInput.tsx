@@ -56,7 +56,7 @@ export function RuleValueInput({
           onValueChange={handleValueChange}
           disabled={disabled}
         >
-          <SelectTrigger className="flex-1 h-8 border-gray-200">
+          <SelectTrigger className="flex-1 h-8 border-input">
             <SelectValue placeholder="Seleccionar" />
           </SelectTrigger>
           <SelectContent>
@@ -74,7 +74,7 @@ export function RuleValueInput({
           value={value.value}
           onChange={(e) => handleValueChange(e.target.value)}
           disabled={disabled}
-          className="flex-1 h-8 border-gray-200"
+          className="flex-1 h-8 border-input"
         />
       )
     }
@@ -87,7 +87,7 @@ export function RuleValueInput({
           onChange={(e) => handleValueChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 h-8 border-gray-200"
+          className="flex-1 h-8 border-input"
         />
       )
     }
@@ -99,7 +99,7 @@ export function RuleValueInput({
         onChange={(e) => handleValueChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="flex-1 h-8 border-gray-200"
+        className="flex-1 h-8 border-input"
       />
     )
   }
@@ -118,7 +118,7 @@ export function RuleValueInput({
         {isTextMode ? (
           <Type className="h-3.5 w-3.5" />
         ) : (
-          <Variable className="h-3.5 w-3.5 text-black" />
+          <Variable className="h-3.5 w-3.5 text-foreground" />
         )}
       </Button>
 
@@ -151,12 +151,12 @@ export function RuleValueInput({
               onValueChange={handleValueChange}
               disabled={disabled}
             >
-              <SelectTrigger className="h-8 border-gray-200">
+              <SelectTrigger className="h-8 border-input">
                 <SelectValue placeholder="Seleccionar variable" />
               </SelectTrigger>
               <SelectContent>
                 {compatibleVariables.length === 0 ? (
-                  <div className="px-2 py-1.5 text-xs text-gray-400">
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
                     No hay variables de tipo {variableType}
                   </div>
                 ) : (

@@ -8,7 +8,12 @@ import { useLogicBuilder } from './LogicBuilderContext'
 const MAX_NESTING_LEVEL = 3
 
 // Fondos por nivel (sin indentación, solo color)
-const BG_LEVELS = ['bg-transparent', 'bg-gray-50', 'bg-gray-100', 'bg-gray-150']
+const BG_LEVELS = [
+  'bg-transparent',
+  'bg-muted/30',
+  'bg-muted/50 dark:bg-muted/40',
+  'bg-muted/70 dark:bg-muted/50'
+]
 
 interface LogicGroupProps {
   group: LogicGroup
@@ -27,7 +32,7 @@ export const LogicGroupItem = ({
 
   // Color del borde según operador lógico
   const borderColor =
-    group.logic === 'AND' ? 'border-l-black' : 'border-l-amber-500'
+    group.logic === 'AND' ? 'border-l-foreground' : 'border-l-amber-500 dark:border-l-amber-600'
 
   // Fondo según nivel
   const bgLevel = BG_LEVELS[level] || BG_LEVELS[BG_LEVELS.length - 1]
@@ -44,15 +49,15 @@ export const LogicGroupItem = ({
       {/* Group Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-gray-200 bg-white overflow-hidden p-0.5 shadow-sm">
+          <div className="flex rounded-md border border-border bg-card overflow-hidden p-0.5 shadow-sm">
             <button
               type="button"
               onClick={() => updateNode(group.id, { logic: 'AND' })}
               className={cn(
                 'px-3 py-1 text-xs font-bold rounded-sm transition-all',
                 group.logic === 'AND'
-                  ? 'bg-black text-white shadow-sm'
-                  : 'text-gray-400 hover:bg-gray-100'
+                  ? 'bg-foreground text-background shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted'
               )}
             >
               AND
@@ -63,8 +68,8 @@ export const LogicGroupItem = ({
               className={cn(
                 'px-3 py-1 text-xs font-bold rounded-sm transition-all',
                 group.logic === 'OR'
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'text-gray-400 hover:bg-gray-100'
+                  ? 'bg-amber-500 dark:bg-amber-600 text-white shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted'
               )}
             >
               OR
@@ -77,7 +82,7 @@ export const LogicGroupItem = ({
             variant="ghost"
             size="icon"
             onClick={() => removeNode(group.id, parentId!)}
-            className="h-7 w-7 text-gray-400 hover:text-red-500"
+            className="h-7 w-7 text-muted-foreground hover:text-red-500"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -87,7 +92,7 @@ export const LogicGroupItem = ({
       {/* Children - Sin padding-left adicional */}
       <div className="flex flex-col gap-2">
         {group.children.length === 0 && (
-          <div className="text-xs text-gray-400 italic py-2">
+          <div className="text-xs text-muted-foreground italic py-2">
             Grupo vacío - agrega una regla o grupo
           </div>
         )}
@@ -114,7 +119,7 @@ export const LogicGroupItem = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-xs border-gray-200"
+            className="h-7 text-xs border-border"
             onClick={() => addRule(group.id)}
           >
             <Plus className="h-3 w-3 mr-1" /> Regla

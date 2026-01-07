@@ -159,12 +159,14 @@ export const SignatureComponent = (props: NodeViewProps) => {
         onDoubleClick={handleDoubleClick}
         className={cn(
           'relative w-full p-6 border-2 border-dashed rounded-lg transition-colors cursor-grab select-none',
-          'bg-muted hover:bg-muted/80',
           selected
-            ? 'border-foreground ring-2 ring-ring/20'
-            : 'border-border hover:border-border/80'
+            ? 'bg-info-muted/40 dark:bg-info-muted/20'
+            : 'bg-info-muted/20 dark:bg-info-muted/10 hover:bg-info-muted/30 dark:hover:bg-info-muted/15'
         )}
         style={{
+          borderColor: selected
+            ? 'hsl(var(--info-border))'
+            : 'hsl(var(--info-border) / 0.6)',
           WebkitUserSelect: 'none',
           userSelect: 'none',
         }}
@@ -174,7 +176,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
 
         {/* Badge de edición flotante */}
         <div
-          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded bg-foreground/10 hover:bg-foreground/20 text-muted-foreground text-[10px] font-medium border border-border transition-all cursor-pointer shadow-sm"
+          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/80 hover:bg-background text-info-foreground dark:text-info text-[10px] font-medium border border-info-border transition-all cursor-pointer shadow-sm backdrop-blur-sm"
           onClick={handleDoubleClick}
         >
           <Pencil className="h-3 w-3" />

@@ -59,7 +59,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
   return (
     <motion.div
       layout
-      className="flex flex-wrap items-center gap-1.5 p-2 rounded-md bg-white border border-gray-200 group relative"
+      className="flex flex-wrap items-center gap-1.5 p-2 rounded-md bg-card border border-border group relative"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -72,13 +72,13 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
           'h-8 px-2 rounded-md border flex items-center text-sm transition-colors shrink-0',
           'min-w-[100px] max-w-[150px]',
           isVarOver
-            ? 'border-black bg-gray-100 ring-2 ring-black/20'
-            : 'border-gray-200 bg-white',
-          !rule.variableId && 'text-gray-400 border-dashed'
+            ? 'border-foreground bg-muted ring-2 ring-foreground/20'
+            : 'border-border bg-card',
+          !rule.variableId && 'text-muted-foreground border-dashed'
         )}
       >
         {selectedVar ? (
-          <span className="font-medium text-black bg-gray-100 px-1.5 py-0.5 rounded text-xs border border-gray-200 truncate">
+          <span className="font-medium text-foreground bg-muted px-1.5 py-0.5 rounded text-xs border border-border truncate">
             {selectedVar.label}
           </span>
         ) : (
@@ -92,7 +92,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
         onValueChange={(val) => handleOperatorChange(val as RuleOperator)}
         disabled={!selectedVar}
       >
-        <SelectTrigger className="w-[130px] h-8 shrink-0 border-gray-200">
+        <SelectTrigger className="w-[130px] h-8 shrink-0 border-input">
           <SelectValue placeholder="-" />
         </SelectTrigger>
         <SelectContent>
@@ -101,7 +101,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
             return (
               <SelectItem key={op.value} value={op.value}>
                 <div className="flex items-center gap-2">
-                  <Icon className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <span className="text-xs">{op.label}</span>
                 </div>
               </SelectItem>
@@ -137,7 +137,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
         variant="ghost"
         size="icon"
         onClick={() => removeNode(rule.id, parentId)}
-        className="h-7 w-7 text-gray-400 hover:text-red-500 shrink-0 ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+        className="h-7 w-7 text-muted-foreground hover:text-red-500 shrink-0 ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>

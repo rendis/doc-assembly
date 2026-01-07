@@ -76,7 +76,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
   return (
     <motion.div
       className={cn(
-        'flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50',
+        'flex items-start gap-3 p-3 rounded-lg border border-border bg-muted',
         className
       )}
       variants={fadeSlideUp}
@@ -84,14 +84,14 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
       animate="animate"
       transition={quickTransition}
     >
-      <Code className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+      <Code className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-gray-400 mb-1">Fórmula</div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">Fórmula</div>
         <motion.code
           key={summary}
           className={cn(
             'text-sm font-mono break-all',
-            isEmpty ? 'text-gray-400 italic' : 'text-gray-900'
+            isEmpty ? 'text-muted-foreground italic' : 'text-foreground'
           )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

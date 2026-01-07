@@ -72,9 +72,14 @@ export const ConditionalComponent = (props: NodeViewProps) => {
         className={cn(
           'border-2 border-dashed rounded-lg p-4 transition-all pt-6',
           selected
-            ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
-            : 'border-amber-300 hover:border-amber-400 dark:border-amber-700 dark:hover:border-amber-600'
+            ? 'bg-warning-muted/50 dark:bg-warning-muted/20'
+            : 'bg-warning-muted/30 dark:bg-warning-muted/10'
         )}
+        style={{
+          borderColor: selected
+            ? 'hsl(var(--warning-border))'
+            : 'hsl(var(--warning-border) / 0.7)',
+        }}
       >
         <div className="absolute -top-3 left-4 flex items-center gap-2 z-10">
           <Dialog open={open} onOpenChange={setOpen}>
@@ -83,8 +88,8 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                 className={cn(
                   'px-2 h-7 bg-card flex items-center gap-2 text-xs font-medium border rounded shadow-sm transition-colors cursor-pointer',
                   selected
-                    ? 'text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-600'
-                    : 'text-muted-foreground border-border hover:border-amber-300 hover:text-amber-600 dark:hover:border-amber-600 dark:hover:text-amber-400'
+                    ? 'text-warning-foreground border-warning-border dark:text-warning dark:border-warning'
+                    : 'text-muted-foreground border-border hover:border-warning-border hover:text-warning-foreground dark:hover:border-warning dark:hover:text-warning'
                 )}
               >
                 <GitBranch className="h-3.5 w-3.5" />
@@ -94,22 +99,25 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                 <Settings2 className="h-3 w-3 ml-1 opacity-50" />
               </button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-              <DialogHeader>
+            <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
+              {/* Header con borde inferior */}
+              <DialogHeader className="px-6 pt-6 pb-4 space-y-1 border-b border-border">
                 <DialogTitle>Constructor de Lógica</DialogTitle>
                 <DialogDescription>
                   Arrastra variables y configura las reglas de visualización.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="flex-1 min-h-0 py-4">
+              {/* Área principal - LogicBuilder se mantiene intacto */}
+              <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
                 <LogicBuilder
                   initialData={conditions}
                   onChange={setTempConditions}
                 />
               </div>
 
-              <DialogFooter>
+              {/* Footer con borde superior */}
+              <DialogFooter className="px-6 py-3 border-t border-border gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setOpen(false)}
@@ -119,7 +127,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="bg-foreground text-background hover:bg-foreground/90"
                 >
                   Guardar Configuración
                 </Button>

@@ -248,20 +248,20 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
           removeNode,
         }}
       >
-        <div className="flex h-[500px] border border-gray-200 rounded-md bg-white overflow-hidden">
+        <div className="flex flex-row h-full bg-background overflow-hidden">
           {/* Sidebar */}
-          <div className="w-52 border-r border-gray-100 bg-gray-50 flex flex-col shrink-0">
-            <div className="p-3 border-b border-gray-100 font-medium text-sm flex items-center gap-2">
+          <div className="w-52 border-r border-border bg-muted flex flex-col shrink-0">
+            <div className="p-3 border-b border-border font-medium text-sm flex items-center gap-2">
               <Variable className="h-4 w-4" /> Variables
             </div>
 
             {/* Search Bar */}
             <div className="p-3 pb-0">
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar..."
-                  className="pl-8 h-9 border-gray-200"
+                  className="pl-8 h-9 border-input"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -271,7 +271,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
             <ScrollArea className="flex-1 p-3">
               <div className="space-y-2">
                 {isLoading && (
-                  <div className="flex items-center justify-center py-4 text-gray-400">
+                  <div className="flex items-center justify-center py-4 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     <span className="text-xs">Cargando...</span>
                   </div>
@@ -286,7 +286,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
                     />
                   ))}
                 {!isLoading && filteredVariables.length === 0 && (
-                  <div className="text-xs text-gray-400 text-center py-4">
+                  <div className="text-xs text-muted-foreground text-center py-4">
                     No se encontraron variables.
                   </div>
                 )}
@@ -296,12 +296,12 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
 
           {/* Builder Area */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden bg-gray-50">
+            <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden bg-muted/50">
               <LogicGroupItem group={data} />
             </div>
 
             {/* Formula Summary */}
-            <div className="border-t border-gray-100 p-3 bg-white">
+            <div className="border-t border-border p-3 bg-card">
               <FormulaSummary schema={data} />
             </div>
           </div>
@@ -328,7 +328,7 @@ const DraggingItem = ({ id, variables }: DraggingItemProps) => {
   const Icon = ICONS[v.type] || Type
 
   return (
-    <div className="bg-black text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-xl flex items-center gap-2 cursor-grabbing ring-2 ring-white z-[100]">
+    <div className="bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-xl flex items-center gap-2 cursor-grabbing ring-2 ring-white z-[100]">
       <Icon className="h-3 w-3" />
       {v.label}
     </div>
@@ -357,12 +357,12 @@ const DraggableVar = ({
       {...listeners}
       {...attributes}
       className={cn(
-        'flex items-center gap-2 p-2.5 text-sm border border-gray-200 rounded-md bg-white shadow-sm cursor-grab hover:border-gray-400 hover:shadow transition-all group select-none',
+        'flex items-center gap-2 p-2.5 text-sm border border-border rounded-md bg-card shadow-sm cursor-grab hover:bg-muted hover:shadow transition-all group select-none',
         isDragging ? 'opacity-30' : ''
       )}
     >
-      <GripVertical className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />
-      <Icon className="h-3.5 w-3.5 text-gray-400" />
+      <GripVertical className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
       <span>{label}</span>
     </div>
   )
