@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Settings2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useSignerRolesStore } from '../../stores/signer-roles-store'
@@ -7,6 +8,7 @@ import { countActiveTriggers } from '../../types/signer-roles'
 import { WorkflowConfigModal } from './WorkflowConfigModal'
 
 export function WorkflowConfigButton() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   const workflowConfig = useSignerRolesStore((state) => state.workflowConfig)
@@ -21,19 +23,19 @@ export function WorkflowConfigButton() {
     <>
       <Button
         variant="outline"
-        className="w-full justify-between border-gray-200 hover:border-black text-gray-600 hover:text-black"
+        className="w-full justify-between border-border hover:border-primary text-muted-foreground hover:text-foreground transition-colors"
         onClick={() => setOpen(true)}
       >
         <div className="flex items-center gap-2">
           <Settings2 className="h-4 w-4" />
-          <span className="text-xs font-medium">Configuración de firma</span>
+          <span className="text-xs font-medium">{t('editor.workflow.settings')}</span>
         </div>
         {isGlobalScope && activeCount > 0 && (
           <Badge
             variant="secondary"
-            className="text-[10px] px-1.5 py-0 bg-black text-white"
+            className="text-[10px] px-1.5 py-0 bg-foreground text-background pointer-events-none"
           >
-            {activeCount} activos
+            {t('editor.workflow.activeCount', { count: activeCount })}
           </Badge>
         )}
       </Button>

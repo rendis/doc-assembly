@@ -1,12 +1,16 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
+  type DropAnimation,
+  defaultDropAnimationSideEffects,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -14,12 +18,18 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, Plus, Users } from 'lucide-react'
+import { ChevronLeft, LayoutList, Plus, Rows3, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
 import { SignerRoleItem } from './SignerRoleItem'
+import { WorkflowConfigButton } from './workflow'
 import type { Variable } from '../types/variables'
 
 interface SignerRolesPanelProps {
@@ -43,6 +53,19 @@ export function SignerRolesPanel({
   const reorderRoles = useSignerRolesStore((state) => state.reorderRoles)
   const isCollapsed = useSignerRolesStore((state) => state.isCollapsed)
   const toggleCollapsed = useSignerRolesStore((state) => state.toggleCollapsed)
+  const isCompactMode = useSignerRolesStore((state) => state.isCompactMode)
+  const toggleCompactMode = useSignerRolesStore((state) => state.toggleCompactMode)
+
+  // Estado para tracking del item siendo arrastrado
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const activeRole = useMemo(
+    () => roles.find((r) => r.id === activeId),
+    [roles, activeId]
+  )
+  const activeIndex = useMemo(
+    () => roles.findIndex((r) => r.id === activeId),
+    [roles, activeId]
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -55,6 +78,23 @@ export function SignerRolesPanel({
     })
   )
 
+  // Animación suave al soltar el overlay
+  const dropAnimation: DropAnimation = {
+    sideEffects: defaultDropAnimationSideEffects({
+      styles: {
+        active: {
+          opacity: '0.5',
+        },
+      },
+    }),
+    duration: 200,
+    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  }
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
@@ -63,6 +103,13 @@ export function SignerRolesPanel({
       const newIndex = roles.findIndex((role) => role.id === over.id)
       reorderRoles(oldIndex, newIndex)
     }
+
+    // Delay para que la animación del overlay termine antes de mostrar el item original
+    setTimeout(() => setActiveId(null), 200)
+  }
+
+  const handleDragCancel = () => {
+    setTimeout(() => setActiveId(null), 200)
   }
 
   const roleIds = useMemo(() => roles.map((role) => role.id), [roles])
@@ -79,6 +126,7 @@ export function SignerRolesPanel({
     >
       {/* Header */}
       <div className="relative flex items-center h-14 px-3 border-b border-border shrink-0">
+        {/* Título */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Users className="h-4 w-4 text-muted-foreground shrink-0" />
           <motion.span
@@ -107,10 +155,41 @@ export function SignerRolesPanel({
           {roles.length}
         </motion.span>
 
+        {/* Acciones agrupadas */}
+        <motion.div
+          initial={false}
+          animate={{
+            opacity: isCollapsed ? 0 : 1,
+            width: isCollapsed ? 0 : 'auto',
+          }}
+          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          className="flex items-center gap-0.5 ml-2 overflow-hidden"
+        >
+          {/* Compact mode toggle with tooltip */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={toggleCompactMode}
+                className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label={isCompactMode ? 'Vista expandida' : 'Vista compacta'}
+              >
+                {isCompactMode ? (
+                  <Rows3 className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <LayoutList className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {isCompactMode ? 'Expandir todas las cards' : 'Vista compacta'}
+            </TooltipContent>
+          </Tooltip>
+        </motion.div>
+
         {/* Collapse button - always visible */}
         <button
           onClick={toggleCollapsed}
-          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-2"
+          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-0.5"
           aria-label={isCollapsed ? 'Expandir panel' : 'Colapsar panel'}
         >
           <motion.div
@@ -149,6 +228,11 @@ export function SignerRolesPanel({
             transition={{ duration: 0.15 }}
             className="flex-1 flex flex-col min-h-0"
           >
+            {/* Workflow Configuration Button */}
+            <div className="p-4 pb-2">
+              <WorkflowConfigButton />
+            </div>
+
             {roles.length === 0 ? (
               // Empty state - centered content
               <div className="flex-1 flex flex-col items-center justify-center py-8 text-center px-4">
@@ -175,17 +259,19 @@ export function SignerRolesPanel({
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
+                      onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
+                      onDragCancel={handleDragCancel}
                     >
                       <SortableContext
                         items={roleIds}
                         strategy={verticalListSortingStrategy}
                       >
                         <AnimatePresence mode="popLayout">
-                          {roles.map((role) => (
+                          {roles.map((role, index) => (
                             <motion.div
                               key={role.id}
-                              layout
+                              layout={!activeId}
                               initial={{ opacity: 0, y: -16 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -8, scale: 0.95 }}
@@ -197,7 +283,11 @@ export function SignerRolesPanel({
                             >
                               <SignerRoleItem
                                 role={role}
+                                index={index}
+                                isCompactMode={isCompactMode}
+                                isDragging={role.id === activeId}
                                 variables={variables}
+                                allRoles={roles}
                                 onUpdate={updateRole}
                                 onDelete={deleteRole}
                               />
@@ -205,6 +295,22 @@ export function SignerRolesPanel({
                           ))}
                         </AnimatePresence>
                       </SortableContext>
+
+                      {/* Overlay que sigue al cursor durante el drag */}
+                      <DragOverlay dropAnimation={dropAnimation}>
+                        {activeRole && (
+                          <SignerRoleItem
+                            role={activeRole}
+                            index={activeIndex}
+                            isCompactMode={isCompactMode}
+                            isOverlay
+                            variables={variables}
+                            allRoles={roles}
+                            onUpdate={() => {}}
+                            onDelete={() => {}}
+                          />
+                        )}
+                      </DragOverlay>
                     </DndContext>
                   </div>
                 </ScrollArea>

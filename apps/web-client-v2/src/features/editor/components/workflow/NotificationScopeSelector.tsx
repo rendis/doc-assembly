@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { NotificationScope } from '../../types/signer-roles'
@@ -11,35 +12,37 @@ export function NotificationScopeSelector({
   value,
   onChange,
 }: NotificationScopeSelectorProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] font-mono uppercase tracking-widest text-gray-400">
-        Notificaciones
+      <Label className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+        {t('editor.workflow.notificationScope')}
       </Label>
-      <div className="flex rounded-md border border-gray-100 p-0.5 bg-gray-50">
+      <div className="flex rounded-none border border-border bg-background p-0.5">
         <button
           type="button"
           onClick={() => onChange('global')}
           className={cn(
-            'flex-1 px-3 py-1.5 text-xs font-medium rounded-sm transition-colors',
+            'flex-1 px-3 py-2 text-xs font-medium transition-colors',
             value === 'global'
-              ? 'bg-white text-black shadow-sm'
-              : 'text-gray-400 hover:text-black'
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:text-foreground'
           )}
         >
-          Global
+          {t('editor.workflow.global')}
         </button>
         <button
           type="button"
           onClick={() => onChange('individual')}
           className={cn(
-            'flex-1 px-3 py-1.5 text-xs font-medium rounded-sm transition-colors',
+            'flex-1 px-3 py-2 text-xs font-medium transition-colors',
             value === 'individual'
-              ? 'bg-white text-black shadow-sm'
-              : 'text-gray-400 hover:text-black'
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:text-foreground'
           )}
         >
-          Individual
+          {t('editor.workflow.individual')}
         </button>
       </div>
     </div>

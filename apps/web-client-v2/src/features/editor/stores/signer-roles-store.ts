@@ -18,6 +18,7 @@ import {
 const initialState = {
   roles: [] as SignerRoleDefinition[],
   isCollapsed: false,
+  isCompactMode: false,
   workflowConfig: createDefaultWorkflowConfig(),
 }
 
@@ -72,6 +73,10 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
 
   toggleCollapsed: () => {
     set((state) => ({ isCollapsed: !state.isCollapsed }))
+  },
+
+  toggleCompactMode: () => {
+    set((state) => ({ isCompactMode: !state.isCompactMode }))
   },
 
   reset: () => set(initialState),

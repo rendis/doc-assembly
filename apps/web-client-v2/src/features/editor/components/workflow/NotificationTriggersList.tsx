@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -31,13 +32,6 @@ interface NotificationTriggersListProps {
   onOpenPreviousRolesSelector?: () => void
 }
 
-const TRIGGER_LABELS: Record<NotificationTrigger, string> = {
-  on_document_created: 'Al crear documento',
-  on_previous_roles_signed: 'Cuando firmen roles anteriores',
-  on_turn_to_sign: 'Cuando le toque firmar',
-  on_all_signatures_complete: 'Al completar todas las firmas',
-}
-
 export function NotificationTriggersList({
   triggers,
   orderMode,
@@ -45,6 +39,7 @@ export function NotificationTriggersList({
   roles,
   onOpenPreviousRolesSelector,
 }: NotificationTriggersListProps) {
+  const { t } = useTranslation()
   const isSequential = orderMode === 'sequential'
 
   const handleToggle = (trigger: NotificationTrigger, enabled: boolean) => {
@@ -55,18 +50,28 @@ export function NotificationTriggersList({
     })
   }
 
+  const getTriggerLabel = (trigger: NotificationTrigger): string => {
+    const labels: Record<NotificationTrigger, string> = {
+      on_document_created: t('editor.workflow.triggers.onDocumentCreated'),
+      on_previous_roles_signed: t('editor.workflow.triggers.onPreviousRolesSigned'),
+      on_turn_to_sign: t('editor.workflow.triggers.onTurnToSign'),
+      on_all_signatures_complete: t('editor.workflow.triggers.onAllComplete'),
+    }
+    return labels[trigger]
+  }
+
   const getPreviousRolesLabel = (config?: PreviousRolesConfig): string => {
     if (!config || config.mode === 'auto') {
-      return 'Automático'
+      return t('editor.workflow.previousRoles.auto')
     }
     if (config.selectedRoleIds.length === 0) {
-      return 'Ninguno'
+      return t('editor.workflow.previousRoles.none')
     }
     const selectedRoles = roles?.filter((r) =>
       config.selectedRoleIds.includes(r.id)
     )
     if (!selectedRoles || selectedRoles.length === 0) {
-      return 'Automático'
+      return t('editor.workflow.previousRoles.auto')
     }
     return selectedRoles.map((r) => r.label).join(', ')
   }
@@ -75,7 +80,7 @@ export function NotificationTriggersList({
     <div className="space-y-3">
       {ALL_TRIGGERS.map((trigger) => {
         const isEnabled = triggers[trigger]?.enabled ?? false
-        const label = TRIGGER_LABELS[trigger]
+        const label = getTriggerLabel(trigger)
         const isPreviousRoles = trigger === 'on_previous_roles_signed'
         const isSequentialOnly = SEQUENTIAL_ONLY_TRIGGERS.includes(trigger)
         const isVisible = !isSequentialOnly || isSequential
@@ -98,7 +103,7 @@ export function NotificationTriggersList({
                 />
                 <Label
                   htmlFor={trigger}
-                  className="text-xs cursor-pointer leading-tight text-gray-600"
+                  className="text-xs cursor-pointer leading-tight text-foreground"
                 >
                   {label}
                 </Label>
@@ -106,7 +111,7 @@ export function NotificationTriggersList({
 
               {isPreviousRoles && isEnabled && (
                 <div className="ml-6 flex items-center gap-2">
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted-foreground">
                     {getPreviousRolesLabel(
                       triggers.on_previous_roles_signed?.previousRolesConfig
                     )}
@@ -116,10 +121,10 @@ export function NotificationTriggersList({
                       type="button"
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs text-black"
+                      className="h-auto p-0 text-xs text-foreground hover:text-primary"
                       onClick={onOpenPreviousRolesSelector}
                     >
-                      Personalizar
+                      {t('editor.workflow.previousRoles.customize')}
                     </Button>
                   )}
                 </div>

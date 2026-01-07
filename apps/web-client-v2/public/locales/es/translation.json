@@ -6,6 +6,7 @@
     "retry": "Reintentar",
     "cancel": "Cancelar",
     "save": "Guardar",
+    "apply": "Aplicar",
     "saving": "Guardando...",
     "delete": "Eliminar",
     "deleting": "Eliminando...",
@@ -290,6 +291,39 @@
       "marginRight": "Derecho",
       "reset": "Restablecer",
       "applyMargins": "Aplicar Márgenes"
+    },
+    "workflow": {
+      "title": "Configuración de firma",
+      "settings": "Configuración de firma",
+      "orderMode": "Orden de firma",
+      "parallel": "Paralelo",
+      "sequential": "Secuencial",
+      "notificationScope": "Notificaciones",
+      "global": "Global",
+      "individual": "Individual",
+      "notifications": "Notificaciones",
+      "notificationsFor": "Notificaciones",
+      "notificationsDescription": "Selecciona cuándo este firmante recibirá notificaciones:",
+      "notifyWhen": "Notificar a firmantes cuando:",
+      "individualHint": "Configura las notificaciones de cada rol usando el icono de campana en cada tarjeta.",
+      "triggers": {
+        "onDocumentCreated": "Al crear documento",
+        "onPreviousRolesSigned": "Cuando firmen roles anteriores",
+        "onTurnToSign": "Cuando le toque firmar",
+        "onAllComplete": "Al completar todas las firmas"
+      },
+      "previousRoles": {
+        "title": "Seleccionar roles anteriores",
+        "auto": "Automático",
+        "custom": "Personalizado",
+        "customize": "Personalizar",
+        "none": "Ninguno",
+        "autoDescription": "Se notificará automáticamente cuando todos los roles anteriores (según el orden) hayan firmado.",
+        "customDescription": "Selecciona los roles que deben firmar antes de notificar:",
+        "noRoles": "No hay roles anteriores disponibles."
+      },
+      "activeCount": "{{count}} activos",
+      "notConfigured": "No configurado"
     }
   },
   "settings": {

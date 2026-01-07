@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react'
-import { GripVertical, Trash2, Type, Variable, AlertTriangle } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { GripVertical, Trash2, Type, Variable, AlertTriangle, ChevronDown } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
@@ -20,15 +21,24 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { useSignerRolesStore } from '../stores/signer-roles-store'
+import { NotificationBadge, NotificationConfigDialog } from './workflow'
 import type {
   SignerRoleDefinition,
   SignerRoleFieldValue,
+  NotificationTriggerMap,
 } from '../types/signer-roles'
+import { getDefaultParallelTriggers, getDefaultSequentialTriggers } from '../types/signer-roles'
 import type { Variable as VariableType } from '../types/variables'
 
 interface SignerRoleItemProps {
   role: SignerRoleDefinition
+  index: number
+  isCompactMode: boolean
+  isDragging?: boolean
+  isOverlay?: boolean
   variables: VariableType[]
+  allRoles: SignerRoleDefinition[]
   onUpdate: (
     id: string,
     updates: Partial<Omit<SignerRoleDefinition, 'id'>>
@@ -116,14 +126,63 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
 
 export function SignerRoleItem({
   role,
+  index,
+  isCompactMode,
+  isDragging = false,
+  isOverlay = false,
   variables,
+  allRoles,
   onUpdate,
   onDelete,
 }: SignerRoleItemProps) {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(!isCompactMode)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Obtener workflowConfig del store
+  const workflowConfig = useSignerRolesStore((state) => state.workflowConfig)
+  const updateRoleTriggers = useSignerRolesStore((state) => state.updateRoleTriggers)
+
+  // Verificar si estamos en modo individual
+  const isIndividualMode = workflowConfig.notifications.scope === 'individual'
+
+  // Obtener los triggers configurados para este rol (o defaults)
+  const roleConfig = workflowConfig.notifications.roleConfigs.find(
+    (rc) => rc.roleId === role.id
+  )
+  const defaultTriggers =
+    workflowConfig.orderMode === 'parallel'
+      ? getDefaultParallelTriggers()
+      : getDefaultSequentialTriggers()
+  const roleTriggers = roleConfig?.triggers ?? defaultTriggers
+
+  // Handler para guardar notificaciones
+  const handleSaveNotifications = (triggers: NotificationTriggerMap) => {
+    updateRoleTriggers(role.id, triggers)
+  }
+
+  // Auto-colapsar/expandir cuando modo compacto cambia
+  useEffect(() => {
+    // Cancelar cualquier timeout pendiente del blur para evitar race condition
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current)
+      blurTimeoutRef.current = null
+    }
+    setIsExpanded(!isCompactMode)
+  }, [isCompactMode])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleDeleteClick = useCallback(() => {
-    // TODO: Check for injectables in document when editor-store is connected
     setShowDeleteConfirmation(true)
   }, [])
 
@@ -132,19 +191,49 @@ export function SignerRoleItem({
     setShowDeleteConfirmation(false)
   }, [role.id, onDelete])
 
+  // Manejar blur para auto-colapsar en modo compacto
+  const handleBlur = useCallback(
+    (e: React.FocusEvent) => {
+      if (isCompactMode && cardRef.current) {
+        // Verificar si el nuevo focus está dentro de la card
+        if (!cardRef.current.contains(e.relatedTarget as Node)) {
+          blurTimeoutRef.current = setTimeout(() => setIsExpanded(false), 150)
+        }
+      }
+    },
+    [isCompactMode]
+  )
+
+  // Cancelar colapso si el focus vuelve a la card
+  const handleFocus = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current)
+      blurTimeoutRef.current = null
+    }
+  }, [])
+
+  const handleCardClick = useCallback(() => {
+    if (isCompactMode) {
+      setIsExpanded((prev) => !prev)
+    }
+  }, [isCompactMode])
+
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging,
-  } = useSortable({ id: role.id })
+    isDragging: isSortableDragging,
+  } = useSortable({ id: role.id, disabled: isOverlay })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  // No aplicar transforms del sortable al overlay
+  const style = isOverlay
+    ? undefined
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }
 
   const handleNameChange = (value: SignerRoleFieldValue) => {
     onUpdate(role.id, { name: value })
@@ -157,16 +246,25 @@ export function SignerRoleItem({
   return (
     <>
       <div
-        ref={setNodeRef}
+        ref={(node) => {
+          setNodeRef(node)
+          if (cardRef) {
+            cardRef.current = node
+          }
+        }}
         style={style}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
         className={cn(
           'border border-border rounded p-3 bg-card transition-all',
-          isDragging && 'shadow-lg ring-2 ring-ring/20 opacity-90 z-50',
-          'hover:border-border/80'
+          'hover:border-border/80',
+          isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted/30',
+          isDragging && 'opacity-40',
+          isOverlay && 'shadow-xl ring-2 ring-primary/20'
         )}
       >
         {/* Header */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className={cn('flex items-center gap-2', isExpanded && 'mb-3')}>
           <div
             {...attributes}
             {...listeners}
@@ -175,12 +273,44 @@ export function SignerRoleItem({
             <GripVertical className="h-4 w-4" />
           </div>
 
+          {/* Número de posición */}
+          <span
+            className={cn(
+              'flex h-5 w-5 items-center justify-center rounded-full bg-muted/50 text-[11px] font-mono font-semibold text-muted-foreground border border-border/50 shrink-0',
+              isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted'
+            )}
+            onClick={handleCardClick}
+          >
+            {index + 1}
+          </span>
+
           <Input
             value={role.label}
             onChange={(e) => onUpdate(role.id, { label: e.target.value })}
             placeholder="Nombre del rol"
             className="h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent hover:border-border focus:border-ring px-1 rounded-none"
           />
+
+          {/* NotificationBadge - solo visible en modo individual */}
+          {isIndividualMode && (
+            <NotificationBadge
+              triggers={roleTriggers}
+              onClick={() => setShowNotificationDialog(true)}
+            />
+          )}
+
+          {/* Chevron para indicar expandible (solo en modo compacto) */}
+          {isCompactMode && (
+            <motion.button
+              type="button"
+              onClick={handleCardClick}
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+            >
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </motion.button>
+          )}
 
           <Button
             variant="ghost"
@@ -192,22 +322,46 @@ export function SignerRoleItem({
           </Button>
         </div>
 
-        {/* Fields */}
-        <div className="space-y-2">
-          <FieldEditor
-            label="Nombre"
-            field={role.name}
-            variables={variables}
-            onChange={handleNameChange}
-          />
-          <FieldEditor
-            label="Email"
-            field={role.email}
-            variables={variables}
-            onChange={handleEmailChange}
-          />
-        </div>
+        {/* Fields con animación */}
+        <motion.div
+          initial={false}
+          animate={{
+            height: isExpanded ? 'auto' : 0,
+            opacity: isExpanded ? 1 : 0,
+          }}
+          transition={{
+            height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
+            opacity: { duration: 0.15, delay: isExpanded ? 0.05 : 0 },
+          }}
+          style={{ overflow: 'hidden' }}
+        >
+          <div className="space-y-2">
+            <FieldEditor
+              label="Nombre"
+              field={role.name}
+              variables={variables}
+              onChange={handleNameChange}
+            />
+            <FieldEditor
+              label="Email"
+              field={role.email}
+              variables={variables}
+              onChange={handleEmailChange}
+            />
+          </div>
+        </motion.div>
       </div>
+
+      {/* Notification config dialog (individual mode) */}
+      <NotificationConfigDialog
+        open={showNotificationDialog}
+        onOpenChange={setShowNotificationDialog}
+        role={role}
+        allRoles={allRoles}
+        triggers={roleTriggers}
+        orderMode={workflowConfig.orderMode}
+        onSave={handleSaveNotifications}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog

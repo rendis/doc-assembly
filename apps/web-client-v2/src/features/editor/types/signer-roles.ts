@@ -32,6 +32,7 @@ export interface SignerRoleDefinition {
 export interface SignerRolesState {
   roles: SignerRoleDefinition[]
   isCollapsed: boolean
+  isCompactMode: boolean
   workflowConfig: SigningWorkflowConfig
 }
 
@@ -48,6 +49,7 @@ export interface SignerRolesActions {
   deleteRole: (id: string) => void
   reorderRoles: (startIndex: number, endIndex: number) => void
   toggleCollapsed: () => void
+  toggleCompactMode: () => void
   reset: () => void
   // Workflow actions
   setOrderMode: (mode: SigningOrderMode) => void

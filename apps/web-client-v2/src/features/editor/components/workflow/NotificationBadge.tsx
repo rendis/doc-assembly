@@ -1,4 +1,5 @@
 import { Bell } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -16,21 +17,27 @@ export function NotificationBadge({
   onClick,
   className,
 }: NotificationBadgeProps) {
+  const { t } = useTranslation()
   const activeCount = countActiveTriggers(triggers)
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      className={cn('h-6 w-6 relative text-gray-400 hover:text-black', className)}
+      className={cn(
+        'h-6 w-6 relative text-muted-foreground rounded-full',
+        'hover:bg-yellow-500/10 hover:text-yellow-500',
+        'transition-colors',
+        className
+      )}
       onClick={onClick}
-      title="Configurar notificaciones"
+      title={t('editor.workflow.notifications')}
     >
       <Bell className="h-3.5 w-3.5" />
       {activeCount > 0 && (
         <Badge
           variant="secondary"
-          className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] font-medium bg-black text-white"
+          className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] font-medium bg-foreground text-background pointer-events-none"
         >
           {activeCount}
         </Badge>
