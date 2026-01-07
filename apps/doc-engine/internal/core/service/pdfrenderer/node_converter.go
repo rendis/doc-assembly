@@ -196,6 +196,15 @@ func (c *NodeConverter) injector(node portabledoc.Node) string {
 				value = roleValue.Email
 			}
 		}
+
+		// Fallback: if no value from signerRoleValues, try injectables directly
+		// This handles cases where role variables are passed directly in injectables
+		// (e.g., ROLE.Rol_1.email) instead of through SignerRole.Email.Type="injectable"
+		if value == "" {
+			if v, ok := c.injectables[variableID]; ok {
+				value = c.formatInjectableValue(v, node.Attrs)
+			}
+		}
 	} else {
 		// Regular injectable - get from injectables map
 		if v, ok := c.injectables[variableID]; ok {

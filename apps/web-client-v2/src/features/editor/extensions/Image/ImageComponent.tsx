@@ -11,6 +11,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [pageMaxWidth, setPageMaxWidth] = useState<number | null>(null);
 
   const { src, alt, title, width, height, displayMode, align, shape } = node.attrs as {
     src: string;
@@ -72,6 +73,20 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     // Fallback a dimensiones razonables
     return { maxWidth: 700, maxHeight: 900 };
   }, []);
+
+  // Actualizar pageMaxWidth después del mount
+  useEffect(() => {
+    const updateMaxWidth = () => {
+      const { maxWidth } = getMaxDimensions();
+      setPageMaxWidth(maxWidth);
+    };
+
+    // Actualizar inmediatamente y después de un pequeño delay para asegurar el layout
+    updateMaxWidth();
+    const timeoutId = setTimeout(updateMaxWidth, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [getMaxDimensions]);
 
   // Establecer dimensiones iniciales cuando la imagen carga (si no están definidas)
   const handleImageLoad = useCallback(
@@ -179,26 +194,25 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     return styles;
   }, [displayMode, align]);
 
-  // Image styles siguiendo la lógica de v1: maxWidth: 'none' cuando hay width explícito
+  // Image styles con maxWidth basado en el ancho real de la página
   const imageStyles = useMemo((): React.CSSProperties => {
     const styles: React.CSSProperties = {
-      maxWidth: '100%',
+      maxWidth: pageMaxWidth ? `${pageMaxWidth}px` : '100%',
       height: 'auto',
     };
 
     if (width) {
-      styles.width = width;
-      styles.maxWidth = 'none'; // Permite agrandar más allá del contenedor
+      styles.width = `${width}px`;
     }
     if (height) {
-      styles.height = height;
+      styles.height = `${height}px`;
     }
     if (shape === 'circle') {
       styles.borderRadius = '50%';
     }
 
     return styles;
-  }, [width, height, shape]);
+  }, [width, height, shape, pageMaxWidth]);
 
   return (
     <NodeViewWrapper
@@ -272,6 +286,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
             </div>
 
             <Moveable
+              key={shape}
               target={imageRef}
               resizable
               keepRatio

@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { Settings2, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -15,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Settings2 } from 'lucide-react'
 import { PAGE_SIZES, DEFAULT_MARGINS, MARGIN_LIMITS, type PageMargins } from '../types'
 import { usePaginationStore } from '../stores'
 
@@ -89,6 +83,16 @@ export function PageSettings() {
     setMargins(customMargins)
   }
 
+  const handleReset = () => {
+    setCustomMargins(DEFAULT_MARGINS)
+    setInputValues({
+      top: String(DEFAULT_MARGINS.top),
+      bottom: String(DEFAULT_MARGINS.bottom),
+      left: String(DEFAULT_MARGINS.left),
+      right: String(DEFAULT_MARGINS.right),
+    })
+  }
+
   const getCurrentSizeKey = () => {
     return Object.entries(PAGE_SIZES).find(
       ([_, size]) => size.width === pageSize.width && size.height === pageSize.height
@@ -96,131 +100,168 @@ export function PageSettings() {
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+      <DialogPrimitive.Trigger asChild>
+        <button className="flex items-center gap-2 rounded-none border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:border-foreground hover:text-foreground">
           <Settings2 className="h-4 w-4" />
           <span>{pageSize.label}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">{t('editor.pageSettings.title')}</h4>
-            <p className="text-sm text-muted-foreground">
-              {t('editor.pageSettings.description')}
-            </p>
+        </button>
+      </DialogPrimitive.Trigger>
+
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          className={cn(
+            'fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
+          )}
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-border p-6">
+            <div>
+              <DialogPrimitive.Title className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
+                {t('editor.pageSettings.title')}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="mt-1 text-sm font-light text-muted-foreground">
+                {t('editor.pageSettings.description')}
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
           </div>
 
-          {/* Page Size */}
-          <div className="grid gap-2">
-            <Label htmlFor="page-size">{t('editor.pageSettings.pageSize')}</Label>
-            <Select
-              value={getCurrentSizeKey()}
-              onValueChange={handlePageSizeChange}
-            >
-              <SelectTrigger id="page-size">
-                <SelectValue placeholder={t('editor.pageSettings.pageSizePlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PAGE_SIZES).map(([key, size]) => (
-                  <SelectItem key={key} value={key}>
-                    {size.label} ({size.width} x {size.height}px)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Content */}
+          <div className="space-y-6 p-6">
+            {/* Page Size */}
+            <div>
+              <label
+                htmlFor="page-size"
+                className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
+              >
+                {t('editor.pageSettings.pageSize')}
+              </label>
+              <Select
+                value={getCurrentSizeKey()}
+                onValueChange={handlePageSizeChange}
+              >
+                <SelectTrigger id="page-size" className="border-border">
+                  <SelectValue placeholder={t('editor.pageSettings.pageSizePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PAGE_SIZES).map(([key, size]) => (
+                    <SelectItem key={key} value={key}>
+                      {size.label} ({size.width} x {size.height}px)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Margins */}
-          <div className="grid gap-2">
-            <Label>{t('editor.pageSettings.margins')}</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label htmlFor="margin-top" className="text-xs text-muted-foreground">
-                  {t('editor.pageSettings.marginTop')}
-                </Label>
-                <Input
-                  id="margin-top"
-                  type="number"
-                  min={MARGIN_LIMITS.min}
-                  max={MARGIN_LIMITS.max}
-                  value={inputValues.top}
-                  onChange={(e) => handleMarginChange('top', e.target.value)}
-                  onBlur={() => handleMarginBlur('top')}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="margin-bottom" className="text-xs text-muted-foreground">
-                  {t('editor.pageSettings.marginBottom')}
-                </Label>
-                <Input
-                  id="margin-bottom"
-                  type="number"
-                  min={MARGIN_LIMITS.min}
-                  max={MARGIN_LIMITS.max}
-                  value={inputValues.bottom}
-                  onChange={(e) => handleMarginChange('bottom', e.target.value)}
-                  onBlur={() => handleMarginBlur('bottom')}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="margin-left" className="text-xs text-muted-foreground">
-                  {t('editor.pageSettings.marginLeft')}
-                </Label>
-                <Input
-                  id="margin-left"
-                  type="number"
-                  min={MARGIN_LIMITS.min}
-                  max={MARGIN_LIMITS.max}
-                  value={inputValues.left}
-                  onChange={(e) => handleMarginChange('left', e.target.value)}
-                  onBlur={() => handleMarginBlur('left')}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="margin-right" className="text-xs text-muted-foreground">
-                  {t('editor.pageSettings.marginRight')}
-                </Label>
-                <Input
-                  id="margin-right"
-                  type="number"
-                  min={MARGIN_LIMITS.min}
-                  max={MARGIN_LIMITS.max}
-                  value={inputValues.right}
-                  onChange={(e) => handleMarginChange('right', e.target.value)}
-                  onBlur={() => handleMarginBlur('right')}
-                  className="h-8"
-                />
+            {/* Margins */}
+            <div>
+              <label className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                {t('editor.pageSettings.margins')}
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="margin-top"
+                    className="mb-1 block text-xs text-muted-foreground"
+                  >
+                    {t('editor.pageSettings.marginTop')}
+                  </label>
+                  <input
+                    id="margin-top"
+                    type="number"
+                    min={MARGIN_LIMITS.min}
+                    max={MARGIN_LIMITS.max}
+                    value={inputValues.top}
+                    onChange={(e) => handleMarginChange('top', e.target.value)}
+                    onBlur={() => handleMarginBlur('top')}
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="margin-bottom"
+                    className="mb-1 block text-xs text-muted-foreground"
+                  >
+                    {t('editor.pageSettings.marginBottom')}
+                  </label>
+                  <input
+                    id="margin-bottom"
+                    type="number"
+                    min={MARGIN_LIMITS.min}
+                    max={MARGIN_LIMITS.max}
+                    value={inputValues.bottom}
+                    onChange={(e) => handleMarginChange('bottom', e.target.value)}
+                    onBlur={() => handleMarginBlur('bottom')}
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="margin-left"
+                    className="mb-1 block text-xs text-muted-foreground"
+                  >
+                    {t('editor.pageSettings.marginLeft')}
+                  </label>
+                  <input
+                    id="margin-left"
+                    type="number"
+                    min={MARGIN_LIMITS.min}
+                    max={MARGIN_LIMITS.max}
+                    value={inputValues.left}
+                    onChange={(e) => handleMarginChange('left', e.target.value)}
+                    onBlur={() => handleMarginBlur('left')}
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="margin-right"
+                    className="mb-1 block text-xs text-muted-foreground"
+                  >
+                    {t('editor.pageSettings.marginRight')}
+                  </label>
+                  <input
+                    id="margin-right"
+                    type="number"
+                    min={MARGIN_LIMITS.min}
+                    max={MARGIN_LIMITS.max}
+                    value={inputValues.right}
+                    onChange={(e) => handleMarginChange('right', e.target.value)}
+                    onBlur={() => handleMarginBlur('right')}
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Margin buttons */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
+          {/* Footer */}
+          <div className="flex justify-end gap-3 border-t border-border p-6">
+            <button
+              type="button"
+              onClick={handleReset}
               disabled={!isNotDefault}
-              onClick={() => {
-                setCustomMargins(DEFAULT_MARGINS)
-              }}
+              className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
             >
               {t('editor.pageSettings.reset')}
-            </Button>
-            <Button
-              size="sm"
-              disabled={!hasChanges}
+            </button>
+            <button
+              type="button"
               onClick={handleApplyMargins}
+              disabled={!hasChanges}
+              className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
             >
               {t('editor.pageSettings.applyMargins')}
-            </Button>
+            </button>
           </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }

@@ -182,6 +182,108 @@ func TestRenderPreview_EmptyInjectables(t *testing.T) {
 	t.Logf("Generated PDF: %d bytes", len(result.PDF))
 }
 
+func TestRenderPreview_RoleVariableFromInjectables(t *testing.T) {
+	// Test that verifies ROLE variables are resolved from injectables
+	// when SignerRole.email.type = "text" with empty value
+	// and the injector node has isRoleVariable = true
+	service, err := NewService(DefaultChromeOptions())
+	if err != nil {
+		t.Skipf("Chrome not available, skipping test: %v", err)
+	}
+	defer service.Close()
+
+	doc := &portabledoc.Document{
+		Version: portabledoc.CurrentVersion,
+		Meta: portabledoc.Meta{
+			Title:    "Test ROLE Variables",
+			Language: "es",
+		},
+		PageConfig: portabledoc.PageConfig{
+			FormatID: portabledoc.PageFormatA4,
+			Width:    794,
+			Height:   1123,
+			Margins:  portabledoc.Margins{Top: 96, Bottom: 96, Left: 72, Right: 72},
+		},
+		VariableIDs: []string{"ROLE.Rol_1.email", "ROLE.Rol_1.name"},
+		SignerRoles: []portabledoc.SignerRole{
+			{
+				ID:    "role_1",
+				Label: "Rol_1",
+				Name:  portabledoc.FieldValue{Type: "text", Value: ""}, // Empty text type
+				Email: portabledoc.FieldValue{Type: "text", Value: ""}, // Empty text type
+				Order: 1,
+			},
+		},
+		Content: &portabledoc.ProseMirrorDoc{
+			Type: "doc",
+			Content: []portabledoc.Node{
+				{
+					Type: portabledoc.NodeTypeParagraph,
+					Content: []portabledoc.Node{
+						{Type: portabledoc.NodeTypeText, Text: strPtr("Email: ")},
+						{
+							Type: portabledoc.NodeTypeInjector,
+							Attrs: map[string]any{
+								"type":           "ROLE_TEXT",
+								"label":          "Rol 1.email",
+								"variableId":     "ROLE.Rol_1.email",
+								"isRoleVariable": true,
+								"roleId":         "role_1",
+								"roleLabel":      "Rol_1",
+								"propertyKey":    "email",
+							},
+						},
+					},
+				},
+				{
+					Type: portabledoc.NodeTypeParagraph,
+					Content: []portabledoc.Node{
+						{Type: portabledoc.NodeTypeText, Text: strPtr("Name: ")},
+						{
+							Type: portabledoc.NodeTypeInjector,
+							Attrs: map[string]any{
+								"type":           "ROLE_TEXT",
+								"label":          "Rol 1.name",
+								"variableId":     "ROLE.Rol_1.name",
+								"isRoleVariable": true,
+								"roleId":         "role_1",
+								"roleLabel":      "Rol_1",
+								"propertyKey":    "name",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Pass ROLE variables directly in injectables (not through SignerRole.Email.Type="injectable")
+	req := &port.RenderPreviewRequest{
+		Document: doc,
+		Injectables: map[string]any{
+			"ROLE.Rol_1.email": "test@example.com",
+			"ROLE.Rol_1.name":  "Test User",
+		},
+	}
+
+	ctx := context.Background()
+	result, err := service.RenderPreview(ctx, req)
+	if err != nil {
+		t.Fatalf("RenderPreview failed: %v", err)
+	}
+
+	if len(result.PDF) == 0 {
+		t.Fatal("PDF is empty")
+	}
+
+	// Check PDF magic bytes
+	if len(result.PDF) < 4 || string(result.PDF[:4]) != "%PDF" {
+		t.Fatal("result is not a valid PDF (missing %PDF header)")
+	}
+
+	t.Logf("Generated PDF with ROLE variables from injectables: %d bytes", len(result.PDF))
+}
+
 func strPtr(s string) *string {
 	return &s
 }

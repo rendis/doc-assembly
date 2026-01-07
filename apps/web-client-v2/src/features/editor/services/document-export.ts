@@ -23,6 +23,7 @@ import type {
 } from '../types/document-format'
 import type { PaginationStore } from '../stores/pagination-store'
 import { DOCUMENT_FORMAT_VERSION } from '../types/document-format'
+import { PAGE_SIZES } from '../types'
 
 // =============================================================================
 // Helper Types
@@ -113,13 +114,24 @@ function extractVariableIds(content: ProseMirrorDocument): string[] {
 // =============================================================================
 
 /**
+ * Gets the page format ID (key) from PAGE_SIZES based on dimensions
+ * Returns 'CUSTOM' if no matching format is found
+ */
+function getPageFormatId(pageSize: { width: number; height: number }): PageConfig['formatId'] {
+  const entry = Object.entries(PAGE_SIZES).find(
+    ([_, size]) => size.width === pageSize.width && size.height === pageSize.height
+  )
+  return (entry?.[0] as PageConfig['formatId']) || 'CUSTOM'
+}
+
+/**
  * Converts pagination store config to PageConfig format
  */
 function extractPageConfig(pagination: EditorStoreData['pagination']): PageConfig {
   const { pageSize, margins, showPageNumbers, pageGap } = pagination
 
   return {
-    formatId: (pageSize.label as PageConfig['formatId']) || 'CUSTOM',
+    formatId: getPageFormatId(pageSize),
     width: pageSize.width,
     height: pageSize.height,
     margins: { ...margins },

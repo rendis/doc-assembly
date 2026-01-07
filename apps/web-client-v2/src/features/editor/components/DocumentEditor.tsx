@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PaginationPlus } from 'tiptap-pagination-plus'
 import {
   DndContext,
@@ -66,7 +66,10 @@ export function DocumentEditor({
   // Get pagination config from store
   const { pageSize, margins, pageGap } = usePaginationStore()
 
-  // Key unica basada en la configuracion - cuando cambia, el editor se recrea
+  // Ref to store current content before editor recreation
+  const contentRef = useRef<string>(initialContent)
+
+  // Key for editor recreation - when this changes, editor will be recreated
   const editorKey = useMemo(
     () => `${pageSize.width}-${pageSize.height}-${margins.top}-${margins.bottom}-${margins.left}-${margins.right}`,
     [pageSize, margins]
@@ -136,9 +139,12 @@ export function DocumentEditor({
         suggestion: slashCommandsSuggestion,
       }),
     ],
-    content: initialContent,
+    // Use stored content on recreation, initial content on first render
+    content: contentRef.current,
     editable,
     onUpdate: ({ editor }) => {
+      // Store current content for potential editor recreation
+      contentRef.current = editor.getHTML()
       onContentChange?.(editor.getHTML())
     },
     editorProps: {
@@ -147,7 +153,7 @@ export function DocumentEditor({
           'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px]',
       },
     },
-  })
+  }, [editorKey]) // Recreate editor when editorKey changes
 
   // Store editor reference for export/import
   useEffect(() => {
@@ -443,7 +449,7 @@ export function DocumentEditor({
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex h-full" key={editorKey}>
+        <div className="flex h-full">
           {/* Left: Variables Panel */}
           <VariablesPanel
             onVariableClick={handleVariableClick}

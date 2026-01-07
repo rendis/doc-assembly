@@ -25,7 +25,10 @@ export const VariableTypeSchema = z.enum([
 
 export const LanguageSchema = z.enum(['en', 'es'])
 
-export const PageFormatIdSchema = z.enum(['A4', 'LETTER', 'LEGAL', 'CUSTOM'])
+export const PageFormatIdSchema = z
+  .string()
+  .transform((val) => val.toUpperCase())
+  .pipe(z.enum(['A4', 'LETTER', 'LEGAL', 'CUSTOM']))
 
 // =============================================================================
 // Document Metadata Schema

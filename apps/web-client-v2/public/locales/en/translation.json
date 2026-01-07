@@ -263,6 +263,9 @@
     }
   },
   "editor": {
+    "toolbar": {
+      "blocks": "Blocks"
+    },
     "preparation": {
       "title": "Preparing document"
     },

@@ -240,6 +240,15 @@ body {
   @apply pointer-events-none opacity-50;
 }
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================
    Animation Keyframes
    ============================================ */
@@ -634,22 +643,28 @@ body {
 }
 
 /* ============================================
-   Block and Inline Image Styles
+   Image Styles
    ============================================ */
 
-/* Block images - prevent breaking inside */
-.ProseMirror [data-type="block-image"] {
+/* Images - prevent breaking inside page breaks */
+.ProseMirror [data-type="image"] {
   break-inside: avoid;
+  page-break-inside: avoid;
+  overflow: hidden;
 }
 
-/* Inline images - float handling for text wrapping */
-.ProseMirror [data-type="inline-image"] {
-  break-inside: avoid;
+/* Image wrapper - ensure proper containment */
+.ProseMirror [data-type="image"] > div {
+  overflow: hidden;
 }
 
-/* Ensure paragraphs containing inline images establish a BFC */
-.ProseMirror p:has([data-type="inline-image"]) {
-  display: flow-root;
+/* ============================================
+   Moveable (react-moveable) Styles
+   ============================================ */
+
+/* Control z-index of Moveable resize handles to stay below dialogs */
+.moveable-control-box {
+  z-index: 40 !important;
 }
 
 
