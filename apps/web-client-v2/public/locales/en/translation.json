@@ -252,6 +252,9 @@
     }
   },
   "editor": {
+    "preparation": {
+      "title": "Preparing document"
+    },
     "autosaved": "Autosaved",
     "saving": "Saving...",
     "publish": "Publish Template",

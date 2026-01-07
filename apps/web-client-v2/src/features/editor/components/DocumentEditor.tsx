@@ -42,6 +42,8 @@ interface DocumentEditorProps {
   onImport?: () => void
   editorRef?: React.MutableRefObject<any>
   onEditorReady?: (editor: Editor | null) => void
+  /** Called when editor is fully rendered and styles are applied */
+  onFullyReady?: () => void
 }
 
 export function DocumentEditor({
@@ -53,6 +55,7 @@ export function DocumentEditor({
   onImport,
   editorRef,
   onEditorReady,
+  onFullyReady,
 }: DocumentEditorProps) {
   // Get pagination config from store
   const { pageSize, margins, pageGap } = usePaginationStore()
@@ -148,6 +151,23 @@ export function DocumentEditor({
     // Notify parent when editor is ready
     onEditorReady?.(editor ?? null)
   }, [editor, editorRef, onEditorReady])
+
+  // Notify when editor is fully rendered and styles are applied
+  useEffect(() => {
+    if (!editor || !onFullyReady) return
+
+    // Wait for next frame to ensure styles are painted
+    const rafId = requestAnimationFrame(() => {
+      // Additional small delay to ensure all CSS transitions complete
+      const timerId = setTimeout(() => {
+        onFullyReady()
+      }, 50)
+
+      return () => clearTimeout(timerId)
+    })
+
+    return () => cancelAnimationFrame(rafId)
+  }, [editor, onFullyReady])
 
   // Listen for image modal events
   useEffect(() => {

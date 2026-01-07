@@ -252,6 +252,9 @@
     }
   },
   "editor": {
+    "preparation": {
+      "title": "Preparando documento"
+    },
     "autosaved": "Guardado automático",
     "saving": "Guardando...",
     "publish": "Publicar Plantilla",

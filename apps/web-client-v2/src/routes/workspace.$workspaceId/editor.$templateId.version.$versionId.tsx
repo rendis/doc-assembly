@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { ArrowLeft, Loader2, AlertCircle, Save, RefreshCw } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, RefreshCw } from 'lucide-react'
 import { DocumentEditor } from '@/features/editor/components/DocumentEditor'
+import { DocumentPreparationOverlay } from '@/features/editor/components/DocumentPreparationOverlay'
 import { SaveStatusIndicator } from '@/features/editor/components/SaveStatusIndicator'
 import { useInjectables } from '@/features/editor/hooks/useInjectables'
 import { useAutoSave } from '@/features/editor/hooks/useAutoSave'
@@ -39,6 +40,12 @@ function EditorPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<Error | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
+
+  // Preparation overlay state - stays visible until editor is fully ready AND minimum time elapsed
+  const [isPreparingDocument, setIsPreparingDocument] = useState(true)
+  const [isEditorReady, setIsEditorReady] = useState(false)
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false)
+  const overlayStartTimeRef = useRef(Date.now())
 
   // Fetch version details from backend
   const fetchVersion = useCallback(async () => {
@@ -137,19 +144,33 @@ function EditorPage() {
     await autoSave.save()
   }, [autoSave])
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-full bg-background items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">
-          {t('common.loading') || 'Cargando...'}
-        </p>
-      </div>
-    )
-  }
+  // Minimum display time for overlay (2 seconds)
+  const MINIMUM_OVERLAY_TIME_MS = 2000
 
-  // Error state
+  // Start minimum time timer on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true)
+    }, MINIMUM_OVERLAY_TIME_MS)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Hide overlay only when both conditions are met: editor ready AND minimum time elapsed
+  useEffect(() => {
+    if (isEditorReady && minTimeElapsed) {
+      requestAnimationFrame(() => {
+        setIsPreparingDocument(false)
+      })
+    }
+  }, [isEditorReady, minTimeElapsed])
+
+  // Handler for when editor is fully rendered with styles
+  const handleEditorFullyReady = useCallback(() => {
+    setIsEditorReady(true)
+  }, [])
+
+  // Error state (shows without overlay)
   if (fetchError || importError) {
     return (
       <div className="flex flex-col h-full bg-background items-center justify-center">
@@ -173,71 +194,85 @@ function EditorPage() {
     )
   }
 
+  // Show overlay while loading or preparing (but still render editor in background)
+  const showPreparationOverlay = isLoading || isPreparingDocument
+
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b bg-card">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.history.back()}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-sm font-semibold">{version?.name || 'Editor'}</h1>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                v{version?.versionNumber || versionId}
-              </span>
-              {isEditable ? (
-                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                  Editable
+    <>
+      {/* Preparation overlay - covers everything while loading */}
+      <DocumentPreparationOverlay
+        isVisible={showPreparationOverlay}
+        documentName={version?.name}
+      />
+
+      <div className="flex flex-col h-[calc(100vh-4rem)]">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 py-2 border-b bg-card">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.history.back()}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-sm font-semibold">{version?.name || 'Editor'}</h1>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  v{version?.versionNumber || versionId}
                 </span>
-              ) : (
-                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                  Solo lectura
-                </span>
-              )}
+                {isEditable ? (
+                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                    Editable
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                    Solo lectura
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {isEditable && (
-            <>
-              <SaveStatusIndicator
-                status={autoSave.status}
-                lastSavedAt={autoSave.lastSavedAt}
-                error={autoSave.error}
-                onRetry={handleForceSave}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleForceSave}
-                disabled={autoSave.status === 'saving'}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {t('common.save') || 'Guardar'}
-              </Button>
-            </>
+          <div className="flex items-center gap-3">
+            {isEditable && (
+              <>
+                <SaveStatusIndicator
+                  status={autoSave.status}
+                  lastSavedAt={autoSave.lastSavedAt}
+                  error={autoSave.error}
+                  onRetry={handleForceSave}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleForceSave}
+                  disabled={autoSave.status === 'saving'}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {t('common.save') || 'Guardar'}
+                </Button>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* Editor - renders in background while overlay shows */}
+        <div className="flex-1 overflow-hidden">
+          {!isLoading && (
+            <DocumentEditor
+              key="editor"
+              initialContent=""
+              editable={isEditable}
+              variables={variables}
+              editorRef={editorRef}
+              onEditorReady={setEditorInstance}
+              onFullyReady={handleEditorFullyReady}
+            />
           )}
         </div>
-      </header>
-
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden">
-        <DocumentEditor
-          key="editor"
-          initialContent=""
-          editable={isEditable}
-          variables={variables}
-          editorRef={editorRef}
-          onEditorReady={setEditorInstance}
-        />
       </div>
-    </div>
+    </>
   )
 }

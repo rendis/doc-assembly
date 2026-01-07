@@ -600,7 +600,7 @@ body {
   display: block !important;
   min-height: 50px !important;
   border: none !important;
-  background: #F6F6F8 !important;
+  background: transparent !important;
 }
 
 /* Page break container */
@@ -615,7 +615,7 @@ body {
 }
 
 .dark .rm-pagination-gap {
-  background: #22252C !important;
+  background: transparent !important;
 }
 
 /* Ocultar estilos del ProseMirror cuando hay paginación */
