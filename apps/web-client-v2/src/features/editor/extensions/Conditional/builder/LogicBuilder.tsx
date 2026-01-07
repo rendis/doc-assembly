@@ -9,6 +9,7 @@ import {
   TouchSensor,
 } from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
+import { snapCenterToCursor } from '@dnd-kit/modifiers'
 import { useDraggable } from '@dnd-kit/core'
 import { GripVertical, Variable, Search, Loader2 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -238,6 +239,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      modifiers={[snapCenterToCursor]}
     >
       <LogicBuilderContext.Provider
         value={{
@@ -328,9 +330,10 @@ const DraggingItem = ({ id, variables }: DraggingItemProps) => {
   const Icon = ICONS[v.type] || Type
 
   return (
-    <div className="bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-xl flex items-center gap-2 cursor-grabbing ring-2 ring-white z-[100]">
-      <Icon className="h-3 w-3" />
-      {v.label}
+    <div className="flex items-center gap-2 p-2.5 text-sm border border-border rounded-md bg-card shadow-lg cursor-grabbing z-[100]">
+      <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <span>{v.label}</span>
     </div>
   )
 }
