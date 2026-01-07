@@ -25,6 +25,8 @@ import {
   PenLine,
   GitBranch,
   ImageIcon,
+  Download,
+  Upload,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -45,9 +47,11 @@ const FONT_SIZES = ['10', '12', '14', '16', '18', '24', '36']
 
 interface EditorToolbarProps {
   editor: Editor | null
+  onExport?: () => void
+  onImport?: () => void
 }
 
-export function EditorToolbar({ editor }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onExport, onImport }: EditorToolbarProps) {
   // Force re-render when editor state changes (for undo/redo buttons)
   const [, forceUpdate] = useState({})
 
@@ -237,6 +241,26 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         >
           <GitBranch className="h-4 w-4" />
         </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Export/Import */}
+        {onExport && (
+          <ToolbarButton
+            onClick={onExport}
+            tooltip="Exportar documento (JSON)"
+          >
+            <Download className="h-4 w-4" />
+          </ToolbarButton>
+        )}
+        {onImport && (
+          <ToolbarButton
+            onClick={onImport}
+            tooltip="Importar documento (JSON)"
+          >
+            <Upload className="h-4 w-4" />
+          </ToolbarButton>
+        )}
       </div>
     </TooltipProvider>
   )

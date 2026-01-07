@@ -1,9 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, Save } from 'lucide-react'
-import { DocumentEditor, PAGE_SIZES, DEFAULT_MARGINS } from '@/features/editor'
+import { DocumentEditor } from '@/features/editor'
 import { useInjectables } from '@/features/editor/hooks/useInjectables'
-import { useState, useCallback, useRef } from 'react'
-import type { PageSize, PageMargins } from '@/features/editor'
+import { usePaginationStore, useSignerRolesStore } from '@/features/editor/stores'
+import { PAGE_SIZES, DEFAULT_MARGINS } from '@/features/editor'
+import { exportAndDownload, importFromFile, type ImportResult } from '@/features/editor/services'
+import { ImportValidationDialog } from '@/features/editor/components/ImportValidationDialog'
+import type { DocumentMeta } from '@/features/editor/types'
+import { useState, useCallback, useRef, useEffect } from 'react'
 
 export const Route = createFileRoute('/workspace/$workspaceId/editor/$versionId')({
   component: EditorPage,
@@ -16,26 +20,28 @@ function EditorPage() {
   // Load variables (injectables) from the API
   const { variables } = useInjectables()
 
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [pendingImport, setPendingImport] = useState<ImportResult | null>(null)
+
+  // Editor ref for export/import
+  const editorRef = useRef<any>(null)
+
+  // Initialize pagination store with defaults
+  useEffect(() => {
+    usePaginationStore.setState({
+      pageSize: PAGE_SIZES.A4,
+      margins: DEFAULT_MARGINS,
+      showPageNumbers: true,
+      pageGap: 50,
+    })
+  }, [])
+
   // Estado del contenido (preservado entre cambios de page size)
   const contentRef = useRef<string>('<p>Comienza a escribir tu documento aqui...</p>')
 
-  // Estado de configuracion de pagina
-  const [pageSize, setPageSize] = useState<PageSize>(PAGE_SIZES.A4)
-  const [margins, setMargins] = useState<PageMargins>(DEFAULT_MARGINS)
-
-  // Key unica basada en la configuracion - cuando cambia, el editor se recrea
-  const editorKey = `${pageSize.width}-${pageSize.height}-${margins.top}-${margins.bottom}-${margins.left}-${margins.right}`
-
   const handleContentChange = useCallback((newContent: string) => {
     contentRef.current = newContent
-  }, [])
-
-  const handlePageSizeChange = useCallback((size: PageSize) => {
-    setPageSize(size)
-  }, [])
-
-  const handleMarginsChange = useCallback((newMargins: PageMargins) => {
-    setMargins(newMargins)
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -49,6 +55,72 @@ function EditorPage() {
       setIsSaving(false)
     }
   }, [versionId])
+
+  // Export handler
+  const handleExport = useCallback(() => {
+    if (!editorRef.current) return
+
+    const editor = editorRef.current
+    const paginationStore = usePaginationStore.getState()
+    const signerRolesStore = useSignerRolesStore.getState()
+
+    const stores = {
+      pagination: paginationStore,
+      signerRoles: signerRolesStore.roles,
+      workflowConfig: signerRolesStore.workflowConfig,
+    }
+
+    const meta: DocumentMeta = {
+      title: `Version ${versionId}`,
+      language: 'es',
+    }
+
+    const filename = `documento-${versionId}-${Date.now()}.json`
+    exportAndDownload(editor, stores, meta, filename)
+  }, [versionId])
+
+  // Import handler
+  const handleImport = useCallback(async () => {
+    if (!editorRef.current) return
+
+    const editor = editorRef.current
+    const paginationStore = usePaginationStore.getState()
+    const signerRolesStore = useSignerRolesStore.getState()
+
+    const stores = {
+      pagination: paginationStore,
+      setSignerRoles: signerRolesStore.setRoles,
+      setWorkflowConfig: signerRolesStore.setWorkflowConfig,
+    }
+
+    const result = await importFromFile(
+      editor,
+      stores,
+      variables,
+      { validateReferences: true, autoMigrate: true }
+    )
+
+    if (!result) return // User cancelled
+
+    // Show dialog if there are errors or warnings
+    if (result.validation.errors.length > 0 || result.validation.warnings.length > 0) {
+      setPendingImport(result)
+      setImportDialogOpen(true)
+      return
+    }
+
+    // Success: no errors or warnings - update content ref
+    if (editor) {
+      contentRef.current = editor.getHTML()
+    }
+  }, [variables])
+
+  // Confirm import after validation dialog
+  const handleImportConfirm = useCallback(() => {
+    setImportDialogOpen(false)
+    setPendingImport(null)
+    // Content was already loaded by importDocument
+  }, [])
 
   return (
     <div className="flex flex-col h-screen">
@@ -75,19 +147,28 @@ function EditorPage() {
         </button>
       </header>
 
-      {/* Editor - key cambia cuando cambia la configuracion de pagina */}
+      {/* Editor */}
       <div className="flex-1 overflow-hidden">
         <DocumentEditor
-          key={editorKey}
+          key="editor"
           initialContent={contentRef.current}
           onContentChange={handleContentChange}
-          pageSize={pageSize}
-          margins={margins}
-          onPageSizeChange={handlePageSizeChange}
-          onMarginsChange={handleMarginsChange}
           variables={variables}
+          onExport={handleExport}
+          onImport={handleImport}
+          editorRef={editorRef}
         />
       </div>
+
+      {/* Import Validation Dialog */}
+      {pendingImport && (
+        <ImportValidationDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          validation={pendingImport.validation}
+          onConfirm={handleImportConfirm}
+        />
+      )}
     </div>
   )
 }

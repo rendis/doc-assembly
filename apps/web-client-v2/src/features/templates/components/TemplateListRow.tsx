@@ -1,5 +1,6 @@
 import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash, Layers, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,9 @@ import type { TemplateListItem } from '@/types/api'
 
 interface TemplateListRowProps {
   template: TemplateListItem
+  index?: number
+  isExiting?: boolean
+  isEntering?: boolean
   onClick?: () => void
   onGoToFolder?: (folderId: string | undefined) => void
   onEdit?: () => void
@@ -19,6 +23,9 @@ interface TemplateListRowProps {
 
 export function TemplateListRow({
   template,
+  index = 0,
+  isExiting = false,
+  isEntering = false,
   onClick,
   onGoToFolder,
   onEdit,
@@ -38,10 +45,68 @@ export function TemplateListRow({
     })
   }
 
+  // Calculate stagger delay (only animate first 10 rows)
+  const shouldAnimate = index < 10
+  const staggerDelay = shouldAnimate ? index * 0.05 : 0
+
+  // Animation states
+  const getAnimationState = () => {
+    if (isEntering && shouldAnimate) {
+      // Entry: from left, growing height
+      return {
+        opacity: 1,
+        x: 0,
+        height: 'auto',
+      }
+    }
+    if (isExiting && shouldAnimate) {
+      // Exit: to left, collapsing height
+      return {
+        opacity: 0,
+        x: -50,
+        height: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+      }
+    }
+    // Normal state
+    return {
+      opacity: 1,
+      x: 0,
+      height: 'auto',
+    }
+  }
+
+  // Initial state for entry animation
+  const getInitialState = () => {
+    if (isEntering && shouldAnimate) {
+      return {
+        opacity: 0,
+        x: -50,
+        height: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+      }
+    }
+    return {
+      opacity: 1,
+      x: 0,
+      height: 'auto',
+    }
+  }
+
   return (
-    <tr
+    <motion.tr
+      initial={getInitialState()}
+      animate={getAnimationState()}
+      transition={{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: (isEntering || isExiting) ? staggerDelay : 0,
+      }}
       onClick={onClick}
       className="group cursor-pointer transition-colors hover:bg-accent"
+      style={{ overflow: 'hidden' }}
     >
       <td className="border-b border-border py-6 pl-4 pr-4 align-top">
         <div className="flex items-start gap-4">
@@ -138,6 +203,6 @@ export function TemplateListRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </td>
-    </tr>
+    </motion.tr>
   )
 }

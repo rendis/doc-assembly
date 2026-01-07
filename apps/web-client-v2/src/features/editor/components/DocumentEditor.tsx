@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { PaginationPlus } from 'tiptap-pagination-plus'
 import {
   DndContext,
@@ -28,30 +28,38 @@ import { VariableFormatDialog } from './VariableFormatDialog'
 import { VariablesPanel } from './VariablesPanel'
 import { VariableDragOverlay } from './VariableDragOverlay'
 import { hasConfigurableOptions } from '../types/injectable'
-import { type PageSize, type PageMargins, type Variable } from '../types'
+import { type Variable } from '../types'
+import { usePaginationStore } from '../stores'
 import type { VariableDragData } from '../types/drag'
 
 interface DocumentEditorProps {
   initialContent?: string
   onContentChange?: (content: string) => void
   editable?: boolean
-  pageSize: PageSize
-  margins: PageMargins
-  onPageSizeChange: (size: PageSize) => void
-  onMarginsChange: (margins: PageMargins) => void
   variables?: Variable[]
+  onExport?: () => void
+  onImport?: () => void
+  editorRef?: React.MutableRefObject<any>
 }
 
 export function DocumentEditor({
   initialContent = '<p>Comienza a escribir...</p>',
   onContentChange,
   editable = true,
-  pageSize,
-  margins,
-  onPageSizeChange,
-  onMarginsChange,
   variables = [],
+  onExport,
+  onImport,
+  editorRef,
 }: DocumentEditorProps) {
+  // Get pagination config from store
+  const { pageSize, margins, pageGap } = usePaginationStore()
+
+  // Key unica basada en la configuracion - cuando cambia, el editor se recrea
+  const editorKey = useMemo(
+    () => `${pageSize.width}-${pageSize.height}-${margins.top}-${margins.bottom}-${margins.left}-${margins.right}`,
+    [pageSize, margins]
+  )
+
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
@@ -100,7 +108,7 @@ export function DocumentEditor({
         marginBottom: margins.bottom,
         marginLeft: margins.left,
         marginRight: margins.right,
-        pageGap: 50,
+        pageGap: pageGap,
         pageGapBorderSize: 2,
         pageGapBorderColor: '#d1d5db',
         pageBreakBackground: '#f3f4f6',
@@ -128,6 +136,13 @@ export function DocumentEditor({
       },
     },
   })
+
+  // Store editor reference for export/import
+  useEffect(() => {
+    if (editor && editorRef) {
+      editorRef.current = editor
+    }
+  }, [editor, editorRef])
 
   // Listen for image modal events
   useEffect(() => {
@@ -229,15 +244,19 @@ export function DocumentEditor({
         format,
       }).run()
 
-      setFormatDialogOpen(false)
-      setPendingVariable(null)
+      // Wait for exit animation (200ms) before unmounting
+      setTimeout(() => {
+        setPendingVariable(null)
+      }, 200)
     },
     [editor, pendingVariable]
   )
 
   const handleFormatCancel = useCallback(() => {
-    setFormatDialogOpen(false)
-    setPendingVariable(null)
+    // Wait for exit animation (200ms) before unmounting
+    setTimeout(() => {
+      setPendingVariable(null)
+    }, 200)
   }, [])
 
   // --- DRAG & DROP HANDLERS ---
@@ -393,7 +412,7 @@ export function DocumentEditor({
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex h-full">
+        <div className="flex h-full" key={editorKey}>
           {/* Left: Variables Panel */}
           <VariablesPanel
             onVariableClick={handleVariableClick}
@@ -404,14 +423,13 @@ export function DocumentEditor({
           <div className="flex-1 flex flex-col min-w-0">
             {/* Header with Toolbar and Settings */}
             <div className="flex items-center justify-between border-b border-border bg-card">
-              <EditorToolbar editor={editor} />
+              <EditorToolbar
+                editor={editor}
+                onExport={onExport}
+                onImport={onImport}
+              />
               <div className="pr-2">
-                <PageSettings
-                  pageSize={pageSize}
-                  margins={margins}
-                  onPageSizeChange={onPageSizeChange}
-                  onMarginsChange={onMarginsChange}
-                />
+                <PageSettings />
               </div>
             </div>
 

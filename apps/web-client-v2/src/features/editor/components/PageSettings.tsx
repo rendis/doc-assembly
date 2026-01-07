@@ -16,22 +16,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Settings2 } from 'lucide-react'
-import { PAGE_SIZES, DEFAULT_MARGINS, MARGIN_LIMITS, type PageSize, type PageMargins } from '../types'
+import { PAGE_SIZES, DEFAULT_MARGINS, MARGIN_LIMITS, type PageMargins } from '../types'
+import { usePaginationStore } from '../stores'
 
-interface PageSettingsProps {
-  pageSize: PageSize
-  margins: PageMargins
-  onPageSizeChange: (size: PageSize) => void
-  onMarginsChange: (margins: PageMargins) => void
-}
-
-export function PageSettings({
-  pageSize,
-  margins,
-  onPageSizeChange,
-  onMarginsChange,
-}: PageSettingsProps) {
+export function PageSettings() {
   const { t } = useTranslation()
+  const { pageSize, margins, setPageSize, setMargins } = usePaginationStore()
+
   const [open, setOpen] = useState(false)
   const [customMargins, setCustomMargins] = useState(margins)
   const [inputValues, setInputValues] = useState({
@@ -41,15 +32,16 @@ export function PageSettings({
     right: String(margins.right),
   })
 
-  // Sincronizar inputValues cuando customMargins cambie (ej: botón Restablecer)
+  // Sincronizar customMargins e inputValues cuando margins del store cambie
   useEffect(() => {
+    setCustomMargins(margins)
     setInputValues({
-      top: String(customMargins.top),
-      bottom: String(customMargins.bottom),
-      left: String(customMargins.left),
-      right: String(customMargins.right),
+      top: String(margins.top),
+      bottom: String(margins.bottom),
+      left: String(margins.left),
+      right: String(margins.right),
     })
-  }, [customMargins])
+  }, [margins])
 
   // Detectar si hay cambios pendientes de aplicar
   const hasChanges =
@@ -68,7 +60,7 @@ export function PageSettings({
   const handlePageSizeChange = (value: string) => {
     const size = PAGE_SIZES[value]
     if (size) {
-      onPageSizeChange(size)
+      setPageSize(size)
     }
   }
 
@@ -94,7 +86,7 @@ export function PageSettings({
   }
 
   const handleApplyMargins = () => {
-    onMarginsChange(customMargins)
+    setMargins(customMargins)
   }
 
   const getCurrentSizeKey = () => {

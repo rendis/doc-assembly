@@ -70,3 +70,21 @@ export const dialogContent: Variants = {
   animate: { opacity: 1, scale: 1, y: 0 },
   exit: { opacity: 0, scale: 0.95, y: 8 },
 };
+
+// Slide left with fade (for list rows exit animation)
+export const slideLeftFade: Variants = {
+  initial: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -50 },
+};
+
+// Stagger container for table rows (exit animation)
+export const rowStaggerContainer: Variants = {
+  initial: { opacity: 1 },
+  exit: {
+    opacity: 0,
+    transition: {
+      staggerChildren: 0.05, // 50ms between each row
+      staggerDirection: -1, // Animate from top to bottom
+    },
+  },
+};

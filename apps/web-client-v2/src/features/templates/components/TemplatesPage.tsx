@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { TemplatesToolbar } from './TemplatesToolbar'
 import { TemplateListRow } from './TemplateListRow'
@@ -43,6 +44,19 @@ export function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateListItem | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  // Exit animation state
+  const [isExiting, setIsExiting] = useState(false)
+  // Entry animation state
+  const [isEntering, setIsEntering] = useState(true)
+
+  // Reset entry animation after it completes
+  useEffect(() => {
+    if (isEntering) {
+      const timer = setTimeout(() => setIsEntering(false), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [isEntering])
 
   // Debounce search
   useEffect(() => {
@@ -86,11 +100,15 @@ export function TemplatesPage() {
   }, [page, total, t])
 
   const handleViewTemplateDetail = (templateId: string) => {
-    if (currentWorkspace) {
-      navigate({
-        to: '/workspace/$workspaceId/templates/$templateId',
-        params: { workspaceId: currentWorkspace.id, templateId } as any,
-      })
+    if (currentWorkspace && !isExiting) {
+      setIsExiting(true)
+      // Wait for stagger animation + page fade to complete (800ms total)
+      setTimeout(() => {
+        navigate({
+          to: '/workspace/$workspaceId/templates/$templateId',
+          params: { workspaceId: currentWorkspace.id, templateId } as any,
+        })
+      }, 800)
     }
   }
 
@@ -118,7 +136,11 @@ export function TemplatesPage() {
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-background">
+    <motion.div
+      className="flex h-full flex-1 flex-col bg-background"
+      animate={{ opacity: isExiting ? 0 : 1 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -208,10 +230,13 @@ export function TemplatesPage() {
               </tr>
             </thead>
             <tbody className="font-light">
-              {templates.map((template) => (
+              {templates.map((template, index) => (
                 <TemplateListRow
                   key={template.id}
                   template={template}
+                  index={index}
+                  isExiting={isExiting}
+                  isEntering={isEntering}
                   onClick={() => handleViewTemplateDetail(template.id)}
                   onGoToFolder={handleGoToFolder}
                   onEdit={() => handleOpenEditDialog(template)}
@@ -267,6 +292,6 @@ export function TemplatesPage() {
         onOpenChange={setDeleteDialogOpen}
         template={selectedTemplate}
       />
-    </div>
+    </motion.div>
   )
 }

@@ -10,6 +10,7 @@ import {
   FileText,
   Layers,
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { useTemplateWithVersions } from '../hooks/useTemplateDetail'
 import { VersionListItem } from './VersionListItem'
@@ -38,6 +39,7 @@ export function TemplateDetailPage() {
   const navigate = useNavigate()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
 
   const { data: template, isLoading, error } = useTemplateWithVersions(templateId)
 
@@ -48,21 +50,25 @@ export function TemplateDetailPage() {
   }, [template?.versions])
 
   const handleBackToList = () => {
-    if (currentWorkspace) {
-      if (fromFolderId) {
-        // Volver al folder de origen (si es 'root', no pasar folderId)
-        navigate({
-          to: '/workspace/$workspaceId/documents',
-          params: { workspaceId: currentWorkspace.id } as any,
-          search: fromFolderId === 'root' ? undefined : { folderId: fromFolderId } as any,
-        })
-      } else {
-        // Volver a la lista de templates
-        navigate({
-          to: '/workspace/$workspaceId/templates',
-          params: { workspaceId: currentWorkspace.id } as any,
-        })
-      }
+    if (currentWorkspace && !isExiting) {
+      setIsExiting(true)
+      // Wait for exit animation to complete
+      setTimeout(() => {
+        if (fromFolderId) {
+          // Volver al folder de origen (si es 'root', no pasar folderId)
+          navigate({
+            to: '/workspace/$workspaceId/documents',
+            params: { workspaceId: currentWorkspace.id } as any,
+            search: fromFolderId === 'root' ? undefined : { folderId: fromFolderId } as any,
+          })
+        } else {
+          // Volver a la lista de templates
+          navigate({
+            to: '/workspace/$workspaceId/templates',
+            params: { workspaceId: currentWorkspace.id } as any,
+          })
+        }
+      }, 300)
     }
   }
 
@@ -122,7 +128,12 @@ export function TemplateDetailPage() {
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-background">
+    <motion.div
+      className="flex h-full flex-1 flex-col bg-background"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isExiting ? 0 : 1 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
         {/* Breadcrumb */}
@@ -288,6 +299,6 @@ export function TemplateDetailPage() {
         onOpenChange={setCreateDialogOpen}
         templateId={templateId}
       />
-    </div>
+    </motion.div>
   )
 }
