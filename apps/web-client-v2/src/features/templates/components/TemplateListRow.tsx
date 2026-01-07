@@ -45,64 +45,35 @@ export function TemplateListRow({
     })
   }
 
-  // Calculate stagger delay (only animate first 10 rows)
+  // Only animate first 10 rows for performance
   const shouldAnimate = index < 10
   const staggerDelay = shouldAnimate ? index * 0.05 : 0
 
   // Animation states
-  const getAnimationState = () => {
-    if (isEntering && shouldAnimate) {
-      // Entry: from left, growing height
-      return {
-        opacity: 1,
-        x: 0,
-        height: 'auto',
-      }
-    }
+  // Exit: slide left and fade out
+  // Enter: slide from right and fade in
+  const getAnimateState = () => {
     if (isExiting && shouldAnimate) {
-      // Exit: to left, collapsing height
-      return {
-        opacity: 0,
-        x: -50,
-        height: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
-      }
+      return { opacity: 0, x: -50 }
     }
-    // Normal state
-    return {
-      opacity: 1,
-      x: 0,
-      height: 'auto',
-    }
+    return { opacity: 1, x: 0 }
   }
 
-  // Initial state for entry animation
   const getInitialState = () => {
     if (isEntering && shouldAnimate) {
-      return {
-        opacity: 0,
-        x: -50,
-        height: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
-      }
+      return { opacity: 0, x: 50 }
     }
-    return {
-      opacity: 1,
-      x: 0,
-      height: 'auto',
-    }
+    return { opacity: 1, x: 0 }
   }
 
   return (
     <motion.tr
       initial={getInitialState()}
-      animate={getAnimationState()}
+      animate={getAnimateState()}
       transition={{
-        duration: 0.15,
+        duration: 0.2,
         ease: 'easeOut',
-        delay: (isEntering || isExiting) ? staggerDelay : 0,
+        delay: (isExiting || isEntering) ? staggerDelay : 0,
       }}
       onClick={onClick}
       className="group cursor-pointer transition-colors hover:bg-accent"

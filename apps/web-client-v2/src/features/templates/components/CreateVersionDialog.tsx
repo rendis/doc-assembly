@@ -51,9 +51,10 @@ export function CreateVersionDialog({
 
       // Navigate to the editor with the new version
       navigate({
-        to: '/workspace/$workspaceId/editor/$versionId',
+        to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
         params: {
           workspaceId: currentWorkspace.id,
+          templateId,
           versionId: response.id,
         } as any,
       })

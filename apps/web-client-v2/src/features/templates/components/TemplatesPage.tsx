@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
+import { usePageTransitionStore } from '@/stores/page-transition-store'
 import { TemplatesToolbar } from './TemplatesToolbar'
 import { TemplateListRow } from './TemplateListRow'
 import { CreateTemplateDialog } from './CreateTemplateDialog'
@@ -45,18 +46,22 @@ export function TemplatesPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  // Exit animation state
+  // Page transition state
+  const { isTransitioning, direction, startTransition, endTransition } = usePageTransitionStore()
   const [isExiting, setIsExiting] = useState(false)
-  // Entry animation state
-  const [isEntering, setIsEntering] = useState(true)
+  const [isEntering, setIsEntering] = useState(false)
 
-  // Reset entry animation after it completes
+  // Handle entering animation (coming back from detail)
   useEffect(() => {
-    if (isEntering) {
-      const timer = setTimeout(() => setIsEntering(false), 600)
+    if (direction === 'backward') {
+      setIsEntering(true)
+      const timer = setTimeout(() => {
+        endTransition()
+        setIsEntering(false)
+      }, 600)
       return () => clearTimeout(timer)
     }
-  }, [isEntering])
+  }, [direction, endTransition])
 
   // Debounce search
   useEffect(() => {
@@ -100,15 +105,16 @@ export function TemplatesPage() {
   }, [page, total, t])
 
   const handleViewTemplateDetail = (templateId: string) => {
-    if (currentWorkspace && !isExiting) {
+    if (currentWorkspace && !isTransitioning) {
+      startTransition('forward')
       setIsExiting(true)
-      // Wait for stagger animation + page fade to complete (800ms total)
+      // Wait for exit animation to complete before navigating
       setTimeout(() => {
         navigate({
           to: '/workspace/$workspaceId/templates/$templateId',
           params: { workspaceId: currentWorkspace.id, templateId } as any,
         })
-      }, 800)
+      }, 600)
     }
   }
 
@@ -139,7 +145,7 @@ export function TemplatesPage() {
     <motion.div
       className="flex h-full flex-1 flex-col bg-background"
       animate={{ opacity: isExiting ? 0 : 1 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.3, delay: isExiting ? 0.3 : 0 }}
     >
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
@@ -177,8 +183,8 @@ export function TemplatesPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-12 md:px-6 lg:px-6">
-        {/* Loading state */}
-        {isLoading && (
+        {/* Loading state - don't show during enter transition (data should be cached) */}
+        {isLoading && !isEntering && (
           <div className="space-y-4 pt-6">
             {[...Array(5)].map((_, i) => (
               <Skeleton key={i} className="h-20 w-full" />

@@ -98,11 +98,9 @@ export function AppLayout() {
         <AppSidebar />
       </motion.div>
 
-      {/* Contenido principal con scale+fade */}
+      {/* Contenido principal sin animación de entrada (causa flicker) */}
       <motion.main
-        variants={contentVariants}
-        initial="initial"
-        animate="animate"
+        animate={{ opacity: 1 }}
         className="flex flex-1 flex-col overflow-hidden pt-16"
       >
         {/* Page content */}

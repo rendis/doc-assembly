@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
+import { usePageTransitionStore } from '@/stores/page-transition-store'
 import { useTemplateWithVersions } from '../hooks/useTemplateDetail'
 import { VersionListItem } from './VersionListItem'
 import { CreateVersionDialog } from './CreateVersionDialog'
@@ -39,9 +40,28 @@ export function TemplateDetailPage() {
   const navigate = useNavigate()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  // Page transition state
+  const { isTransitioning, direction, startTransition, endTransition } = usePageTransitionStore()
+  const [isVisible, setIsVisible] = useState(direction !== 'forward')
   const [isExiting, setIsExiting] = useState(false)
 
+  // Handle entering animation (coming from list)
+  useEffect(() => {
+    if (direction === 'forward') {
+      // Small delay before starting fade in
+      const timer = setTimeout(() => {
+        setIsVisible(true)
+        endTransition()
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [direction, endTransition])
+
   const { data: template, isLoading, error } = useTemplateWithVersions(templateId)
+
+  // Check if we have cached data (to avoid skeleton flash)
+  const hasCachedData = !!template
 
   // Sort versions by version number descending (newest first)
   const sortedVersions = useMemo(() => {
@@ -50,9 +70,11 @@ export function TemplateDetailPage() {
   }, [template?.versions])
 
   const handleBackToList = () => {
-    if (currentWorkspace && !isExiting) {
+    if (currentWorkspace && !isTransitioning) {
+      startTransition('backward')
       setIsExiting(true)
-      // Wait for exit animation to complete
+      setIsVisible(false)
+      // Wait for exit animation to complete before navigating
       setTimeout(() => {
         if (fromFolderId) {
           // Volver al folder de origen (si es 'root', no pasar folderId)
@@ -75,8 +97,8 @@ export function TemplateDetailPage() {
   const handleOpenEditor = (versionId: string) => {
     if (currentWorkspace) {
       navigate({
-        to: '/workspace/$workspaceId/editor/$versionId',
-        params: { workspaceId: currentWorkspace.id, versionId } as any,
+        to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
+        params: { workspaceId: currentWorkspace.id, templateId, versionId } as any,
       })
     }
   }
@@ -90,10 +112,16 @@ export function TemplateDetailPage() {
     })
   }
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - only show skeleton if no cached data
+  // Use same animation as main content to avoid flicker
+  if (isLoading && !hasCachedData) {
     return (
-      <div className="flex h-full flex-1 flex-col bg-background">
+      <motion.div
+        className="flex h-full flex-1 flex-col bg-background"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isVisible ? 1 : 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+      >
         <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
           <Skeleton className="h-4 w-32" />
           <Skeleton className="mt-4 h-10 w-64" />
@@ -104,7 +132,7 @@ export function TemplateDetailPage() {
             <Skeleton className="h-96" />
           </div>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
@@ -131,8 +159,8 @@ export function TemplateDetailPage() {
     <motion.div
       className="flex h-full flex-1 flex-col bg-background"
       initial={{ opacity: 0 }}
-      animate={{ opacity: isExiting ? 0 : 1 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      animate={{ opacity: isVisible ? 1 : 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
     >
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">

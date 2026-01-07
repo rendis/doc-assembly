@@ -59,9 +59,10 @@ export function CreateTemplateDialog({
       // 3. Close dialog and navigate
       onOpenChange(false)
       navigate({
-        to: '/workspace/$workspaceId/editor/$versionId',
+        to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
         params: {
           workspaceId: currentWorkspace.id,
+          templateId: response.template.id,
           versionId: response.initialVersion.id,
         } as any,
       })

@@ -31,6 +31,7 @@ import { hasConfigurableOptions } from '../types/injectable'
 import { type Variable } from '../types'
 import { usePaginationStore } from '../stores'
 import type { VariableDragData } from '../types/drag'
+import type { Editor } from '@tiptap/core'
 
 interface DocumentEditorProps {
   initialContent?: string
@@ -40,6 +41,7 @@ interface DocumentEditorProps {
   onExport?: () => void
   onImport?: () => void
   editorRef?: React.MutableRefObject<any>
+  onEditorReady?: (editor: Editor | null) => void
 }
 
 export function DocumentEditor({
@@ -50,6 +52,7 @@ export function DocumentEditor({
   onExport,
   onImport,
   editorRef,
+  onEditorReady,
 }: DocumentEditorProps) {
   // Get pagination config from store
   const { pageSize, margins, pageGap } = usePaginationStore()
@@ -142,7 +145,9 @@ export function DocumentEditor({
     if (editor && editorRef) {
       editorRef.current = editor
     }
-  }, [editor, editorRef])
+    // Notify parent when editor is ready
+    onEditorReady?.(editor ?? null)
+  }, [editor, editorRef, onEditorReady])
 
   // Listen for image modal events
   useEffect(() => {

@@ -6,8 +6,13 @@ import type {
   TemplateWithAllVersionsResponse,
   TemplateVersionResponse,
   CreateVersionRequest,
-  UpdateVersionRequest,
 } from '@/types/api'
+// Version types (from local types)
+import type {
+  TemplateVersionDetail,
+  UpdateVersionRequest,
+} from '../types'
+
 
 export interface TemplatesListParams {
   search?: string
@@ -122,4 +127,55 @@ export async function updateVersion(
     data
   )
   return response.data
+}
+
+// ============================================
+// Versions API (calcar v1)
+// ============================================
+
+/**
+ * Obtiene detalle de una versión.
+ * GET /api/v1/content/templates/{templateId}/versions/{versionId}
+ */
+export async function fetchVersion(
+  templateId: string,
+  versionId: string
+): Promise<TemplateVersionDetail> {
+  const response = await apiClient.get<TemplateVersionDetail>(
+    `/content/templates/${templateId}/versions/${versionId}`
+  )
+  return response.data
+}
+
+/**
+ * Versions API object (calcar v1 structure)
+ * Provides version-related API methods
+ */
+export const versionsApi = {
+  /**
+   * Obtiene detalle de una versión.
+   * GET /api/v1/content/templates/{templateId}/versions/{versionId}
+   */
+  get: async (templateId: string, versionId: string): Promise<TemplateVersionDetail> => {
+    const response = await apiClient.get<TemplateVersionDetail>(
+      `/content/templates/${templateId}/versions/${versionId}`
+    )
+    return response.data
+  },
+
+  /**
+   * Actualiza una versión.
+   * PUT /api/v1/content/templates/{templateId}/versions/{versionId}
+   */
+  update: async (
+    templateId: string,
+    versionId: string,
+    data: UpdateVersionRequest
+  ): Promise<TemplateVersionResponse> => {
+    const response = await apiClient.put<TemplateVersionResponse>(
+      `/content/templates/${templateId}/versions/${versionId}`,
+      data
+    )
+    return response.data
+  },
 }

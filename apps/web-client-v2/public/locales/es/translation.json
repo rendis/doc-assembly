@@ -266,6 +266,15 @@
     "sender": "Remitente",
     "recipient": "Destinatario",
     "undefined": "Sin definir",
+    "autoSave": {
+      "saved": "Guardado",
+      "pending": "Sin guardar...",
+      "saving": "Guardando...",
+      "error": "Error al guardar",
+      "justNow": "ahora mismo",
+      "secondsAgo": "hace {{count}}s",
+      "minutesAgo": "hace {{count}}m"
+    },
     "pageSettings": {
       "title": "Configuración de Página",
       "description": "Ajusta el tamaño y los márgenes de la página.",
