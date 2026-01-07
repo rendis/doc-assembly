@@ -447,6 +447,36 @@ body {
   background: transparent;
 }
 
+/* Prose light mode - text and code styling */
+.prose {
+  --tw-prose-body: hsl(220 20% 10%);
+  --tw-prose-headings: hsl(220 20% 8%);
+  --tw-prose-code: hsl(220 30% 15%);
+  --tw-prose-pre-code: hsl(220 30% 10%);
+  --tw-prose-pre-bg: hsl(220 15% 94%);
+}
+
+.prose code {
+  background-color: hsl(220 15% 92%) !important;
+  color: hsl(220 30% 15%) !important;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.prose pre {
+  background-color: hsl(220 15% 94%) !important;
+  border: 1px solid hsl(220 15% 85%);
+}
+
+.prose pre code {
+  background-color: transparent !important;
+  color: hsl(220 30% 10%) !important;
+  padding: 0;
+  font-weight: 400;
+}
+
 /* Prose dark mode text color adjustments */
 .dark .prose {
   --tw-prose-body: hsl(var(--foreground));
@@ -464,6 +494,28 @@ body {
   --tw-prose-pre-bg: hsl(var(--muted));
   --tw-prose-th-borders: hsl(var(--border));
   --tw-prose-td-borders: hsl(var(--border));
+}
+
+/* Prose dark mode - code block styling */
+.dark .prose code {
+  background-color: hsl(220 13% 28%) !important;
+  color: hsl(210 20% 92%) !important;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.dark .prose pre {
+  background-color: hsl(220 13% 22%) !important;
+  border: 1px solid hsl(220 10% 35%);
+}
+
+.dark .prose pre code {
+  background-color: transparent !important;
+  color: hsl(210 20% 92%) !important;
+  padding: 0;
+  font-weight: 400;
 }
 
 /* ============================================

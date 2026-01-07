@@ -12,6 +12,8 @@ import { SignatureExtension } from '../extensions/Signature'
 import { ConditionalExtension } from '../extensions/Conditional'
 import { MentionExtension } from '../extensions/Mentions'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
+import { PageBreakHR } from '../extensions/PageBreak'
+import { SlashCommandsExtension, slashCommandsSuggestion } from '../extensions/SlashCommands'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { type PageSize, type PageMargins, type Variable } from '../types'
 
@@ -70,6 +72,10 @@ export function DocumentEditor({
       SignatureExtension,
       ConditionalExtension,
       ImageExtension,
+      PageBreakHR,
+      SlashCommandsExtension.configure({
+        suggestion: slashCommandsSuggestion,
+      }),
     ],
     content: initialContent,
     editable,
