@@ -1,4 +1,5 @@
-import { Bell } from 'lucide-react'
+import { BellRing } from '@/components/animate-ui/icons/bell-ring'
+import { AnimateIcon } from '@/components/animate-ui/icons/icon'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,7 +34,9 @@ export function NotificationBadge({
       onClick={onClick}
       title={t('editor.workflow.notifications')}
     >
-      <Bell className="h-3.5 w-3.5" />
+      <AnimateIcon animateOnHover>
+        <BellRing size={14} />
+      </AnimateIcon>
       {activeCount > 0 && (
         <Badge
           variant="secondary"

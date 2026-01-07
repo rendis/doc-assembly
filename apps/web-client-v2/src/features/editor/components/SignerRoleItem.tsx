@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { GripVertical, Trash2, Type, Variable, AlertTriangle, ChevronDown } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { GripVertical, Type, Variable, AlertTriangle, ChevronDown, Check } from 'lucide-react'
+import { Trash2 } from '@/components/animate-ui/icons/trash-2'
+import { AnimateIcon } from '@/components/animate-ui/icons/icon'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
@@ -39,6 +41,10 @@ interface SignerRoleItemProps {
   isOverlay?: boolean
   variables: VariableType[]
   allRoles: SignerRoleDefinition[]
+  // Selection mode
+  isSelectionMode: boolean
+  isSelected: boolean
+  onToggleSelection: (id: string) => void
   onUpdate: (
     id: string,
     updates: Partial<Omit<SignerRoleDefinition, 'id'>>
@@ -50,14 +56,16 @@ interface FieldEditorProps {
   label: string
   field: SignerRoleFieldValue
   variables: VariableType[]
+  disabled?: boolean
   onChange: (value: SignerRoleFieldValue) => void
 }
 
-function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
+function FieldEditor({ label, field, variables, disabled, onChange }: FieldEditorProps) {
   const isText = field.type === 'text'
   const textVariables = variables.filter((v) => v.type === 'TEXT')
 
   const handleTypeToggle = () => {
+    if (disabled) return
     onChange({
       type: isText ? 'injectable' : 'text',
       value: '',
@@ -65,7 +73,7 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={cn('flex items-center gap-2', disabled && 'opacity-50')}>
       <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-14 shrink-0">
         {label}:
       </span>
@@ -75,6 +83,7 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
         size="icon"
         className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
         onClick={handleTypeToggle}
+        disabled={disabled}
         title={isText ? 'Cambiar a variable' : 'Cambiar a texto'}
       >
         {isText ? (
@@ -91,12 +100,14 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
           placeholder={
             label === 'Nombre' ? 'Nombre del firmante' : 'email@ejemplo.com'
           }
+          disabled={disabled}
           className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus-visible:ring-0"
         />
       ) : (
         <Select
           value={field.value}
           onValueChange={(value) => onChange({ type: 'injectable', value })}
+          disabled={disabled}
         >
           <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus:ring-0">
             <SelectValue placeholder="Seleccionar variable" />
@@ -132,6 +143,9 @@ export function SignerRoleItem({
   isOverlay = false,
   variables,
   allRoles,
+  isSelectionMode,
+  isSelected,
+  onToggleSelection,
   onUpdate,
   onDelete,
 }: SignerRoleItemProps) {
@@ -218,6 +232,19 @@ export function SignerRoleItem({
     }
   }, [isCompactMode])
 
+  // Handle badge click for selection
+  const handleBadgeClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isSelectionMode) {
+        e.stopPropagation()
+        onToggleSelection(role.id)
+      } else if (isCompactMode) {
+        setIsExpanded((prev) => !prev)
+      }
+    },
+    [isSelectionMode, isCompactMode, role.id, onToggleSelection]
+  )
+
   const {
     attributes,
     listeners,
@@ -225,7 +252,7 @@ export function SignerRoleItem({
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ id: role.id, disabled: isOverlay })
+  } = useSortable({ id: role.id, disabled: isOverlay || isSelectionMode })
 
   // No aplicar transforms del sortable al overlay
   const style = isOverlay
@@ -264,88 +291,154 @@ export function SignerRoleItem({
         )}
       >
         {/* Header */}
-        <div className={cn('flex items-center gap-2', isExpanded && 'mb-3')}>
+        <motion.div
+          layout
+          className={cn('flex items-center gap-2', isExpanded && 'mb-3')}
+        >
           <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground/50 hover:text-muted-foreground touch-none"
+            {...(isSelectionMode ? {} : { ...attributes, ...listeners })}
+            className={cn(
+              'p-1 -ml-1 touch-none',
+              isSelectionMode
+                ? 'text-muted-foreground/20 cursor-default'
+                : 'cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground'
+            )}
           >
             <GripVertical className="h-4 w-4" />
           </div>
 
-          {/* Número de posición */}
-          <span
+          {/* Número de posición / Checkbox de selección */}
+          <motion.span
             className={cn(
-              'flex h-5 w-5 items-center justify-center rounded-full bg-muted/50 text-[11px] font-mono font-semibold text-muted-foreground border border-border/50 shrink-0',
-              isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted'
+              'flex h-5 w-5 items-center justify-center rounded-full shrink-0 select-none touch-none transition-colors',
+              isSelectionMode
+                ? isSelected
+                  ? 'bg-foreground text-background border-2 border-foreground cursor-pointer'
+                  : 'bg-background border-2 border-foreground cursor-pointer hover:bg-muted'
+                : 'bg-muted/50 text-[11px] font-mono font-semibold text-muted-foreground border border-border/50',
+              !isSelectionMode && isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted'
             )}
-            onClick={handleCardClick}
+            onClick={handleBadgeClick}
           >
-            {index + 1}
-          </span>
+            <AnimatePresence mode="wait">
+              {isSelectionMode ? (
+                isSelected ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Check className="h-3 w-3" />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  />
+                )
+              ) : (
+                <motion.span
+                  key="number"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {index + 1}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.span>
 
           <Input
             value={role.label}
             onChange={(e) => onUpdate(role.id, { label: e.target.value })}
             placeholder="Nombre del rol"
-            className="h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent hover:border-border focus:border-ring px-1 rounded-none"
+            disabled={isSelectionMode}
+            className={cn(
+              'h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent px-1 rounded-none',
+              isSelectionMode ? 'cursor-default' : 'hover:border-border focus:border-ring'
+            )}
           />
 
           {/* NotificationBadge - solo visible en modo individual */}
           {isIndividualMode && (
             <NotificationBadge
               triggers={roleTriggers}
-              onClick={() => setShowNotificationDialog(true)}
+              onClick={isSelectionMode ? undefined : () => setShowNotificationDialog(true)}
+              className={isSelectionMode ? 'opacity-30 cursor-default' : undefined}
             />
-          )}
-
-          {/* Chevron para indicar expandible (solo en modo compacto) */}
-          {isCompactMode && (
-            <motion.button
-              type="button"
-              onClick={handleCardClick}
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-              className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
-            >
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </motion.button>
           )}
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground/50 hover:text-destructive shrink-0"
-            onClick={handleDeleteClick}
+            className={cn(
+              'h-6 w-6 shrink-0',
+              isSelectionMode
+                ? 'text-muted-foreground/20 cursor-default'
+                : 'text-muted-foreground/50 hover:text-destructive'
+            )}
+            onClick={isSelectionMode ? undefined : handleDeleteClick}
+            disabled={isSelectionMode}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <AnimateIcon animateOnHover={!isSelectionMode}>
+              <Trash2 size={14} />
+            </AnimateIcon>
           </Button>
-        </div>
+
+          {/* Chevron para indicar expandible (solo en modo compacto) */}
+          <AnimatePresence mode="popLayout">
+            {isCompactMode && (
+              <motion.button
+                type="button"
+                key="chevron"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  rotate: isExpanded ? 180 : 0,
+                }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                onClick={handleCardClick}
+                className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+              >
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Fields con animación */}
         <motion.div
           initial={false}
           animate={{
             height: isExpanded ? 'auto' : 0,
-            opacity: isExpanded ? 1 : 0,
           }}
           transition={{
-            height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
-            opacity: { duration: 0.15, delay: isExpanded ? 0.05 : 0 },
+            height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
           }}
           style={{ overflow: 'hidden' }}
         >
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2">
             <FieldEditor
               label="Nombre"
               field={role.name}
               variables={variables}
+              disabled={isSelectionMode}
               onChange={handleNameChange}
             />
             <FieldEditor
               label="Email"
               field={role.email}
               variables={variables}
+              disabled={isSelectionMode}
               onChange={handleEmailChange}
             />
           </div>

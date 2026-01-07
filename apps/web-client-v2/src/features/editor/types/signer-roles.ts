@@ -34,6 +34,9 @@ export interface SignerRolesState {
   isCollapsed: boolean
   isCompactMode: boolean
   workflowConfig: SigningWorkflowConfig
+  // Selection mode
+  isSelectionMode: boolean
+  selectedRoleIds: string[]
 }
 
 /**
@@ -51,6 +54,11 @@ export interface SignerRolesActions {
   toggleCollapsed: () => void
   toggleCompactMode: () => void
   reset: () => void
+  // Selection mode actions
+  enterSelectionMode: (initialId?: string) => void
+  exitSelectionMode: () => void
+  toggleRoleSelection: (id: string) => void
+  deleteSelectedRoles: () => void
   // Workflow actions
   setOrderMode: (mode: SigningOrderMode) => void
   setNotificationScope: (scope: NotificationScope) => void

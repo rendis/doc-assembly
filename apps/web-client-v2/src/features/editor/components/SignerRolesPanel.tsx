@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -17,8 +17,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, LayoutList, Plus, Rows3, Users } from 'lucide-react'
+import { ChevronLeft, LayoutList, Plus, Rows3, Users, Trash2, AlertTriangle, CheckSquare, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -26,6 +27,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
 import { SignerRoleItem } from './SignerRoleItem'
@@ -55,6 +64,37 @@ export function SignerRolesPanel({
   const toggleCollapsed = useSignerRolesStore((state) => state.toggleCollapsed)
   const isCompactMode = useSignerRolesStore((state) => state.isCompactMode)
   const toggleCompactMode = useSignerRolesStore((state) => state.toggleCompactMode)
+  // Selection mode
+  const isSelectionMode = useSignerRolesStore((state) => state.isSelectionMode)
+  const selectedRoleIds = useSignerRolesStore((state) => state.selectedRoleIds)
+  const enterSelectionMode = useSignerRolesStore((state) => state.enterSelectionMode)
+  const exitSelectionMode = useSignerRolesStore((state) => state.exitSelectionMode)
+  const toggleRoleSelection = useSignerRolesStore((state) => state.toggleRoleSelection)
+  const deleteSelectedRoles = useSignerRolesStore((state) => state.deleteSelectedRoles)
+
+  // Bulk delete confirmation dialog
+  const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] = useState(false)
+
+  // Handle bulk delete confirmation
+  const handleBulkDelete = useCallback(() => {
+    setShowBulkDeleteConfirmation(true)
+  }, [])
+
+  const confirmBulkDelete = useCallback(() => {
+    deleteSelectedRoles()
+    setShowBulkDeleteConfirmation(false)
+  }, [deleteSelectedRoles])
+
+  // Escape key to exit selection mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSelectionMode) {
+        exitSelectionMode()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isSelectionMode, exitSelectionMode])
 
   // Estado para tracking del item siendo arrastrado
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -78,7 +118,7 @@ export function SignerRolesPanel({
     })
   )
 
-  // Animación suave al soltar el overlay
+  // Animación suave al soltar el overlay con fade-out
   const dropAnimation: DropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
       styles: {
@@ -87,8 +127,12 @@ export function SignerRolesPanel({
         },
       },
     }),
-    duration: 200,
+    duration: 250,
     easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    keyframes: ({ transform }) => [
+      { transform: CSS.Transform.toString(transform.initial), opacity: 1 },
+      { transform: CSS.Transform.toString(transform.final), opacity: 0 },
+    ],
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -105,11 +149,11 @@ export function SignerRolesPanel({
     }
 
     // Delay para que la animación del overlay termine antes de mostrar el item original
-    setTimeout(() => setActiveId(null), 200)
+    setTimeout(() => setActiveId(null), 250)
   }
 
   const handleDragCancel = () => {
-    setTimeout(() => setActiveId(null), 200)
+    setTimeout(() => setActiveId(null), 250)
   }
 
   const roleIds = useMemo(() => roles.map((role) => role.id), [roles])
@@ -165,25 +209,81 @@ export function SignerRolesPanel({
           transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
           className="flex items-center gap-0.5 ml-2 overflow-hidden"
         >
-          {/* Compact mode toggle with tooltip */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={toggleCompactMode}
-                className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
-                aria-label={isCompactMode ? 'Vista expandida' : 'Vista compacta'}
+          {/* Selection mode toggle with tooltip */}
+          {roles.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={isSelectionMode ? exitSelectionMode : () => enterSelectionMode()}
+                  className={cn(
+                    'shrink-0 p-1 rounded-md transition-colors',
+                    isSelectionMode
+                      ? 'bg-muted text-foreground'
+                      : 'hover:bg-muted text-muted-foreground'
+                  )}
+                  aria-label={isSelectionMode ? 'Cancelar selección' : 'Seleccionar roles'}
+                >
+                  <AnimatePresence mode="wait">
+                    {isSelectionMode ? (
+                      <motion.div
+                        key="close"
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.5, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <X className="h-4 w-4" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="select"
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.5, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <CheckSquare className="h-4 w-4" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {isSelectionMode ? 'Cancelar selección' : 'Seleccionar roles'}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Compact mode toggle with tooltip - hide in selection mode */}
+          <AnimatePresence>
+            {!isSelectionMode && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.15 }}
               >
-                {isCompactMode ? (
-                  <Rows3 className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <LayoutList className="h-4 w-4 text-muted-foreground" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {isCompactMode ? 'Expandir todas las cards' : 'Vista compacta'}
-            </TooltipContent>
-          </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={toggleCompactMode}
+                      className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+                      aria-label={isCompactMode ? 'Vista expandida' : 'Vista compacta'}
+                    >
+                      {isCompactMode ? (
+                        <Rows3 className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <LayoutList className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {isCompactMode ? 'Expandir todas las cards' : 'Vista compacta'}
+                  </TooltipContent>
+                </Tooltip>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Collapse button - always visible */}
@@ -288,6 +388,9 @@ export function SignerRolesPanel({
                                 isDragging={role.id === activeId}
                                 variables={variables}
                                 allRoles={roles}
+                                isSelectionMode={isSelectionMode}
+                                isSelected={selectedRoleIds.includes(role.id)}
+                                onToggleSelection={toggleRoleSelection}
                                 onUpdate={updateRole}
                                 onDelete={deleteRole}
                               />
@@ -306,6 +409,9 @@ export function SignerRolesPanel({
                             isOverlay
                             variables={variables}
                             allRoles={roles}
+                            isSelectionMode={isSelectionMode}
+                            isSelected={selectedRoleIds.includes(activeRole.id)}
+                            onToggleSelection={() => {}}
                             onUpdate={() => {}}
                             onDelete={() => {}}
                           />
@@ -318,23 +424,90 @@ export function SignerRolesPanel({
                 {/* Sticky footer with gradient */}
                 <div className="relative shrink-0">
                   <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-                  <div className="p-4 pt-2 bg-card">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
-                      onClick={addRole}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agregar rol
-                    </Button>
-                  </div>
+                  <AnimatePresence mode="wait">
+                    {selectedRoleIds.length > 0 ? (
+                      <motion.div
+                        key="delete-action"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="p-4 pt-2 bg-card"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                          onClick={handleBulkDelete}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar {selectedRoleIds.length}{' '}
+                          {selectedRoleIds.length === 1 ? 'rol' : 'roles'}
+                        </Button>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="add-action"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="p-4 pt-2 bg-card"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                          onClick={addRole}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Agregar rol
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </>
             )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bulk delete confirmation dialog */}
+      <Dialog
+        open={showBulkDeleteConfirmation}
+        onOpenChange={setShowBulkDeleteConfirmation}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Eliminar {selectedRoleIds.length}{' '}
+              {selectedRoleIds.length === 1 ? 'rol' : 'roles'}
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              ¿Estás seguro de que deseas eliminar los roles seleccionados? Esta
+              acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowBulkDeleteConfirmation(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="border-border hover:bg-muted"
+              onClick={confirmBulkDelete}
+            >
+              Eliminar {selectedRoleIds.length}{' '}
+              {selectedRoleIds.length === 1 ? 'rol' : 'roles'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.aside>
   )
 }

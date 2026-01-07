@@ -20,6 +20,9 @@ const initialState = {
   isCollapsed: false,
   isCompactMode: false,
   workflowConfig: createDefaultWorkflowConfig(),
+  // Selection mode
+  isSelectionMode: false,
+  selectedRoleIds: [] as string[],
 }
 
 export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
@@ -80,6 +83,58 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
   },
 
   reset: () => set(initialState),
+
+  // Selection mode actions
+  enterSelectionMode: (initialId?: string) => {
+    set({
+      isSelectionMode: true,
+      selectedRoleIds: initialId ? [initialId] : [],
+    })
+  },
+
+  exitSelectionMode: () => {
+    set({
+      isSelectionMode: false,
+      selectedRoleIds: [],
+    })
+  },
+
+  toggleRoleSelection: (id: string) => {
+    set((state) => {
+      const isSelected = state.selectedRoleIds.includes(id)
+      const newSelectedIds = isSelected
+        ? state.selectedRoleIds.filter((rid) => rid !== id)
+        : [...state.selectedRoleIds, id]
+
+      // Auto-exit selection mode if no items selected
+      if (newSelectedIds.length === 0) {
+        return {
+          isSelectionMode: false,
+          selectedRoleIds: [],
+        }
+      }
+
+      return { selectedRoleIds: newSelectedIds }
+    })
+  },
+
+  deleteSelectedRoles: () => {
+    set((state) => {
+      const filteredRoles = state.roles.filter(
+        (role) => !state.selectedRoleIds.includes(role.id)
+      )
+      // Reorder remaining roles
+      const reorderedRoles = filteredRoles.map((role, index) => ({
+        ...role,
+        order: index + 1,
+      }))
+      return {
+        roles: reorderedRoles,
+        isSelectionMode: false,
+        selectedRoleIds: [],
+      }
+    })
+  },
 
   // Workflow actions
   setOrderMode: (mode: SigningOrderMode) => {
