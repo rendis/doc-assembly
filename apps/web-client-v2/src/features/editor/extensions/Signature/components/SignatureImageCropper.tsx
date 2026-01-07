@@ -61,7 +61,7 @@ export function SignatureImageCropper({
 
         <div className="space-y-4">
           {/* Cropper Area */}
-          <div className="relative bg-gray-50 rounded-lg overflow-hidden">
+          <div className="relative bg-muted rounded-lg overflow-hidden">
             <Cropper
               key={imageSrc}
               ref={cropperRef}
@@ -91,13 +91,13 @@ export function SignatureImageCropper({
           <Button
             variant="outline"
             onClick={handleCancel}
-            className="border-gray-200"
+            className="border-border"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
-            className="bg-black text-white hover:bg-gray-800"
+            className="bg-foreground text-background hover:bg-foreground/90"
           >
             Aplicar
           </Button>

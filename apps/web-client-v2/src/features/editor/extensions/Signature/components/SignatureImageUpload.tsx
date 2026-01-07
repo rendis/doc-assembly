@@ -111,7 +111,7 @@ export function SignatureImageUpload({
       {imageData ? (
         <div className="space-y-3">
           {/* Preview */}
-          <div className="relative border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div className="relative border border-border rounded-lg p-4 bg-muted">
             <img
               src={imageData}
               alt="Vista previa de firma"
@@ -128,7 +128,7 @@ export function SignatureImageUpload({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-gray-400 hover:text-black"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
                   onClick={handleEdit}
                   title="Editar imagen"
                 >
@@ -138,7 +138,7 @@ export function SignatureImageUpload({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-gray-400 hover:text-red-500"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
                 onClick={handleRemove}
                 title="Eliminar imagen"
               >
@@ -151,7 +151,7 @@ export function SignatureImageUpload({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Opacidad</Label>
-              <span className="text-xs text-gray-400">{opacity}%</span>
+              <span className="text-xs text-muted-foreground">{opacity}%</span>
             </div>
             <Input
               type="range"
@@ -169,7 +169,7 @@ export function SignatureImageUpload({
           type="button"
           variant="outline"
           size="sm"
-          className="w-full border-gray-200 hover:border-black"
+          className="w-full border-border hover:border-foreground"
           onClick={handleButtonClick}
         >
           <ImagePlus className="h-4 w-4 mr-2" />
@@ -177,7 +177,7 @@ export function SignatureImageUpload({
         </Button>
       )}
 
-      <p className="text-[10px] text-gray-400">
+      <p className="text-[10px] text-muted-foreground">
         PNG, JPG, GIF o WebP. Máximo 2MB.
       </p>
 

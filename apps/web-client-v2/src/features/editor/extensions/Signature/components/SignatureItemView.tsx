@@ -120,7 +120,7 @@ export function SignatureItemView({
       {/* Badge de rol asignado */}
       {assignedRole && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
-          <span className="inline-flex items-center gap-1 text-[10px] bg-black/5 text-gray-600 px-2 py-0.5 rounded-full border border-gray-200">
+          <span className="inline-flex items-center gap-1 text-[10px] bg-foreground/5 text-muted-foreground px-2 py-0.5 rounded-full border border-border">
             <User className="h-2.5 w-2.5" />
             {assignedRole.label}
           </span>
@@ -204,17 +204,17 @@ export function SignatureItemView({
       )}
 
       {/* Línea de firma */}
-      <div className={cn('h-px bg-gray-600', lineWidthClasses)} />
+      <div className={cn('h-px bg-foreground', lineWidthClasses)} />
 
       {/* Label (texto superior/título) */}
       <div className="mt-2 text-center">
-        <p className="text-sm font-medium text-gray-900">
+        <p className="text-sm font-medium text-foreground">
           {signature.label || 'Firma'}
         </p>
 
         {/* Subtitle (texto inferior) */}
         {signature.subtitle && (
-          <p className="text-xs text-gray-500 mt-0.5">{signature.subtitle}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{signature.subtitle}</p>
         )}
       </div>
     </div>

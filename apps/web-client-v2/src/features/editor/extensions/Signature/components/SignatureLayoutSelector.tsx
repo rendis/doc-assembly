@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { SignatureCount, SignatureLayout } from '../types'
 import { getLayoutsForCount } from '../signature-layouts'
 
@@ -27,7 +27,7 @@ function LayoutThumbnail({
   const renderSignatureBox = (key: string, className?: string) => (
     <div
       key={key}
-      className={cn('h-1.5 bg-gray-600 rounded-sm', className)}
+      className={cn('h-1.5 bg-foreground rounded-sm', className)}
       style={{ width: boxWidth }}
     />
   )
@@ -162,27 +162,25 @@ export function SignatureLayoutSelector({
       className="grid grid-cols-2 gap-2"
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
     >
-      <AnimatePresence mode="popLayout">
-        {layouts.map((layout) => (
+      {layouts.map((layout) => (
           <motion.button
             key={layout.id}
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             transition={{
               opacity: { duration: 0.15 },
-              layout: { duration: 0.3 },
+              layout: { duration: 0.2 },
             }}
             type="button"
             onClick={() => onChange(layout.id)}
             className={cn(
               'relative p-3 border rounded-lg',
-              'hover:border-gray-400 hover:bg-gray-50',
-              'focus:outline-none focus:ring-2 focus:ring-black/10',
+              'hover:border-muted-foreground hover:bg-muted',
+              'focus:outline-none focus:ring-2 focus:ring-foreground/10',
               value === layout.id
-                ? 'border-black bg-gray-50 ring-2 ring-black/10'
-                : 'border-gray-200'
+                ? 'border-foreground bg-muted ring-2 ring-foreground/10'
+                : 'border-border'
             )}
           >
             {/* Checkmark */}
@@ -192,7 +190,7 @@ export function SignatureLayoutSelector({
                 animate={{ opacity: 1, scale: 1 }}
                 className="absolute top-1 right-1"
               >
-                <Check className="h-3 w-3 text-black" />
+                <Check className="h-3 w-3 text-foreground" />
               </motion.div>
             )}
 
@@ -202,12 +200,11 @@ export function SignatureLayoutSelector({
             </div>
 
             {/* Label */}
-            <p className="text-xs text-center mt-2 text-gray-500">
+            <p className="text-xs text-center mt-2 text-muted-foreground">
               {layout.name}
             </p>
           </motion.button>
         ))}
-      </AnimatePresence>
     </motion.div>
   )
 }

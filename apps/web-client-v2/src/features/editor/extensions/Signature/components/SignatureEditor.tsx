@@ -124,7 +124,7 @@ export function SignatureEditor({
             {/* Panel izquierdo: Configuración general */}
             <motion.div
               layout
-              className="space-y-4 border-r border-gray-100 pr-4 pl-1 pb-1 overflow-hidden"
+              className="space-y-4 border-r border-border pr-4 pl-1 pb-1 overflow-hidden"
             >
               {/* Cantidad de firmas */}
               <div className="space-y-2">
@@ -140,8 +140,8 @@ export function SignatureEditor({
                       className={cn(
                         'h-8 rounded border text-sm font-medium transition-colors',
                         localAttrs.count === count
-                          ? 'bg-black text-white border-black'
-                          : 'bg-white hover:bg-gray-50 border-gray-200'
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'bg-background hover:bg-muted border-border'
                       )}
                     >
                       {count}
@@ -169,7 +169,7 @@ export function SignatureEditor({
                     handleLineWidthChange(value as SignatureLineWidth)
                   }
                 >
-                  <SelectTrigger className="h-8 text-xs border-gray-200">
+                  <SelectTrigger className="h-8 text-xs border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="min-w-[140px] p-1">
@@ -190,7 +190,7 @@ export function SignatureEditor({
             {/* Panel derecho: Configuración por firma */}
             <div className="flex flex-col min-h-0">
               {/* Tabs de firmas */}
-              <div className="flex border-b border-gray-100 mb-3">
+              <div className="flex border-b border-border mb-3">
                 {localAttrs.signatures.map((_, index) => (
                   <button
                     key={index}
@@ -199,8 +199,8 @@ export function SignatureEditor({
                     className={cn(
                       'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                       activeTab === index
-                        ? 'border-black text-black'
-                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     )}
                   >
                     Firma {index + 1}
@@ -227,7 +227,7 @@ export function SignatureEditor({
                           handleSignatureUpdate(index, { label: e.target.value })
                         }
                         placeholder="Ej: Firma del Cliente"
-                        className="h-8 text-sm border-gray-200 focus:border-black"
+                        className="h-8 text-sm border-border focus:border-foreground"
                       />
                     </div>
 
@@ -242,7 +242,7 @@ export function SignatureEditor({
                           })
                         }
                         placeholder="Ej: Representante Legal"
-                        className="h-8 text-sm border-gray-200 focus:border-black"
+                        className="h-8 text-sm border-border focus:border-foreground"
                       />
                     </div>
 
@@ -278,13 +278,13 @@ export function SignatureEditor({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-gray-200"
+            className="border-border"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
-            className="bg-black text-white hover:bg-gray-800"
+            className="bg-foreground text-background hover:bg-foreground/90"
           >
             Guardar cambios
           </Button>

@@ -31,7 +31,7 @@ export function SignatureRoleSelector({
     return (
       <div className="space-y-1">
         <Label className="text-xs">Rol asignado</Label>
-        <p className="text-xs text-gray-400">No hay roles disponibles</p>
+        <p className="text-xs text-muted-foreground">No hay roles disponibles</p>
       </div>
     )
   }
@@ -56,7 +56,7 @@ export function SignatureRoleSelector({
       <Label className="text-xs">Rol asignado</Label>
 
       {roles.length === 0 ? (
-        <p className="text-xs text-gray-400 flex items-center gap-1">
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
           <Users className="h-3 w-3" />
           Define roles en el panel derecho
         </p>
@@ -67,13 +67,13 @@ export function SignatureRoleSelector({
               variant="outline"
               size="sm"
               className={cn(
-                'w-full justify-start text-xs font-normal border-gray-200 hover:border-black',
-                !selectedRole && 'text-gray-400'
+                'w-full justify-start text-xs font-normal border-border hover:border-foreground',
+                !selectedRole && 'text-muted-foreground'
               )}
             >
               {selectedRole ? (
                 <>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-black" />
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-foreground" />
                   {getRoleDisplayName(selectedRole, variables)}
                 </>
               ) : (
@@ -86,7 +86,7 @@ export function SignatureRoleSelector({
           </PopoverTrigger>
 
           <PopoverContent className="w-56 p-0" align="start">
-            <div className="p-2 border-b border-gray-100">
+            <div className="p-2 border-b border-border">
               <p className="text-xs font-medium">Seleccionar rol</p>
             </div>
 
@@ -98,7 +98,7 @@ export function SignatureRoleSelector({
                     onClick={handleClear}
                     className={cn(
                       'w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm',
-                      'hover:bg-gray-100 text-gray-400'
+                      'hover:bg-muted text-muted-foreground'
                     )}
                   >
                     <Link2Off className="h-3.5 w-3.5" />
@@ -118,21 +118,21 @@ export function SignatureRoleSelector({
                       disabled={isAssigned}
                       className={cn(
                         'w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm',
-                        'hover:bg-gray-100',
-                        isSelected && 'bg-gray-100',
+                        'hover:bg-muted',
+                        isSelected && 'bg-muted',
                         isAssigned && 'opacity-50 cursor-not-allowed'
                       )}
                     >
                       <div className="w-4 flex justify-center">
                         {isSelected && (
-                          <Check className="h-3.5 w-3.5 text-black" />
+                          <Check className="h-3.5 w-3.5 text-foreground" />
                         )}
                       </div>
                       <span className="flex-1 text-left">
                         {getRoleDisplayName(role, variables)}
                       </span>
                       {isAssigned && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[10px] text-muted-foreground">
                           (en uso)
                         </span>
                       )}
@@ -141,7 +141,7 @@ export function SignatureRoleSelector({
                 })}
 
                 {availableRoles.length === 0 && (
-                  <p className="px-2 py-4 text-xs text-center text-gray-400">
+                  <p className="px-2 py-4 text-xs text-center text-muted-foreground">
                     Todos los roles están asignados
                   </p>
                 )}
