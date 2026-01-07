@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -38,26 +39,78 @@ export function VariableFormatDialog({
   const defaultFormat = getDefaultFormat(variable.metadata)
   const [selectedFormat, setSelectedFormat] = useState(defaultFormat)
 
-  const handleSelect = () => {
-    if (selectedFormat) {
-      onSelect(selectedFormat)
+  // Estado para controlar la animación de cierre
+  const [isClosing, setIsClosing] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(open)
+
+  // Sincronizar estado interno cuando open cambia a true
+  useEffect(() => {
+    if (open) {
+      setInternalOpen(true)
+      setIsClosing(false)
+    }
+  }, [open])
+
+  // Handler para el cambio de open desde Radix
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && !isClosing) {
+      // Iniciar el cierre con animación
+      setIsClosing(true)
+    } else if (newOpen) {
+      setInternalOpen(true)
+      setIsClosing(false)
+      onOpenChange(true)
     }
   }
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      onCancel()
+  // Handler local para Cancelar
+  const handleCancel = useCallback(() => {
+    setIsClosing(true)
+  }, [onCancel])
+
+  // Handler local para Seleccionar
+  const handleSelect = useCallback(() => {
+    if (!selectedFormat) return
+    setIsClosing(true)
+  }, [selectedFormat, onSelect])
+
+  // Handler cuando termina la transición
+  const handleTransitionEnd = useCallback((e: TransitionEvent) => {
+    // Solo responder a transiciones de opacity
+    if (e.propertyName === 'opacity' && isClosing) {
+      setInternalOpen(false)
+      setIsClosing(false)
+      // Ejecutar el callback correspondiente
+      if (selectedFormat) {
+        onSelect(selectedFormat)
+      } else {
+        onCancel()
+      }
     }
-    onOpenChange(newOpen)
-  }
+  }, [isClosing, selectedFormat, onSelect, onCancel])
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader className="border-b border-border pb-4">
-          <DialogTitle>Seleccionar formato</DialogTitle>
-          <DialogDescription>{variable.label}</DialogDescription>
-        </DialogHeader>
+    <DialogPrimitive.Root open={internalOpen} onOpenChange={handleOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className={cn(
+            'fixed inset-0 z-50 bg-black/40 transition-opacity duration-150',
+            isClosing ? 'opacity-0' : 'opacity-100'
+          )}
+        />
+        <DialogContent className="sm:max-w-[400px] overflow-hidden">
+          <div
+            className={cn(
+              'transition-opacity duration-150',
+              isClosing && 'opacity-0',
+              '[&[data-state=open]]:animate-[dialog-fade-in_0.25s_ease-out]'
+            )}
+            onTransitionEnd={handleTransitionEnd}
+          >
+            <DialogHeader className="border-b border-border pb-4">
+              <DialogTitle>Seleccionar formato</DialogTitle>
+              <DialogDescription>{variable.label}</DialogDescription>
+            </DialogHeader>
 
         <div className="py-4 space-y-2">
           <Label className="text-xs">Formato</Label>
@@ -86,7 +139,7 @@ export function VariableFormatDialog({
         <DialogFooter className="border-t border-border pt-4 gap-2">
           <Button
             variant="outline"
-            onClick={onCancel}
+            onClick={handleCancel}
             className="border-border"
           >
             Cancelar
@@ -99,7 +152,9 @@ export function VariableFormatDialog({
             Seleccionar
           </Button>
         </DialogFooter>
+          </div>
       </DialogContent>
-    </Dialog>
+    </DialogPrimitive.Portal>
+  </DialogPrimitive.Root>
   )
 }

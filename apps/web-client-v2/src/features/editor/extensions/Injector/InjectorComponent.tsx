@@ -96,8 +96,8 @@ export const InjectorComponent = (props: NodeViewProps) => {
         onContextMenu={handleContextMenu}
         title={!roleExists ? 'Este rol ha sido eliminado' : undefined}
         className={cn(
-          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium transition-colors select-none border',
-          selected ? 'ring-2 ring-ring ring-offset-2' : '',
+          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium transition-all duration-200 ease-out select-none border',
+          selected ? 'ring-2 ring-ring' : '',
           // Estado de warning: rol eliminado
           isRoleVariable && !roleExists
             ? [

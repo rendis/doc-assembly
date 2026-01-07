@@ -89,11 +89,11 @@
   --accent-blue-muted: 217 90% 92%;
   --accent-blue-border: 217 80% 55%;
 
-  /* Role (teal para role injectables) */
-  --role: 173 80% 40%;
-  --role-foreground: 173 85% 15%;
-  --role-muted: 173 70% 90%;
-  --role-border: 173 75% 45%;
+  /* Role (rosa para role injectables) */
+  --role: 350 75% 45%;
+  --role-foreground: 350 60% 20%;
+  --role-muted: 350 50% 94%;
+  --role-border: 350 65% 65%;
 }
 
 .dark {
@@ -132,7 +132,7 @@
   /* Border, Input, Ring */
   --border: 220 10% 30%;
   --input: 220 10% 26%;
-  --ring: 217 90% 58%;
+  --ring: 250 60% 75%;
 
   /* Sidebar */
   --sidebar-background: 220 13% 13%;
@@ -171,11 +171,11 @@
   --accent-blue-muted: 217 30% 20%;
   --accent-blue-border: 217 60% 45%;
 
-  /* Role (teal para role injectables) */
-  --role: 173 70% 50%;
-  --role-foreground: 173 60% 85%;
-  --role-muted: 173 60% 15%;
-  --role-border: 173 50% 40%;
+  /* Role (rosa claro pastel para role injectables) */
+  --role: 350 80% 94%;
+  --role-foreground: 350 30% 99%;
+  --role-muted: 350 20% 30%;
+  --role-border: 350 50% 55%;
 }
 
 /* ============================================
@@ -341,6 +341,65 @@ body {
   }
 }
 
+/* Subtle dialog animations */
+@keyframes dialog-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes dialog-fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98) translateY(-10px);
+  }
+}
+
+@keyframes dialog-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ring-fade-in {
+  from {
+    box-shadow: 0 0 0 0 hsl(var(--ring) / 0);
+  }
+  to {
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 1);
+  }
+}
+
+@keyframes ring-fade-out {
+  from {
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 1);
+  }
+  to {
+    box-shadow: 0 0 0 0 hsl(var(--ring) / 0);
+  }
+}
+
 /* ============================================
    Tailwind Theme Extensions
    ============================================ */
@@ -431,6 +490,10 @@ body {
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-fade-out: fade-out 0.2s ease-out;
   --animate-spin: spin 1s linear infinite;
+  --animate-dialog-fade-in: dialog-fade-in 0.25s ease-out;
+  --animate-dialog-fade-out: dialog-fade-out 0.2s ease-in;
+  --animate-dialog-overlay-fade-in: dialog-overlay-fade-in 0.25s ease-out;
+  --animate-dialog-overlay-fade-out: dialog-overlay-fade-out 0.2s ease-in;
 }
 
 /* ============================================
