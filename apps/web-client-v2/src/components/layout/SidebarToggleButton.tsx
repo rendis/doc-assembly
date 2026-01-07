@@ -30,7 +30,7 @@ export function SidebarToggleButton({ className }: SidebarToggleButtonProps) {
           aria-label={tooltipText}
           className={cn(
             'absolute right-0 top-1/2 z-10 h-7 w-7 -translate-y-1/2 translate-x-1/2 rounded-full border bg-background shadow-sm transition-all hover:scale-105 hover:bg-accent',
-            isPinned && 'border-primary/50 bg-primary/5',
+            isPinned && 'border-admin/50 bg-background',
             className
           )}
         >
@@ -44,7 +44,7 @@ export function SidebarToggleButton({ className }: SidebarToggleButtonProps) {
               className={cn(
                 'transition-colors duration-200',
                 isPinned
-                  ? 'fill-primary text-primary'
+                  ? 'fill-admin text-admin'
                   : 'text-muted-foreground'
               )}
             />

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DocumentEditor, PAGE_SIZES, DEFAULT_MARGINS } from '@/features/editor'
+import { useInjectables } from '@/features/editor/hooks/useInjectables'
 import { useState, useCallback, useRef } from 'react'
 import type { PageSize, PageMargins } from '@/features/editor'
 
@@ -12,6 +13,9 @@ export const Route = createFileRoute('/workspace/$workspaceId/editor/$versionId'
 function EditorPage() {
   const { workspaceId, versionId } = Route.useParams()
   const [isSaving, setIsSaving] = useState(false)
+
+  // Load variables (injectables) from the API
+  const { variables } = useInjectables()
 
   // Estado del contenido (preservado entre cambios de page size)
   const contentRef = useRef<string>('<p>Comienza a escribir tu documento aqui...</p>')
@@ -78,6 +82,7 @@ function EditorPage() {
           margins={margins}
           onPageSizeChange={handlePageSizeChange}
           onMarginsChange={handleMarginsChange}
+          variables={variables}
         />
       </div>
     </div>

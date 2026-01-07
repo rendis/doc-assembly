@@ -15,6 +15,7 @@ import { ImageExtension, type ImageShape } from '../extensions/Image'
 import { PageBreakHR } from '../extensions/PageBreak'
 import { SlashCommandsExtension, slashCommandsSuggestion } from '../extensions/SlashCommands'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
+import { VariableFormatDialog } from './VariableFormatDialog'
 import { type PageSize, type PageMargins, type Variable } from '../types'
 
 interface DocumentEditorProps {
@@ -42,6 +43,13 @@ export function DocumentEditor({
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
+
+  // Format dialog state
+  const [formatDialogOpen, setFormatDialogOpen] = useState(false)
+  const [pendingVariable, setPendingVariable] = useState<{
+    variable: Variable
+    position: number
+  } | null>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -106,13 +114,40 @@ export function DocumentEditor({
       setImageModalOpen(true)
     }
 
+    const handleSelectVariableFormat = (
+      event: CustomEvent<{
+        variable: Variable
+        range: { from: number; to: number }
+      }>
+    ) => {
+      const { variable, range } = event.detail
+
+      // Delete the @mention text
+      editor.chain().focus().deleteRange(range).run()
+
+      // Save variable and position for the dialog
+      setPendingVariable({
+        variable,
+        position: editor.state.selection.from,
+      })
+      setFormatDialogOpen(true)
+    }
+
     const dom = editor.view.dom
     dom.addEventListener('editor:open-image-modal', handleOpenImageModal)
     dom.addEventListener('editor:edit-image', handleEditImage as EventListener)
+    dom.addEventListener(
+      'editor:select-variable-format',
+      handleSelectVariableFormat as EventListener
+    )
 
     return () => {
       dom.removeEventListener('editor:open-image-modal', handleOpenImageModal)
       dom.removeEventListener('editor:edit-image', handleEditImage as EventListener)
+      dom.removeEventListener(
+        'editor:select-variable-format',
+        handleSelectVariableFormat as EventListener
+      )
     }
   }, [editor])
 
@@ -149,6 +184,32 @@ export function DocumentEditor({
       setIsEditingImage(false)
       setPendingImagePosition(null)
     }
+  }, [])
+
+  const handleFormatSelect = useCallback(
+    (format: string) => {
+      if (!editor || !pendingVariable) return
+
+      editor
+        .chain()
+        .focus(pendingVariable.position)
+        .setInjector({
+          type: pendingVariable.variable.type,
+          label: pendingVariable.variable.label,
+          variableId: pendingVariable.variable.variableId,
+          format,
+        })
+        .run()
+
+      setFormatDialogOpen(false)
+      setPendingVariable(null)
+    },
+    [editor, pendingVariable]
+  )
+
+  const handleFormatCancel = useCallback(() => {
+    setFormatDialogOpen(false)
+    setPendingVariable(null)
   }, [])
 
   if (!editor) {
@@ -201,6 +262,16 @@ export function DocumentEditor({
         onInsert={handleImageInsert}
         initialShape={isEditingImage ? editingImageShape : 'square'}
       />
+
+      {pendingVariable && (
+        <VariableFormatDialog
+          variable={pendingVariable.variable}
+          open={formatDialogOpen}
+          onOpenChange={setFormatDialogOpen}
+          onSelect={handleFormatSelect}
+          onCancel={handleFormatCancel}
+        />
+      )}
     </SignerRolesProvider>
   )
 }
