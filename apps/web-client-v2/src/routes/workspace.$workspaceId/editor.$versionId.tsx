@@ -59,10 +59,10 @@ function EditorPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/workspace/$workspaceId/templates" params={{ workspaceId }}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
+              <span className="font-mono">Volver</span>
             </Link>
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground font-mono">
             Version: {versionId}
           </span>
         </div>

@@ -57,3 +57,16 @@ export const staggerContainer: Variants = {
     },
   },
 };
+
+// Dialog animations
+export const dialogBackdrop: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+export const dialogContent: Variants = {
+  initial: { opacity: 0, scale: 0.95, y: 8 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.95, y: 8 },
+};

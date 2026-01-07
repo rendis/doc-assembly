@@ -207,7 +207,7 @@ export function AppSidebar() {
                       width: isExpanded ? 'auto' : 0,
                     }}
                     transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-                    className="overflow-hidden whitespace-nowrap"
+                    className="overflow-hidden whitespace-nowrap font-mono"
                   >
                     {item.label}
                   </motion.span>
@@ -281,7 +281,7 @@ export function AppSidebar() {
                 width: isExpanded ? 'auto' : 0,
               }}
               transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-              className="overflow-hidden whitespace-nowrap"
+              className="overflow-hidden whitespace-nowrap font-mono"
             >
               {t('nav.logout')}
             </motion.span>

@@ -250,10 +250,7 @@ export function DocumentEditor({
         </div>
 
         {/* Right: Signer Roles Panel */}
-        <SignerRolesPanel
-          variables={variables}
-          className="w-72 shrink-0 border-l border-border"
-        />
+        <SignerRolesPanel variables={variables} />
       </div>
 
       <ImageInsertModal
