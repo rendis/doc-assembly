@@ -310,11 +310,11 @@ export function SignerRoleItem({
           {/* Número de posición / Checkbox de selección */}
           <motion.span
             className={cn(
-              'flex h-5 w-5 items-center justify-center rounded-full shrink-0 select-none touch-none transition-colors',
+              'flex h-5 w-5 items-center justify-center rounded-full shrink-0 select-none touch-none transition-all',
               isSelectionMode
                 ? isSelected
-                  ? 'bg-foreground text-background border-2 border-foreground cursor-pointer'
-                  : 'bg-background border-2 border-foreground cursor-pointer hover:bg-muted'
+                  ? 'bg-foreground/75 text-background border-2 border-foreground/75 cursor-pointer shadow-md'
+                  : 'bg-background border-2 border-foreground/50 cursor-pointer shadow-md hover:shadow-lg hover:border-foreground/70'
                 : 'bg-muted/50 text-[11px] font-mono font-semibold text-muted-foreground border border-border/50',
               !isSelectionMode && isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted'
             )}
