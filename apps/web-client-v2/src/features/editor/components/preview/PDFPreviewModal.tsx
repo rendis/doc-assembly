@@ -17,11 +17,11 @@ import {
   FileText,
 } from 'lucide-react'
 
+// Import worker as Vite asset
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+
 // Set worker source
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
 interface PDFPreviewModalProps {
   open: boolean

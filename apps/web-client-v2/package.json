@@ -60,7 +60,7 @@
     "keycloak-js": "^26.2.2",
     "lucide-react": "^0.513.0",
     "motion": "^12.24.10",
-    "pdfjs-dist": "^5.4.530",
+    "pdfjs-dist": "5.4.296",
     "react": "^19.1.0",
     "react-advanced-cropper": "^0.20.1",
     "react-dom": "^19.1.0",
