@@ -204,21 +204,31 @@ export function VariablesPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex-1"
+            className="flex-1 min-h-0 flex flex-col"
           >
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-4 min-w-0">
-                {/* Search Bar */}
-                <div className="relative min-w-0">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar variables..."
-                    className="pl-8 h-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+            {/* Static Search Bar */}
+            <div className="shrink-0 p-4 pb-2">
+              <div className="relative min-w-0">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar variables..."
+                  className="pl-8 h-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
 
+            {/* Scroll container with gradient overlays */}
+            <div className="relative flex-1 min-h-0">
+              {/* Top fade area - solid bg + gradient */}
+              <div className="absolute top-0 left-0 right-0 h-10 pointer-events-none z-10 flex flex-col">
+                <div className="h-4 bg-card" />
+                <div className="h-6 bg-gradient-to-b from-card to-transparent" />
+              </div>
+
+              <ScrollArea className="h-full">
+                <div className="p-4 pt-10 pb-12 space-y-4 min-w-0">
                 {/* Loading state */}
                 {isLoading && (
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -348,8 +358,15 @@ export function VariablesPanel({
                     </motion.div>
                   </div>
                 )}
+                </div>
+              </ScrollArea>
+
+              {/* Bottom fade area - solid bg + gradient */}
+              <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none z-10 flex flex-col">
+                <div className="h-6 bg-gradient-to-t from-card to-transparent" />
+                <div className="h-4 bg-card" />
               </div>
-            </ScrollArea>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

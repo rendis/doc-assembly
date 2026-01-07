@@ -147,64 +147,86 @@ export function SignerRolesPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex-1"
+            className="flex-1 flex flex-col min-h-0"
           >
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-3">
-          {roles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">No hay roles definidos</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Agrega roles para asignarlos a las firmas
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 border-border text-muted-foreground hover:text-foreground hover:border-foreground"
-                onClick={addRole}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar primer rol
-              </Button>
-            </div>
-          ) : (
-            <>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={roleIds}
-                  strategy={verticalListSortingStrategy}
+            {roles.length === 0 ? (
+              // Empty state - centered content
+              <div className="flex-1 flex flex-col items-center justify-center py-8 text-center px-4">
+                <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                <p className="text-sm text-muted-foreground">No hay roles definidos</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Agrega roles para asignarlos a las firmas
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                  onClick={addRole}
                 >
-                  {roles.map((role) => (
-                    <SignerRoleItem
-                      key={role.id}
-                      role={role}
-                      variables={variables}
-                      onUpdate={updateRole}
-                      onDelete={deleteRole}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar primer rol
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Scrollable role list */}
+                <ScrollArea className="flex-1">
+                  <div className="p-4 pb-8 space-y-3">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={roleIds}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <AnimatePresence mode="popLayout">
+                          {roles.map((role) => (
+                            <motion.div
+                              key={role.id}
+                              layout
+                              initial={{ opacity: 0, y: -16 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                              transition={{
+                                duration: 0.25,
+                                ease: [0.4, 0, 0.2, 1],
+                                layout: { duration: 0.2 },
+                              }}
+                            >
+                              <SignerRoleItem
+                                role={role}
+                                variables={variables}
+                                onUpdate={updateRole}
+                                onDelete={deleteRole}
+                              />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                </ScrollArea>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
-                onClick={addRole}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar rol
-              </Button>
-            </>
-          )}
-        </div>
-      </ScrollArea>
-      </motion.div>
+                {/* Sticky footer with gradient */}
+                <div className="relative shrink-0">
+                  <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                  <div className="p-4 pt-2 bg-card">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                      onClick={addRole}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar rol
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.aside>
