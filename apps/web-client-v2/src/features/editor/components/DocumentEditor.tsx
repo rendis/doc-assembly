@@ -44,6 +44,10 @@ interface DocumentEditorProps {
   onEditorReady?: (editor: Editor | null) => void
   /** Called when editor is fully rendered and styles are applied */
   onFullyReady?: () => void
+  /** Template ID for preview functionality */
+  templateId?: string
+  /** Version ID for preview functionality */
+  versionId?: string
 }
 
 export function DocumentEditor({
@@ -56,6 +60,8 @@ export function DocumentEditor({
   editorRef,
   onEditorReady,
   onFullyReady,
+  templateId,
+  versionId,
 }: DocumentEditorProps) {
   // Get pagination config from store
   const { pageSize, margins, pageGap } = usePaginationStore()
@@ -452,6 +458,8 @@ export function DocumentEditor({
                 editor={editor}
                 onExport={onExport}
                 onImport={onImport}
+                templateId={templateId}
+                versionId={versionId}
               />
               <div className="pr-2">
                 <PageSettings />

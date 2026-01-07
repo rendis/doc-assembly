@@ -272,7 +272,7 @@
     "backToDetails": "Volver a Detalles",
     "structures": "Estructuras",
     "variables": "Variables",
-    "signerRoles": "Roles de Firmantes",
+    "signerRoles": "Roles de Firma",
     "insertImage": "Imagen",
     "insertConditional": "Condicional",
     "insertSignature": "Firma",
@@ -301,6 +301,43 @@
       "marginRight": "Derecho",
       "reset": "Restablecer",
       "applyMargins": "Aplicar Márgenes"
+    },
+    "preview": {
+      "title": "Vista Previa del Documento",
+      "description": "Ingresa los valores para generar la vista previa del documento.",
+      "systemVariables": "Variables de Sistema",
+      "systemVariablesHelp": "Estos valores se calculan automáticamente. Puedes modificarlos si lo necesitas.",
+      "standardVariables": "Variables del Documento",
+      "roleVariables": "Variables de Firmantes",
+      "generate": "Generar Vista Previa",
+      "generating": "Generando...",
+      "generateAnyway": "Generar de Todas Formas",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "download": "Descargar",
+      "noVariables": "Este documento no tiene variables. ¿Generar vista previa con valores por defecto?",
+      "generateTestData": "Generar Datos de Prueba",
+      "generateRandom": "Generar valor aleatorio",
+      "resetToEmulated": "Restablecer valor automático",
+      "auto": "Auto",
+      "errors": {
+        "invalidNumber": "Debe ser un número válido",
+        "invalidDate": "Formato de fecha inválido",
+        "invalidEmail": "Formato de email inválido",
+        "apiError": "Error al generar vista previa",
+        "invalidData": "Datos inválidos. Verifica los valores ingresados.",
+        "notFound": "Plantilla o versión no encontrada.",
+        "serverError": "Error del servidor. Intenta nuevamente."
+      },
+      "pdfModal": {
+        "title": "Vista Previa del Documento",
+        "loading": "Cargando PDF...",
+        "error": "Error al cargar PDF",
+        "page": "Página",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "zoomReset": "Restablecer zoom"
+      }
     },
     "workflow": {
       "title": "Configuración de firma",

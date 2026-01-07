@@ -269,6 +269,8 @@ function EditorPage() {
               editorRef={editorRef}
               onEditorReady={setEditorInstance}
               onFullyReady={handleEditorFullyReady}
+              templateId={templateId}
+              versionId={versionId}
             />
           )}
         </div>

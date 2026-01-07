@@ -1,10 +1,15 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Settings2, Trash2, PenLine } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { SignatureItemView } from './components/SignatureItemView'
 import { SignatureEditor } from './components/SignatureEditor'
 import type {
@@ -40,10 +45,6 @@ export const SignatureComponent = (props: NodeViewProps) => {
     signatures,
   }
 
-  const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-  } | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
 
@@ -52,32 +53,13 @@ export const SignatureComponent = (props: NodeViewProps) => {
     setSelectedImageId(null)
   }, [selected, editorOpen])
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY })
-  }
-
   const handleDoubleClick = useCallback(() => {
     setEditorOpen(true)
-  }, [])
-
-  const handleEdit = useCallback(() => {
-    setEditorOpen(true)
-    setContextMenu(null)
   }, [])
 
   const handleDelete = useCallback(() => {
     deleteNode()
   }, [deleteNode])
-
-  const handleCopy = useCallback(() => {
-    document.execCommand('copy')
-  }, [])
-
-  const handleCut = useCallback(() => {
-    document.execCommand('cut')
-  }, [])
 
   const handleSave = useCallback(
     (newAttrs: SignatureBlockAttrs) => {
@@ -168,7 +150,6 @@ export const SignatureComponent = (props: NodeViewProps) => {
       <div
         data-drag-handle
         contentEditable={false}
-        onContextMenu={handleContextMenu}
         onDoubleClick={handleDoubleClick}
         className={cn(
           'relative w-full p-6 border-2 border-dashed rounded-lg transition-colors cursor-grab select-none',
@@ -184,59 +165,64 @@ export const SignatureComponent = (props: NodeViewProps) => {
           userSelect: 'none',
         }}
       >
+        {/* Tab decorativo superior izquierdo */}
+        <div className="absolute -top-3 left-4 z-10">
+          <div
+            className={cn(
+              'px-2 h-6 bg-card flex items-center gap-1.5 text-xs font-medium border rounded shadow-sm transition-colors',
+              selected
+                ? 'text-info-foreground border-info-border dark:text-info dark:border-info'
+                : 'text-muted-foreground border-border hover:border-info-border hover:text-info-foreground dark:hover:border-info dark:hover:text-info'
+            )}
+          >
+            <PenLine className="h-3.5 w-3.5" />
+            <span>Firma</span>
+          </div>
+        </div>
+
         {/* Contenedor de firmas según layout */}
         <div className={containerClasses}>{renderSignatures()}</div>
 
         {/* Barra de herramientas flotante cuando está seleccionado */}
         {selected && (
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={handleDoubleClick}
-              title="Editar firma"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <div className="w-px h-6 bg-border mx-1" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={handleDelete}
-              title="Eliminar firma"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleDoubleClick}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Editar</p>
+                </TooltipContent>
+              </Tooltip>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Eliminar</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         )}
 
-        {/* Badge de edición cuando NO está seleccionado */}
-        {!selected && (
-          <div
-            className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/80 hover:bg-background text-info-foreground dark:text-info text-[10px] font-medium border border-info-border transition-all cursor-pointer shadow-sm backdrop-blur-sm"
-            onClick={handleDoubleClick}
-          >
-            <Pencil className="h-3 w-3" />
-            <span>Editar</span>
-          </div>
-        )}
       </div>
-
-      {/* Context menu */}
-      {contextMenu && (
-        <EditorNodeContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          nodeType="signature"
-          onDelete={deleteNode}
-          onEdit={handleEdit}
-          onCopy={handleCopy}
-          onCut={handleCut}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
 
       {/* Editor dialog */}
       <SignatureEditor

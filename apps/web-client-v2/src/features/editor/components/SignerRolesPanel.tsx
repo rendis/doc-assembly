@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   DndContext,
   DragOverlay,
@@ -50,6 +51,7 @@ export function SignerRolesPanel({
   variables,
   className,
 }: SignerRolesPanelProps) {
+  const { t } = useTranslation()
   // Access raw roles and sort with useMemo to avoid infinite loop
   const rawRoles = useSignerRolesStore((state) => state.roles)
   const roles = useMemo(
@@ -182,7 +184,7 @@ export function SignerRolesPanel({
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground overflow-hidden whitespace-nowrap"
           >
-            Roles de Firma
+            {t('editor.signerRoles')}
           </motion.span>
         </div>
 

@@ -120,6 +120,25 @@ export const SignatureExtension = Node.create({
     return ReactNodeViewRenderer(SignatureComponent)
   },
 
+  addKeyboardShortcuts() {
+    return {
+      'Mod-c': () => {
+        const { selection } = this.editor.state
+        if (selection.node?.type.name === this.name) {
+          return true // Prevenir copy
+        }
+        return false
+      },
+      'Mod-x': () => {
+        const { selection } = this.editor.state
+        if (selection.node?.type.name === this.name) {
+          return true // Prevenir cut
+        }
+        return false
+      },
+    }
+  },
+
   addCommands() {
     return {
       setSignature:

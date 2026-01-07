@@ -1,9 +1,9 @@
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 import { cn } from '@/lib/utils'
-import { GitBranch, Settings2 } from 'lucide-react'
+import { GitBranch, Settings2, Trash2 } from 'lucide-react'
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -11,7 +11,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useState, useCallback } from 'react'
 import { LogicBuilder } from './builder/LogicBuilder'
 import type {
   ConditionalSchema,
@@ -20,10 +26,9 @@ import type {
   RuleValue,
 } from './ConditionalExtension'
 import { OPERATOR_SYMBOLS } from './types/operators'
-import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu'
 
 export const ConditionalComponent = (props: NodeViewProps) => {
-  const { node, updateAttributes, selected, deleteNode } = props
+  const { node, updateAttributes, selected, deleteNode, editor, getPos } = props
   const { conditions, expression } = node.attrs
 
   const [tempConditions, setTempConditions] = useState<ConditionalSchema>(
@@ -35,24 +40,41 @@ export const ConditionalComponent = (props: NodeViewProps) => {
     }
   )
   const [open, setOpen] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-  } | null>(null)
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleOpenEditor = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY })
-  }
+    setOpen(true)
+  }, [])
 
-  const handleBorderClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const pos = getPos()
+    if (typeof pos === 'number') {
+      const tr = editor.state.tr.setSelection(
+        NodeSelection.create(editor.state.doc, pos)
+      )
+      editor.view.dispatch(tr)
+      editor.commands.deleteSelection()
+    }
+  }, [editor, getPos])
+
+  const handleSelectNode = useCallback(
+    (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      setContextMenu({ x: e.clientX, y: e.clientY })
-    }
-  }
+      const pos = getPos()
+      if (typeof pos === 'number') {
+        const tr = editor.state.tr.setSelection(
+          NodeSelection.create(editor.state.doc, pos)
+        )
+        editor.view.dispatch(tr)
+        editor.view.focus()
+      }
+    },
+    [editor, getPos]
+  )
 
   const handleSave = () => {
     const summary = generateSummary(tempConditions)
@@ -66,11 +88,9 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   return (
     <NodeViewWrapper className="my-6 relative group">
       <div
-        data-drag-handle
-        onClick={handleBorderClick}
-        onContextMenu={handleContextMenu}
+        onDoubleClick={handleOpenEditor}
         className={cn(
-          'border-2 border-dashed rounded-lg p-4 transition-all pt-6',
+          'relative border-2 border-dashed rounded-lg p-4 transition-all pt-6',
           selected
             ? 'bg-warning-muted/50 dark:bg-warning-muted/20'
             : 'bg-warning-muted/30 dark:bg-warning-muted/10'
@@ -81,74 +101,105 @@ export const ConditionalComponent = (props: NodeViewProps) => {
             : 'hsl(var(--warning-border) / 0.7)',
         }}
       >
-        <div className="absolute -top-3 left-4 flex items-center gap-2 z-10">
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <button
-                className={cn(
-                  'px-2 h-7 bg-card flex items-center gap-2 text-xs font-medium border rounded shadow-sm transition-colors cursor-pointer',
-                  selected
-                    ? 'text-warning-foreground border-warning-border dark:text-warning dark:border-warning'
-                    : 'text-muted-foreground border-border hover:border-warning-border hover:text-warning-foreground dark:hover:border-warning dark:hover:text-warning'
-                )}
-              >
-                <GitBranch className="h-3.5 w-3.5" />
-                <span className="max-w-[300px] truncate">
-                  {expression || 'Configurar Lógica'}
-                </span>
-                <Settings2 className="h-3 w-3 ml-1 opacity-50" />
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
-              {/* Header con borde inferior */}
-              <DialogHeader className="px-6 pt-6 pb-4 space-y-1 border-b border-border">
-                <DialogTitle>Constructor de Lógica</DialogTitle>
-                <DialogDescription>
-                  Arrastra variables y configura las reglas de visualización.
-                </DialogDescription>
-              </DialogHeader>
+        {/* Zonas de arrastre en los bordes */}
+        <div data-drag-handle onClick={handleSelectNode} className="absolute inset-x-0 top-0 h-3 cursor-grab" />
+        <div data-drag-handle onClick={handleSelectNode} className="absolute inset-x-0 bottom-0 h-3 cursor-grab" />
+        <div data-drag-handle onClick={handleSelectNode} className="absolute inset-y-0 left-0 w-3 cursor-grab" />
+        <div data-drag-handle onClick={handleSelectNode} className="absolute inset-y-0 right-0 w-3 cursor-grab" />
 
-              {/* Área principal - LogicBuilder se mantiene intacto */}
-              <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
-                <LogicBuilder
-                  initialData={conditions}
-                  onChange={setTempConditions}
-                />
-              </div>
-
-              {/* Footer con borde superior */}
-              <DialogFooter className="px-6 py-3 border-t border-border gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  className="border-border"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  className="bg-foreground text-background hover:bg-foreground/90"
-                >
-                  Guardar Configuración
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        {/* Tab decorativo superior izquierdo */}
+        <div data-drag-handle onClick={handleSelectNode} className="absolute -top-3 left-4 z-10 cursor-grab">
+          <div
+            className={cn(
+              'px-2 h-6 bg-card flex items-center gap-1.5 text-xs font-medium border rounded shadow-sm transition-colors',
+              selected
+                ? 'text-warning-foreground border-warning-border dark:text-warning dark:border-warning'
+                : 'text-muted-foreground border-border hover:border-warning-border hover:text-warning-foreground dark:hover:border-warning dark:hover:text-warning'
+            )}
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            <span className="max-w-[300px] truncate">
+              {expression || 'Condicional'}
+            </span>
+          </div>
         </div>
+
+        {/* Barra de herramientas flotante cuando está seleccionado */}
+        {selected && (
+          <TooltipProvider delayDuration={300}>
+            <div data-toolbar className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleOpenEditor}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Configurar</p>
+                </TooltipContent>
+              </Tooltip>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Eliminar</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        )}
 
         <NodeViewContent className="min-h-[2rem]" />
       </div>
 
-      {contextMenu && (
-        <EditorNodeContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          nodeType="conditional"
-          onDelete={deleteNode}
-          onEdit={() => setOpen(true)}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
+      {/* Dialog de configuración */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-4 space-y-1 border-b border-border">
+            <DialogTitle>Constructor de Lógica</DialogTitle>
+            <DialogDescription>
+              Arrastra variables y configura las reglas de visualización.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
+            <LogicBuilder
+              initialData={conditions}
+              onChange={setTempConditions}
+            />
+          </div>
+
+          <DialogFooter className="px-6 py-3 border-t border-border gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="border-border"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              Guardar Configuración
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </NodeViewWrapper>
   )
 }

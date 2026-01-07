@@ -68,6 +68,8 @@ export const ConditionalExtension = Node.create({
 
   content: 'block+',
 
+  draggable: true,
+
   allowGapCursor: false,
 
   addAttributes() {
@@ -103,7 +105,35 @@ export const ConditionalExtension = Node.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(ConditionalComponent)
+    return ReactNodeViewRenderer(ConditionalComponent, {
+      stopEvent: (event) => {
+        const target = event.event.target as HTMLElement
+        // Detener eventos en la barra de herramientas y elementos de control
+        if (target.closest('[data-toolbar]') || target.closest('[data-drag-handle]')) {
+          return true
+        }
+        return false
+      },
+    })
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-c': () => {
+        const { selection } = this.editor.state
+        if (selection.node?.type.name === this.name) {
+          return true // Prevenir copy
+        }
+        return false
+      },
+      'Mod-x': () => {
+        const { selection } = this.editor.state
+        if (selection.node?.type.name === this.name) {
+          return true // Prevenir cut
+        }
+        return false
+      },
+    }
   },
 
   addCommands() {

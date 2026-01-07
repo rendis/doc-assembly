@@ -302,6 +302,43 @@
       "reset": "Reset",
       "applyMargins": "Apply Margins"
     },
+    "preview": {
+      "title": "Preview Document",
+      "description": "Enter values to generate the document preview.",
+      "systemVariables": "System Variables",
+      "systemVariablesHelp": "These values are calculated automatically. You can modify them if needed.",
+      "standardVariables": "Document Variables",
+      "roleVariables": "Signer Variables",
+      "generate": "Generate Preview",
+      "generating": "Generating...",
+      "generateAnyway": "Generate Anyway",
+      "cancel": "Cancel",
+      "close": "Close",
+      "download": "Download",
+      "noVariables": "This document has no variables. Generate preview with default values?",
+      "generateTestData": "Generate Test Data",
+      "generateRandom": "Generate random value",
+      "resetToEmulated": "Reset to automatic value",
+      "auto": "Auto",
+      "errors": {
+        "invalidNumber": "Must be a valid number",
+        "invalidDate": "Invalid date format",
+        "invalidEmail": "Invalid email format",
+        "apiError": "Error generating preview",
+        "invalidData": "Invalid data. Check the entered values.",
+        "notFound": "Template or version not found.",
+        "serverError": "Server error. Please try again."
+      },
+      "pdfModal": {
+        "title": "Document Preview",
+        "loading": "Loading PDF...",
+        "error": "Error loading PDF",
+        "page": "Page",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "zoomReset": "Reset zoom"
+      }
+    },
     "workflow": {
       "title": "Signing configuration",
       "settings": "Signing configuration",

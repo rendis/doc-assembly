@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { PreviewButton } from './preview'
 
 const FONT_FAMILIES = [
   { label: 'Inter', value: 'Inter' },
@@ -49,9 +50,11 @@ interface EditorToolbarProps {
   editor: Editor | null
   onExport?: () => void
   onImport?: () => void
+  templateId?: string
+  versionId?: string
 }
 
-export function EditorToolbar({ editor, onExport, onImport }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onExport, onImport, templateId, versionId }: EditorToolbarProps) {
   // Force re-render when editor state changes (for undo/redo buttons)
   const [, forceUpdate] = useState({})
 
@@ -244,22 +247,32 @@ export function EditorToolbar({ editor, onExport, onImport }: EditorToolbarProps
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Export/Import */}
-        {onExport && (
-          <ToolbarButton
-            onClick={onExport}
-            tooltip="Exportar documento (JSON)"
-          >
-            <Download className="h-4 w-4" />
-          </ToolbarButton>
-        )}
-        {onImport && (
-          <ToolbarButton
-            onClick={onImport}
-            tooltip="Importar documento (JSON)"
-          >
-            <Upload className="h-4 w-4" />
-          </ToolbarButton>
+        {/* Export/Import/Preview */}
+        {(onExport || onImport || (templateId && versionId)) && (
+          <>
+            {onExport && (
+              <ToolbarButton
+                onClick={onExport}
+                tooltip="Exportar documento (JSON)"
+              >
+                <Download className="h-4 w-4" />
+              </ToolbarButton>
+            )}
+            {onImport && (
+              <ToolbarButton
+                onClick={onImport}
+                tooltip="Importar documento (JSON)"
+              >
+                <Upload className="h-4 w-4" />
+              </ToolbarButton>
+            )}
+            {templateId && versionId && (
+              <PreviewButton
+                templateId={templateId}
+                versionId={versionId}
+              />
+            )}
+          </>
         )}
       </div>
     </TooltipProvider>
