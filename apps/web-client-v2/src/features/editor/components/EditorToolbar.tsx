@@ -221,29 +221,36 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Document elements */}
-        <ToolbarButton
-          onClick={() => {
-            editor.view.dom.dispatchEvent(
-              new CustomEvent('editor:open-image-modal', { bubbles: true })
-            )
-          }}
-          tooltip="Insertar imagen"
-        >
-          <ImageIcon className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setSignature().run()}
-          tooltip="Bloque de firma"
-        >
-          <PenLine className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setConditional({}).run()}
-          tooltip="Bloque condicional"
-        >
-          <GitBranch className="h-4 w-4" />
-        </ToolbarButton>
+        {/* Document elements - Special tools section */}
+        <div className="relative flex items-center gap-1 px-2 py-1 bg-muted/60 dark:bg-muted/40 rounded-lg border border-border">
+          {/* Floating label */}
+          <span className="absolute -top-2 left-2 px-1.5 text-[10px] font-medium tracking-wide uppercase text-muted-foreground bg-card rounded">
+            Bloques
+          </span>
+
+          <ToolbarButton
+            onClick={() => {
+              editor.view.dom.dispatchEvent(
+                new CustomEvent('editor:open-image-modal', { bubbles: true })
+              )
+            }}
+            tooltip="Insertar imagen"
+          >
+            <ImageIcon className="h-4 w-4 text-success-foreground dark:text-success" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setSignature().run()}
+            tooltip="Bloque de firma"
+          >
+            <PenLine className="h-4 w-4 text-info-foreground dark:text-info" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setConditional({}).run()}
+            tooltip="Bloque condicional"
+          >
+            <GitBranch className="h-4 w-4 text-warning-foreground dark:text-warning" />
+          </ToolbarButton>
+        </div>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
