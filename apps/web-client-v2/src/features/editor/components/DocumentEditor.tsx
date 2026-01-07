@@ -3,6 +3,15 @@ import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
 import { useState, useEffect, useCallback } from 'react'
 import { PaginationPlus } from 'tiptap-pagination-plus'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { EditorToolbar } from './EditorToolbar'
 import { PageSettings } from './PageSettings'
 import { SignerRolesPanel } from './SignerRolesPanel'
@@ -16,7 +25,11 @@ import { PageBreakHR } from '../extensions/PageBreak'
 import { SlashCommandsExtension, slashCommandsSuggestion } from '../extensions/SlashCommands'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { VariableFormatDialog } from './VariableFormatDialog'
+import { VariablesPanel } from './VariablesPanel'
+import { VariableDragOverlay } from './VariableDragOverlay'
+import { hasConfigurableOptions } from '../types/injectable'
 import { type PageSize, type PageMargins, type Variable } from '../types'
+import type { VariableDragData } from '../types/drag'
 
 interface DocumentEditorProps {
   initialContent?: string
@@ -50,6 +63,24 @@ export function DocumentEditor({
     variable: Variable
     position: number
   } | null>(null)
+
+  // Drag & drop state
+  const [activeDragData, setActiveDragData] = useState<VariableDragData | null>(null)
+  const [dropCursorPos, setDropCursorPos] = useState<{
+    top: number
+    left: number
+    height: number
+  } | null>(null)
+  const [dropPosition, setDropPosition] = useState<number | null>(null)
+
+  // DnD sensors - require 8px movement before drag starts (allows clicks to pass)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -190,16 +221,13 @@ export function DocumentEditor({
     (format: string) => {
       if (!editor || !pendingVariable) return
 
-      editor
-        .chain()
-        .focus(pendingVariable.position)
-        .setInjector({
-          type: pendingVariable.variable.type,
-          label: pendingVariable.variable.label,
-          variableId: pendingVariable.variable.variableId,
-          format,
-        })
-        .run()
+      // Use type assertion to bypass TipTap type limitations
+      ;(editor.chain().focus(pendingVariable.position) as any).setInjector({
+        type: pendingVariable.variable.type,
+        label: pendingVariable.variable.label,
+        variableId: pendingVariable.variable.variableId,
+        format,
+      }).run()
 
       setFormatDialogOpen(false)
       setPendingVariable(null)
@@ -212,6 +240,143 @@ export function DocumentEditor({
     setPendingVariable(null)
   }, [])
 
+  // --- DRAG & DROP HANDLERS ---
+
+  /**
+   * Insert a variable into the editor at the current cursor position
+   * If variable has configurable options, open format dialog
+   */
+  const insertVariable = useCallback(
+    (data: VariableDragData, position?: number) => {
+      if (!editor) return
+
+      // Determine insertion position
+      const insertPos = position ?? editor.state.selection.from
+
+      // Check if variable has configurable format options
+      if (hasConfigurableOptions(data.metadata)) {
+        // Open format dialog
+        setPendingVariable({
+          variable: {
+            id: data.id,
+            variableId: data.variableId,
+            label: data.label,
+            type: data.injectorType,
+            metadata: data.metadata,
+          },
+          position: insertPos,
+        })
+        setFormatDialogOpen(true)
+      } else {
+        // Insert directly without format dialog
+        // Use type assertion to bypass TipTap type limitations
+        ;(editor.chain().focus(insertPos) as any).setInjector({
+          type: data.injectorType,
+          label: data.label,
+          variableId: data.variableId,
+          // For role variables, add additional attributes
+          ...(data.itemType === 'role-variable' && {
+            isRoleVariable: true,
+            roleId: data.roleId,
+            roleLabel: data.roleLabel,
+            propertyKey: data.propertyKey,
+          }),
+        }).run()
+      }
+    },
+    [editor]
+  )
+
+  /**
+   * Handle click on variable in VariablesPanel
+   * Inserts variable at current cursor position
+   */
+  const handleVariableClick = useCallback(
+    (data: VariableDragData) => {
+      insertVariable(data)
+    },
+    [insertVariable]
+  )
+
+  /**
+   * Handle drag start - show overlay with ghost image
+   */
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current as VariableDragData
+    if (data) {
+      setActiveDragData(data)
+    }
+  }, [])
+
+  /**
+   * Handle drag move - update drop cursor position
+   * Shows visual indicator of where the variable will be inserted
+   */
+  const handleDragMove = useCallback(
+    (event: {
+      activatorEvent: MouseEvent | TouchEvent | null
+      delta: { x: number; y: number }
+    }) => {
+      if (!editor) return
+
+      const { activatorEvent, delta } = event
+      if (!activatorEvent) return
+
+      const pointer = activatorEvent as MouseEvent
+
+      // Calculate position in editor at pointer coordinates
+      const pos = editor.view.posAtCoords({
+        left: pointer.clientX + delta.x,
+        top: pointer.clientY + delta.y,
+      })
+
+      if (pos) {
+        // Get visual coordinates for the drop cursor
+        const coords = editor.view.coordsAtPos(pos.pos)
+        setDropCursorPos({
+          top: coords.top,
+          left: coords.left,
+          height: coords.bottom - coords.top,
+        })
+        // Save the position where we'll insert the variable
+        setDropPosition(pos.pos)
+      } else {
+        setDropCursorPos(null)
+        setDropPosition(null)
+      }
+    },
+    [editor]
+  )
+
+  /**
+   * Handle drag end - insert variable if dropped in editor
+   */
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+
+      // Get the drag data before clearing state
+      const data = active.data.current as VariableDragData | undefined
+      const positionToInsert = dropPosition
+
+      // Always clear active drag data and drop cursor first
+      setActiveDragData(null)
+      setDropCursorPos(null)
+      setDropPosition(null)
+
+      if (!data || !editor) return
+
+      // Insert the variable at the calculated position (not current cursor position)
+      if (positionToInsert !== null) {
+        insertVariable(data, positionToInsert)
+      } else {
+        // Fallback to current cursor position if no drop position was calculated
+        insertVariable(data)
+      }
+    },
+    [editor, insertVariable, dropPosition]
+  )
+
   if (!editor) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -222,36 +387,69 @@ export function DocumentEditor({
 
   return (
     <SignerRolesProvider variables={variables}>
-      <div className="flex h-full">
-        {/* Left: Main Editor Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header with Toolbar and Settings */}
-          <div className="flex items-center justify-between border-b border-border bg-card">
-            <EditorToolbar editor={editor} />
-            <div className="pr-2">
-              <PageSettings
-                pageSize={pageSize}
-                margins={margins}
-                onPageSizeChange={onPageSizeChange}
-                onMarginsChange={onMarginsChange}
-              />
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex h-full">
+          {/* Left: Variables Panel */}
+          <VariablesPanel
+            onVariableClick={handleVariableClick}
+            draggingIds={activeDragData ? [activeDragData.id] : []}
+          />
+
+          {/* Center: Main Editor Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Header with Toolbar and Settings */}
+            <div className="flex items-center justify-between border-b border-border bg-card">
+              <EditorToolbar editor={editor} />
+              <div className="pr-2">
+                <PageSettings
+                  pageSize={pageSize}
+                  margins={margins}
+                  onPageSizeChange={onPageSizeChange}
+                  onMarginsChange={onMarginsChange}
+                />
+              </div>
+            </div>
+
+            {/* Editor Content */}
+            <div className="flex-1 overflow-auto bg-muted/20 p-8">
+              <div
+                className="mx-auto"
+                style={{ width: pageSize.width }}
+              >
+                <EditorContent editor={editor} />
+              </div>
             </div>
           </div>
 
-          {/* Editor Content */}
-          <div className="flex-1 overflow-auto bg-muted/20 p-8">
-            <div
-              className="mx-auto"
-              style={{ width: pageSize.width }}
-            >
-              <EditorContent editor={editor} />
-            </div>
-          </div>
+          {/* Right: Signer Roles Panel */}
+          <SignerRolesPanel variables={variables} />
         </div>
 
-        {/* Right: Signer Roles Panel */}
-        <SignerRolesPanel variables={variables} />
-      </div>
+        {/* Drag Overlay - shows ghost image while dragging */}
+        <DragOverlay zIndex={100} dropAnimation={null}>
+          {activeDragData ? <VariableDragOverlay data={activeDragData} /> : null}
+        </DragOverlay>
+
+        {/* Drop Cursor Visual Indicator */}
+        {dropCursorPos && (
+          <div
+            className="fixed z-50 pointer-events-none"
+            style={{
+              top: dropCursorPos.top,
+              left: dropCursorPos.left - 2,
+              height: dropCursorPos.height,
+            }}
+          >
+            <div className="h-full w-[4px] bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+            <div className="absolute -top-1.5 -left-1 w-3 h-3 bg-blue-500 rounded-full shadow-sm ring-2 ring-background" />
+          </div>
+        )}
+      </DndContext>
 
       <ImageInsertModal
         open={imageModalOpen}

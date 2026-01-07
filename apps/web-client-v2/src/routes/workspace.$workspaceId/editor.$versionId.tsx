@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, Save } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { DocumentEditor, PAGE_SIZES, DEFAULT_MARGINS } from '@/features/editor'
 import { useInjectables } from '@/features/editor/hooks/useInjectables'
 import { useState, useCallback, useRef } from 'react'
@@ -56,20 +55,24 @@ function EditorPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-2 border-b bg-card">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/workspace/$workspaceId/templates" params={{ workspaceId }}>
+          <Link to="/workspace/$workspaceId/templates" params={{ workspaceId }}>
+            <button className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              <span className="font-mono">Volver</span>
-            </Link>
-          </Button>
+              Volver
+            </button>
+          </Link>
           <span className="text-sm text-muted-foreground font-mono">
             Version: {versionId}
           </span>
         </div>
-        <Button size="sm" onClick={handleSave} disabled={isSaving}>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 flex items-center"
+        >
           <Save className="mr-2 h-4 w-4" />
           {isSaving ? 'Guardando...' : 'Guardar'}
-        </Button>
+        </button>
       </header>
 
       {/* Editor - key cambia cuando cambia la configuracion de pagina */}
