@@ -228,7 +228,7 @@ export function VariablesPanel({
               </div>
 
               <ScrollArea className="h-full">
-                <div className="p-4 pt-10 pb-12 space-y-4 min-w-0">
+                <div className="p-4 pt-8 pb-12 space-y-4 min-w-0">
                 {/* Loading state */}
                 {isLoading && (
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
