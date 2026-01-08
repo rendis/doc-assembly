@@ -91,6 +91,15 @@
     "joinNew": "Unirse a Nuevo Workspace",
     "backToLogin": "Volver al login"
   },
+  "selectTenant": {
+    "title": "Selecciona tu",
+    "subtitle": "Organización.",
+    "description": "Elige un ambiente de tenant para acceder a tus plantillas de documentos y herramientas de ensamblaje.",
+    "back": "Volver al login",
+    "filter": "Filtrar por organización...",
+    "join": "Unirse a Nueva Organización",
+    "minChars": "Escribe al menos 3 caracteres para buscar"
+  },
   "workspace": {
     "current": "Workspace Actual",
     "select": "Seleccionar Workspace",

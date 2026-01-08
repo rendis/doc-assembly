@@ -22,7 +22,7 @@ export function useSearchWorkspaces(query: string, page = 1, perPage = 20) {
   return useQuery({
     queryKey: ['search-workspaces', query, page, perPage],
     queryFn: () => searchWorkspaces(query, page, perPage),
-    enabled: query.length > 0,
+    enabled: query.length >= 3,
   })
 }
 

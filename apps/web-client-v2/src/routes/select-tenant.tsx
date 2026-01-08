@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
 import { useMyTenants, useSearchTenants } from '@/features/tenants'
-import { useWorkspaces } from '@/features/workspaces'
+import { useWorkspaces, useSearchWorkspaces } from '@/features/workspaces'
 import { recordAccess } from '@/features/auth'
 
 export const Route = createFileRoute('/select-tenant')({
@@ -48,20 +48,6 @@ const itemVariants = {
 
 const ITEMS_PER_PAGE = 5
 const LIST_MIN_HEIGHT = 400 // Fixed height to prevent layout shifts
-
-// Mock data for demo - using fixed dates to avoid impure render calls
-const MOCK_TENANTS: TenantWithRole[] = [
-  { id: '1', name: 'Acme Legal Corp', code: 'ACME', createdAt: '2024-01-01T00:00:00.000Z', role: 'ADMIN', lastAccessedAt: '2024-01-15T10:30:00.000Z' },
-  { id: '2', name: 'Global Finance Ltd', code: 'GFL', createdAt: '2024-01-01T00:00:00.000Z', role: 'MEMBER', lastAccessedAt: '2024-01-12T08:00:00.000Z' },
-  { id: '3', name: 'Northeast Litigation', code: 'NEL', createdAt: '2024-01-01T00:00:00.000Z', role: 'OWNER', lastAccessedAt: '2024-01-08T14:00:00.000Z' },
-  { id: '4', name: 'Orion Properties', code: 'ORION', createdAt: '2024-01-01T00:00:00.000Z', role: 'MEMBER', lastAccessedAt: null },
-]
-
-const MOCK_WORKSPACES: WorkspaceWithRole[] = [
-  { id: 'ws-1', name: 'Legal Documents', type: 'CLIENT', status: 'ACTIVE', createdAt: '2024-01-01T00:00:00.000Z', role: 'ADMIN', lastAccessedAt: '2024-01-15T09:00:00.000Z' },
-  { id: 'ws-2', name: 'HR Templates', type: 'CLIENT', status: 'ACTIVE', createdAt: '2024-01-01T00:00:00.000Z', role: 'EDITOR', lastAccessedAt: '2024-01-13T12:00:00.000Z' },
-  { id: 'ws-3', name: 'System Templates', type: 'SYSTEM', status: 'ACTIVE', createdAt: '2024-01-01T00:00:00.000Z', role: 'VIEWER', lastAccessedAt: null },
-]
 
 function PaginationControls({
   page,
@@ -156,6 +142,7 @@ function SelectTenantPage() {
 
   // Fetch workspaces for selected tenant (only when a tenant is selected)
   const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(selectedTenant?.id ?? null, workspacePage, ITEMS_PER_PAGE)
+  const { data: workspaceSearchData, isLoading: isSearchingWorkspaces } = useSearchWorkspaces(selectedTenant ? searchQuery : '')
 
   // Pagination metadata
   const tenantPagination = tenantsData?.pagination
@@ -163,6 +150,7 @@ function SelectTenantPage() {
 
   // Minimum loading time state
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+  const [showMinCharsHint, setShowMinCharsHint] = useState(false)
 
   // Start minimum loading timer on mount and when context changes
   useEffect(() => {
@@ -182,6 +170,16 @@ function SelectTenantPage() {
     setTenantPage(1)
   }, [searchQuery])
 
+  // Show hint when 1-2 characters typed (debounced)
+  useEffect(() => {
+    if (searchQuery.length > 0 && searchQuery.length < 3) {
+      const timer = setTimeout(() => setShowMinCharsHint(true), 300)
+      return () => clearTimeout(timer)
+    } else {
+      setShowMinCharsHint(false)
+    }
+  }, [searchQuery])
+
   // Update total pages when data arrives
   useEffect(() => {
     if (tenantPagination?.totalPages) {
@@ -195,17 +193,19 @@ function SelectTenantPage() {
     }
   }, [workspacePagination?.totalPages])
 
-  // Combined loading conditions
-  const showTenantLoading = !minLoadingComplete || isLoadingTenants || isSearching
-  const showWorkspaceLoading = !minLoadingComplete || isLoadingWorkspaces
+  // Combined loading conditions (only include isSearching when actively searching)
+  // Also show loading when not searching but tenant data hasn't loaded yet
+  const showTenantLoading = !minLoadingComplete || isLoadingTenants || (searchQuery.length >= 3 && isSearching) || (searchQuery.length < 3 && !tenantsData?.data)
+  const showWorkspaceLoading = !minLoadingComplete || isLoadingWorkspaces || (searchQuery.length >= 3 && isSearchingWorkspaces) || (searchQuery.length < 3 && selectedTenant && !workspacesData?.data)
 
-  const tenants = searchQuery ? searchData?.data : tenantsData?.data
-  const workspaces = workspacesData?.data || []
+  const tenants = searchQuery.length >= 3 ? searchData?.data : tenantsData?.data
+  const workspaces = searchQuery.length >= 3 ? workspaceSearchData?.data : workspacesData?.data
 
-  const displayTenants: TenantWithRole[] = (tenants?.length ? tenants : MOCK_TENANTS) as TenantWithRole[]
-  const displayWorkspaces: WorkspaceWithRole[] = (workspaces.length ? workspaces : MOCK_WORKSPACES) as WorkspaceWithRole[]
+  const displayTenants: TenantWithRole[] = tenants ?? []
+  const displayWorkspaces: WorkspaceWithRole[] = workspaces ?? []
 
   const handleTenantSelect = (tenant: TenantWithRole) => {
+    setSearchQuery('')
     setCurrentTenant(tenant as TenantWithRole)
     setSelectedTenant(tenant)
     recordAccess('TENANT', tenant.id).catch(() => {})
@@ -337,6 +337,11 @@ function SelectTenantPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-none border-b border-border bg-transparent py-3 pl-10 pr-4 font-display text-xl text-foreground outline-none transition-colors placeholder:text-muted-foreground/30 focus:border-foreground focus:ring-0"
             />
+            {showMinCharsHint && (
+              <span className="absolute -bottom-6 left-0 text-xs text-muted-foreground/70">
+                {t('selectTenant.minChars', 'Type at least 3 characters to search')}
+              </span>
+            )}
           </div>
 
           {/* List */}
@@ -354,9 +359,19 @@ function SelectTenantPage() {
                   >
                     <span>Loading workspaces<LoadingDots /></span>
                   </motion.div>
+                ) : displayWorkspaces.length === 0 ? (
+                  <motion.div
+                    key="empty-workspaces"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.2 } }}
+                    exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                    className="flex h-full items-start justify-center py-8 text-muted-foreground"
+                  >
+                    <span>{t('common.noResults', 'No results found')}</span>
+                  </motion.div>
                 ) : (
                   <motion.div
-                    key={`workspaces-page-${workspacePage}`}
+                    key={`workspaces-page-${workspacePage}-${searchQuery.length >= 3 ? 'search' : 'list'}`}
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
@@ -408,9 +423,19 @@ function SelectTenantPage() {
                 >
                   <span>Loading organizations<LoadingDots /></span>
                 </motion.div>
+              ) : displayTenants.length === 0 ? (
+                <motion.div
+                  key="empty-tenants"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.2 } }}
+                  exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                  className="flex h-full items-start justify-center py-8 text-muted-foreground"
+                >
+                  <span>{t('common.noResults', 'No results found')}</span>
+                </motion.div>
               ) : (
                 <motion.div
-                  key={`tenants-page-${tenantPage}`}
+                  key={`tenants-page-${tenantPage}-${searchQuery.length >= 3 ? 'search' : 'list'}`}
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"

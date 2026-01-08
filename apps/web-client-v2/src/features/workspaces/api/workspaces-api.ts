@@ -30,7 +30,7 @@ export async function searchWorkspaces(
 ): Promise<PaginatedResponse<WorkspaceWithRole>> {
   const response = await apiClient.get<PaginatedResponse<WorkspaceWithRole>>(
     '/tenant/workspaces/search',
-    { params: { query, page, perPage } }
+    { params: { q: query, page, perPage } }
   )
   return response.data
 }

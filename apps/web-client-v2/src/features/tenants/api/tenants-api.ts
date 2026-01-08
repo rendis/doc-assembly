@@ -25,7 +25,7 @@ export async function searchMyTenants(
 ): Promise<PaginatedResponse<TenantWithRole>> {
   const response = await apiClient.get<PaginatedResponse<TenantWithRole>>(
     '/me/tenants/search',
-    { params: { query, page, perPage } }
+    { params: { q: query, page, perPage } }
   )
   return response.data
 }
