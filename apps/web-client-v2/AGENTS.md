@@ -50,7 +50,7 @@ This is a React 19 + TypeScript SPA for a multi-tenant document assembly platfor
 - Backend expected at `VITE_API_URL` (default: `http://localhost:8080/api/v1`)
 - **Swagger/OpenAPI**: La especificación de las APIs está en `../doc-engine/docs/swagger.json`
 
-> **IMPORTANTE para Agentes IA**: Antes de implementar o interactuar con cualquier componente de la API, **SIEMPRE** consulta el archivo Swagger (`../doc-engine/docs/swagger.json`) para obtener contexto actualizado sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
+> **IMPORTANTE**: Antes de implementar o interactuar con cualquier componente de la API, **SIEMPRE** consulta el archivo Swagger (`../doc-engine/docs/swagger.json`) para obtener contexto actualizado sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
 
 ### Feature Structure
 
