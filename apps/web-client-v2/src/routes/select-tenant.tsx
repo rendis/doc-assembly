@@ -486,6 +486,17 @@ function SelectTenantPage() {
             />
           )}
 
+          {/* Join new button */}
+          <div className="mt-12 border-t border-border pt-8">
+            <button className="group flex w-full items-center gap-4 rounded-sm border border-dashed border-border px-6 py-4 opacity-60 outline-none transition-all duration-200 hover:border-foreground hover:bg-accent hover:opacity-100">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground pb-0.5 text-lg font-light transition-colors group-hover:border-foreground">
+                <Plus size={14} />
+              </div>
+              <span className="font-display text-lg font-medium tracking-tight text-muted-foreground transition-colors group-hover:text-foreground">
+                {selectedTenant ? 'Create New Workspace' : t('selectTenant.join', 'Join New Organization')}
+              </span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -603,26 +614,32 @@ function SelectTenantPage() {
                     opacity: animationPhase === 'toSidebar' ? 1 : 0,
                   }}
                   transition={{ duration: 0.3, delay: 0.5 }}
-                  className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
+                  className={cn(
+                    "mb-2 block text-[10px] font-mono uppercase tracking-widest text-muted-foreground",
+                    animationPhase !== 'toSidebar' && 'absolute'
+                  )}
                 >
                   Current Workspace
                 </motion.label>
 
-                {/* Name - slides to center during toCenter, stays during fadeBorders, back to left during toSidebar */}
+                {/* Name - centered during toCenter/fadeBorders, aligned left during toSidebar */}
                 <motion.h3
-                  initial={{ fontSize: '1.5rem', x: 0 }}
+                  initial={{ fontSize: '1.5rem', width: 'auto' }}
                   animate={{
                     fontSize: animationPhase === 'toSidebar' ? '1.125rem' : '1.5rem',
-                    // Slide to center during toCenter (stays during fadeBorders), back to 0 during toSidebar
-                    x: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 120 : 0,
+                    width: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? '100%' : 'auto',
                   }}
                   transition={{
                     type: 'spring',
                     damping: 25,
                     stiffness: 200,
                     fontSize: { duration: 0.4, ease: 'easeOut' },
+                    width: { duration: 0.3 },
                   }}
-                  className="text-left font-display font-medium text-foreground"
+                  className={cn(
+                    "font-display font-medium text-foreground",
+                    (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 'text-center' : 'text-left'
+                  )}
                 >
                   {selectedWorkspaceForAnim.name}
                 </motion.h3>
@@ -634,7 +651,10 @@ function SelectTenantPage() {
                     opacity: animationPhase === 'idle' ? 1 : 0,
                   }}
                   transition={{ duration: 0.3 }}
-                  className="flex items-center gap-6"
+                  className={cn(
+                    "flex items-center gap-6",
+                    (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') && 'absolute right-4'
+                  )}
                 >
                   <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
                     Last accessed: {formatRelativeTime(selectedWorkspaceForAnim.lastAccessedAt)}
