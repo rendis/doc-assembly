@@ -15,9 +15,11 @@ import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { usePageTransitionStore } from '@/stores/page-transition-store'
 import { useTemplateWithVersions } from '../hooks/useTemplateDetail'
+import { useUpdateTemplate } from '../hooks/useTemplates'
 import { VersionListItem } from './VersionListItem'
 import { CreateVersionDialog } from './CreateVersionDialog'
 import { EditTagsDialog } from './EditTagsDialog'
+import { EditableTitle } from './EditableTitle'
 import { TagBadge } from './TagBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -43,6 +45,16 @@ export function TemplateDetailPage() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editTagsDialogOpen, setEditTagsDialogOpen] = useState(false)
+
+  // Template update mutation
+  const updateTemplate = useUpdateTemplate()
+
+  const handleTitleSave = async (newTitle: string) => {
+    await updateTemplate.mutateAsync({
+      templateId,
+      data: { title: newTitle },
+    })
+  }
 
   // Page transition state
   const { isTransitioning, direction, startTransition, endTransition } = usePageTransitionStore()
@@ -180,13 +192,16 @@ export function TemplateDetailPage() {
 
         {/* Title */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {t('templates.detail.header', 'Template Details')}
             </div>
-            <h1 className="font-display text-3xl font-light leading-tight tracking-tight text-foreground md:text-4xl">
-              {template.title}
-            </h1>
+            <EditableTitle
+              value={template.title}
+              onSave={handleTitleSave}
+              isLoading={updateTemplate.isPending}
+              className="font-display text-3xl font-light leading-tight tracking-tight text-foreground md:text-4xl"
+            />
           </div>
           <button
             onClick={() => setCreateDialogOpen(true)}

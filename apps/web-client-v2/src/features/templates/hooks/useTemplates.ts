@@ -56,6 +56,7 @@ export function useUpdateTemplate() {
     }) => updateTemplate(templateId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })
     },
   })
 }

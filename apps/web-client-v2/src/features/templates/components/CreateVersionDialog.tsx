@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { X } from 'lucide-react'
-import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { Dialog, BaseDialogContent, DialogClose, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useCreateVersion } from '../hooks/useTemplateDetail'
 import { useAppContextStore } from '@/stores/app-context-store'
 
@@ -63,105 +63,100 @@ export function CreateVersionDialog({
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Content
-          className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg"
-        >
-          {/* Header */}
-          <div className="flex items-start justify-between border-b border-border p-6">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <BaseDialogContent className="max-w-lg">
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-border p-6">
+          <div>
+            <DialogTitle className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
+              {t('templates.createVersionDialog.title', 'New Version')}
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-sm font-light text-muted-foreground">
+              {t(
+                'templates.createVersionDialog.description',
+                'Create a new version of this template'
+              )}
+            </DialogDescription>
+          </div>
+          <DialogClose className="text-muted-foreground transition-colors hover:text-foreground">
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 p-6">
+            {/* Name field */}
             <div>
-              <h2 className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
-                {t('templates.createVersionDialog.title', 'New Version')}
-              </h2>
-              <p className="mt-1 text-sm font-light text-muted-foreground">
-                {t(
-                  'templates.createVersionDialog.description',
-                  'Create a new version of this template'
+              <label
+                htmlFor="version-name"
+                className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
+              >
+                {t('templates.createVersionDialog.nameLabel', 'Version Name')}
+              </label>
+              <input
+                id="version-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t(
+                  'templates.createVersionDialog.namePlaceholder',
+                  'e.g., Initial Draft, Review Changes...'
                 )}
-              </p>
+                maxLength={100}
+                autoFocus
+                className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+              />
             </div>
-            <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </DialogPrimitive.Close>
+
+            {/* Description field */}
+            <div>
+              <label
+                htmlFor="version-description"
+                className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
+              >
+                {t('templates.createVersionDialog.descriptionLabel', 'Description')}
+                <span className="ml-2 normal-case tracking-normal text-muted-foreground/60">
+                  ({t('common.optional', 'optional')})
+                </span>
+              </label>
+              <textarea
+                id="version-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t(
+                  'templates.createVersionDialog.descriptionPlaceholder',
+                  'Optional description of changes...'
+                )}
+                rows={3}
+                className="w-full resize-none rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+              />
+            </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6 p-6">
-              {/* Name field */}
-              <div>
-                <label
-                  htmlFor="version-name"
-                  className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
-                >
-                  {t('templates.createVersionDialog.nameLabel', 'Version Name')}
-                </label>
-                <input
-                  id="version-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t(
-                    'templates.createVersionDialog.namePlaceholder',
-                    'e.g., Initial Draft, Review Changes...'
-                  )}
-                  maxLength={100}
-                  autoFocus
-                  className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
-                />
-              </div>
-
-              {/* Description field */}
-              <div>
-                <label
-                  htmlFor="version-description"
-                  className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
-                >
-                  {t('templates.createVersionDialog.descriptionLabel', 'Description')}
-                  <span className="ml-2 normal-case tracking-normal text-muted-foreground/60">
-                    ({t('common.optional', 'optional')})
-                  </span>
-                </label>
-                <textarea
-                  id="version-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t(
-                    'templates.createVersionDialog.descriptionPlaceholder',
-                    'Optional description of changes...'
-                  )}
-                  rows={3}
-                  className="w-full resize-none rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-3 border-t border-border p-6">
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-                className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
-              >
-                {t('common.cancel', 'Cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={!name.trim() || isSubmitting}
-                className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-              >
-                {isSubmitting
-                  ? t('common.creating', 'Creating...')
-                  : t('templates.createVersionDialog.submit', 'Create Version')}
-              </button>
-            </div>
-          </form>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+          {/* Footer */}
+          <div className="flex justify-end gap-3 border-t border-border p-6">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+              className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={!name.trim() || isSubmitting}
+              className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+            >
+              {isSubmitting
+                ? t('common.creating', 'Creating...')
+                : t('templates.createVersionDialog.submit', 'Create Version')}
+            </button>
+          </div>
+        </form>
+      </BaseDialogContent>
+    </Dialog>
   )
 }

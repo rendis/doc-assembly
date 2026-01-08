@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -51,6 +51,10 @@ export function TemplatesPage() {
   const [isExiting, setIsExiting] = useState(false)
   const [isEntering, setIsEntering] = useState(false)
 
+  // Filter animation state - counter forces re-mount of rows
+  const [filterAnimationKey, setFilterAnimationKey] = useState(0)
+  const prevResultsRef = useRef<string | null>(null)
+
   // Handle entering animation (always on mount)
   useEffect(() => {
     // Siempre activar animación de entrada al montar
@@ -95,6 +99,21 @@ export function TemplatesPage() {
   const templates = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Detect filter result changes and trigger animation by incrementing key
+  useEffect(() => {
+    const currentResultsKey = templates.map((t) => t.id).join(',')
+
+    // Si hay resultados y son diferentes a los anteriores
+    if (templates.length > 0 && prevResultsRef.current !== currentResultsKey) {
+      // No animar en la carga inicial (isEntering ya maneja eso)
+      if (prevResultsRef.current !== null && !isEntering) {
+        setFilterAnimationKey((k) => k + 1)
+      }
+    }
+
+    prevResultsRef.current = currentResultsKey
+  }, [templates, isEntering])
 
   // Pagination info
   const paginationInfo = useMemo(() => {
@@ -242,11 +261,12 @@ export function TemplatesPage() {
             <tbody className="font-light">
               {templates.map((template, index) => (
                 <TemplateListRow
-                  key={template.id}
+                  key={`${template.id}-${filterAnimationKey}`}
                   template={template}
                   index={index}
                   isExiting={isExiting}
-                  isEntering={isEntering}
+                  isEntering={isEntering || filterAnimationKey > 0}
+                  isFilterAnimating={filterAnimationKey > 0}
                   onClick={() => handleViewTemplateDetail(template.id)}
                   onGoToFolder={handleGoToFolder}
                   onEdit={() => handleOpenEditDialog(template)}

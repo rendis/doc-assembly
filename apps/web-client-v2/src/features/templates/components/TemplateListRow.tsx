@@ -15,6 +15,7 @@ interface TemplateListRowProps {
   index?: number
   isExiting?: boolean
   isEntering?: boolean
+  isFilterAnimating?: boolean
   onClick?: () => void
   onGoToFolder?: (folderId: string | undefined) => void
   onEdit?: () => void
@@ -26,6 +27,7 @@ export function TemplateListRow({
   index = 0,
   isExiting = false,
   isEntering = false,
+  isFilterAnimating = false,
   onClick,
   onGoToFolder,
   onEdit,
@@ -63,6 +65,9 @@ export function TemplateListRow({
     if (isEntering && shouldAnimate) {
       return { opacity: 0, x: 50 }
     }
+    if (isFilterAnimating && shouldAnimate) {
+      return { opacity: 0, x: 20 } // Slide más sutil para filtrado
+    }
     return { opacity: 1, x: 0 }
   }
 
@@ -71,9 +76,9 @@ export function TemplateListRow({
       initial={getInitialState()}
       animate={getAnimateState()}
       transition={{
-        duration: 0.2,
+        duration: isFilterAnimating ? 0.15 : 0.2,
         ease: 'easeOut',
-        delay: (isExiting || isEntering) ? staggerDelay : 0,
+        delay: (isExiting || isEntering || isFilterAnimating) ? staggerDelay : 0,
       }}
       onClick={onClick}
       className="group cursor-pointer transition-colors hover:bg-accent"
