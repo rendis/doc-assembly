@@ -38,7 +38,7 @@ function TenantsManagement() {
                     Active
                   </span>
                 </td>
-                <td className="p-4 font-mono text-sm text-muted-foreground">{Math.floor(Math.random() * 50) + 5}</td>
+                <td className="p-4 font-mono text-sm text-muted-foreground">{[24, 15, 8][i]}</td>
                 <td className="p-4 font-mono text-sm text-muted-foreground">Oct 2023</td>
               </tr>
             ))}

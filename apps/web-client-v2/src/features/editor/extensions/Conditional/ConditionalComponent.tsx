@@ -23,7 +23,7 @@ import { OPERATOR_SYMBOLS } from './types/operators'
 
 export const ConditionalComponent = (props: NodeViewProps) => {
   const { t } = useTranslation()
-  const { node, updateAttributes, selected, deleteNode, editor, getPos } = props
+  const { node, updateAttributes, selected, deleteNode: _deleteNode, editor, getPos } = props
   const { conditions, expression } = node.attrs
 
   const [tempConditions, setTempConditions] = useState<ConditionalSchema>(

@@ -104,6 +104,7 @@ export function DocumentEditor({
     })
   )
 
+  // eslint-disable-next-line react-hooks/refs -- Reading ref during render is intentional to preserve content on editor recreation
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -395,7 +396,7 @@ export function DocumentEditor({
    */
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const { active, over } = event
+      const { active } = event
 
       // Get the drag data before clearing state
       const data = active.data.current as VariableDragData | undefined

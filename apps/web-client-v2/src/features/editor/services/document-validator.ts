@@ -59,7 +59,7 @@ function createContext(
 /**
  * Adds an error to the context
  */
-function addError(
+function _addError(
   context: ValidationContext,
   code: string,
   path: string,

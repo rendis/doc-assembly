@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { X } from 'lucide-react'
@@ -28,14 +28,15 @@ export function CreateTemplateDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const createTemplate = useCreateTemplate()
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Handle dialog open state change and reset form
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
       setTitle('')
       setSelectedTagIds([])
       setIsSubmitting(false)
     }
-  }, [open])
+    onOpenChange(isOpen)
+  }, [onOpenChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,7 +74,7 @@ export function CreateTemplateDialog({
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content

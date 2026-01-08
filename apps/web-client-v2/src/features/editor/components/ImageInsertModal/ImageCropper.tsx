@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { Cropper, CropperRef, CircleStencil } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
 import { X, RotateCcw, Square, Circle } from 'lucide-react'
@@ -23,12 +23,13 @@ export function ImageCropper({
   const cropperRef = useRef<CropperRef>(null)
   const [shape, setShape] = useState<ImageShape>(initialShape)
 
-  // Reset shape when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Handle dialog open state change and reset shape
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
       setShape(initialShape)
     }
-  }, [open, initialShape])
+    onOpenChange(isOpen)
+  }, [onOpenChange, initialShape])
 
   const handleReset = useCallback(() => {
     cropperRef.current?.reset()
@@ -51,7 +52,7 @@ export function ImageCropper({
   }, [maxWidth, maxHeight, onSave, shape, onOpenChange])
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { X } from 'lucide-react'
@@ -25,14 +25,15 @@ export function CreateVersionDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const createVersion = useCreateVersion(templateId)
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Handle dialog open state change and reset form
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
       setName('')
       setDescription('')
       setIsSubmitting(false)
     }
-  }, [open])
+    onOpenChange(isOpen)
+  }, [onOpenChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,7 +64,7 @@ export function CreateVersionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <BaseDialogContent className="max-w-lg">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border p-6">

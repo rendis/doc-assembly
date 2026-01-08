@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/static-components -- Dynamic motion component creation is intentional for this slot pattern */
 
 import * as React from 'react';
 import { motion, isMotionComponent, type HTMLMotionProps } from 'motion/react';

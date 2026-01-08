@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { Dialog, BaseDialogContent, DialogClose, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -19,12 +19,13 @@ export function CreateFolderDialog({
   const [name, setName] = useState('')
   const createFolder = useCreateFolder()
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Handle dialog open state change and reset form
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
       setName('')
     }
-  }, [open])
+    onOpenChange(isOpen)
+  }, [onOpenChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +43,7 @@ export function CreateFolderDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <BaseDialogContent className="max-w-md">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border p-6">

@@ -49,6 +49,20 @@ const itemVariants = {
 const ITEMS_PER_PAGE = 5
 const LIST_MIN_HEIGHT = 400 // Fixed height to prevent layout shifts
 
+// Mock data for demo - using fixed dates to avoid impure render calls
+const MOCK_TENANTS: TenantWithRole[] = [
+  { id: '1', name: 'Acme Legal Corp', code: 'ACME', createdAt: '2024-01-01T00:00:00.000Z', role: 'ADMIN', lastAccessedAt: '2024-01-15T10:30:00.000Z' },
+  { id: '2', name: 'Global Finance Ltd', code: 'GFL', createdAt: '2024-01-01T00:00:00.000Z', role: 'MEMBER', lastAccessedAt: '2024-01-12T08:00:00.000Z' },
+  { id: '3', name: 'Northeast Litigation', code: 'NEL', createdAt: '2024-01-01T00:00:00.000Z', role: 'OWNER', lastAccessedAt: '2024-01-08T14:00:00.000Z' },
+  { id: '4', name: 'Orion Properties', code: 'ORION', createdAt: '2024-01-01T00:00:00.000Z', role: 'MEMBER', lastAccessedAt: null },
+]
+
+const MOCK_WORKSPACES: WorkspaceWithRole[] = [
+  { id: 'ws-1', name: 'Legal Documents', type: 'CLIENT', status: 'ACTIVE', createdAt: '2024-01-01T00:00:00.000Z', role: 'ADMIN', lastAccessedAt: '2024-01-15T09:00:00.000Z' },
+  { id: 'ws-2', name: 'HR Templates', type: 'CLIENT', status: 'ACTIVE', createdAt: '2024-01-01T00:00:00.000Z', role: 'EDITOR', lastAccessedAt: '2024-01-13T12:00:00.000Z' },
+  { id: 'ws-3', name: 'System Templates', type: 'SYSTEM', status: 'ACTIVE', createdAt: '2024-01-01T00:00:00.000Z', role: 'VIEWER', lastAccessedAt: null },
+]
+
 function PaginationControls({
   page,
   totalPages,
@@ -188,22 +202,8 @@ function SelectTenantPage() {
   const tenants = searchQuery ? searchData?.data : tenantsData?.data
   const workspaces = workspacesData?.data || []
 
-  // Mock data for demo
-  const mockTenants: TenantWithRole[] = [
-    { id: '1', name: 'Acme Legal Corp', code: 'ACME', createdAt: new Date().toISOString(), role: 'ADMIN', lastAccessedAt: new Date(Date.now() - 2 * 60000).toISOString() },
-    { id: '2', name: 'Global Finance Ltd', code: 'GFL', createdAt: new Date().toISOString(), role: 'MEMBER', lastAccessedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
-    { id: '3', name: 'Northeast Litigation', code: 'NEL', createdAt: new Date().toISOString(), role: 'OWNER', lastAccessedAt: new Date(Date.now() - 7 * 86400000).toISOString() },
-    { id: '4', name: 'Orion Properties', code: 'ORION', createdAt: new Date().toISOString(), role: 'MEMBER', lastAccessedAt: null },
-  ]
-
-  const mockWorkspaces: WorkspaceWithRole[] = [
-    { id: 'ws-1', name: 'Legal Documents', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'ADMIN', lastAccessedAt: new Date(Date.now() - 5 * 60000).toISOString() },
-    { id: 'ws-2', name: 'HR Templates', type: 'CLIENT', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'EDITOR', lastAccessedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-    { id: 'ws-3', name: 'System Templates', type: 'SYSTEM', status: 'ACTIVE', createdAt: new Date().toISOString(), role: 'VIEWER', lastAccessedAt: null },
-  ]
-
-  const displayTenants: TenantWithRole[] = (tenants?.length ? tenants : mockTenants) as TenantWithRole[]
-  const displayWorkspaces: WorkspaceWithRole[] = (workspaces.length ? workspaces : mockWorkspaces) as WorkspaceWithRole[]
+  const displayTenants: TenantWithRole[] = (tenants?.length ? tenants : MOCK_TENANTS) as TenantWithRole[]
+  const displayWorkspaces: WorkspaceWithRole[] = (workspaces.length ? workspaces : MOCK_WORKSPACES) as WorkspaceWithRole[]
 
   const handleTenantSelect = (tenant: TenantWithRole) => {
     setCurrentTenant(tenant as TenantWithRole)

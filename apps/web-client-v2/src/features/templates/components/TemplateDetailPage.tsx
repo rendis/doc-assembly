@@ -59,7 +59,7 @@ export function TemplateDetailPage() {
   // Page transition state
   const { isTransitioning, direction, startTransition, endTransition } = usePageTransitionStore()
   const [isVisible, setIsVisible] = useState(direction !== 'forward')
-  const [isExiting, setIsExiting] = useState(false)
+  const [_isExiting, setIsExiting] = useState(false)
 
   // Handle entering animation (coming from list)
   useEffect(() => {

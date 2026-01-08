@@ -253,7 +253,7 @@ export function SignerRoleItem({
     setNodeRef,
     transform,
     transition,
-    isDragging: isSortableDragging,
+    isDragging: _isSortableDragging,
   } = useSortable({ id: role.id, disabled: isOverlay || isSelectionMode })
 
   // No aplicar transforms del sortable al overlay

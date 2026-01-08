@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Folder, Home } from 'lucide-react'
 import {
@@ -41,12 +41,13 @@ export function MoveFolderDialog({
 
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
-  // Reset selection when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Handle dialog open state change and reset selection
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
       setSelectedParentId(null)
     }
-  }, [open])
+    onOpenChange(isOpen)
+  }, [onOpenChange])
 
   const handleMove = async () => {
     if (folderIds.length === 0) return
@@ -102,7 +103,7 @@ export function MoveFolderDialog({
   const isPending = moveFolder.isPending || moveFolders.isPending
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>

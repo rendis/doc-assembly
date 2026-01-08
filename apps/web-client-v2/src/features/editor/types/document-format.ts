@@ -8,22 +8,12 @@
  * because it's the same format used by the backend.
  */
 
-import type { LogicGroup, LogicRule, RuleOperator, RuleValue } from '../extensions/Conditional/ConditionalExtension'
+import type { LogicGroup } from '../extensions/Conditional/ConditionalExtension'
 import type { SignatureCount, SignatureItem, SignatureLayout, SignatureLineWidth } from '../extensions/Signature/types'
 import type { PageMargins } from './index'
 import type {
-  NotificationScope,
-  NotificationTrigger,
-  NotificationTriggerMap,
-  NotificationTriggerSettings,
-  PreviousRolesConfig,
-  RoleNotificationConfig,
-  SigningNotificationConfig,
-  SigningOrderMode,
   SigningWorkflowConfig,
   SignerRoleDefinition,
-  SignerRoleFieldValue,
-  SignerRoleFieldType,
 } from './signer-roles'
 
 // =============================================================================

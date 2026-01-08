@@ -32,7 +32,7 @@ export function ImportValidationDialog({
   validation,
   onConfirm,
 }: ImportValidationDialogProps) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
 
   const hasErrors = validation.errors.length > 0
   const hasWarnings = validation.warnings.length > 0

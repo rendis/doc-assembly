@@ -22,7 +22,7 @@ export const Route = createFileRoute(
 })
 
 function EditorPage() {
-  const { workspaceId, templateId, versionId } = Route.useParams()
+  const { workspaceId: _workspaceId, templateId, versionId } = Route.useParams()
   const router = useRouter()
   const { t } = useTranslation()
 
@@ -45,7 +45,7 @@ function EditorPage() {
   const [isPreparingDocument, setIsPreparingDocument] = useState(true)
   const [isEditorReady, setIsEditorReady] = useState(false)
   const [minTimeElapsed, setMinTimeElapsed] = useState(false)
-  const overlayStartTimeRef = useRef(Date.now())
+  const _overlayStartTimeRef = useRef(Date.now())
 
   // Track fetch to prevent StrictMode double-call
   const fetchStartedRef = useRef(false)

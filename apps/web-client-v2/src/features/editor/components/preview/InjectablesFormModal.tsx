@@ -190,7 +190,7 @@ export function InjectablesFormModal({
             )
           }
           break
-        case 'DATE':
+        case 'DATE': {
           const date = new Date(value as string)
           if (isNaN(date.getTime())) {
             newErrors[variable.variableId] = t(
@@ -198,6 +198,7 @@ export function InjectablesFormModal({
             )
           }
           break
+        }
       }
     })
 
@@ -238,6 +239,7 @@ export function InjectablesFormModal({
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
             <DialogPrimitive.Content
+              aria-describedby={undefined}
               className={cn(
                 'fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
@@ -301,6 +303,7 @@ export function InjectablesFormModal({
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <DialogPrimitive.Content
+            aria-describedby={undefined}
             className={cn(
               'fixed left-[50%] top-[50%] z-50 w-full max-w-[600px] max-h-[90vh] translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200 flex flex-col',
               'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'

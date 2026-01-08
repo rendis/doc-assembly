@@ -152,7 +152,7 @@ function StatusIcon({ status }: StatusIconProps) {
 export function SaveStatusIndicator({
   status,
   lastSavedAt,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   error: _error,
   onRetry,
   className,

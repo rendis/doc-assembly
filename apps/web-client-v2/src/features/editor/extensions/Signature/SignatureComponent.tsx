@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
@@ -29,7 +28,7 @@ import {
 } from './signature-layouts'
 
 export const SignatureComponent = (props: NodeViewProps) => {
-  const { node, selected, deleteNode, updateAttributes, editor, getPos } = props
+  const { node, selected, deleteNode: _deleteNode, updateAttributes, editor, getPos } = props
   const { t } = useTranslation()
 
   // Extraer atributos con valores por defecto

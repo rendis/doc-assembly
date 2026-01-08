@@ -16,8 +16,8 @@ interface EditorProps {
 export function Editor({
   content = '',
   onUpdate,
-  pageSize = PAGE_SIZES.A4,
-  margins = DEFAULT_MARGINS,
+  pageSize: _pageSize = PAGE_SIZES.A4,
+  margins: _margins = DEFAULT_MARGINS,
   editable = true,
 }: EditorProps) {
   const [imageModalOpen, setImageModalOpen] = useState(false)

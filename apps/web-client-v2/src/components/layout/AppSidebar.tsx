@@ -4,7 +4,6 @@ import { LayoutGrid, FileText, FolderOpen, Settings, LogOut } from 'lucide-react
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,

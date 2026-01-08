@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -29,12 +29,13 @@ export function RenameFolderDialog({
   const [name, setName] = useState('')
   const updateFolder = useUpdateFolder()
 
-  // Reset form when dialog opens or folder changes
-  useEffect(() => {
-    if (open && folder) {
+  // Handle dialog open state change and reset form
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen && folder) {
       setName(folder.name)
     }
-  }, [open, folder])
+    onOpenChange(isOpen)
+  }, [onOpenChange, folder])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +55,7 @@ export function RenameFolderDialog({
   const hasChanged = folder && name.trim() !== folder.name
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
