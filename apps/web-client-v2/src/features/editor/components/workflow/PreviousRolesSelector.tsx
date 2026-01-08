@@ -37,6 +37,7 @@ export function PreviousRolesSelector({
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset on dialog open
       setMode(config?.mode ?? 'auto')
       setSelectedIds(config?.selectedRoleIds ?? [])
     }

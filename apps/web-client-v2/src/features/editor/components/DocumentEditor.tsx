@@ -39,7 +39,7 @@ interface DocumentEditorProps {
   variables?: Variable[]
   onExport?: () => void
   onImport?: () => void
-  editorRef?: React.MutableRefObject<any>
+  editorRef?: React.MutableRefObject<Editor | null>
   onEditorReady?: (editor: Editor | null) => void
   /** Called when editor is fully rendered and styles are applied */
   onFullyReady?: () => void
@@ -127,6 +127,7 @@ export function DocumentEditor({
       }),
     ],
     // Use stored content on recreation, initial content on first render
+    // eslint-disable-next-line react-hooks/refs -- Intentional: preserve content across editor recreations
     content: contentRef.current,
     editable,
     onUpdate: ({ editor }) => {
@@ -261,6 +262,7 @@ export function DocumentEditor({
       if (!editor || !pendingVariable) return
 
       // Use type assertion to bypass TipTap type limitations
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(editor.chain().focus(pendingVariable.position) as any).setInjector({
         type: pendingVariable.variable.type,
         label: pendingVariable.variable.label,
@@ -313,6 +315,7 @@ export function DocumentEditor({
       } else {
         // Insert directly without format dialog
         // Use type assertion to bypass TipTap type limitations
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(editor.chain().focus(insertPos) as any).setInjector({
           type: data.injectorType,
           label: data.label,

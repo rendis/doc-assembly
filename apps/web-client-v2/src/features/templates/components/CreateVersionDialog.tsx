@@ -56,6 +56,7 @@ export function CreateVersionDialog({
           workspaceId: currentWorkspace.id,
           templateId,
           versionId: response.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
         } as any,
       })
     } catch {

@@ -27,6 +27,7 @@ function EditorPage() {
   const [pendingImport, setPendingImport] = useState<ImportResult | null>(null)
 
   // Editor ref for export/import
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Editor type from TipTap
   const editorRef = useRef<any>(null)
 
   // Initialize pagination store with defaults

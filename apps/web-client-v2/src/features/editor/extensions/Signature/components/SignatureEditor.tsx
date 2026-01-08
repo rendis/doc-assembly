@@ -55,6 +55,7 @@ export function SignatureEditor({
 
   // Sincronizar cuando cambian los attrs externos
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional sync with external attrs
     setLocalAttrs(attrs)
     setActiveTab(0)
   }, [attrs])

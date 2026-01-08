@@ -52,6 +52,7 @@ export function ImageAlignSelector({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8">
+          {/* eslint-disable-next-line react-hooks/static-components -- Dynamic icon selection is intentional */}
           <CurrentIcon className="h-4 w-4" />
         </Button>
       </PopoverTrigger>

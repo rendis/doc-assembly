@@ -641,6 +641,7 @@ function getVariants<
   return result;
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export {
   pathClassName,
   staticAnimations,
@@ -653,3 +654,4 @@ export {
   type AnimateIconProps,
   type AnimateIconContextValue,
 };
+/* eslint-enable react-refresh/only-export-components */

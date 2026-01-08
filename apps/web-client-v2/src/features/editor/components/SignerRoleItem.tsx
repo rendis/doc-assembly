@@ -186,6 +186,7 @@ export function SignerRoleItem({
       clearTimeout(blurTimeoutRef.current)
       blurTimeoutRef.current = null
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional sync with compact mode
     setIsExpanded(!isCompactMode)
   }, [isCompactMode])
 

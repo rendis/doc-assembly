@@ -1,58 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-/**
- * Tenant type
- */
-export interface Tenant {
-  id: string
-  name: string
-  code: string
-  description?: string
-  settings?: Record<string, unknown>
-  createdAt: string
-  updatedAt?: string
-}
+// Re-export types from features for backwards compatibility
+export type { Tenant, TenantWithRole, TenantSettings } from '@/features/tenants/types'
+export type {
+  Workspace,
+  WorkspaceWithRole,
+  WorkspaceSettings,
+  WorkspaceType,
+  WorkspaceStatus,
+} from '@/features/workspaces/types'
 
-/**
- * Tenant with user role
- */
-export interface TenantWithRole extends Tenant {
-  role: string
-  lastAccessedAt?: string | null
-}
-
-/**
- * Workspace type
- */
-export type WorkspaceType = 'SYSTEM' | 'CLIENT'
-
-/**
- * Workspace status
- */
-export type WorkspaceStatus = 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED'
-
-/**
- * Workspace type
- */
-export interface Workspace {
-  id: string
-  tenantId?: string
-  name: string
-  type: WorkspaceType
-  status: WorkspaceStatus
-  settings?: Record<string, unknown>
-  createdAt: string
-  updatedAt?: string
-}
-
-/**
- * Workspace with user role
- */
-export interface WorkspaceWithRole extends Workspace {
-  role: string
-  lastAccessedAt?: string | null
-}
+// Import types for internal use
+import type { TenantWithRole } from '@/features/tenants/types'
+import type { WorkspaceWithRole } from '@/features/workspaces/types'
 
 /**
  * App context store state

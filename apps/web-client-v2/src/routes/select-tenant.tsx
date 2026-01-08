@@ -1,15 +1,15 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Search, Plus, ChevronLeft, ChevronRight, Box } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { LanguageSelector } from '@/components/common/LanguageSelector'
-import { useTranslation } from 'react-i18next'
+import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { recordAccess } from '@/features/auth'
+import { useMyTenants, useSearchTenants } from '@/features/tenants'
+import { useSearchWorkspaces, useWorkspaces } from '@/features/workspaces'
 import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
-import { useMyTenants, useSearchTenants } from '@/features/tenants'
-import { useWorkspaces, useSearchWorkspaces } from '@/features/workspaces'
-import { recordAccess } from '@/features/auth'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, ArrowRight, Box, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/select-tenant')({
   component: SelectTenantPage,
@@ -154,6 +154,7 @@ function SelectTenantPage() {
 
   // Start minimum loading timer on mount and when context changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset
     setMinLoadingComplete(false)
     const timer = setTimeout(() => setMinLoadingComplete(true), 1000)
     return () => clearTimeout(timer)
@@ -161,12 +162,14 @@ function SelectTenantPage() {
 
   // Reset workspace page and total pages when tenant changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset
     setWorkspacePage(1)
     setWorkspaceTotalPages(1)
   }, [selectedTenant?.id])
 
   // Reset tenant page when search changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset
     setTenantPage(1)
   }, [searchQuery])
 
@@ -176,6 +179,7 @@ function SelectTenantPage() {
       const timer = setTimeout(() => setShowMinCharsHint(true), 300)
       return () => clearTimeout(timer)
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional state sync
       setShowMinCharsHint(false)
     }
   }, [searchQuery])
@@ -183,12 +187,14 @@ function SelectTenantPage() {
   // Update total pages when data arrives
   useEffect(() => {
     if (tenantPagination?.totalPages) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional sync with API
       setTenantTotalPages(tenantPagination.totalPages)
     }
   }, [tenantPagination?.totalPages])
 
   useEffect(() => {
     if (workspacePagination?.totalPages) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional sync with API
       setWorkspaceTotalPages(workspacePagination.totalPages)
     }
   }, [workspacePagination?.totalPages])
@@ -238,6 +244,7 @@ function SelectTenantPage() {
     await new Promise(r => setTimeout(r, 500))
 
     // Phase 4: Navigate
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
     navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } as any })
   }
 

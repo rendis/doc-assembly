@@ -20,6 +20,7 @@ export const Route = createFileRoute('/')({
     // If everything is set, go to workspace dashboard
     throw redirect({
       to: '/workspace/$workspaceId',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
       params: { workspaceId: currentWorkspace.id } as any,
     })
   },

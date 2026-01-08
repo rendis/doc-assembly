@@ -21,7 +21,8 @@ export function TagSelector({
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
 
-  const tags = tagsData?.data ?? []
+  // Memoize tags to avoid creating new array reference on each render
+  const tags = useMemo(() => tagsData?.data ?? [], [tagsData?.data])
 
   // Filter tags based on search
   const filteredTags = useMemo(() => {

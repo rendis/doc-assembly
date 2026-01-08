@@ -132,6 +132,7 @@ function Trash2(props: Trash2Props) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export {
   animations,
   Trash2,
@@ -139,3 +140,4 @@ export {
   type Trash2Props,
   type Trash2Props as Trash2IconProps,
 };
+/* eslint-enable react-refresh/only-export-components */

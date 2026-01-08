@@ -20,6 +20,7 @@ export interface WorkspaceSettings {
 
 export interface WorkspaceWithRole extends Workspace {
   role: string
+  lastAccessedAt?: string | null
 }
 
 export interface CreateWorkspaceRequest {

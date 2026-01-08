@@ -57,6 +57,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
       typeof pos === 'number' &&
       selection.anchor === pos
     )
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only react to selection changes, not full state
   }, [selected, editor.state.selection, getPos])
 
   const handleOpenEditor = useCallback((e: React.MouseEvent) => {

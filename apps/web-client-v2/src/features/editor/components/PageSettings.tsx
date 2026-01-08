@@ -28,6 +28,7 @@ export function PageSettings() {
 
   // Sincronizar customMargins e inputValues cuando margins del store cambie
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional sync with external store
     setCustomMargins(margins)
     setInputValues({
       top: String(margins.top),

@@ -79,10 +79,11 @@ export function TemplateDetailPage() {
   const hasCachedData = !!template
 
   // Sort versions by version number descending (newest first)
+  const versions = template?.versions
   const sortedVersions = useMemo(() => {
-    if (!template?.versions) return []
-    return [...template.versions].sort((a, b) => b.versionNumber - a.versionNumber)
-  }, [template?.versions])
+    if (!versions) return []
+    return [...versions].sort((a, b) => b.versionNumber - a.versionNumber)
+  }, [versions])
 
   const handleBackToList = () => {
     if (currentWorkspace && !isTransitioning) {
@@ -95,13 +96,16 @@ export function TemplateDetailPage() {
           // Volver al folder de origen (si es 'root', no pasar folderId)
           navigate({
             to: '/workspace/$workspaceId/documents',
+            /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
             params: { workspaceId: currentWorkspace.id } as any,
             search: fromFolderId === 'root' ? undefined : { folderId: fromFolderId } as any,
+            /* eslint-enable @typescript-eslint/no-explicit-any */
           })
         } else {
           // Volver a la lista de templates
           navigate({
             to: '/workspace/$workspaceId/templates',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
             params: { workspaceId: currentWorkspace.id } as any,
           })
         }
@@ -113,6 +117,7 @@ export function TemplateDetailPage() {
     if (currentWorkspace) {
       navigate({
         to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
         params: { workspaceId: currentWorkspace.id, templateId, versionId } as any,
       })
     }
@@ -122,8 +127,10 @@ export function TemplateDetailPage() {
     if (!currentWorkspace || !template?.folderId) return
     navigate({
       to: '/workspace/$workspaceId/documents',
+      /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
       params: { workspaceId: currentWorkspace.id } as any,
       search: { folderId: template.folderId } as any,
+      /* eslint-enable @typescript-eslint/no-explicit-any */
     })
   }
 

@@ -10,6 +10,7 @@ export function QuickDraft() {
     if (currentWorkspace) {
       navigate({
         to: '/workspace/$workspaceId/templates',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
         params: { workspaceId: currentWorkspace.id } as any,
       })
     }

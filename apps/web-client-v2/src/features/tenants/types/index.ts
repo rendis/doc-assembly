@@ -17,6 +17,7 @@ export interface TenantSettings {
 
 export interface TenantWithRole extends Tenant {
   role: string
+  lastAccessedAt?: string | null
 }
 
 export interface CreateTenantRequest {

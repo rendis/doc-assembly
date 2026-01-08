@@ -7,7 +7,7 @@
  * Copied from legacy system (../web-client) and adapted for v2 stores.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { versionsApi } from '@/features/templates/api/templates-api'
 import { exportDocument } from '../services/document-export'
@@ -84,10 +84,10 @@ export function useAutoSave({
   const workflowConfig = useSignerRolesStore((s) => s.workflowConfig)
 
   // Build pagination config in the format expected by exportDocument
-  const pagination = {
+  const pagination = useMemo(() => ({
     pageSize,
     margins,
-  }
+  }), [pageSize, margins])
 
   // Clear timers on unmount
   useEffect(() => {

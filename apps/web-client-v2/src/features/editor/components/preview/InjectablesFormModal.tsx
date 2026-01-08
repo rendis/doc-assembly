@@ -107,6 +107,7 @@ export function InjectablesFormModal({
           emulatedValues[variable.variableId] = emulatedValueResult
         }
       })
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional auto-fill on modal open
       setValues((prev) => ({ ...prev, ...emulatedValues }))
       hasEmulatedRef.current = true
     }
@@ -115,6 +116,7 @@ export function InjectablesFormModal({
   // Limpiar estado al abrir/cerrar
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset on modal close
       setErrors({})
       setTouchedFields(new Set())
       clearError()
@@ -126,6 +128,7 @@ export function InjectablesFormModal({
   useEffect(() => {
     if (pdfBlob && !isGenerating) {
       onOpenChange(false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional state update on PDF ready
       setShowPDFModal(true)
     }
   }, [pdfBlob, isGenerating, onOpenChange])

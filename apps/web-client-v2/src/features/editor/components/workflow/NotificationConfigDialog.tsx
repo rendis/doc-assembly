@@ -39,6 +39,7 @@ export function NotificationConfigDialog({
   // Reset local state when dialog opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset on dialog open
       setLocalTriggers(triggers)
     }
   }, [open, triggers])

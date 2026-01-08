@@ -574,8 +574,10 @@ function DocumentsPageContent() {
                               onClick={() => {
                                 navigate({
                                   to: '/workspace/$workspaceId/templates/$templateId',
+                                  /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
                                   params: { workspaceId: workspaceId ?? '', templateId: template.id } as any,
                                   search: { fromFolderId: currentFolderId ?? 'root' } as any,
+                                  /* eslint-enable @typescript-eslint/no-explicit-any */
                                 })
                               }}
                             />

@@ -102,6 +102,7 @@ function EditorPage() {
 
     // Create store actions adapter
     const storeActions = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic config type
       setPaginationConfig: (config: any) => {
         const { pageSize, margins } = config
         if (pageSize) usePaginationStore.getState().setPageSize(pageSize)
@@ -137,6 +138,7 @@ function EditorPage() {
     }
 
     contentLoadedRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable, editorRef.current triggers on editor ready
   }, [version, editorRef.current, variables])
 
   // Auto-save hook

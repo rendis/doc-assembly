@@ -96,7 +96,8 @@ export function TemplatesPage() {
     offset: page * PAGE_SIZE,
   })
 
-  const templates = data?.items ?? []
+  // Memoize templates to avoid dependency array issues
+  const templates = useMemo(() => data?.items ?? [], [data?.items])
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -135,6 +136,7 @@ export function TemplatesPage() {
       setTimeout(() => {
         navigate({
           to: '/workspace/$workspaceId/templates/$templateId',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
           params: { workspaceId: currentWorkspace.id, templateId } as any,
         })
       }, 600)
@@ -149,8 +151,10 @@ export function TemplatesPage() {
 
     navigate({
       to: '/workspace/$workspaceId/documents',
+      /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
       params: { workspaceId: currentWorkspace.id } as any,
       search: isRoot ? undefined : { folderId } as any,
+      /* eslint-enable @typescript-eslint/no-explicit-any */
     })
   }
 

@@ -112,6 +112,7 @@ function BellRing(props: BellRingProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export {
   animations,
   BellRing,
@@ -119,3 +120,4 @@ export {
   type BellRingProps,
   type BellRingProps as BellRingIconProps,
 };
+/* eslint-enable react-refresh/only-export-components */

@@ -23,6 +23,7 @@ export function ImageInsertModal({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset on dialog open
       setCurrentImage(null)
       setImageToCrop(null)
       setCropperOpen(false)

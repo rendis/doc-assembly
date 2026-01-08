@@ -68,8 +68,10 @@ export function useFolderNavigation(workspaceId: string): FolderNavigationState 
     (folderId: string | null) => {
       navigate({
         to: '/workspace/$workspaceId/documents',
+        /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
         params: { workspaceId: currentWorkspaceId } as any,
         search: folderId ? { folderId } : undefined as any,
+        /* eslint-enable @typescript-eslint/no-explicit-any */
       })
     },
     [navigate, currentWorkspaceId]
