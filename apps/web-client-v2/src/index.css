@@ -251,7 +251,8 @@ body {
 
 /* Page transition - fade in on mount */
 .animate-page-enter {
-  animation: fade-in 0.25s ease-out forwards;
+  opacity: 0;
+  animation: fade-in 0.4s ease-out 0.05s forwards;
 }
 
 /* ============================================

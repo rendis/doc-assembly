@@ -9,6 +9,7 @@ import {
   Clock,
   FileText,
   Layers,
+  Pencil,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
@@ -16,6 +17,7 @@ import { usePageTransitionStore } from '@/stores/page-transition-store'
 import { useTemplateWithVersions } from '../hooks/useTemplateDetail'
 import { VersionListItem } from './VersionListItem'
 import { CreateVersionDialog } from './CreateVersionDialog'
+import { EditTagsDialog } from './EditTagsDialog'
 import { TagBadge } from './TagBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -40,6 +42,7 @@ export function TemplateDetailPage() {
   const navigate = useNavigate()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editTagsDialogOpen, setEditTagsDialogOpen] = useState(false)
 
   // Page transition state
   const { isTransitioning, direction, startTransition, endTransition } = usePageTransitionStore()
@@ -262,14 +265,23 @@ export function TemplateDetailPage() {
 
             {/* Tags Card */}
             <div className="border border-border bg-background p-6">
-              <h2 className="mb-4 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                {t('templates.detail.tags', 'Tags')}
-              </h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  {t('templates.detail.tags', 'Tags')}
+                </h2>
+                <button
+                  onClick={() => setEditTagsDialogOpen(true)}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  title={t('templates.detail.editTags', 'Edit tags')}
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
 
               {template.tags && template.tags.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {template.tags.map((tag) => (
-                    <TagBadge key={tag.id} tag={tag.name} />
+                    <TagBadge key={tag.id} tag={tag} />
                   ))}
                 </div>
               ) : (
@@ -326,6 +338,14 @@ export function TemplateDetailPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         templateId={templateId}
+      />
+
+      {/* Edit Tags Dialog */}
+      <EditTagsDialog
+        open={editTagsDialogOpen}
+        onOpenChange={setEditTagsDialogOpen}
+        templateId={templateId}
+        currentTags={template.tags ?? []}
       />
     </motion.div>
   )

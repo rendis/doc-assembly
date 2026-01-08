@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { LogicBuilder } from './builder/LogicBuilder'
 import type {
   ConditionalSchema,
@@ -35,6 +35,29 @@ export const ConditionalComponent = (props: NodeViewProps) => {
     }
   )
   const [open, setOpen] = useState(false)
+  const [, forceUpdate] = useState({})
+
+  // Subscribe to selection updates to properly track direct selection
+  useEffect(() => {
+    const handleSelectionUpdate = () => forceUpdate({})
+    editor.on('selectionUpdate', handleSelectionUpdate)
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate)
+    }
+  }, [editor])
+
+  // Check if this specific node is directly selected (not just within a parent selection)
+  const isDirectlySelected = useMemo(() => {
+    if (!selected) return false
+    const { selection } = editor.state
+    const pos = getPos()
+    // Verify it's a NodeSelection pointing to this exact node
+    return (
+      selection instanceof NodeSelection &&
+      typeof pos === 'number' &&
+      selection.anchor === pos
+    )
+  }, [selected, editor.state.selection, getPos])
 
   const handleOpenEditor = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -86,12 +109,12 @@ export const ConditionalComponent = (props: NodeViewProps) => {
         onDoubleClick={handleOpenEditor}
         className={cn(
           'relative border-2 border-dashed rounded-lg p-4 transition-all pt-6',
-          selected
+          isDirectlySelected
             ? 'bg-warning-muted/50 dark:bg-warning-muted/20'
             : 'bg-warning-muted/30 dark:bg-warning-muted/10'
         )}
         style={{
-          borderColor: selected
+          borderColor: isDirectlySelected
             ? 'hsl(var(--warning-border))'
             : 'hsl(var(--warning-border) / 0.7)',
         }}
@@ -107,7 +130,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
           <div
             className={cn(
               'px-2 h-6 bg-card flex items-center gap-1.5 text-xs font-medium border rounded shadow-sm transition-colors',
-              selected
+              isDirectlySelected
                 ? 'text-warning-foreground border-warning-border dark:text-warning dark:border-warning'
                 : 'text-muted-foreground border-border hover:border-warning-border hover:text-warning-foreground dark:hover:border-warning dark:hover:text-warning'
             )}
@@ -120,7 +143,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
         </div>
 
         {/* Barra de herramientas flotante cuando está seleccionado */}
-        {selected && (
+        {isDirectlySelected && (
           <TooltipProvider delayDuration={300}>
             <div data-toolbar className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
               <Tooltip>

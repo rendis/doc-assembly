@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -29,7 +28,7 @@ export function DroppableBreadcrumb({
     <nav className="flex items-center gap-2 py-6 font-mono text-sm text-muted-foreground">
       <AnimatePresence mode="popLayout" initial={false}>
         {items.map((item, i) => (
-          <Fragment key={item.id ?? 'root'}>
+          <motion.div key={item.id ?? 'root'} className="contents">
             {i > 0 && (
               <motion.span
                 layout
@@ -55,7 +54,7 @@ export function DroppableBreadcrumb({
                 onNavigate={onNavigate}
               />
             </motion.div>
-          </Fragment>
+          </motion.div>
         ))}
       </AnimatePresence>
     </nav>

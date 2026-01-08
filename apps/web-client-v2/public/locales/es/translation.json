@@ -32,7 +32,8 @@
     "none": "Ninguno",
     "selectAll": "Seleccionar Todo",
     "actions": "Acciones",
-    "clear": "Limpiar todo"
+    "clear": "Limpiar todo",
+    "optional": "opcional"
   },
   "tags": {
     "searchPlaceholder": "Buscar o crear etiquetas...",
@@ -104,6 +105,7 @@
   },
   "dashboard": {
     "title": "Monitor de Estado",
+    "subtitle": "Resumen del Workspace",
     "lastSynced": "Última sincronización",
     "totalGenerated": "Total Generados",
     "signedThisMonth": "Firmados (30 Días)",
@@ -111,18 +113,36 @@
     "recentActivity": "Actividad Reciente",
     "quickDraft": "Borrador Rápido",
     "newDocument": "Nuevo Documento",
-    "integrations": "Integraciones"
+    "integrations": "Integraciones",
+    "stats": {
+      "generated": "Total Generados",
+      "signed": "Firmados (30 Días)",
+      "inProgress": "En Progreso"
+    },
+    "activity": {
+      "title": "Actividad Reciente"
+    }
   },
   "templates": {
     "title": "Lista de Plantillas",
     "section": "Plantillas",
+    "header": "Gestión",
     "createNew": "Crear Nueva Plantilla",
     "searchPlaceholder": "Buscar plantillas...",
     "folder": "Carpeta",
+    "tags": "Etiquetas",
+    "columns": {
+      "name": "Nombre de Plantilla",
+      "versions": "Versiones",
+      "status": "Estado",
+      "lastModified": "Última Modificación",
+      "action": "Acción"
+    },
     "status": {
       "label": "Estado",
       "published": "Publicado",
-      "draft": "Borrador"
+      "draft": "Borrador",
+      "any": "Cualquiera"
     },
     "versions": "Versiones",
     "version": "versión",
@@ -130,6 +150,7 @@
     "lastModified": "Última Modificación",
     "author": "Autor",
     "noTemplates": "No se encontraron plantillas",
+    "showing": "Mostrando {{start}}-{{end}} de {{total}} plantillas",
     "empty": "No hay plantillas en esta carpeta",
     "createFirst": "Crea tu primera plantilla",
     "createDialog": {
@@ -176,11 +197,17 @@
       "versionsCount": "Versiones",
       "tags": "Etiquetas",
       "noTags": "Sin etiquetas",
+      "editTags": "Editar etiquetas",
       "versionsSection": "Historial de Versiones",
       "versionsTotal": "{{count}} versión(es)",
       "noVersions": "Aún no hay versiones",
       "createVersion": "Crear Nueva Versión",
       "createFirstVersion": "Crear primera versión"
+    },
+    "editTagsDialog": {
+      "title": "Editar Etiquetas",
+      "description": "Agregar o eliminar etiquetas de esta plantilla",
+      "submit": "Guardar Etiquetas"
     },
     "versionInfo": {
       "createdAt": "Creado",
@@ -242,6 +269,10 @@
       "description": "Selecciona una carpeta de destino.",
       "root": "Raíz (Sin padre)",
       "noFolders": "No hay carpetas disponibles"
+    },
+    "confirmMoveDialog": {
+      "title": "Mover Carpeta",
+      "message": "¿Estás seguro de que deseas mover \"{{name}}\" a \"{{folder}}\"?"
     },
     "actions": {
       "newFolder": "NUEVA CARPETA",
@@ -690,6 +721,7 @@
   },
   "settings": {
     "title": "Configuración del Workspace",
+    "header": "Configuración",
     "description": "Gestiona variables de entorno, controles de acceso y configuración global de este workspace.",
     "workspaceType": "Tipo de Workspace",
     "development": "Desarrollo",

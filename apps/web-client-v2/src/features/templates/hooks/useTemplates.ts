@@ -13,6 +13,7 @@ import {
   removeTagFromTemplate,
   type TemplatesListParams,
 } from '../api/templates-api'
+import { templateDetailKeys } from './useTemplateDetail'
 import type { CreateTemplateRequest } from '@/types/api'
 
 export const templateKeys = {
@@ -83,6 +84,7 @@ export function useAddTagsToTemplate() {
     }) => addTagsToTemplate(templateId, tagIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })
     },
   })
 }
@@ -95,6 +97,7 @@ export function useRemoveTagFromTemplate() {
       removeTagFromTemplate(templateId, tagId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })
     },
   })
 }

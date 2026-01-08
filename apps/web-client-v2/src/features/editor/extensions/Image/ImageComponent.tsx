@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
+import { NodeSelection } from '@tiptap/pm/state';
 import Moveable from 'react-moveable';
 import { Button } from '@/components/ui/button';
 import { Square, Circle, Pencil, Trash2 } from 'lucide-react';
@@ -8,11 +9,34 @@ import { cn } from '@/lib/utils';
 import { ImageAlignSelector } from './ImageAlignSelector';
 import type { ImageDisplayMode, ImageAlign, ImageShape } from './types';
 
-export function ImageComponent({ node, updateAttributes, selected, deleteNode, editor }: NodeViewProps) {
+export function ImageComponent({ node, updateAttributes, selected, deleteNode, editor, getPos }: NodeViewProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [, forceUpdate] = useState({});
+
+  // Subscribe to selection updates to properly track direct selection
+  useEffect(() => {
+    const handleSelectionUpdate = () => forceUpdate({});
+    editor.on('selectionUpdate', handleSelectionUpdate);
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate);
+    };
+  }, [editor]);
+
+  // Check if this specific node is directly selected (not just within a parent selection)
+  const isDirectlySelected = useMemo(() => {
+    if (!selected) return false;
+    const { selection } = editor.state;
+    const pos = getPos();
+    // Verify it's a NodeSelection pointing to this exact node
+    return (
+      selection instanceof NodeSelection &&
+      typeof pos === 'number' &&
+      selection.anchor === pos
+    );
+  }, [selected, editor.state.selection, getPos]);
 
   const { src, alt, title, width, height, displayMode, align, shape } = node.attrs as {
     src: string;
@@ -171,7 +195,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
   const imageStyles = cn(
     'cursor-pointer transition-shadow',
     shape === 'circle' && 'rounded-full',
-    selected && 'ring-2 ring-primary ring-offset-2'
+    isDirectlySelected && 'ring-2 ring-primary ring-offset-2'
   );
 
   return (
@@ -196,7 +220,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
           draggable={false}
         />
 
-        {selected && imageLoaded && (
+        {isDirectlySelected && imageLoaded && (
           <>
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
               <ImageAlignSelector

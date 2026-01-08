@@ -32,7 +32,8 @@
     "none": "None",
     "selectAll": "Select All",
     "actions": "Actions",
-    "clear": "Clear all"
+    "clear": "Clear all",
+    "optional": "optional"
   },
   "tags": {
     "searchPlaceholder": "Search or create tags...",
@@ -104,6 +105,7 @@
   },
   "dashboard": {
     "title": "Status Monitor",
+    "subtitle": "Workspace Overview",
     "lastSynced": "Last Synced",
     "totalGenerated": "Total Generated",
     "signedThisMonth": "Signed (30 Days)",
@@ -111,18 +113,36 @@
     "recentActivity": "Recent Activity",
     "quickDraft": "Quick Draft",
     "newDocument": "New Document",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "stats": {
+      "generated": "Total Generated",
+      "signed": "Signed (30 Days)",
+      "inProgress": "In Progress"
+    },
+    "activity": {
+      "title": "Recent Activity"
+    }
   },
   "templates": {
     "title": "Template List",
     "section": "Templates",
+    "header": "Management",
     "createNew": "Create New Template",
     "searchPlaceholder": "Search templates...",
     "folder": "Folder",
+    "tags": "Tags",
+    "columns": {
+      "name": "Template Name",
+      "versions": "Versions",
+      "status": "Status",
+      "lastModified": "Last Modified",
+      "action": "Action"
+    },
     "status": {
       "label": "Status",
       "published": "Published",
-      "draft": "Draft"
+      "draft": "Draft",
+      "any": "Any"
     },
     "versions": "Versions",
     "version": "version",
@@ -130,6 +150,7 @@
     "lastModified": "Last Modified",
     "author": "Author",
     "noTemplates": "No templates found",
+    "showing": "Showing {{start}}-{{end}} of {{total}} templates",
     "empty": "No templates in this folder",
     "createFirst": "Create your first template",
     "createDialog": {
@@ -176,11 +197,17 @@
       "versionsCount": "Versions",
       "tags": "Tags",
       "noTags": "No tags",
+      "editTags": "Edit tags",
       "versionsSection": "Version History",
       "versionsTotal": "{{count}} version(s)",
       "noVersions": "No versions yet",
       "createVersion": "Create New Version",
       "createFirstVersion": "Create first version"
+    },
+    "editTagsDialog": {
+      "title": "Edit Tags",
+      "description": "Add or remove tags from this template",
+      "submit": "Save Tags"
     },
     "versionInfo": {
       "createdAt": "Created",
@@ -242,6 +269,10 @@
       "description": "Select a destination folder.",
       "root": "Root (No parent)",
       "noFolders": "No folders available"
+    },
+    "confirmMoveDialog": {
+      "title": "Move Folder",
+      "message": "Are you sure you want to move \"{{name}}\" to \"{{folder}}\"?"
     },
     "actions": {
       "newFolder": "NEW FOLDER",
@@ -690,6 +721,7 @@
   },
   "settings": {
     "title": "Workspace Configuration",
+    "header": "Configuration",
     "description": "Manage environment variables, access controls, and global settings for this workspace.",
     "workspaceType": "Workspace Type",
     "development": "Development",

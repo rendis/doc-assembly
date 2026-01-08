@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 import { Settings2, Trash2, PenLine } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -28,7 +29,7 @@ import {
 } from './signature-layouts'
 
 export const SignatureComponent = (props: NodeViewProps) => {
-  const { node, selected, deleteNode, updateAttributes } = props
+  const { node, selected, deleteNode, updateAttributes, editor, getPos } = props
   const { t } = useTranslation()
 
   // Extraer atributos con valores por defecto
@@ -49,19 +50,72 @@ export const SignatureComponent = (props: NodeViewProps) => {
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
+  const [, forceUpdate] = useState({})
+
+  // Subscribe to selection updates to properly track direct selection
+  useEffect(() => {
+    const handleSelectionUpdate = () => forceUpdate({})
+    editor.on('selectionUpdate', handleSelectionUpdate)
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate)
+    }
+  }, [editor])
+
+  // Check if this specific node is directly selected (not just within a parent selection)
+  const isDirectlySelected = useMemo(() => {
+    if (!selected) return false
+    const { selection } = editor.state
+    const pos = getPos()
+    // Verify it's a NodeSelection pointing to this exact node
+    return (
+      selection instanceof NodeSelection &&
+      typeof pos === 'number' &&
+      selection.anchor === pos
+    )
+  }, [selected, editor.state.selection, getPos])
 
   // Reset image selection when block selection changes or editor opens
   useEffect(() => {
     setSelectedImageId(null)
   }, [selected, editorOpen])
 
-  const handleDoubleClick = useCallback(() => {
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     setEditorOpen(true)
   }, [])
 
-  const handleDelete = useCallback(() => {
-    deleteNode()
-  }, [deleteNode])
+  const handleSelectNode = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const pos = getPos()
+      if (typeof pos === 'number') {
+        const tr = editor.state.tr.setSelection(
+          NodeSelection.create(editor.state.doc, pos)
+        )
+        editor.view.dispatch(tr)
+        editor.view.focus()
+      }
+    },
+    [editor, getPos]
+  )
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const pos = getPos()
+      if (typeof pos === 'number') {
+        const tr = editor.state.tr.setSelection(
+          NodeSelection.create(editor.state.doc, pos)
+        )
+        editor.view.dispatch(tr)
+        editor.commands.deleteSelection()
+      }
+    },
+    [editor, getPos]
+  )
 
   const handleSave = useCallback(
     (newAttrs: SignatureBlockAttrs) => {
@@ -113,7 +167,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
                     signature={signature}
                     lineWidth={lineWidth}
                     className={itemWidthClasses}
-                    editable={selected}
+                    editable={isDirectlySelected}
                     isImageSelected={selectedImageId === signature.id}
                     onImageSelect={() => setSelectedImageId(signature.id)}
                     onImageDeselect={() => setSelectedImageId(null)}
@@ -136,7 +190,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
         signature={signature}
         lineWidth={lineWidth}
         className={itemWidthClasses}
-        editable={selected}
+        editable={isDirectlySelected}
         isImageSelected={selectedImageId === signature.id}
         onImageSelect={() => setSelectedImageId(signature.id)}
         onImageDeselect={() => setSelectedImageId(null)}
@@ -150,29 +204,35 @@ export const SignatureComponent = (props: NodeViewProps) => {
   return (
     <NodeViewWrapper className="my-6">
       <div
-        data-drag-handle
         contentEditable={false}
+        onClick={handleSelectNode}
         onDoubleClick={handleDoubleClick}
         className={cn(
-          'relative w-full p-6 border-2 border-dashed rounded-lg transition-colors cursor-grab select-none',
-          selected
+          'relative w-full p-6 border-2 border-dashed rounded-lg transition-colors select-none',
+          isDirectlySelected
             ? 'bg-info-muted/40 dark:bg-info-muted/20'
             : 'bg-info-muted/20 dark:bg-info-muted/10 hover:bg-info-muted/30 dark:hover:bg-info-muted/15'
         )}
         style={{
-          borderColor: selected
+          borderColor: isDirectlySelected
             ? 'hsl(var(--info-border))'
             : 'hsl(var(--info-border) / 0.6)',
           WebkitUserSelect: 'none',
           userSelect: 'none',
         }}
       >
+        {/* Zonas de arrastre en los bordes */}
+        <div data-drag-handle className="absolute inset-x-0 top-0 h-3 cursor-grab" />
+        <div data-drag-handle className="absolute inset-x-0 bottom-0 h-3 cursor-grab" />
+        <div data-drag-handle className="absolute inset-y-0 left-0 w-3 cursor-grab" />
+        <div data-drag-handle className="absolute inset-y-0 right-0 w-3 cursor-grab" />
+
         {/* Tab decorativo superior izquierdo */}
-        <div className="absolute -top-3 left-4 z-10">
+        <div data-drag-handle onDoubleClick={handleDoubleClick} className="absolute -top-3 left-4 z-10 cursor-grab">
           <div
             className={cn(
               'px-2 h-6 bg-card flex items-center gap-1.5 text-xs font-medium border rounded shadow-sm transition-colors',
-              selected
+              isDirectlySelected
                 ? 'text-info-foreground border-info-border dark:text-info dark:border-info'
                 : 'text-muted-foreground border-border hover:border-info-border hover:text-info-foreground dark:hover:border-info dark:hover:text-info'
             )}
@@ -186,9 +246,9 @@ export const SignatureComponent = (props: NodeViewProps) => {
         <div className={containerClasses}>{renderSignatures()}</div>
 
         {/* Barra de herramientas flotante cuando está seleccionado */}
-        {selected && (
+        {isDirectlySelected && (
           <TooltipProvider delayDuration={300}>
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
+            <div data-toolbar className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

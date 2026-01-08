@@ -117,7 +117,16 @@ export const SignatureExtension = Node.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(SignatureComponent)
+    return ReactNodeViewRenderer(SignatureComponent, {
+      stopEvent: (event) => {
+        const target = event.event.target as HTMLElement
+        // Stop events in toolbar and drag handles from reaching editor
+        if (target.closest('[data-toolbar]') || target.closest('[data-drag-handle]')) {
+          return true
+        }
+        return false
+      },
+    })
   },
 
   addKeyboardShortcuts() {
