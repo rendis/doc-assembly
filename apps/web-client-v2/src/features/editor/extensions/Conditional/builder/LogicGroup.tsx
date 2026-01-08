@@ -43,7 +43,7 @@ export const LogicGroupItem = ({
     <div
       className={cn(
         'flex flex-col gap-2 transition-colors',
-        !isRoot && 'border-l-4 rounded-r-md p-3 my-1',
+        !isRoot && 'border-l-4 rounded-r-sm p-3 my-1',
         !isRoot && borderColor,
         bgLevel
       )}
@@ -51,14 +51,14 @@ export const LogicGroupItem = ({
       {/* Group Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-border bg-card overflow-hidden p-0.5 shadow-sm">
+          <div className="flex rounded-sm border border-border bg-card overflow-hidden p-0.5">
             <button
               type="button"
               onClick={() => updateNode(group.id, { logic: 'AND' })}
               className={cn(
-                'px-3 py-1 text-xs font-bold rounded-sm transition-all',
+                'px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider rounded-sm transition-all',
                 group.logic === 'AND'
-                  ? 'bg-foreground text-background shadow-sm'
+                  ? 'bg-foreground text-background'
                   : 'text-muted-foreground hover:bg-muted'
               )}
             >
@@ -68,9 +68,9 @@ export const LogicGroupItem = ({
               type="button"
               onClick={() => updateNode(group.id, { logic: 'OR' })}
               className={cn(
-                'px-3 py-1 text-xs font-bold rounded-sm transition-all',
+                'px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider rounded-sm transition-all',
                 group.logic === 'OR'
-                  ? 'bg-amber-500 dark:bg-amber-600 text-white shadow-sm'
+                  ? 'bg-amber-500 dark:bg-amber-600 text-white'
                   : 'text-muted-foreground hover:bg-muted'
               )}
             >
@@ -121,7 +121,7 @@ export const LogicGroupItem = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-xs border-border"
+            className="h-7 font-mono text-[10px] uppercase tracking-wider border-border"
             onClick={() => addRule(group.id)}
           >
             <Plus className="h-3 w-3 mr-1" /> {t('editor.conditional.rule')}
@@ -130,7 +130,7 @@ export const LogicGroupItem = ({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 font-mono text-[10px] uppercase tracking-wider"
               onClick={() => addGroup(group.id)}
             >
               <Layers className="h-3 w-3 mr-1" /> {t('editor.conditional.group')}

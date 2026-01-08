@@ -62,7 +62,7 @@ export function InjectableInput({
           />
           <Label
             htmlFor={variableId}
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             {label}
           </Label>
@@ -120,7 +120,7 @@ export function InjectableInput({
   return (
     <div className={cn('space-y-1.5', disabled && 'opacity-50')}>
       <div className="flex items-center justify-between">
-        <Label htmlFor={variableId} className="text-sm font-medium">
+        <Label htmlFor={variableId} className="text-xs font-medium">
           {label}
         </Label>
         {isEmulated && (

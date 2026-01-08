@@ -46,7 +46,7 @@ export function SystemInjectablesSection({
       onOpenChange={(newOpen) => setIsCollapsed(!newOpen)}
     >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-foreground">
+        <h2 className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
           {t('editor.preview.systemVariables')}
         </h2>
         <CollapsibleTrigger asChild>
@@ -61,7 +61,7 @@ export function SystemInjectablesSection({
       </div>
 
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-        <div className="space-y-4 bg-muted/30 p-3 rounded-md border border-muted">
+        <div className="space-y-4 bg-muted/30 p-3 rounded-sm border border-border">
           <p className="text-xs text-muted-foreground">
             {t('editor.preview.systemVariablesHelp')}
           </p>

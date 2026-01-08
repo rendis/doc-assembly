@@ -255,8 +255,8 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
         <div className="flex flex-row h-full bg-background overflow-hidden">
           {/* Sidebar */}
           <div className="w-52 border-r border-border bg-muted flex flex-col shrink-0">
-            <div className="p-3 border-b border-border font-medium text-sm flex items-center gap-2">
-              <Variable className="h-4 w-4" /> Variables
+            <div className="p-3 border-b border-border font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <Variable className="h-3.5 w-3.5" /> Variables
             </div>
 
             {/* Search Bar */}
@@ -332,7 +332,7 @@ const DraggingItem = ({ id, variables }: DraggingItemProps) => {
   const Icon = ICONS[v.type] || Type
 
   return (
-    <div className="flex items-center gap-2 p-2.5 text-sm border border-border rounded-md bg-card shadow-lg cursor-grabbing z-[100]">
+    <div className="flex items-center gap-2 p-2 text-xs border border-border rounded-sm bg-card shadow-md cursor-grabbing z-[100]">
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
       <span>{v.label}</span>
@@ -362,7 +362,7 @@ const DraggableVar = ({
       {...listeners}
       {...attributes}
       className={cn(
-        'flex items-center gap-2 p-2.5 text-sm border border-border rounded-md bg-card shadow-sm cursor-grab hover:bg-muted hover:shadow transition-all group select-none',
+        'flex items-center gap-2 p-2 text-xs border border-border rounded-sm bg-card cursor-grab hover:bg-muted transition-colors group select-none',
         isDragging ? 'opacity-30' : ''
       )}
     >

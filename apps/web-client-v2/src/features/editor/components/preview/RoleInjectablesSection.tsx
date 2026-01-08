@@ -64,7 +64,7 @@ export function RoleInjectablesSection({
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-foreground">
+          <h2 className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             {t('editor.preview.roleVariables')}
           </h2>
           {!isCollapsed && (
@@ -73,7 +73,7 @@ export function RoleInjectablesSection({
               size="sm"
               onClick={onGenerateAll}
               disabled={disabled}
-              className="h-7"
+              className="h-7 font-mono text-[10px] uppercase tracking-wider"
             >
               <Sparkles className="h-3 w-3 mr-1" />
               {t('editor.preview.generateTestData')}
@@ -92,11 +92,11 @@ export function RoleInjectablesSection({
       </div>
 
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-        <div className="space-y-4 bg-muted/30 p-3 rounded-md border border-muted">
+        <div className="space-y-4 bg-muted/30 p-3 rounded-sm border border-border">
           {Array.from(roleGroups.entries()).map(
             ([roleLabel, injectables], index) => (
               <div key={roleLabel}>
-                <h3 className="text-sm font-semibold text-foreground mb-3">
+                <h3 className="font-mono text-[10px] font-medium uppercase tracking-widest text-foreground mb-3">
                   {roleLabel}
                 </h3>
                 <div className="space-y-4">

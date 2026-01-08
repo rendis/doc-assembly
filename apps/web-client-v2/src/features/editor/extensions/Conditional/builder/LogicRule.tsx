@@ -61,7 +61,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
   return (
     <motion.div
       layout
-      className="flex flex-wrap items-center gap-1.5 p-2 rounded-md bg-card border border-border group relative"
+      className="flex flex-wrap items-center gap-1.5 p-2 rounded-sm bg-card border border-border group relative"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -71,7 +71,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
       <div
         ref={setVarRef}
         className={cn(
-          'h-8 px-2 rounded-md border flex items-center text-sm transition-colors shrink-0',
+          'h-8 px-2 rounded-sm border flex items-center text-xs transition-colors shrink-0',
           'min-w-[100px] max-w-[150px]',
           isVarOver
             ? 'border-foreground bg-muted ring-2 ring-foreground/20'
@@ -80,11 +80,11 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
         )}
       >
         {selectedVar ? (
-          <span className="font-medium text-foreground bg-muted px-1.5 py-0.5 rounded text-xs border border-border truncate">
+          <span className="font-mono text-[10px] font-medium text-foreground bg-muted px-1.5 py-0.5 rounded-sm border border-border truncate">
             {selectedVar.label}
           </span>
         ) : (
-          <span className="text-[10px] italic truncate">{t('editor.conditional.dragVariable')}</span>
+          <span className="font-mono text-[10px] text-muted-foreground truncate">{t('editor.conditional.dragVariable')}</span>
         )}
       </div>
 
@@ -94,7 +94,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
         onValueChange={(val) => handleOperatorChange(val as RuleOperator)}
         disabled={!selectedVar}
       >
-        <SelectTrigger className="w-[130px] h-8 shrink-0 border-input">
+        <SelectTrigger className="w-[160px] h-8 shrink-0 border-input text-xs">
           <SelectValue placeholder="-" />
         </SelectTrigger>
         <SelectContent>

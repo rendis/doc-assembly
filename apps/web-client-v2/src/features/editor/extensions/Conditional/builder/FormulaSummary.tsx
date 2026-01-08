@@ -78,7 +78,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
   return (
     <motion.div
       className={cn(
-        'flex items-start gap-3 p-3 rounded-lg border border-border bg-muted',
+        'flex items-start gap-3 p-3 rounded-sm border border-border bg-muted/50',
         className
       )}
       variants={fadeSlideUp}
@@ -88,7 +88,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
     >
       <Code className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-muted-foreground mb-1">{t('editor.conditional.formula')}</div>
+        <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-1">{t('editor.conditional.formula')}</div>
         <motion.code
           key={summary}
           className={cn(
