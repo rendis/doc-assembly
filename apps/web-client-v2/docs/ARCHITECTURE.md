@@ -130,51 +130,12 @@ export default defineConfig({
 
 ### src/index.css
 
-```css
-@import "tailwindcss";
+> **Documentación completa de tokens de diseño:** `docs/DESIGN_SYSTEM.md`
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --radius: 0.5rem;
-}
-
-.dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
-}
-
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-```
+Estructura del archivo:
+- `@import "tailwindcss"` + plugins (typography, animate)
+- Variables CSS en `:root` (light mode) y `.dark` (dark mode)
+- Colores semánticos: primary, secondary, destructive, warning, info, success, etc.
 
 ---
 
@@ -252,43 +213,37 @@ src/
 
 ### Componente UI (Primitivo)
 
+Patrón para crear componentes con variantes usando `cva` (class-variance-authority):
+
 ```typescript
 // src/components/ui/button.tsx
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
+// 1. Definir variantes con cva()
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:opacity-50',
+  'base-classes...',  // Clases base comunes
   {
     variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        outline: 'border border-input bg-background hover:bg-accent',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-      },
-      size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 px-3 text-xs',
-        lg: 'h-10 px-8',
-        icon: 'h-9 w-9',
-      },
+      variant: { default: '...', secondary: '...', outline: '...', ghost: '...' },
+      size: { default: '...', sm: '...', lg: '...', icon: '...' },
     },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
+    defaultVariants: { variant: 'default', size: 'default' },
   }
 )
 
+// 2. Tipar props con VariantProps
 interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}
 
+// 3. Usar cn() para combinar clases
 export const Button = ({ className, variant, size, ...props }: ButtonProps) => (
   <button className={cn(buttonVariants({ variant, size, className }))} {...props} />
 )
 ```
+
+> **Variantes específicas:** Ver `docs/DESIGN_SYSTEM.md` sección Componentes > Botones
 
 ### Componente de Feature
 
@@ -415,6 +370,7 @@ VITE_USE_MOCK_AUTH=false
 - Usar Tailwind CSS para todos los estilos
 - Usar `cn()` para combinar clases condicionales
 - No usar CSS modules ni styled-components
+- **Ver `docs/DESIGN_SYSTEM.md`** para tokens y patrones visuales
 
 ---
 
@@ -443,19 +399,17 @@ VITE_USE_MOCK_AUTH=false
 
 ---
 
-## 10. Integrar el Diseño
+## 10. Guías de Referencia
 
-1. **Analizar el HTML/React del diseño**
-   - Identificar componentes reutilizables
-   - Mapear a la estructura de carpetas
+| Documento | Contenido |
+|-----------|-----------|
+| `docs/DESIGN_SYSTEM.md` | Filosofía visual, colores, tipografía, componentes, espaciado |
+| `src/components/ui/` | Componentes base reutilizables (Button, Input, Card, Dialog...) |
+| `AGENTS.md` | Instrucciones para agentes IA |
 
-2. **Crear componentes UI**
-   - Empezar por primitivos (Button, Input, Card)
-   - Luego layouts (Header, Sidebar)
-   - Finalmente componentes de feature
+### Proceso para Crear Componentes
 
-3. **Mantener consistencia**
-   - Usar `cn()` para todas las clases
-   - Seguir el patrón de variantes con `cva`
-   - Documentar props con TypeScript
+1. **Revisar `docs/DESIGN_SYSTEM.md`** para entender el estilo visual
+2. **Reutilizar componentes** de `src/components/ui/` cuando sea posible
+3. **Seguir patrones de código** de esta guía (`cva`, `cn`, tipos TypeScript)
 

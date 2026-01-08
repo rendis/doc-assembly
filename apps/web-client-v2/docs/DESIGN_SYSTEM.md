@@ -4,6 +4,45 @@ Guía de referencia para desarrolladores. Este documento describe los patrones v
 
 ---
 
+## Filosofía de Diseño
+
+### Estilo: Minimalista Técnico Corporativo
+
+El diseño de esta aplicación sigue un estilo **austero, preciso y profesional**, optimizado para workflows de trabajo documental.
+
+| Eje | Posición | Descripción |
+|-----|----------|-------------|
+| Minimalista ↔ Ornamentado | **Minimalista** | Sin gradientes, sombras mínimas, bordes planos |
+| Moderno ↔ Clásico | **Moderno** | CSS variables, animaciones sutiles, tipografía geométrica |
+| Corporativo ↔ Juguetón | **Corporativo** | Serio, sin emojis ni ilustraciones decorativas |
+| Contraste | **Alto** | Jerarquía visual clara, colores bien definidos |
+| Geometría | **Angular** | Esquinas rectas en elementos clave, formas limpias |
+
+### Elementos Distintivos
+
+| Elemento | Implementación | Efecto Visual |
+|----------|----------------|---------------|
+| Labels técnicos | `font-mono uppercase tracking-widest` | Formalidad, precisión |
+| Botones de dialog | `rounded-none` (esquinas rectas) | Minimalismo, decisión |
+| Botones primarios | `bg-foreground text-background` | Alto contraste, claridad |
+| Separadores | Bordes (`border-t`, `border-b`) en lugar de sombras | Estructura plana |
+| Animaciones | `fade + zoom 95%` | Sutiles, no dramáticas |
+
+### Palabras Clave
+
+**Austero** · **Técnico** · **Profesional** · **Preciso** · **Funcional** · **Limpio** · **Geométrico** · **Confiable**
+
+### Qué Evitar
+
+- Gradientes decorativos
+- Sombras excesivas o difusas
+- Emojis en la interfaz
+- Colores vibrantes fuera de los tokens semánticos
+- Esquinas muy redondeadas en elementos de acción
+- Animaciones llamativas o largas
+
+---
+
 ## Paleta de Colores
 
 Todos los colores están definidos como variables CSS en formato HSL en `src/index.css`.

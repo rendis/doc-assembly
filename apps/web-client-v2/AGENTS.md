@@ -18,6 +18,8 @@ pnpm preview      # Preview production build
 
 This is a React 19 + TypeScript SPA for a multi-tenant document assembly platform. It uses Vite (rolldown-vite) for bundling.
 
+- **Guía completa de arquitectura**: `docs/ARCHITECTURE.md` (stack, estructura de carpetas, patrones de código, configuración)
+
 ### Routing
 
 - **TanStack Router** with file-based routing in `src/routes/`
@@ -65,6 +67,9 @@ Current features: `auth`, `tenants`, `workspaces`, `documents`, `editor`
 - **Tailwind CSS** with shadcn/ui-style CSS variables
 - Dark mode via `class` strategy
 - Colors defined as HSL CSS variables in `index.css`
+- **Design System**: Documentación completa en `docs/DESIGN_SYSTEM.md`
+
+> **IMPORTANTE**: Antes de crear o modificar componentes UI, **SIEMPRE** consulta el Design System (`docs/DESIGN_SYSTEM.md`) para mantener consistencia visual. Incluye filosofía de diseño, paleta de colores, tipografía, border radius, espaciado y patrones de componentes.
 
 ### Rich Text Editor
 
