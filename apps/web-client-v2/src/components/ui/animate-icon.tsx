@@ -43,6 +43,7 @@ type TriggerProp<T = string> = boolean | StaticAnimations | T;
 type Trigger = TriggerProp<string>;
 
 type AnimateIconContextValue = {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   controls: LegacyAnimationControls | undefined;
   animation: StaticAnimations | string;
   loop: boolean;

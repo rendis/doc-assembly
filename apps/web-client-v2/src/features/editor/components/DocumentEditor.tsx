@@ -10,6 +10,7 @@ import {
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type DragMoveEvent,
 } from '@dnd-kit/core'
 import { EditorToolbar } from './EditorToolbar'
 import { PageSettings } from './PageSettings'
@@ -39,7 +40,7 @@ interface DocumentEditorProps {
   variables?: Variable[]
   onExport?: () => void
   onImport?: () => void
-  editorRef?: React.MutableRefObject<Editor | null>
+  editorRef?: React.RefObject<Editor | null>
   onEditorReady?: (editor: Editor | null) => void
   /** Called when editor is fully rendered and styles are applied */
   onFullyReady?: () => void
@@ -359,15 +360,13 @@ export function DocumentEditor({
    * Shows visual indicator of where the variable will be inserted
    */
   const handleDragMove = useCallback(
-    (event: {
-      activatorEvent: MouseEvent | TouchEvent | null
-      delta: { x: number; y: number }
-    }) => {
+    (event: DragMoveEvent) => {
       if (!editor) return
 
       const { activatorEvent, delta } = event
       if (!activatorEvent) return
 
+      // Cast to MouseEvent since we use PointerSensor
       const pointer = activatorEvent as MouseEvent
 
       // Calculate position in editor at pointer coordinates
