@@ -88,7 +88,6 @@
     "searchPlaceholder": "Search organizations...",
     "lastAccessed": "Last accessed",
     "users": "users",
-    "joinNew": "Join New Workspace",
     "backToLogin": "Back to login"
   },
   "selectTenant": {
@@ -97,7 +96,6 @@
     "description": "Choose a tenant environment to access your document templates and assembly tools.",
     "back": "Back to login",
     "filter": "Filter by organization...",
-    "join": "Join New Organization",
     "minChars": "Type at least 3 characters to search"
   },
   "workspace": {

@@ -486,17 +486,6 @@ function SelectTenantPage() {
             />
           )}
 
-          {/* Join new button */}
-          <div className="mt-12 border-t border-border pt-8">
-            <button className="group flex w-full items-center gap-4 rounded-sm border border-dashed border-border px-6 py-4 opacity-60 outline-none transition-all duration-200 hover:border-foreground hover:bg-accent hover:opacity-100">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground pb-0.5 text-lg font-light transition-colors group-hover:border-foreground">
-                <Plus size={14} />
-              </div>
-              <span className="font-display text-lg font-medium tracking-tight text-muted-foreground transition-colors group-hover:text-foreground">
-                {selectedTenant ? 'Create New Workspace' : t('selectTenant.join', 'Join New Organization')}
-              </span>
-            </button>
-          </div>
         </div>
       </motion.div>
 
