@@ -75,7 +75,7 @@ func (c *NodeConverter) ConvertNode(node portabledoc.Node) string {
 		return c.signature(node)
 	case portabledoc.NodeTypePageBreak:
 		return c.pageBreak()
-	case portabledoc.NodeTypeImage:
+	case portabledoc.NodeTypeImage, portabledoc.NodeTypeCustomImage:
 		return c.image(node)
 	case portabledoc.NodeTypeText:
 		return c.text(node)

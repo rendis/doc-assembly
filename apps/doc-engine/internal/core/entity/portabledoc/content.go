@@ -39,6 +39,7 @@ const (
 	NodeTypeSignature   = "signature"
 	NodeTypePageBreak   = "pageBreak"
 	NodeTypeImage       = "image"
+	NodeTypeCustomImage = "customImage"
 	NodeTypeText        = "text"
 )
 
