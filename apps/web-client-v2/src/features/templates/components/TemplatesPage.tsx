@@ -51,17 +51,21 @@ export function TemplatesPage() {
   const [isExiting, setIsExiting] = useState(false)
   const [isEntering, setIsEntering] = useState(false)
 
-  // Handle entering animation (coming back from detail)
+  // Handle entering animation (always on mount)
   useEffect(() => {
-    if (direction === 'backward') {
-      setIsEntering(true)
-      const timer = setTimeout(() => {
+    // Siempre activar animación de entrada al montar
+    setIsEntering(true)
+
+    const timer = setTimeout(() => {
+      if (direction === 'backward') {
         endTransition()
-        setIsEntering(false)
-      }, 600)
-      return () => clearTimeout(timer)
-    }
-  }, [direction, endTransition])
+      }
+      setIsEntering(false)
+    }, 600)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Solo ejecutar al montar
 
   // Debounce search
   useEffect(() => {
@@ -143,9 +147,9 @@ export function TemplatesPage() {
 
   return (
     <motion.div
-      className="flex h-full flex-1 flex-col bg-background"
-      animate={{ opacity: isExiting ? 0 : 1 }}
-      transition={{ duration: 0.3, delay: isExiting ? 0.3 : 0 }}
+      className="animate-page-enter flex h-full flex-1 flex-col bg-background"
+      animate={isExiting ? { opacity: 0 } : undefined}
+      transition={isExiting ? { duration: 0.3, delay: 0.3 } : undefined}
     >
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">

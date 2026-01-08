@@ -97,6 +97,14 @@ function DocumentsPageContent() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Tiempo mínimo para mostrar el skeleton (evita flash)
+  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMinLoadingComplete(true), 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
   // DnD sensors - require 8px movement before drag starts (allows clicks to pass)
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -403,7 +411,7 @@ function DocumentsPageContent() {
     .filter(Boolean) as string[]
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-background">
+    <div className="animate-page-enter flex h-full flex-1 flex-col bg-background">
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -473,23 +481,27 @@ function DocumentsPageContent() {
             onNavigate={navigateToFolder}
           />
 
-          {/* Loading state - only on initial load */}
-          {isInitialLoading && (
-            <div className="mb-10">
-              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                {t('folders.subfolders', 'Subfolders')}
-              </h2>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} className="h-40" />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Animated content on folder navigation */}
+          {/* Animated content - skeleton y contenido dentro de AnimatePresence */}
           <AnimatePresence mode="wait">
-            {!isInitialLoading && (
+            {isInitialLoading || !minLoadingComplete ? (
+              <motion.div
+                key="skeleton"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="mb-10"
+              >
+                <h2 className="mb-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {t('folders.subfolders', 'Subfolders')}
+                </h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-40" />
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
               <motion.div
                 key={currentFolderId ?? 'root'}
                 variants={gridContainerVariants}

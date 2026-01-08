@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import Moveable from 'react-moveable';
 import { Button } from '@/components/ui/button';
@@ -8,10 +9,10 @@ import { ImageAlignSelector } from './ImageAlignSelector';
 import type { ImageDisplayMode, ImageAlign, ImageShape } from './types';
 
 export function ImageComponent({ node, updateAttributes, selected, deleteNode, editor }: NodeViewProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [pageMaxWidth, setPageMaxWidth] = useState<number | null>(null);
 
   const { src, alt, title, width, height, displayMode, align, shape } = node.attrs as {
     src: string;
@@ -55,93 +56,33 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     deleteNode();
   }, [deleteNode]);
 
-  // Obtener dimensiones máximas del área de contenido de la página
-  const getMaxDimensions = useCallback(() => {
-    const pageContainer = containerRef.current?.closest('.rm-with-pagination');
-    if (pageContainer) {
-      const computedStyle = getComputedStyle(pageContainer);
-      const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-      const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
-      const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
-      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
-
-      return {
-        maxWidth: pageContainer.clientWidth - paddingLeft - paddingRight,
-        maxHeight: pageContainer.clientHeight - paddingTop - paddingBottom,
-      };
+  // Obtener el ancho máximo disponible del contenedor del editor
+  const getMaxWidth = useCallback(() => {
+    // Buscar el contenedor .ProseMirror que es el editor
+    const editorContainer = containerRef.current?.closest('.ProseMirror');
+    if (editorContainer) {
+      return editorContainer.clientWidth;
     }
-    // Fallback a dimensiones razonables
-    return { maxWidth: 700, maxHeight: 900 };
+    return 700; // Fallback
   }, []);
-
-  // Actualizar pageMaxWidth después del mount
-  useEffect(() => {
-    const updateMaxWidth = () => {
-      const { maxWidth } = getMaxDimensions();
-      setPageMaxWidth(maxWidth);
-    };
-
-    // Actualizar inmediatamente y después de un pequeño delay para asegurar el layout
-    updateMaxWidth();
-    const timeoutId = setTimeout(updateMaxWidth, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [getMaxDimensions]);
-
-  // Establecer dimensiones iniciales cuando la imagen carga (si no están definidas)
-  const handleImageLoad = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => {
-      setImageLoaded(true);
-
-      // Si no hay dimensiones definidas, establecerlas desde la imagen natural
-      if (!width || !height) {
-        const img = e.currentTarget;
-        const { maxWidth, maxHeight } = getMaxDimensions();
-        let newWidth = img.naturalWidth;
-        let newHeight = img.naturalHeight;
-
-        // Aplicar límites de página si la imagen es muy grande
-        const ratio = newWidth / newHeight;
-        if (newWidth > maxWidth) {
-          newWidth = maxWidth;
-          newHeight = newWidth / ratio;
-        }
-        if (newHeight > maxHeight) {
-          newHeight = maxHeight;
-          newWidth = newHeight * ratio;
-        }
-
-        updateAttributes({
-          width: Math.round(newWidth),
-          height: Math.round(newHeight),
-        });
-      }
-    },
-    [width, height, getMaxDimensions, updateAttributes]
-  );
 
   const handleResize = useCallback(
     (e: { width: number; height: number; target: HTMLElement }) => {
-      const { maxWidth, maxHeight } = getMaxDimensions();
+      const maxWidth = getMaxWidth();
       let newWidth = e.width;
       let newHeight = e.height;
 
-      // Mantener ratio cuando se alcanza el límite
-      const ratio = e.width / e.height;
-
+      // Limitar al ancho máximo de la página
       if (newWidth > maxWidth) {
+        const ratio = e.width / e.height;
         newWidth = maxWidth;
         newHeight = newWidth / ratio;
-      }
-      if (newHeight > maxHeight) {
-        newHeight = maxHeight;
-        newWidth = newHeight * ratio;
       }
 
       e.target.style.width = `${newWidth}px`;
       e.target.style.height = `${newHeight}px`;
     },
-    [getMaxDimensions]
+    [getMaxWidth]
   );
 
   const handleResizeEnd = useCallback(
@@ -160,7 +101,40 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     [shape, updateAttributes]
   );
 
-  // Use inline styles instead of Tailwind classes to avoid CSS cascade issues with PaginationPlus
+  useEffect(() => {
+    if (imageRef.current) {
+      if (width) imageRef.current.style.width = `${width}px`;
+      if (height) imageRef.current.style.height = `${height}px`;
+    }
+  }, [width, height]);
+
+  // Establecer dimensiones iniciales cuando la imagen carga (si no están definidas)
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true);
+
+    if (!width || !height) {
+      const img = imageRef.current;
+      if (!img) return;
+
+      const maxWidth = getMaxWidth();
+      let newWidth = img.naturalWidth;
+      let newHeight = img.naturalHeight;
+
+      // Limitar al ancho de la página si es muy grande
+      if (newWidth > maxWidth) {
+        const ratio = newWidth / newHeight;
+        newWidth = maxWidth;
+        newHeight = newWidth / ratio;
+      }
+
+      updateAttributes({
+        width: Math.round(newWidth),
+        height: Math.round(newHeight),
+      });
+    }
+  }, [width, height, getMaxWidth, updateAttributes]);
+
+  // Use inline styles for dynamic layout (block vs inline/float)
   const containerStyles = useMemo((): React.CSSProperties => {
     const styles: React.CSSProperties = {};
 
@@ -194,25 +168,11 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     return styles;
   }, [displayMode, align]);
 
-  // Image styles con maxWidth basado en el ancho real de la página
-  const imageStyles = useMemo((): React.CSSProperties => {
-    const styles: React.CSSProperties = {
-      maxWidth: pageMaxWidth ? `${pageMaxWidth}px` : '100%',
-      height: 'auto',
-    };
-
-    if (width) {
-      styles.width = `${width}px`;
-    }
-    if (height) {
-      styles.height = `${height}px`;
-    }
-    if (shape === 'circle') {
-      styles.borderRadius = '50%';
-    }
-
-    return styles;
-  }, [width, height, shape, pageMaxWidth]);
+  const imageStyles = cn(
+    'cursor-pointer transition-shadow',
+    shape === 'circle' && 'rounded-full',
+    selected && 'ring-2 ring-primary ring-offset-2'
+  );
 
   return (
     <NodeViewWrapper
@@ -221,18 +181,17 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
       style={containerStyles}
       ref={containerRef}
     >
-      <div className="relative inline-block">
+      <div className="relative">
         <img
           ref={imageRef}
           src={src}
           alt={alt || ''}
           title={title}
-          style={imageStyles}
-          className={cn(
-            'cursor-pointer transition-shadow',
-            selected && 'ring-2 ring-primary ring-offset-2',
-            shape === 'circle' && 'rounded-full'
-          )}
+          className={imageStyles}
+          style={{
+            width: width ? `${width}px` : undefined,
+            height: height ? `${height}px` : undefined,
+          }}
           onLoad={handleImageLoad}
           draggable={false}
         />
@@ -251,7 +210,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
                 size="icon"
                 className={cn('h-8 w-8', shape === 'square' && 'bg-accent')}
                 onClick={handleShapeToggle}
-                title="Cuadrado"
+                title={t('editor.image.square')}
               >
                 <Square className="h-4 w-4" />
               </Button>
@@ -260,7 +219,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
                 size="icon"
                 className={cn('h-8 w-8', shape === 'circle' && 'bg-accent')}
                 onClick={handleShapeToggle}
-                title="Circular"
+                title={t('editor.image.circle')}
               >
                 <Circle className="h-4 w-4" />
               </Button>
@@ -270,7 +229,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
                 size="icon"
                 className="h-8 w-8"
                 onClick={handleEdit}
-                title="Editar imagen"
+                title={t('editor.image.editImage')}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -279,7 +238,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 onClick={handleDelete}
-                title="Eliminar imagen"
+                title={t('editor.image.deleteImage')}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -292,10 +251,19 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
               keepRatio
               throttleResize={0}
               renderDirections={['nw', 'ne', 'sw', 'se']}
-              onResize={({ width: w, height: h, target }) => {
+              onResizeStart={(e) => {
+                // Permitir que la imagen crezca hasta el ancho máximo del editor
+                const maxWidth = getMaxWidth();
+                e.setMax([maxWidth, Infinity]);
+              }}
+              onResize={({ width: w, height: h, target, drag }) => {
+                // Apply transform for position adjustment during resize
+                target.style.transform = drag.transform;
                 handleResize({ width: w, height: h, target: target as HTMLElement });
               }}
               onResizeEnd={({ target }) => {
+                // Reset transform after resize ends
+                target.style.transform = '';
                 handleResizeEnd({ target: target as HTMLElement });
               }}
             />

@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { Settings2, Trash2, PenLine } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,6 +29,7 @@ import {
 
 export const SignatureComponent = (props: NodeViewProps) => {
   const { node, selected, deleteNode, updateAttributes } = props
+  const { t } = useTranslation()
 
   // Extraer atributos con valores por defecto
   const count = (node.attrs.count ?? 1) as SignatureCount
@@ -176,7 +178,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
             )}
           >
             <PenLine className="h-3.5 w-3.5" />
-            <span>Firma</span>
+            <span>{t('editor.signature.title')}</span>
           </div>
         </div>
 
@@ -199,7 +201,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Editar</p>
+                  <p>{t('editor.signature.edit')}</p>
                 </TooltipContent>
               </Tooltip>
               <div className="w-px h-6 bg-border mx-1" />
@@ -215,7 +217,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Eliminar</p>
+                  <p>{t('editor.signature.delete')}</p>
                 </TooltipContent>
               </Tooltip>
             </div>

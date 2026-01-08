@@ -58,7 +58,7 @@ export const TYPE_OPERATORS: Record<InjectorType, RuleOperator[]> = {
 // Definición de operador con etiqueta e icono
 export interface OperatorDefinition {
   value: RuleOperator
-  label: string
+  labelKey: string
   icon: LucideIcon
   requiresValue: boolean
 }
@@ -66,54 +66,54 @@ export interface OperatorDefinition {
 // Definiciones completas de operadores
 export const OPERATOR_DEFINITIONS: OperatorDefinition[] = [
   // Comunes
-  { value: 'eq', label: 'es igual a', icon: Equal, requiresValue: true },
-  { value: 'neq', label: 'es diferente a', icon: EqualNot, requiresValue: true },
-  { value: 'empty', label: 'está vacío', icon: Circle, requiresValue: false },
+  { value: 'eq', labelKey: 'editor.conditional.operators.equals', icon: Equal, requiresValue: true },
+  { value: 'neq', labelKey: 'editor.conditional.operators.notEquals', icon: EqualNot, requiresValue: true },
+  { value: 'empty', labelKey: 'editor.conditional.operators.isEmpty', icon: Circle, requiresValue: false },
   {
     value: 'not_empty',
-    label: 'no está vacío',
+    labelKey: 'editor.conditional.operators.isNotEmpty',
     icon: CircleDot,
     requiresValue: false,
   },
 
   // TEXT
-  { value: 'contains', label: 'contiene', icon: Search, requiresValue: true },
+  { value: 'contains', labelKey: 'editor.conditional.operators.contains', icon: Search, requiresValue: true },
   {
     value: 'starts_with',
-    label: 'comienza con',
+    labelKey: 'editor.conditional.operators.startsWith',
     icon: TextCursor,
     requiresValue: true,
   },
   {
     value: 'ends_with',
-    label: 'termina con',
+    labelKey: 'editor.conditional.operators.endsWith',
     icon: TextCursorInput,
     requiresValue: true,
   },
 
   // NUMBER/CURRENCY
-  { value: 'gt', label: 'mayor que', icon: ChevronRight, requiresValue: true },
-  { value: 'lt', label: 'menor que', icon: ChevronLeft, requiresValue: true },
+  { value: 'gt', labelKey: 'editor.conditional.operators.greaterThan', icon: ChevronRight, requiresValue: true },
+  { value: 'lt', labelKey: 'editor.conditional.operators.lessThan', icon: ChevronLeft, requiresValue: true },
   {
     value: 'gte',
-    label: 'mayor o igual que',
+    labelKey: 'editor.conditional.operators.greaterOrEqual',
     icon: ChevronsRight,
     requiresValue: true,
   },
   {
     value: 'lte',
-    label: 'menor o igual que',
+    labelKey: 'editor.conditional.operators.lessOrEqual',
     icon: ChevronsLeft,
     requiresValue: true,
   },
 
   // DATE
-  { value: 'before', label: 'está antes de', icon: ArrowLeft, requiresValue: true },
-  { value: 'after', label: 'está después de', icon: ArrowRight, requiresValue: true },
+  { value: 'before', labelKey: 'editor.conditional.operators.isBefore', icon: ArrowLeft, requiresValue: true },
+  { value: 'after', labelKey: 'editor.conditional.operators.isAfter', icon: ArrowRight, requiresValue: true },
 
   // BOOLEAN
-  { value: 'is_true', label: 'es verdadero', icon: Check, requiresValue: false },
-  { value: 'is_false', label: 'es falso', icon: X, requiresValue: false },
+  { value: 'is_true', labelKey: 'editor.conditional.operators.isTrue', icon: Check, requiresValue: false },
+  { value: 'is_false', labelKey: 'editor.conditional.operators.isFalse', icon: X, requiresValue: false },
 ]
 
 // Mapa para acceso rápido

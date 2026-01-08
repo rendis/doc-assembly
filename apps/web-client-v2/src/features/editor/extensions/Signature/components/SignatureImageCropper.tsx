@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Cropper } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
 import {
@@ -24,6 +25,7 @@ export function SignatureImageCropper({
   imageSrc,
   onSave,
 }: SignatureImageCropperProps) {
+  const { t } = useTranslation()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cropperRef = useRef<any>(null)
 
@@ -56,7 +58,7 @@ export function SignatureImageCropper({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Editar Imagen de Firma</DialogTitle>
+          <DialogTitle>{t('editor.signature.image.cropTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -82,7 +84,7 @@ export function SignatureImageCropper({
               onClick={handleReset}
             >
               <RefreshCw className="h-4 w-4 mr-1" />
-              Restablecer
+              {t('editor.signature.image.reset')}
             </Button>
           </div>
         </div>
@@ -93,13 +95,13 @@ export function SignatureImageCropper({
             onClick={handleCancel}
             className="border-border"
           >
-            Cancelar
+            {t('editor.signature.cancel')}
           </Button>
           <Button
             onClick={handleSave}
             className="bg-foreground text-background hover:bg-foreground/90"
           >
-            Aplicar
+            {t('editor.signature.image.apply')}
           </Button>
         </DialogFooter>
       </DialogContent>

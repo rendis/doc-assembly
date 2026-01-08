@@ -8,6 +8,7 @@ import {
   Quote,
   Code,
   Minus,
+  SplitSquareVertical,
   Image,
   PenTool,
   GitBranch,
@@ -18,108 +19,117 @@ import type { Editor } from '@tiptap/core'
 
 export interface SlashCommand {
   id: string
-  title: string
-  description: string
+  titleKey: string
+  descriptionKey: string
   icon: LucideIcon
-  group: string
+  groupKey: string
   aliases?: string[]
   action: (editor: Editor) => void
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
-  // Básico
+  // Basic
   {
     id: 'text',
-    title: 'Texto',
-    description: 'Párrafo de texto normal',
+    titleKey: 'editor.slashCommands.text',
+    descriptionKey: 'editor.slashCommands.textDesc',
     icon: Type,
-    group: 'Básico',
+    groupKey: 'editor.slashCommands.groups.basic',
     aliases: ['p', 'paragraph'],
     action: (editor) => editor.chain().focus().setParagraph().run(),
   },
   {
     id: 'heading1',
-    title: 'Título 1',
-    description: 'Título grande',
+    titleKey: 'editor.slashCommands.heading1',
+    descriptionKey: 'editor.slashCommands.heading1Desc',
     icon: Heading1,
-    group: 'Básico',
+    groupKey: 'editor.slashCommands.groups.basic',
     aliases: ['h1', 'title'],
     action: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run(),
   },
   {
     id: 'heading2',
-    title: 'Título 2',
-    description: 'Título mediano',
+    titleKey: 'editor.slashCommands.heading2',
+    descriptionKey: 'editor.slashCommands.heading2Desc',
     icon: Heading2,
-    group: 'Básico',
+    groupKey: 'editor.slashCommands.groups.basic',
     aliases: ['h2', 'subtitle'],
     action: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run(),
   },
   {
     id: 'heading3',
-    title: 'Título 3',
-    description: 'Título pequeño',
+    titleKey: 'editor.slashCommands.heading3',
+    descriptionKey: 'editor.slashCommands.heading3Desc',
     icon: Heading3,
-    group: 'Básico',
+    groupKey: 'editor.slashCommands.groups.basic',
     aliases: ['h3'],
     action: (editor) => editor.chain().focus().toggleHeading({ level: 3 }).run(),
   },
 
-  // Listas
+  // Lists
   {
     id: 'bulletList',
-    title: 'Lista',
-    description: 'Lista con viñetas',
+    titleKey: 'editor.slashCommands.bulletList',
+    descriptionKey: 'editor.slashCommands.bulletListDesc',
     icon: List,
-    group: 'Listas',
+    groupKey: 'editor.slashCommands.groups.lists',
     aliases: ['ul', 'bullet', 'unordered'],
     action: (editor) => editor.chain().focus().toggleBulletList().run(),
   },
   {
     id: 'orderedList',
-    title: 'Lista numerada',
-    description: 'Lista con números',
+    titleKey: 'editor.slashCommands.orderedList',
+    descriptionKey: 'editor.slashCommands.orderedListDesc',
     icon: ListOrdered,
-    group: 'Listas',
+    groupKey: 'editor.slashCommands.groups.lists',
     aliases: ['ol', 'numbered', 'ordered'],
     action: (editor) => editor.chain().focus().toggleOrderedList().run(),
   },
 
-  // Bloques
+  // Blocks
   {
     id: 'blockquote',
-    title: 'Cita',
-    description: 'Bloque de cita',
+    titleKey: 'editor.slashCommands.blockquote',
+    descriptionKey: 'editor.slashCommands.blockquoteDesc',
     icon: Quote,
-    group: 'Bloques',
+    groupKey: 'editor.slashCommands.groups.blocks',
     aliases: ['quote', 'citation'],
     action: (editor) => editor.chain().focus().toggleBlockquote().run(),
   },
   {
     id: 'codeBlock',
-    title: 'Código',
-    description: 'Bloque de código',
+    titleKey: 'editor.slashCommands.codeBlock',
+    descriptionKey: 'editor.slashCommands.codeBlockDesc',
     icon: Code,
-    group: 'Bloques',
+    groupKey: 'editor.slashCommands.groups.blocks',
     aliases: ['code', 'pre'],
     action: (editor) => editor.chain().focus().toggleCodeBlock().run(),
   },
   {
     id: 'divider',
-    title: 'Divisor',
-    description: 'Línea horizontal',
+    titleKey: 'editor.slashCommands.divider',
+    descriptionKey: 'editor.slashCommands.dividerDesc',
     icon: Minus,
-    group: 'Bloques',
+    groupKey: 'editor.slashCommands.groups.blocks',
     aliases: ['hr', 'separator', 'line'],
     action: (editor) => editor.chain().focus().setHorizontalRule().run(),
+  },
+  {
+    id: 'pageBreak',
+    titleKey: 'editor.slashCommands.pageBreak',
+    descriptionKey: 'editor.slashCommands.pageBreakDesc',
+    icon: SplitSquareVertical,
+    groupKey: 'editor.slashCommands.groups.blocks',
+    aliases: ['page', 'break', 'salto', 'pagina'],
+    action: (editor) => editor.chain().focus().setPageBreak().run(),
   },
   // Media
   {
     id: 'image',
-    title: 'Imagen',
-    description: 'Insertar imagen',
+    titleKey: 'editor.slashCommands.image',
+    descriptionKey: 'editor.slashCommands.imageDesc',
     icon: Image,
-    group: 'Media',
+    groupKey: 'editor.slashCommands.groups.media',
     aliases: ['img', 'picture', 'photo'],
     action: (editor) => {
       // Dispatch custom event to open the image modal
@@ -129,13 +139,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     },
   },
 
-  // Documentos
+  // Documents
   {
     id: 'signature',
-    title: 'Firma',
-    description: 'Bloque de firma configurable',
+    titleKey: 'editor.slashCommands.signature',
+    descriptionKey: 'editor.slashCommands.signatureDesc',
     icon: PenTool,
-    group: 'Documentos',
+    groupKey: 'editor.slashCommands.groups.documents',
     aliases: ['sign', 'firmar'],
     action: (editor) => {
       editor.chain().focus().setSignature().run()
@@ -143,49 +153,51 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
   {
     id: 'conditional',
-    title: 'Condicional',
-    description: 'Contenido condicional',
+    titleKey: 'editor.slashCommands.conditional',
+    descriptionKey: 'editor.slashCommands.conditionalDesc',
     icon: GitBranch,
-    group: 'Documentos',
+    groupKey: 'editor.slashCommands.groups.documents',
     aliases: ['if', 'condition', 'logic'],
     action: (editor) => {
-      editor.chain().focus().setConditional({ expression: 'Configurar lógica' }).run()
+      editor.chain().focus().setConditional({}).run()
     },
   },
   {
     id: 'variable',
-    title: 'Variable',
-    description: 'Insertar variable',
+    titleKey: 'editor.slashCommands.variable',
+    descriptionKey: 'editor.slashCommands.variableDesc',
     icon: Variable,
-    group: 'Documentos',
+    groupKey: 'editor.slashCommands.groups.documents',
     aliases: ['var', 'placeholder', 'field'],
     action: (editor) => {
-      // Insertar @ para disparar el menú de menciones con las variables disponibles
+      // Insert @ to trigger the mentions menu with available variables
       editor.chain().focus().insertContent('@').run()
     },
   },
 ]
 
-export const filterCommands = (query: string): SlashCommand[] => {
+export const filterCommands = (query: string, t: (key: string) => string): SlashCommand[] => {
   if (!query) return SLASH_COMMANDS
 
   const lowerQuery = query.toLowerCase()
   return SLASH_COMMANDS.filter((command) => {
-    const matchesTitle = command.title.toLowerCase().includes(lowerQuery)
-    const matchesDescription = command.description.toLowerCase().includes(lowerQuery)
+    const title = t(command.titleKey).toLowerCase()
+    const description = t(command.descriptionKey).toLowerCase()
+    const matchesTitle = title.includes(lowerQuery)
+    const matchesDescription = description.includes(lowerQuery)
     const matchesAliases = command.aliases?.some((alias) => alias.includes(lowerQuery))
     return matchesTitle || matchesDescription || matchesAliases
   })
 }
 
-export const groupCommands = (commands: SlashCommand[]): Record<string, SlashCommand[]> => {
+export const groupCommands = (commands: SlashCommand[], t: (key: string) => string): Record<string, SlashCommand[]> => {
   return commands.reduce(
     (groups, command) => {
-      const group = command.group
-      if (!groups[group]) {
-        groups[group] = []
+      const groupName = t(command.groupKey)
+      if (!groups[groupName]) {
+        groups[groupName] = []
       }
-      groups[group].push(command)
+      groups[groupName].push(command)
       return groups
     },
     {} as Record<string, SlashCommand[]>

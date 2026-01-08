@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronRight, ChevronDown, Database, Users, Search, Loader2 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -62,6 +63,7 @@ export function VariablesPanel({
   draggingIds = [],
   className,
 }: VariablesPanelProps) {
+  const { t } = useTranslation()
   const isCollapsed = useVariablesPanelStore((state) => state.isCollapsed)
   const toggleCollapsed = useVariablesPanelStore((state) => state.toggleCollapsed)
 
@@ -147,7 +149,7 @@ export function VariablesPanel({
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground overflow-hidden whitespace-nowrap"
           >
-            Variables
+            {t('editor.variablesPanel.header')}
           </motion.span>
         </div>
 
@@ -168,7 +170,7 @@ export function VariablesPanel({
         <button
           onClick={toggleCollapsed}
           className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-2"
-          aria-label={isCollapsed ? 'Expandir panel' : 'Colapsar panel'}
+          aria-label={isCollapsed ? t('editor.variablesPanel.collapse.expand') : t('editor.variablesPanel.collapse.collapse')}
         >
           <motion.div
             animate={{ rotate: isCollapsed ? 180 : 0 }}
@@ -211,7 +213,7 @@ export function VariablesPanel({
               <div className="relative min-w-0">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar variables..."
+                  placeholder={t('editor.variablesPanel.search.placeholder')}
                   className="pl-8 h-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -233,7 +235,7 @@ export function VariablesPanel({
                 {isLoading && (
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-xs">Cargando variables...</span>
+                    <span className="text-xs">{t('editor.variablesPanel.loading')}</span>
                   </div>
                 )}
 
@@ -244,12 +246,12 @@ export function VariablesPanel({
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">
-                        No se encontraron variables
+                        {t('editor.variablesPanel.empty.title')}
                       </p>
                       <p className="text-xs text-muted-foreground/70 mt-1">
                         {searchQuery.trim()
-                          ? 'Prueba con otra búsqueda'
-                          : 'Agrega variables al workspace'}
+                          ? t('editor.variablesPanel.empty.searchSuggestion')
+                          : t('editor.variablesPanel.empty.addSuggestion')}
                       </p>
                     </div>
                   )}
@@ -268,7 +270,7 @@ export function VariablesPanel({
                         <ChevronRight className="h-3 w-3" />
                       </motion.div>
                       <Users className="h-3 w-3" />
-                      <span>Roles de Firmantes</span>
+                      <span>{t('editor.variablesPanel.sections.signerRoles')}</span>
                       <span className="ml-auto text-[9px] bg-role-muted/50 text-role-foreground px-1.5 rounded">
                         {filteredRoleInjectables.length}
                       </span>
@@ -327,7 +329,7 @@ export function VariablesPanel({
                         <ChevronRight className="h-3 w-3" />
                       </motion.div>
                       <Database className="h-3 w-3" />
-                      <span>Variables</span>
+                      <span>{t('editor.variablesPanel.sections.variables')}</span>
                       <span className="ml-auto text-[9px] bg-muted text-muted-foreground px-1.5 rounded">
                         {filteredGlobalVariables.length}
                       </span>

@@ -249,6 +249,11 @@ body {
   display: none;
 }
 
+/* Page transition - fade in on mount */
+.animate-page-enter {
+  animation: fade-in 0.25s ease-out forwards;
+}
+
 /* ============================================
    Animation Keyframes
    ============================================ */
@@ -520,16 +525,6 @@ body {
   background: transparent;
 }
 
-/* Page gap border color */
-
-#root > div.min-h-screen.bg-background.text-foreground > div > main > div > div > div > div.flex.h-full > div > div.flex-1.overflow-auto.bg-muted\/20.p-8 > div > div > div {
-  border-bottom: 2px solid #F6F6F8 !important;
-}
-
-.dark #root > div.min-h-screen.bg-background.text-foreground > div > main > div > div > div > div.flex.h-full > div > div.flex-1.overflow-auto.bg-muted\/20.p-8 > div > div > div {
-  border-bottom: 2px solid #22252C !important;
-}
-
 /* Prose light mode - text and code styling */
 .prose {
   --tw-prose-body: hsl(220 20% 10%);
@@ -602,60 +597,16 @@ body {
 }
 
 /* ============================================
-   tiptap-pagination-plus Styles
-   ============================================ */
-
-/* Centrar el editor con paginación */
-.rm-with-pagination {
-  margin-left: auto !important;
-  margin-right: auto !important;
-  background-color: hsl(var(--card)) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: none !important;
-}
-
-/* Gap entre páginas - DEBE ser visible */
-.rm-pagination-gap {
-  display: block !important;
-  min-height: 50px !important;
-  border: none !important;
-  background: #F6F6F8 !important;
-}
-
-/* Page break container */
-.rm-page-break {
-  display: block !important;
-}
-
-/* Dark mode */
-.dark .rm-with-pagination {
-  background-color: hsl(var(--card)) !important;
-  border: none !important;
-}
-
-.dark .rm-pagination-gap {
-  background: #22252C !important;
-}
-
-/* Ocultar estilos del ProseMirror cuando hay paginación */
-.ProseMirror.rm-with-pagination {
-  box-shadow: none !important;
-}
-
-/* ============================================
    Image Styles
    ============================================ */
 
-/* Images - prevent breaking inside page breaks */
+/* Image wrapper - allow resizing without constraints */
 .ProseMirror [data-type="image"] {
-  break-inside: avoid;
-  page-break-inside: avoid;
-  overflow: hidden;
+  overflow: visible;
 }
 
-/* Image wrapper - ensure proper containment */
 .ProseMirror [data-type="image"] > div {
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ============================================

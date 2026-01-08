@@ -54,6 +54,9 @@ interface AuthState {
   systemRoles: SystemRole[]
   userProfile: UserProfile | null
   allRoles: RoleEntry[]
+  // Deduplication flags - prevent redundant API calls
+  userInfoLoaded: boolean
+  rolesLoaded: boolean
 
   // Actions
   setToken: (token: string | null) => void
@@ -90,6 +93,8 @@ export const useAuthStore = create<AuthState>()(
       systemRoles: [],
       userProfile: null,
       allRoles: [],
+      userInfoLoaded: false,
+      rolesLoaded: false,
 
       // Actions
       setToken: (token) => set({ token }),
@@ -111,7 +116,7 @@ export const useAuthStore = create<AuthState>()(
 
       setSystemRoles: (roles) => set({ systemRoles: roles }),
 
-      setUserProfile: (profile) => set({ userProfile: profile }),
+      setUserProfile: (profile) => set({ userProfile: profile, userInfoLoaded: profile !== null }),
 
       setAllRoles: (roles) => {
         // Extract system roles from all roles
@@ -119,7 +124,7 @@ export const useAuthStore = create<AuthState>()(
           .filter((r) => r.type === 'SYSTEM')
           .map((r) => r.role as SystemRole)
 
-        set({ allRoles: roles, systemRoles })
+        set({ allRoles: roles, systemRoles, rolesLoaded: true })
       },
 
       clearAuth: () => {
@@ -133,6 +138,8 @@ export const useAuthStore = create<AuthState>()(
           systemRoles: [],
           userProfile: null,
           allRoles: [],
+          userInfoLoaded: false,
+          rolesLoaded: false,
         })
 
         // Show toast only if session expired (not on initial load)

@@ -3,6 +3,7 @@ import Suggestion from '@tiptap/suggestion'
 import type { SuggestionOptions } from '@tiptap/suggestion'
 import type { Editor } from '@tiptap/core'
 import { PluginKey } from '@tiptap/pm/state'
+import i18n from '@/lib/i18n'
 import { filterCommands, type SlashCommand } from './commands'
 
 const SlashCommandsPluginKey = new PluginKey('slashCommands')
@@ -42,7 +43,7 @@ export const SlashCommandsExtension = Extension.create<SlashCommandsOptions>({
         editor: this.editor,
         pluginKey: SlashCommandsPluginKey,
         ...this.options.suggestion,
-        items: ({ query }: { query: string }) => filterCommands(query),
+        items: ({ query }: { query: string }) => filterCommands(query, i18n.t.bind(i18n)),
         char: '/',
         allowSpaces: true,
         allowedPrefixes: null,

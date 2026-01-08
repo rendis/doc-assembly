@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 import { FileText } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { TemplateListItem } from '@/types/api'
 
 interface TemplateCardProps {
@@ -31,67 +30,58 @@ export function TemplateCard({ template, onClick }: TemplateCardProps) {
           onClick?.()
         }
       }}
-      className={cn(
-        'group relative flex cursor-pointer flex-col gap-6 border border-border bg-background p-6 transition-colors hover:border-foreground'
-      )}
+      className="group relative flex cursor-pointer flex-col gap-3 border border-border bg-background p-5 transition-colors hover:border-foreground"
     >
-      {/* Icon */}
-      <div className="flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center bg-muted">
-          <FileText
-            className="text-muted-foreground transition-colors group-hover:text-foreground"
-            size={24}
-            strokeWidth={1}
-          />
-        </div>
-
-        {/* Status indicator */}
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              'h-2 w-2 rounded-full',
-              template.hasPublishedVersion
-                ? 'bg-foreground'
-                : 'border border-muted-foreground'
-            )}
-          />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {template.hasPublishedVersion
-              ? t('templates.status.published', 'Published')
-              : t('templates.status.draft', 'Draft')}
-          </span>
+      {/* Title row */}
+      <div className="flex items-start gap-3">
+        <FileText
+          className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+          size={20}
+          strokeWidth={1.5}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate font-display text-base font-medium leading-snug text-foreground decoration-1 underline-offset-4 group-hover:underline">
+              {template.title}
+            </h3>
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              {template.hasPublishedVersion
+                ? t('templates.status.published', 'Published')
+                : t('templates.status.draft', 'Draft')}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div>
-        <h3 className="mb-2 truncate font-display text-lg font-medium leading-snug text-foreground decoration-1 underline-offset-4 group-hover:underline">
-          {template.title}
-        </h3>
-
-        {/* Tags */}
+      {/* Metadata row */}
+      <div className="flex items-center gap-2 pl-8 text-muted-foreground">
+        {/* Tags with color dots */}
         {template.tags && template.tags.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1">
-            {template.tags.slice(0, 3).map((tag) => (
+          <>
+            {template.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-sm bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground"
+                className="inline-flex items-center gap-1 font-mono text-[10px]"
               >
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: tag.color }}
+                />
                 {tag.name}
               </span>
             ))}
-            {template.tags.length > 3 && (
-              <span className="inline-flex items-center px-1 font-mono text-[10px] text-muted-foreground">
-                +{template.tags.length - 3}
+            {template.tags.length > 2 && (
+              <span className="font-mono text-[10px]">
+                +{template.tags.length - 2}
               </span>
             )}
-          </div>
+            <span className="text-[10px]">·</span>
+          </>
         )}
-
         {/* Date */}
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="font-mono text-[10px] uppercase tracking-widest">
           {formatDate(template.updatedAt ?? template.createdAt)}
-        </p>
+        </span>
       </div>
     </div>
   )

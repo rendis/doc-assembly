@@ -114,12 +114,6 @@ export interface PageConfig {
 
   /** Page margins in pixels */
   margins: PageMargins
-
-  /** Show page numbers in rendered output */
-  showPageNumbers: boolean
-
-  /** Visual gap between pages in editor (pixels) */
-  pageGap: number
 }
 
 // =============================================================================

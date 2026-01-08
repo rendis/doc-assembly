@@ -1,4 +1,6 @@
 import { useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/lib/i18n'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
 import {
   ROLE_PROPERTIES,
@@ -25,6 +27,7 @@ interface UseRoleInjectablesReturn {
  * Los role injectables se generan dinámicamente a partir de los roles definidos
  */
 export function useRoleInjectables(): UseRoleInjectablesReturn {
+  const { t } = useTranslation()
   // Suscribirse al store de roles
   const roles = useSignerRolesStore((state) => state.roles)
 
@@ -37,13 +40,14 @@ export function useRoleInjectables(): UseRoleInjectablesReturn {
       if (!role.label?.trim()) continue
 
       for (const prop of ROLE_PROPERTIES) {
+        const translatedPropertyLabel = t(prop.labelKey)
         injectables.push({
           id: generateRoleInjectableId(role.id, prop.key),
           roleId: role.id,
           roleLabel: role.label,
           propertyKey: prop.key,
-          propertyLabel: prop.defaultLabel,
-          label: `${role.label}.${prop.defaultLabel}`,
+          propertyLabel: translatedPropertyLabel,
+          label: `${role.label}.${translatedPropertyLabel}`,
           variableId: generateRoleVariableId(role.label, prop.key),
           type: prop.dataType,
           group: 'role',
@@ -52,7 +56,7 @@ export function useRoleInjectables(): UseRoleInjectablesReturn {
     }
 
     return injectables
-  }, [roles])
+  }, [roles, t])
 
   const filterRoleInjectables = useCallback(
     (query: string): RoleInjectable[] => {
@@ -116,13 +120,14 @@ export function getRoleInjectables(): RoleInjectable[] {
     if (!role.label?.trim()) continue
 
     for (const prop of ROLE_PROPERTIES) {
+      const translatedPropertyLabel = i18n.t(prop.labelKey)
       injectables.push({
         id: generateRoleInjectableId(role.id, prop.key),
         roleId: role.id,
         roleLabel: role.label,
         propertyKey: prop.key,
-        propertyLabel: prop.defaultLabel,
-        label: `${role.label}.${prop.defaultLabel}`,
+        propertyLabel: translatedPropertyLabel,
+        label: `${role.label}.${translatedPropertyLabel}`,
         variableId: generateRoleVariableId(role.label, prop.key),
         type: prop.dataType,
         group: 'role',

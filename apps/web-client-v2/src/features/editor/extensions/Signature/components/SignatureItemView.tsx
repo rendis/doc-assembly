@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { User } from 'lucide-react'
 import Moveable from 'react-moveable'
 import type { SignatureItem, SignatureLineWidth } from '../types'
@@ -34,6 +35,7 @@ export function SignatureItemView({
   onImageDeselect,
   onImageTransformChange,
 }: SignatureItemViewProps) {
+  const { t } = useTranslation()
   const lineWidthClasses = getLineWidthClasses(lineWidth)
   const rolesContext = useSignerRolesContextSafe()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -137,7 +139,7 @@ export function SignatureItemView({
           <img
             ref={imageRef}
             src={signature.imageData}
-            alt="Firma"
+            alt={t('editor.signature.title')}
             className={cn(
               'max-h-20 max-w-full object-contain',
               editable && !isImageSelected && 'cursor-pointer',
@@ -209,7 +211,7 @@ export function SignatureItemView({
       {/* Label (texto superior/título) */}
       <div className="mt-2 text-center">
         <p className="text-sm font-medium text-foreground">
-          {signature.label || 'Firma'}
+          {signature.label || t('editor.signature.title')}
         </p>
 
         {/* Subtitle (texto inferior) */}

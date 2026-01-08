@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ImagePlus, Trash2, Pencil } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SignatureImageCropper } from './SignatureImageCropper'
 
 interface SignatureImageUploadProps {
@@ -26,6 +27,7 @@ export function SignatureImageUpload({
   onImageChange,
   onOpacityChange,
 }: SignatureImageUploadProps) {
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cropperOpen, setCropperOpen] = useState(false)
   const [pendingImage, setPendingImage] = useState<string | null>(null)
@@ -37,13 +39,13 @@ export function SignatureImageUpload({
 
       // Validar tipo
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        alert('Tipo de archivo no soportado. Use PNG, JPG, GIF o WebP.')
+        alert(t('editor.signature.image.unsupportedType'))
         return
       }
 
       // Validar tamaño
       if (file.size > MAX_FILE_SIZE) {
-        alert('El archivo es muy grande. Máximo 2MB.')
+        alert(t('editor.signature.image.fileTooLarge'))
         return
       }
 
@@ -59,7 +61,7 @@ export function SignatureImageUpload({
       // Reset input
       event.target.value = ''
     },
-    []
+    [t]
   )
 
   const handleCropperSave = useCallback(
@@ -97,7 +99,7 @@ export function SignatureImageUpload({
 
   return (
     <div className="space-y-3">
-      <Label className="text-xs">Imagen de firma</Label>
+      <Label className="text-xs">{t('editor.signature.image.title')}</Label>
 
       {/* Input oculto */}
       <input
@@ -114,7 +116,7 @@ export function SignatureImageUpload({
           <div className="relative border border-border rounded-lg p-4 bg-muted">
             <img
               src={imageData}
-              alt="Vista previa de firma"
+              alt={t('editor.signature.image.preview')}
               className="max-h-20 max-w-full mx-auto object-contain"
               style={{
                 opacity: opacity / 100,
@@ -130,7 +132,7 @@ export function SignatureImageUpload({
                   size="icon"
                   className="h-6 w-6 text-muted-foreground hover:text-foreground"
                   onClick={handleEdit}
-                  title="Editar imagen"
+                  title={t('editor.signature.image.editImage')}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
@@ -140,7 +142,7 @@ export function SignatureImageUpload({
                 size="icon"
                 className="h-6 w-6 text-muted-foreground hover:text-destructive"
                 onClick={handleRemove}
-                title="Eliminar imagen"
+                title={t('editor.signature.image.deleteImage')}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -150,7 +152,7 @@ export function SignatureImageUpload({
           {/* Slider de opacidad */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Opacidad</Label>
+              <Label className="text-xs">{t('editor.signature.image.opacity')}</Label>
               <span className="text-xs text-muted-foreground">{opacity}%</span>
             </div>
             <Input
@@ -173,12 +175,12 @@ export function SignatureImageUpload({
           onClick={handleButtonClick}
         >
           <ImagePlus className="h-4 w-4 mr-2" />
-          Subir imagen
+          {t('editor.signature.image.upload')}
         </Button>
       )}
 
       <p className="text-[10px] text-muted-foreground">
-        PNG, JPG, GIF o WebP. Máximo 2MB.
+        {t('editor.signature.image.uploadHelp')}
       </p>
 
       {/* Cropper Modal */}

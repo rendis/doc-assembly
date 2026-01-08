@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import type { SignatureCount, SignatureLayout } from '../types'
 import { getLayoutsForCount } from '../signature-layouts'
 
@@ -154,6 +155,7 @@ export function SignatureLayoutSelector({
   value,
   onChange,
 }: SignatureLayoutSelectorProps) {
+  const { t } = useTranslation()
   const layouts = getLayoutsForCount(count)
 
   return (
@@ -201,7 +203,7 @@ export function SignatureLayoutSelector({
 
             {/* Label */}
             <p className="text-xs text-center mt-2 text-muted-foreground">
-              {layout.name}
+              {t(layout.nameKey)}
             </p>
           </motion.button>
         ))}

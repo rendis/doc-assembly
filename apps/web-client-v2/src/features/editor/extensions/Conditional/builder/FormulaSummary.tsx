@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Code } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,7 @@ interface FormulaSummaryProps {
 }
 
 export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
+  const { t } = useTranslation()
   const { variables } = useLogicBuilder()
 
   // Genera el resumen de fórmula
@@ -55,7 +57,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
     }
 
     const generateGroupSummary = (group: LogicGroup): string => {
-      if (group.children.length === 0) return '(vacío)'
+      if (group.children.length === 0) return t('editor.conditional.empty')
 
       const childSummaries = group.children.map((child) => {
         if (child.type === 'rule') {
@@ -69,7 +71,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
     }
 
     return generateGroupSummary(schema)
-  }, [schema, variables])
+  }, [schema, variables, t])
 
   const isEmpty = schema.children.length === 0
 
@@ -86,7 +88,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
     >
       <Code className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-muted-foreground mb-1">Fórmula</div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">{t('editor.conditional.formula')}</div>
         <motion.code
           key={summary}
           className={cn(
@@ -97,7 +99,7 @@ export function FormulaSummary({ schema, className }: FormulaSummaryProps) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.15 }}
         >
-          {isEmpty ? 'Siempre visible (sin condiciones)' : summary}
+          {isEmpty ? t('editor.conditional.alwaysVisibleNoConditions') : summary}
         </motion.code>
       </div>
     </motion.div>

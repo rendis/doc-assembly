@@ -36,8 +36,6 @@ interface ImportStoreActions {
   setPaginationConfig: (config: Partial<{
     pageSize: PageFormat
     margins: PageConfig['margins']
-    showPageNumbers: boolean
-    pageGap: number
   }>) => void
   setSignerRoles: (roles: SignerRoleDefinition[]) => void
   setWorkflowConfig: (config: SigningWorkflowConfig) => void
@@ -207,8 +205,6 @@ function restorePageConfig(
 
   actions.setPaginationConfig({
     pageSize: format,
-    showPageNumbers: pageConfig.showPageNumbers,
-    pageGap: pageConfig.pageGap,
   })
 }
 

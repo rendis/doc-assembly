@@ -2,7 +2,6 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { PaginationPlus } from 'tiptap-pagination-plus'
 import {
   DndContext,
   DragOverlay,
@@ -63,16 +62,16 @@ export function DocumentEditor({
   templateId,
   versionId,
 }: DocumentEditorProps) {
-  // Get pagination config from store
-  const { pageSize, margins, pageGap } = usePaginationStore()
+  // Get page config from store (for visual width and margins)
+  const { pageSize, margins } = usePaginationStore()
 
   // Ref to store current content before editor recreation
   const contentRef = useRef<string>(initialContent)
 
-  // Key for editor recreation - when this changes, editor will be recreated
+  // Key for editor recreation - only recreate when page width changes
   const editorKey = useMemo(
-    () => `${pageSize.width}-${pageSize.height}-${margins.top}-${margins.bottom}-${margins.left}-${margins.right}`,
-    [pageSize, margins]
+    () => `editor-${pageSize.width}`,
+    [pageSize.width]
   )
 
   const [imageModalOpen, setImageModalOpen] = useState(false)
@@ -116,19 +115,6 @@ export function DocumentEditor({
       TextStyle,
       FontFamily.configure({ types: ['textStyle'] }),
       FontSize.configure({ types: ['textStyle'] }),
-      PaginationPlus.configure({
-        pageHeight: pageSize.height,
-        pageWidth: pageSize.width,
-        marginTop: margins.top,
-        marginBottom: margins.bottom,
-        marginLeft: margins.left,
-        marginRight: margins.right,
-        pageGap: pageGap,
-        pageGapBorderSize: 2,
-        pageGapBorderColor: '#d1d5db',
-        pageBreakBackground: '#f3f4f6',
-        footerRight: '{page}',
-      }),
       InjectorExtension,
       MentionExtension,
       SignatureExtension,
@@ -473,10 +459,17 @@ export function DocumentEditor({
             </div>
 
             {/* Editor Content */}
-            <div className="flex-1 overflow-auto bg-muted/20 p-8">
+            <div className="flex-1 overflow-auto bg-background p-8">
               <div
-                className="mx-auto"
-                style={{ width: pageSize.width }}
+                className="mx-auto bg-muted shadow-lg"
+                style={{
+                  width: pageSize.width,
+                  minHeight: pageSize.height,
+                  paddingTop: margins.top,
+                  paddingBottom: margins.bottom,
+                  paddingLeft: margins.left,
+                  paddingRight: margins.right,
+                }}
               >
                 <EditorContent editor={editor} />
               </div>

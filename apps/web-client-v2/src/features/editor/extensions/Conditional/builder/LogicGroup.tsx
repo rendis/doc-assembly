@@ -1,4 +1,5 @@
 import { Plus, Trash2, Layers } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { LogicGroup, LogicRule } from '../ConditionalExtension'
@@ -26,6 +27,7 @@ export const LogicGroupItem = ({
   parentId,
   level = 0,
 }: LogicGroupProps) => {
+  const { t } = useTranslation()
   const { addRule, addGroup, updateNode, removeNode } = useLogicBuilder()
 
   const isRoot = !parentId
@@ -93,7 +95,7 @@ export const LogicGroupItem = ({
       <div className="flex flex-col gap-2">
         {group.children.length === 0 && (
           <div className="text-xs text-muted-foreground italic py-2">
-            Grupo vacío - agrega una regla o grupo
+            {t('editor.conditional.emptyGroup')}
           </div>
         )}
 
@@ -122,7 +124,7 @@ export const LogicGroupItem = ({
             className="h-7 text-xs border-border"
             onClick={() => addRule(group.id)}
           >
-            <Plus className="h-3 w-3 mr-1" /> Regla
+            <Plus className="h-3 w-3 mr-1" /> {t('editor.conditional.rule')}
           </Button>
           {level < MAX_NESTING_LEVEL - 1 && (
             <Button
@@ -131,7 +133,7 @@ export const LogicGroupItem = ({
               className="h-7 text-xs"
               onClick={() => addGroup(group.id)}
             >
-              <Layers className="h-3 w-3 mr-1" /> Grupo
+              <Layers className="h-3 w-3 mr-1" /> {t('editor.conditional.group')}
             </Button>
           )}
         </div>

@@ -57,8 +57,6 @@ export const PageConfigSchema = z.object({
   width: z.number().positive('El ancho debe ser positivo'),
   height: z.number().positive('La altura debe ser positiva'),
   margins: PageMarginsSchema,
-  showPageNumbers: z.boolean(),
-  pageGap: z.number().min(0),
 })
 
 // =============================================================================
@@ -100,8 +98,8 @@ export const VariableIdSchema = z.string().min(1)
 export const SignerRoleFieldTypeSchema = z.enum(['text', 'injectable'])
 
 export const SignerRoleFieldValueSchema = z.object({
-  type: SignerRoleFieldTypeSchema,
-  value: z.string(),
+  type: SignerRoleFieldTypeSchema.default('text'),
+  value: z.string().default(''),
 })
 
 export const SignerRoleDefinitionSchema = z.object({
@@ -150,14 +148,21 @@ export const RoleNotificationConfigSchema = z.object({
 export const NotificationScopeSchema = z.enum(['global', 'individual'])
 
 export const SigningNotificationConfigSchema = z.object({
-  scope: NotificationScopeSchema,
-  globalTriggers: NotificationTriggerMapSchema,
-  roleConfigs: z.array(RoleNotificationConfigSchema),
+  scope: NotificationScopeSchema.default('global'),
+  globalTriggers: NotificationTriggerMapSchema.default({}),
+  roleConfigs: z.array(RoleNotificationConfigSchema).default([]),
 })
 
+// Default notification config for fallback
+const DEFAULT_NOTIFICATION_CONFIG = {
+  scope: 'global' as const,
+  globalTriggers: {},
+  roleConfigs: [],
+}
+
 export const SigningWorkflowConfigSchema = z.object({
-  orderMode: SigningOrderModeSchema,
-  notifications: SigningNotificationConfigSchema,
+  orderMode: SigningOrderModeSchema.default('parallel'),
+  notifications: SigningNotificationConfigSchema.default(DEFAULT_NOTIFICATION_CONFIG),
 })
 
 // =============================================================================
@@ -330,7 +335,11 @@ export const PortableDocumentSchema = z.object({
   pageConfig: PageConfigSchema,
   variableIds: z.array(VariableIdSchema).nullable().transform((v) => v ?? []),
   signerRoles: z.array(SignerRoleDefinitionSchema).nullable().transform((v) => v ?? []),
-  signingWorkflow: SigningWorkflowConfigSchema.optional(),
+  signingWorkflow: SigningWorkflowConfigSchema.nullable().optional()
+    .transform((v) => v ?? {
+      orderMode: 'parallel' as const,
+      notifications: DEFAULT_NOTIFICATION_CONFIG,
+    }),
   content: ProseMirrorDocumentSchema,
   exportInfo: ExportInfoSchema,
 })

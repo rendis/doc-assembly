@@ -83,11 +83,12 @@ export interface SignatureBlockAttrs {
 
 /**
  * Definición de un layout con su metadata
+ * Los campos nameKey y descriptionKey son claves de traducción i18n
  */
 export interface SignatureLayoutDefinition {
   id: SignatureLayout
-  name: string
-  description: string
+  nameKey: string
+  descriptionKey: string
   count: SignatureCount
   icon?: string
 }
@@ -123,11 +124,12 @@ export interface SignatureImageUploadProps {
 
 /**
  * Crea un item de firma vacío
+ * El label vacío permite que el componente use la traducción por defecto
  */
 export function createEmptySignatureItem(index: number): SignatureItem {
   return {
     id: `sig_${Date.now()}_${index}`,
-    label: `Firma ${index + 1}`,
+    label: '',
     subtitle: '',
     imageOpacity: 100,
   }

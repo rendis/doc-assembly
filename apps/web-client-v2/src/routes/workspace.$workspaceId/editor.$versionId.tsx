@@ -8,6 +8,7 @@ import { exportAndDownload, importFromFile, type ImportResult } from '@/features
 import { ImportValidationDialog } from '@/features/editor/components/ImportValidationDialog'
 import type { DocumentMeta } from '@/features/editor/types'
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/workspace/$workspaceId/editor/$versionId')({
   component: EditorPage,
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/workspace/$workspaceId/editor/$versionId'
 
 function EditorPage() {
   const { workspaceId, versionId } = Route.useParams()
+  const { t } = useTranslation()
   const [isSaving, setIsSaving] = useState(false)
 
   // Load variables (injectables) from the API
@@ -32,8 +34,6 @@ function EditorPage() {
     usePaginationStore.setState({
       pageSize: PAGE_SIZES.A4,
       margins: DEFAULT_MARGINS,
-      showPageNumbers: true,
-      pageGap: 50,
     })
   }, [])
 
@@ -130,7 +130,7 @@ function EditorPage() {
           <Link to="/workspace/$workspaceId/templates" params={{ workspaceId }}>
             <button className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
+              {t('common.back')}
             </button>
           </Link>
           <span className="text-sm text-muted-foreground font-mono">
@@ -143,7 +143,7 @@ function EditorPage() {
           className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 flex items-center"
         >
           <Save className="mr-2 h-4 w-4" />
-          {isSaving ? 'Guardando...' : 'Guardar'}
+          {isSaving ? t('common.saving') : t('common.save')}
         </button>
       </header>
 

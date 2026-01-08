@@ -1,7 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useCallback, useEffect, useState } from 'react'
-import { PaginationPlus, PAGE_SIZES as PAGINATION_PAGE_SIZES } from 'tiptap-pagination-plus'
 import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
@@ -33,14 +32,6 @@ export function Editor({
         heading: {
           levels: [1, 2, 3],
         },
-      }),
-      PaginationPlus.configure({
-        ...PAGINATION_PAGE_SIZES.A4,
-        pageGap: 50,
-        pageGapBorderSize: 2,
-        pageGapBorderColor: '#d1d5db',
-        pageBreakBackground: '#f3f4f6',
-        footerRight: '{page}',
       }),
       ImageExtension,
     ],

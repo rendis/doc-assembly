@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper } from '@tiptap/react'
 // @ts-expect-error - NodeViewProps is not exported in type definitions
 import type { NodeViewProps } from '@tiptap/react'
@@ -42,6 +43,7 @@ export const InjectorComponent = (props: NodeViewProps) => {
   const { label, type, format, isRoleVariable, propertyKey, roleId } =
     node.attrs
 
+  const { t } = useTranslation()
   const [contextMenu, setContextMenu] = useState<{
     x: number
     y: number
@@ -62,15 +64,15 @@ export const InjectorComponent = (props: NodeViewProps) => {
       return { displayLabel: label || 'Rol eliminado', roleExists: false }
     }
 
-    // Obtener el label de la propiedad
+    // Obtener el label de la propiedad traducido
     const propDef = ROLE_PROPERTIES.find((p) => p.key === propertyKey)
-    const propLabel = propDef?.defaultLabel || propertyKey || ''
+    const propLabel = propDef ? t(propDef.labelKey) : propertyKey || ''
 
     return {
       displayLabel: `${currentRole.label}.${propLabel}`,
       roleExists: true,
     }
-  }, [isRoleVariable, roleId, roles, label, propertyKey])
+  }, [isRoleVariable, roleId, roles, label, propertyKey, t])
 
   // Seleccionar icono basado en si es role variable y si existe
   const Icon = useMemo(() => {

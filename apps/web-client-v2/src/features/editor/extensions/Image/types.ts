@@ -16,14 +16,14 @@ export interface ImageAttributes {
 export interface ImageAlignOption {
   displayMode: ImageDisplayMode;
   align: ImageAlign;
-  label: string;
+  labelKey: string;
   icon: 'block-left' | 'block-center' | 'block-right';
 }
 
 export const IMAGE_ALIGN_OPTIONS: ImageAlignOption[] = [
-  { displayMode: 'block', align: 'left', label: 'Bloque izquierda', icon: 'block-left' },
-  { displayMode: 'block', align: 'center', label: 'Bloque centro', icon: 'block-center' },
-  { displayMode: 'block', align: 'right', label: 'Bloque derecha', icon: 'block-right' },
+  { displayMode: 'block', align: 'left', labelKey: 'editor.image.alignments.blockLeft', icon: 'block-left' },
+  { displayMode: 'block', align: 'center', labelKey: 'editor.image.alignments.blockCenter', icon: 'block-center' },
+  { displayMode: 'block', align: 'right', labelKey: 'editor.image.alignments.blockRight', icon: 'block-right' },
 ];
 
 export const DEFAULT_IMAGE_ATTRS: Omit<ImageAttributes, 'src'> = {

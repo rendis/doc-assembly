@@ -1,5 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +28,7 @@ interface LogicRuleProps {
 }
 
 export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
+  const { t } = useTranslation()
   const { removeNode, updateNode, variables } = useLogicBuilder()
 
   const { setNodeRef: setVarRef, isOver: isVarOver } = useDroppable({
@@ -82,7 +84,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
             {selectedVar.label}
           </span>
         ) : (
-          <span className="text-[10px] italic truncate">Arrastra variable</span>
+          <span className="text-[10px] italic truncate">{t('editor.conditional.dragVariable')}</span>
         )}
       </div>
 
@@ -102,7 +104,7 @@ export const LogicRuleItem = ({ rule, parentId }: LogicRuleProps) => {
               <SelectItem key={op.value} value={op.value}>
                 <div className="flex items-center gap-2">
                   <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-xs">{op.label}</span>
+                  <span className="text-xs">{t(op.labelKey)}</span>
                 </div>
               </SelectItem>
             )

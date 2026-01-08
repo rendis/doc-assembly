@@ -1,3 +1,4 @@
+import i18n from '@/lib/i18n'
 import type { Variable } from './variables'
 
 /**
@@ -90,7 +91,7 @@ export function createEmptyRole(
   order: number
 ): Omit<SignerRoleDefinition, 'id'> {
   return {
-    label: `Rol ${order}`,
+    label: i18n.t('editor.roles.defaultLabel', { number: order }),
     name: { type: 'text', value: '' },
     email: { type: 'text', value: '' },
     order,
@@ -105,7 +106,7 @@ export function getFieldDisplayValue(
   variables: Variable[]
 ): string {
   if (field.type === 'text') {
-    return field.value || '(vacío)'
+    return field.value || i18n.t('editor.roles.emptyValue')
   }
 
   const variable = variables.find((v) => v.variableId === field.value)
@@ -119,7 +120,7 @@ export function getRoleDisplayName(
   role: SignerRoleDefinition,
   _variables: Variable[]
 ): string {
-  return role.label || `Rol ${role.order}`
+  return role.label || i18n.t('editor.roles.defaultLabel', { number: role.order })
 }
 
 // =============================================================================

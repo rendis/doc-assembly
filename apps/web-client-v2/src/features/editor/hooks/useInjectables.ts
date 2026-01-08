@@ -4,6 +4,10 @@ import { useInjectablesStore } from '../stores/injectables-store'
 import { fetchInjectables } from '../api/injectables-api'
 import type { Variable } from '../types/variables'
 
+// Module-level deduplication (persists across StrictMode remounts)
+let inFlightFetch: Promise<void> | null = null
+let lastFetchedWorkspaceId: string | null = null
+
 export interface UseInjectablesReturn {
   /** List of variables (mapped from injectables) */
   variables: Variable[]
@@ -42,26 +46,46 @@ export function useInjectables(): UseInjectablesReturn {
   const { setInjectables, setLoading, setError } = useInjectablesStore()
 
   const loadInjectables = useCallback(async () => {
+    const workspaceId = currentWorkspace?.id
+
     // Skip if no workspace selected (not an error condition)
-    if (!currentWorkspace?.id) {
+    if (!workspaceId) {
       setInjectables([])
       return
     }
 
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetchInjectables()
-      setInjectables(response.items)
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load injectables'
-      setError(errorMessage)
-      console.error('[useInjectables] Failed to load injectables:', err)
-    } finally {
-      setLoading(false)
+    // Skip if already loaded for this workspace (module-level check)
+    if (lastFetchedWorkspaceId === workspaceId) {
+      return
     }
+
+    // If request already in-flight, wait for it instead of making a new one
+    if (inFlightFetch) {
+      await inFlightFetch
+      return
+    }
+
+    // Create and track the fetch promise for deduplication
+    inFlightFetch = (async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetchInjectables()
+        setInjectables(response.items)
+        lastFetchedWorkspaceId = workspaceId
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load injectables'
+        setError(errorMessage)
+        console.error('[useInjectables] Failed to load injectables:', err)
+      } finally {
+        setLoading(false)
+        inFlightFetch = null
+      }
+    })()
+
+    await inFlightFetch
   }, [currentWorkspace?.id, setInjectables, setLoading, setError])
 
   // Load on mount and when workspace changes

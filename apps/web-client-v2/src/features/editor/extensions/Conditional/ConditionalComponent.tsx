@@ -1,15 +1,9 @@
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
 import { NodeSelection } from '@tiptap/pm/state'
 import { cn } from '@/lib/utils'
-import { GitBranch, Settings2, Trash2 } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { GitBranch, Settings2, Trash2, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -28,6 +22,7 @@ import type {
 import { OPERATOR_SYMBOLS } from './types/operators'
 
 export const ConditionalComponent = (props: NodeViewProps) => {
+  const { t } = useTranslation()
   const { node, updateAttributes, selected, deleteNode, editor, getPos } = props
   const { conditions, expression } = node.attrs
 
@@ -77,7 +72,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   )
 
   const handleSave = () => {
-    const summary = generateSummary(tempConditions)
+    const summary = generateSummary(tempConditions, t)
     updateAttributes({
       conditions: tempConditions,
       expression: summary,
@@ -119,7 +114,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
           >
             <GitBranch className="h-3.5 w-3.5" />
             <span className="max-w-[300px] truncate">
-              {expression || 'Condicional'}
+              {expression || t('editor.conditional.title')}
             </span>
           </div>
         </div>
@@ -140,7 +135,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Configurar</p>
+                  <p>{t('editor.conditional.configure')}</p>
                 </TooltipContent>
               </Tooltip>
               <div className="w-px h-6 bg-border mx-1" />
@@ -156,7 +151,7 @@ export const ConditionalComponent = (props: NodeViewProps) => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Eliminar</p>
+                  <p>{t('editor.conditional.delete')}</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -167,47 +162,61 @@ export const ConditionalComponent = (props: NodeViewProps) => {
       </div>
 
       {/* Dialog de configuración */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-6 pt-6 pb-4 space-y-1 border-b border-border">
-            <DialogTitle>Constructor de Lógica</DialogTitle>
-            <DialogDescription>
-              Arrastra variables y configura las reglas de visualización.
-            </DialogDescription>
-          </DialogHeader>
+      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-[90vw] max-w-4xl h-[85vh] translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-border p-6">
+              <div>
+                <DialogPrimitive.Title className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
+                  {t('editor.conditional.logicBuilder')}
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description className="mt-1 text-sm font-light text-muted-foreground">
+                  {t('editor.conditional.logicBuilderDesc')}
+                </DialogPrimitive.Description>
+              </div>
+              <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
+                <X className="h-5 w-5" />
+              </DialogPrimitive.Close>
+            </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
-            <LogicBuilder
-              initialData={conditions}
-              onChange={setTempConditions}
-            />
-          </div>
+            {/* Content */}
+            <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
+              <LogicBuilder
+                initialData={conditions}
+                onChange={setTempConditions}
+              />
+            </div>
 
-          <DialogFooter className="px-6 py-3 border-t border-border gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="border-border"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="bg-foreground text-background hover:bg-foreground/90"
-            >
-              Guardar Configuración
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            {/* Footer */}
+            <div className="flex justify-end gap-3 border-t border-border p-6">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+              >
+                {t('editor.conditional.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90"
+              >
+                {t('editor.conditional.saveConfig')}
+              </button>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </NodeViewWrapper>
   )
 }
 
-const generateSummary = (node: LogicGroup | LogicRule): string => {
+const generateSummary = (node: LogicGroup | LogicRule, t: (key: string) => string): string => {
   if (node.type === 'rule') {
     const r = node as LogicRule
-    if (!r.variableId) return '(Incompleto)'
+    if (!r.variableId) return t('editor.conditional.incomplete')
 
     const opSymbol = OPERATOR_SYMBOLS[r.operator] || r.operator
 
@@ -234,8 +243,8 @@ const generateSummary = (node: LogicGroup | LogicRule): string => {
   }
 
   const g = node as LogicGroup
-  if (g.children.length === 0) return 'Siempre visible (Grupo vacío)'
+  if (g.children.length === 0) return t('editor.conditional.alwaysVisibleEmpty')
 
-  const childrenSummary = g.children.map(generateSummary).join(` ${g.logic} `)
+  const childrenSummary = g.children.map((child) => generateSummary(child, t)).join(` ${g.logic} `)
   return g.children.length > 1 ? `(${childrenSummary})` : childrenSummary
 }

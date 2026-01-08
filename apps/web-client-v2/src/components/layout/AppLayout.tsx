@@ -6,19 +6,10 @@ import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
 import { useSidebarStore } from '@/stores/sidebar-store'
 
-// Variantes de animación - sidebar aparece inmediatamente, las líneas y contenido se animan
+// Variantes de animación - sidebar aparece inmediatamente
 const sidebarVariants = {
   initial: { opacity: 1 },
   animate: { opacity: 1 },
-}
-
-const contentVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.35, ease: 'easeOut' as const, delay: 0.1 },
-  },
 }
 
 const overlayVariants = {
@@ -98,16 +89,12 @@ export function AppLayout() {
         <AppSidebar />
       </motion.div>
 
-      {/* Contenido principal sin animación de entrada (causa flicker) */}
-      <motion.main
-        animate={{ opacity: 1 }}
-        className="flex flex-1 flex-col overflow-hidden pt-16"
-      >
-        {/* Page content */}
+      {/* Contenido principal */}
+      <main className="flex flex-1 flex-col overflow-hidden pt-16">
         <div className="flex-1 overflow-auto">
           <Outlet />
         </div>
-      </motion.main>
+      </main>
     </div>
   )
 }

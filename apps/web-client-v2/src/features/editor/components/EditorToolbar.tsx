@@ -114,7 +114,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               'text-muted-foreground hover:text-foreground',
               'transition-colors duration-150'
             )}
-            aria-label="Desplazar a la izquierda"
+            aria-label={t('editor.toolbar.scrollLeft')}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -133,14 +133,14 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
-            tooltip="Deshacer"
+            tooltip={t('editor.toolbar.undo')}
           >
             <Undo className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editor.can().redo()}
-            tooltip="Rehacer"
+            tooltip={t('editor.toolbar.redo')}
           >
             <Redo className="h-4 w-4" />
           </ToolbarButton>
@@ -155,7 +155,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
             }}
           >
             <SelectTrigger className="h-8 w-[110px] text-xs">
-              <SelectValue placeholder="Fuente" />
+              <SelectValue placeholder={t('editor.toolbar.fontFamily')} />
             </SelectTrigger>
             <SelectContent>
               {FONT_FAMILIES.map((font) => (
@@ -178,7 +178,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
             }}
           >
             <SelectTrigger className="h-8 w-[65px] text-xs">
-              <SelectValue placeholder="Tamaño" />
+              <SelectValue placeholder={t('editor.toolbar.fontSize')} />
             </SelectTrigger>
             <SelectContent>
               {FONT_SIZES.map((size) => (
@@ -195,21 +195,21 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             isActive={editor.isActive('heading', { level: 1 })}
-            tooltip="Encabezado 1"
+            tooltip={t('editor.toolbar.heading1')}
           >
             <Heading1 className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             isActive={editor.isActive('heading', { level: 2 })}
-            tooltip="Encabezado 2"
+            tooltip={t('editor.toolbar.heading2')}
           >
             <Heading2 className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             isActive={editor.isActive('heading', { level: 3 })}
-            tooltip="Encabezado 3"
+            tooltip={t('editor.toolbar.heading3')}
           >
             <Heading3 className="h-4 w-4" />
           </ToolbarButton>
@@ -220,21 +220,21 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             isActive={editor.isActive('bold')}
-            tooltip="Negrita"
+            tooltip={t('editor.toolbar.bold')}
           >
             <Bold className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
             isActive={editor.isActive('italic')}
-            tooltip="Cursiva"
+            tooltip={t('editor.toolbar.italic')}
           >
             <Italic className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleStrike().run()}
             isActive={editor.isActive('strike')}
-            tooltip="Tachado"
+            tooltip={t('editor.toolbar.strikethrough')}
           >
             <Strikethrough className="h-4 w-4" />
           </ToolbarButton>
@@ -245,14 +245,14 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             isActive={editor.isActive('bulletList')}
-            tooltip="Lista"
+            tooltip={t('editor.toolbar.bulletList')}
           >
             <List className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             isActive={editor.isActive('orderedList')}
-            tooltip="Lista numerada"
+            tooltip={t('editor.toolbar.orderedList')}
           >
             <ListOrdered className="h-4 w-4" />
           </ToolbarButton>
@@ -263,13 +263,13 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             isActive={editor.isActive('blockquote')}
-            tooltip="Cita"
+            tooltip={t('editor.toolbar.blockquote')}
           >
             <Quote className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
-            tooltip="Linea horizontal"
+            tooltip={t('editor.toolbar.horizontalRule')}
           >
             <Minus className="h-4 w-4" />
           </ToolbarButton>
@@ -289,19 +289,19 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
                   new CustomEvent('editor:open-image-modal', { bubbles: true })
                 )
               }}
-              tooltip="Insertar imagen"
+              tooltip={t('editor.toolbar.insertImage')}
             >
               <ImageIcon className="h-4 w-4 text-success-foreground dark:text-success" />
             </ToolbarButton>
             <ToolbarButton
               onClick={() => editor.chain().focus().setSignature().run()}
-              tooltip="Bloque de firma"
+              tooltip={t('editor.toolbar.signatureBlock')}
             >
               <PenLine className="h-4 w-4 text-info-foreground dark:text-info" />
             </ToolbarButton>
             <ToolbarButton
               onClick={() => editor.chain().focus().setConditional({}).run()}
-              tooltip="Bloque condicional"
+              tooltip={t('editor.toolbar.conditionalBlock')}
             >
               <GitBranch className="h-4 w-4 text-warning-foreground dark:text-warning" />
             </ToolbarButton>
@@ -315,7 +315,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               {onExport && (
                 <ToolbarButton
                   onClick={onExport}
-                  tooltip="Exportar documento (JSON)"
+                  tooltip={t('editor.toolbar.exportDocument')}
                 >
                   <Download className="h-4 w-4" />
                 </ToolbarButton>
@@ -323,7 +323,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               {onImport && (
                 <ToolbarButton
                   onClick={onImport}
-                  tooltip="Importar documento (JSON)"
+                  tooltip={t('editor.toolbar.importDocument')}
                 >
                   <Upload className="h-4 w-4" />
                 </ToolbarButton>
@@ -350,7 +350,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               'text-muted-foreground hover:text-foreground',
               'transition-colors duration-150'
             )}
-            aria-label="Desplazar a la derecha"
+            aria-label={t('editor.toolbar.scrollRight')}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -371,118 +371,118 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
             <DropdownMenuContent align="end" className="w-56">
               {/* History */}
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Historial
+                {t('editor.toolbar.history')}
               </DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().undo().run()}
                 disabled={!editor.can().undo()}
               >
                 <Undo className="mr-2 h-4 w-4" />
-                Deshacer
+                {t('editor.toolbar.undo')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().redo().run()}
                 disabled={!editor.can().redo()}
               >
                 <Redo className="mr-2 h-4 w-4" />
-                Rehacer
+                {t('editor.toolbar.redo')}
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
               {/* Headings */}
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Encabezados
+                {t('editor.toolbar.headings')}
               </DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                 className={cn(editor.isActive('heading', { level: 1 }) && 'bg-accent')}
               >
                 <Heading1 className="mr-2 h-4 w-4" />
-                Encabezado 1
+                {t('editor.toolbar.heading1')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                 className={cn(editor.isActive('heading', { level: 2 }) && 'bg-accent')}
               >
                 <Heading2 className="mr-2 h-4 w-4" />
-                Encabezado 2
+                {t('editor.toolbar.heading2')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                 className={cn(editor.isActive('heading', { level: 3 }) && 'bg-accent')}
               >
                 <Heading3 className="mr-2 h-4 w-4" />
-                Encabezado 3
+                {t('editor.toolbar.heading3')}
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
               {/* Text formatting */}
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Formato de texto
+                {t('editor.toolbar.textFormatting')}
               </DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 className={cn(editor.isActive('bold') && 'bg-accent')}
               >
                 <Bold className="mr-2 h-4 w-4" />
-                Negrita
+                {t('editor.toolbar.bold')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleItalic().run()}
                 className={cn(editor.isActive('italic') && 'bg-accent')}
               >
                 <Italic className="mr-2 h-4 w-4" />
-                Cursiva
+                {t('editor.toolbar.italic')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleStrike().run()}
                 className={cn(editor.isActive('strike') && 'bg-accent')}
               >
                 <Strikethrough className="mr-2 h-4 w-4" />
-                Tachado
+                {t('editor.toolbar.strikethrough')}
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
               {/* Lists */}
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Listas
+                {t('editor.toolbar.lists')}
               </DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
                 className={cn(editor.isActive('bulletList') && 'bg-accent')}
               >
                 <List className="mr-2 h-4 w-4" />
-                Lista
+                {t('editor.toolbar.bulletList')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 className={cn(editor.isActive('orderedList') && 'bg-accent')}
               >
                 <ListOrdered className="mr-2 h-4 w-4" />
-                Lista numerada
+                {t('editor.toolbar.orderedList')}
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
               {/* Block elements */}
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Bloques
+                {t('editor.toolbar.blockElements')}
               </DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
                 className={cn(editor.isActive('blockquote') && 'bg-accent')}
               >
                 <Quote className="mr-2 h-4 w-4" />
-                Cita
+                {t('editor.toolbar.blockquote')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().setHorizontalRule().run()}
               >
                 <Minus className="mr-2 h-4 w-4" />
-                Línea horizontal
+                {t('editor.toolbar.horizontalRule')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -492,19 +492,19 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
                 }}
               >
                 <ImageIcon className="mr-2 h-4 w-4 text-success-foreground dark:text-success" />
-                Insertar imagen
+                {t('editor.toolbar.insertImage')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().setSignature().run()}
               >
                 <PenLine className="mr-2 h-4 w-4 text-info-foreground dark:text-info" />
-                Bloque de firma
+                {t('editor.toolbar.signatureBlock')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().setConditional({}).run()}
               >
                 <GitBranch className="mr-2 h-4 w-4 text-warning-foreground dark:text-warning" />
-                Bloque condicional
+                {t('editor.toolbar.conditionalBlock')}
               </DropdownMenuItem>
 
               {/* Export/Import/Preview */}
@@ -512,18 +512,18 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                    Acciones
+                    {t('editor.toolbar.actions')}
                   </DropdownMenuLabel>
                   {onExport && (
                     <DropdownMenuItem onClick={onExport}>
                       <Download className="mr-2 h-4 w-4" />
-                      Exportar documento
+                      {t('editor.toolbar.exportDocumentShort')}
                     </DropdownMenuItem>
                   )}
                   {onImport && (
                     <DropdownMenuItem onClick={onImport}>
                       <Upload className="mr-2 h-4 w-4" />
-                      Importar documento
+                      {t('editor.toolbar.importDocumentShort')}
                     </DropdownMenuItem>
                   )}
                 </>

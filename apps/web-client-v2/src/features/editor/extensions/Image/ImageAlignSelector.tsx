@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Popover,
   PopoverContent,
@@ -37,6 +38,7 @@ export function ImageAlignSelector({
   align,
   onChange,
 }: ImageAlignSelectorProps) {
+  const { t } = useTranslation();
   const CurrentIcon = getCurrentIcon(displayMode, align);
 
   const handleSelect = useCallback(
@@ -65,7 +67,7 @@ export function ImageAlignSelector({
                 size="icon"
                 className={cn('h-8 w-8', isActive && 'bg-accent')}
                 onClick={() => handleSelect(option)}
-                title={option.label}
+                title={t(option.labelKey)}
               >
                 <Icon className="h-4 w-4" />
               </Button>

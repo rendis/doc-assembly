@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { GripVertical, Type, Variable, AlertTriangle, ChevronDown, Check } from 'lucide-react'
 import { Trash2 } from '@/components/animate-ui/icons/trash-2'
 import { AnimateIcon } from '@/components/animate-ui/icons/icon'
@@ -54,13 +55,15 @@ interface SignerRoleItemProps {
 
 interface FieldEditorProps {
   label: string
+  fieldType: 'name' | 'email'
   field: SignerRoleFieldValue
   variables: VariableType[]
   disabled?: boolean
   onChange: (value: SignerRoleFieldValue) => void
 }
 
-function FieldEditor({ label, field, variables, disabled, onChange }: FieldEditorProps) {
+function FieldEditor({ label, fieldType, field, variables, disabled, onChange }: FieldEditorProps) {
+  const { t } = useTranslation()
   const isText = field.type === 'text'
   const textVariables = variables.filter((v) => v.type === 'TEXT')
 
@@ -84,7 +87,7 @@ function FieldEditor({ label, field, variables, disabled, onChange }: FieldEdito
         className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
         onClick={handleTypeToggle}
         disabled={disabled}
-        title={isText ? 'Cambiar a variable' : 'Cambiar a texto'}
+        title={isText ? t('editor.roles.card.fieldType.toVariable') : t('editor.roles.card.fieldType.toText')}
       >
         {isText ? (
           <Type className="h-3.5 w-3.5" />
@@ -97,9 +100,7 @@ function FieldEditor({ label, field, variables, disabled, onChange }: FieldEdito
         <Input
           value={field.value}
           onChange={(e) => onChange({ type: 'text', value: e.target.value })}
-          placeholder={
-            label === 'Nombre' ? 'Nombre del firmante' : 'email@ejemplo.com'
-          }
+          placeholder={t(`editor.roles.card.placeholders.${fieldType}`)}
           disabled={disabled}
           className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus-visible:ring-0"
         />
@@ -110,12 +111,12 @@ function FieldEditor({ label, field, variables, disabled, onChange }: FieldEdito
           disabled={disabled}
         >
           <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus:ring-0">
-            <SelectValue placeholder="Seleccionar variable" />
+            <SelectValue placeholder={t('editor.roles.card.selectVariable')} />
           </SelectTrigger>
           <SelectContent>
             {textVariables.length === 0 ? (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                No hay variables de texto disponibles
+                {t('editor.roles.card.noVariables')}
               </div>
             ) : (
               textVariables.map((variable) => (
@@ -149,6 +150,7 @@ export function SignerRoleItem({
   onUpdate,
   onDelete,
 }: SignerRoleItemProps) {
+  const { t } = useTranslation()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showNotificationDialog, setShowNotificationDialog] = useState(false)
   const [isExpanded, setIsExpanded] = useState(!isCompactMode)
@@ -360,7 +362,7 @@ export function SignerRoleItem({
           <Input
             value={role.label}
             onChange={(e) => onUpdate(role.id, { label: e.target.value })}
-            placeholder="Nombre del rol"
+            placeholder={t('editor.roles.card.placeholder')}
             disabled={isSelectionMode}
             className={cn(
               'h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent px-1 rounded-none',
@@ -436,14 +438,16 @@ export function SignerRoleItem({
         >
           <div className="space-y-2 pt-2">
             <FieldEditor
-              label="Nombre"
+              label={t('editor.roles.card.fields.name')}
+              fieldType="name"
               field={role.name}
               variables={variables}
               disabled={isSelectionMode}
               onChange={handleNameChange}
             />
             <FieldEditor
-              label="Email"
+              label={t('editor.roles.card.fields.email')}
+              fieldType="email"
               field={role.email}
               variables={variables}
               disabled={isSelectionMode}
@@ -473,11 +477,10 @@ export function SignerRoleItem({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Eliminar rol
+              {t('editor.roles.card.delete.title')}
             </DialogTitle>
             <DialogDescription className="pt-2">
-              ¿Estás seguro de que deseas eliminar el rol "{role.label}"? Esta
-              acción no se puede deshacer.
+              {t('editor.roles.card.delete.confirmation', { name: role.label })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -485,10 +488,10 @@ export function SignerRoleItem({
               variant="outline"
               onClick={() => setShowDeleteConfirmation(false)}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleConfirmDelete}>
-              Eliminar rol
+              {t('editor.roles.card.delete.title')}
             </Button>
           </DialogFooter>
         </DialogContent>

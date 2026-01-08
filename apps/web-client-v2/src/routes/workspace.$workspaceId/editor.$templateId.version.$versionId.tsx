@@ -47,6 +47,10 @@ function EditorPage() {
   const [minTimeElapsed, setMinTimeElapsed] = useState(false)
   const overlayStartTimeRef = useRef(Date.now())
 
+  // Track fetch to prevent StrictMode double-call
+  const fetchStartedRef = useRef(false)
+  const lastFetchedParamsRef = useRef<string | null>(null)
+
   // Fetch version details from backend
   const fetchVersion = useCallback(async () => {
     setIsLoading(true)
@@ -58,15 +62,24 @@ function EditorPage() {
       setVersion(data)
     } catch (error) {
       console.error('Failed to fetch version:', error)
-      setFetchError(error instanceof Error ? error : new Error('Error al cargar'))
+      setFetchError(error instanceof Error ? error : new Error('Failed to load version'))
     } finally {
       setIsLoading(false)
     }
   }, [templateId, versionId])
 
   useEffect(() => {
+    const paramsKey = `${templateId}:${versionId}`
+
+    // Skip if already fetched for these params (prevents StrictMode double-call)
+    if (fetchStartedRef.current && lastFetchedParamsRef.current === paramsKey) {
+      return
+    }
+
+    fetchStartedRef.current = true
+    lastFetchedParamsRef.current = paramsKey
     fetchVersion()
-  }, [fetchVersion])
+  }, [fetchVersion, templateId, versionId])
 
   // Check if version is editable
   const status = version?.status ?? 'DRAFT'
@@ -90,11 +103,9 @@ function EditorPage() {
     // Create store actions adapter
     const storeActions = {
       setPaginationConfig: (config: any) => {
-        const { pageSize, margins, showPageNumbers, pageGap } = config
+        const { pageSize, margins } = config
         if (pageSize) usePaginationStore.getState().setPageSize(pageSize)
         if (margins) usePaginationStore.getState().setMargins(margins)
-        if (showPageNumbers !== undefined) usePaginationStore.getState().setShowPageNumbers(showPageNumbers)
-        if (pageGap !== undefined) usePaginationStore.getState().setPageGap(pageGap)
       },
       setSignerRoles: useSignerRolesStore.getState().setRoles,
       setWorkflowConfig: useSignerRolesStore.getState().setWorkflowConfig,
@@ -119,8 +130,10 @@ function EditorPage() {
       const errorMessages = result.validation.errors
         .map((e) => e.message)
         .join(', ')
-      setImportError(errorMessages || 'Error al importar el contenido')
+      setImportError(errorMessages || t('editor.errors.importFailed'))
       console.error('Import failed:', result.validation.errors)
+      console.error('Import failed - Full errors:', JSON.stringify(result.validation.errors, null, 2))
+      console.error('Import failed - Document:', JSON.stringify(portableDoc, null, 2))
     }
 
     contentLoadedRef.current = true
@@ -134,7 +147,7 @@ function EditorPage() {
     enabled: isEditable && contentLoadedRef.current,
     debounceMs: 2000,
     meta: {
-      title: version?.name || 'Documento',
+      title: version?.name || t('editor.document'),
       language: 'es',
     },
   })
@@ -176,7 +189,7 @@ function EditorPage() {
       <div className="flex flex-col h-full bg-background items-center justify-center">
         <AlertCircle className="h-8 w-8 text-destructive" />
         <p className="mt-4 text-sm text-destructive">
-          {fetchError?.message || importError || 'Error al cargar la versión'}
+          {fetchError?.message || importError || t('editor.errors.versionLoadFailed')}
         </p>
         <Button
           variant="outline"
@@ -224,11 +237,11 @@ function EditorPage() {
                 </span>
                 {isEditable ? (
                   <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                    Editable
+                    {t('editor.status.editable')}
                   </span>
                 ) : (
                   <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                    Solo lectura
+                    {t('editor.status.readOnly')}
                   </span>
                 )}
               </div>

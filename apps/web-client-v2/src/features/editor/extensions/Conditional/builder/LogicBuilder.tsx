@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
 import {
   DndContext,
@@ -84,6 +85,7 @@ interface LogicBuilderProps {
 }
 
 export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
+  const { t } = useTranslation()
   const [data, setData] = useState<ConditionalSchema>(
     initialData || {
       id: 'root',
@@ -262,7 +264,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar..."
+                  placeholder={t('editor.conditional.search')}
                   className="pl-8 h-9 border-input"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -275,7 +277,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
                 {isLoading && (
                   <div className="flex items-center justify-center py-4 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-xs">Cargando...</span>
+                    <span className="text-xs">{t('editor.conditional.loading')}</span>
                   </div>
                 )}
                 {!isLoading &&
@@ -289,7 +291,7 @@ export const LogicBuilder = ({ initialData, onChange }: LogicBuilderProps) => {
                   ))}
                 {!isLoading && filteredVariables.length === 0 && (
                   <div className="text-xs text-muted-foreground text-center py-4">
-                    No se encontraron variables.
+                    {t('editor.conditional.noVariablesFound')}
                   </div>
                 )}
               </div>

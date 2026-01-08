@@ -9,15 +9,11 @@ import { PAGE_SIZES, DEFAULT_MARGINS } from '../types'
 export interface PaginationState {
   pageSize: PageSize
   margins: PageMargins
-  showPageNumbers: boolean
-  pageGap: number
 }
 
 export interface PaginationActions {
   setPageSize: (size: PageSize) => void
   setMargins: (margins: PageMargins) => void
-  setShowPageNumbers: (show: boolean) => void
-  setPageGap: (gap: number) => void
   reset: () => void
 }
 
@@ -30,8 +26,6 @@ export type PaginationStore = PaginationState & PaginationActions
 const initialState: PaginationState = {
   pageSize: PAGE_SIZES.A4,
   margins: DEFAULT_MARGINS,
-  showPageNumbers: true,
-  pageGap: 50,
 }
 
 // =============================================================================
@@ -45,10 +39,6 @@ export const usePaginationStore = create<PaginationStore>()((set) => ({
 
   setMargins: (margins) => set({ margins }),
 
-  setShowPageNumbers: (showPageNumbers) => set({ showPageNumbers }),
-
-  setPageGap: (pageGap) => set({ pageGap }),
-
   reset: () => set(initialState),
 }))
 
@@ -57,13 +47,11 @@ export const usePaginationStore = create<PaginationStore>()((set) => ({
 // =============================================================================
 
 /**
- * Selector para obtener la configuración completa de paginación
+ * Selector para obtener la configuración de página
  */
-export const selectPaginationConfig = (state: PaginationStore) => ({
+export const selectPageConfig = (state: PaginationStore) => ({
   pageSize: state.pageSize,
   margins: state.margins,
-  showPageNumbers: state.showPageNumbers,
-  pageGap: state.pageGap,
 })
 
 /**

@@ -1,4 +1,5 @@
 import { Type, Variable } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,9 +29,11 @@ export function RuleValueInput({
   variableType,
   variables,
   disabled = false,
-  placeholder = 'Valor',
+  placeholder,
 }: RuleValueInputProps) {
+  const { t } = useTranslation()
   const isTextMode = value.mode === 'text'
+  const effectivePlaceholder = placeholder || t('editor.conditional.value')
 
   // Filtrar variables del mismo tipo
   const compatibleVariables = variables.filter((v) => v.type === variableType)
@@ -57,11 +60,11 @@ export function RuleValueInput({
           disabled={disabled}
         >
           <SelectTrigger className="flex-1 h-8 border-input">
-            <SelectValue placeholder="Seleccionar" />
+            <SelectValue placeholder={t('editor.conditional.select')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="true">Verdadero</SelectItem>
-            <SelectItem value="false">Falso</SelectItem>
+            <SelectItem value="true">{t('editor.conditional.true')}</SelectItem>
+            <SelectItem value="false">{t('editor.conditional.false')}</SelectItem>
           </SelectContent>
         </Select>
       )
@@ -85,7 +88,7 @@ export function RuleValueInput({
           type="number"
           value={value.value}
           onChange={(e) => handleValueChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           disabled={disabled}
           className="flex-1 h-8 border-input"
         />
@@ -97,7 +100,7 @@ export function RuleValueInput({
       <Input
         value={value.value}
         onChange={(e) => handleValueChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         disabled={disabled}
         className="flex-1 h-8 border-input"
       />
@@ -113,7 +116,7 @@ export function RuleValueInput({
         className="h-8 w-8 shrink-0"
         onClick={handleModeToggle}
         disabled={disabled}
-        title={isTextMode ? 'Cambiar a variable' : 'Cambiar a texto literal'}
+        title={isTextMode ? t('editor.conditional.switchToVariable') : t('editor.conditional.switchToLiteral')}
       >
         {isTextMode ? (
           <Type className="h-3.5 w-3.5" />
@@ -152,12 +155,12 @@ export function RuleValueInput({
               disabled={disabled}
             >
               <SelectTrigger className="h-8 border-input">
-                <SelectValue placeholder="Seleccionar variable" />
+                <SelectValue placeholder={t('editor.conditional.selectVariable')} />
               </SelectTrigger>
               <SelectContent>
                 {compatibleVariables.length === 0 ? (
                   <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                    No hay variables de tipo {variableType}
+                    {t('editor.conditional.noVariablesOfType', { type: variableType })}
                   </div>
                 ) : (
                   compatibleVariables.map((variable) => (

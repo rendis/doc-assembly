@@ -9,12 +9,17 @@ interface InjectablesState {
   injectables: Injectable[]
   isLoading: boolean
   error: string | null
+  // Deduplication tracking
+  lastFetchedWorkspaceId: string | null
+  fetchPromise: Promise<void> | null
 
   // Actions
   setInjectables: (injectables: Injectable[]) => void
   setVariables: (variables: Variable[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+  setLastFetchedWorkspaceId: (id: string | null) => void
+  setFetchPromise: (promise: Promise<void> | null) => void
   reset: () => void
 }
 
@@ -23,6 +28,8 @@ const initialState = {
   injectables: [] as Injectable[],
   isLoading: false,
   error: null as string | null,
+  lastFetchedWorkspaceId: null as string | null,
+  fetchPromise: null as Promise<void> | null,
 }
 
 export const useInjectablesStore = create<InjectablesState>()((set) => ({
@@ -43,6 +50,14 @@ export const useInjectablesStore = create<InjectablesState>()((set) => ({
 
   setError: (error) => {
     set({ error })
+  },
+
+  setLastFetchedWorkspaceId: (lastFetchedWorkspaceId) => {
+    set({ lastFetchedWorkspaceId })
+  },
+
+  setFetchPromise: (fetchPromise) => {
+    set({ fetchPromise })
   },
 
   reset: () => set(initialState),

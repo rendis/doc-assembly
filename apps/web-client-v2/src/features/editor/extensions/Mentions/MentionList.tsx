@@ -7,6 +7,7 @@ import {
   useImperativeHandle,
   useMemo,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Settings2 } from 'lucide-react'
@@ -28,6 +29,7 @@ export interface MentionListRef {
 
 export const MentionList = forwardRef<MentionListRef, MentionListProps>(
   ({ items, command }, ref) => {
+    const { t } = useTranslation()
     const [selectedIndex, setSelectedIndex] = useState(0)
     const containerRef = useRef<HTMLDivElement>(null)
 
@@ -91,7 +93,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
     if (items.length === 0) {
       return (
         <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm text-muted-foreground">
-          No se encontraron variables
+          {t('editor.variablesPanel.empty.title')}
         </div>
       )
     }
@@ -160,7 +162,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
           {roleItems.length > 0 && (
             <>
               <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-role border-b border-role-border/30">
-                Roles de Firmantes
+                {t('editor.variablesPanel.sections.signerRoles')}
               </div>
               <div className="pt-1 pb-1">
                 {roleItems.map((item) => {
@@ -180,7 +182,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
                   roleItems.length > 0 && 'mt-2'
                 )}
               >
-                Variables
+                {t('editor.variablesPanel.sections.variables')}
               </div>
               <div className="pt-1 pb-1">
                 {variableItems.map((item) => {

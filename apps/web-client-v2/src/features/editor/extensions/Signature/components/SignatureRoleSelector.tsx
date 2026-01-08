@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { Check, Link2, Link2Off, Users } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSignerRolesContextSafe } from '../../../context/SignerRolesContext'
 import { getRoleDisplayName } from '../../../types/signer-roles'
 
@@ -23,6 +24,7 @@ export function SignatureRoleSelector({
   signatureId,
   onChange,
 }: SignatureRoleSelectorProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const context = useSignerRolesContextSafe()
 
@@ -30,8 +32,8 @@ export function SignatureRoleSelector({
   if (!context) {
     return (
       <div className="space-y-1">
-        <Label className="text-xs">Rol asignado</Label>
-        <p className="text-xs text-muted-foreground">No hay roles disponibles</p>
+        <Label className="text-xs">{t('editor.signature.roleAssigned')}</Label>
+        <p className="text-xs text-muted-foreground">{t('editor.signature.noRolesAvailable')}</p>
       </div>
     )
   }
@@ -53,12 +55,12 @@ export function SignatureRoleSelector({
 
   return (
     <div className="space-y-1">
-      <Label className="text-xs">Rol asignado</Label>
+      <Label className="text-xs">{t('editor.signature.roleAssigned')}</Label>
 
       {roles.length === 0 ? (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <Users className="h-3 w-3" />
-          Define roles en el panel derecho
+          {t('editor.signature.defineRoles')}
         </p>
       ) : (
         <Popover open={open} onOpenChange={setOpen}>
@@ -79,7 +81,7 @@ export function SignatureRoleSelector({
               ) : (
                 <>
                   <Link2Off className="h-3.5 w-3.5 mr-2" />
-                  Sin asignar
+                  {t('editor.signature.unassigned')}
                 </>
               )}
             </Button>
@@ -87,7 +89,7 @@ export function SignatureRoleSelector({
 
           <PopoverContent className="w-56 p-0" align="start">
             <div className="p-2 border-b border-border">
-              <p className="text-xs font-medium">Seleccionar rol</p>
+              <p className="text-xs font-medium">{t('editor.signature.selectRole')}</p>
             </div>
 
             <ScrollArea className="max-h-48">
@@ -102,7 +104,7 @@ export function SignatureRoleSelector({
                     )}
                   >
                     <Link2Off className="h-3.5 w-3.5" />
-                    Sin asignar
+                    {t('editor.signature.unassigned')}
                   </button>
                 )}
 
@@ -133,7 +135,7 @@ export function SignatureRoleSelector({
                       </span>
                       {isAssigned && (
                         <span className="text-[10px] text-muted-foreground">
-                          (en uso)
+                          {t('editor.signature.inUse')}
                         </span>
                       )}
                     </button>
@@ -142,7 +144,7 @@ export function SignatureRoleSelector({
 
                 {availableRoles.length === 0 && (
                   <p className="px-2 py-4 text-xs text-center text-muted-foreground">
-                    Todos los roles están asignados
+                    {t('editor.signature.allRolesAssigned')}
                   </p>
                 )}
               </div>

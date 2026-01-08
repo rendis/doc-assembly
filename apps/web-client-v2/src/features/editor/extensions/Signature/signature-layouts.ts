@@ -7,91 +7,92 @@ import type {
 
 /**
  * Definiciones de todos los layouts disponibles
+ * Los campos nameKey y descriptionKey son claves de traducción i18n
  */
 export const SIGNATURE_LAYOUTS: SignatureLayoutDefinition[] = [
   // 1 firma
   {
     id: 'single-left',
-    name: 'Izquierda',
-    description: 'Firma alineada a la izquierda',
+    nameKey: 'editor.signature.layouts.left',
+    descriptionKey: 'editor.signature.layouts.leftDesc',
     count: 1,
   },
   {
     id: 'single-center',
-    name: 'Centro',
-    description: 'Firma centrada',
+    nameKey: 'editor.signature.layouts.center',
+    descriptionKey: 'editor.signature.layouts.centerDesc',
     count: 1,
   },
   {
     id: 'single-right',
-    name: 'Derecha',
-    description: 'Firma alineada a la derecha',
+    nameKey: 'editor.signature.layouts.right',
+    descriptionKey: 'editor.signature.layouts.rightDesc',
     count: 1,
   },
 
   // 2 firmas
   {
     id: 'dual-sides',
-    name: 'Lados',
-    description: 'Una firma a cada lado',
+    nameKey: 'editor.signature.layouts.sides',
+    descriptionKey: 'editor.signature.layouts.sidesDesc',
     count: 2,
   },
   {
     id: 'dual-center',
-    name: 'Apiladas Centro',
-    description: 'Ambas firmas centradas y apiladas',
+    nameKey: 'editor.signature.layouts.stackedCenter',
+    descriptionKey: 'editor.signature.layouts.stackedCenterDesc',
     count: 2,
   },
   {
     id: 'dual-left',
-    name: 'Apiladas Izquierda',
-    description: 'Ambas firmas a la izquierda',
+    nameKey: 'editor.signature.layouts.stackedLeft',
+    descriptionKey: 'editor.signature.layouts.stackedLeftDesc',
     count: 2,
   },
   {
     id: 'dual-right',
-    name: 'Apiladas Derecha',
-    description: 'Ambas firmas a la derecha',
+    nameKey: 'editor.signature.layouts.stackedRight',
+    descriptionKey: 'editor.signature.layouts.stackedRightDesc',
     count: 2,
   },
 
   // 3 firmas
   {
     id: 'triple-row',
-    name: 'Fila',
-    description: 'Tres firmas en una fila',
+    nameKey: 'editor.signature.layouts.row',
+    descriptionKey: 'editor.signature.layouts.rowDesc',
     count: 3,
   },
   {
     id: 'triple-pyramid',
-    name: 'Piramide Invertida',
-    description: 'Dos arriba, una abajo centrada',
+    nameKey: 'editor.signature.layouts.invertedPyramid',
+    descriptionKey: 'editor.signature.layouts.invertedPyramidDesc',
     count: 3,
   },
   {
     id: 'triple-inverted',
-    name: 'Piramide',
-    description: 'Una arriba centrada, dos abajo',
+    nameKey: 'editor.signature.layouts.pyramid',
+    descriptionKey: 'editor.signature.layouts.pyramidDesc',
     count: 3,
   },
 
   // 4 firmas
   {
     id: 'quad-grid',
-    name: 'Cuadricula',
-    description: 'Cuatro firmas en grid 2x2',
+    nameKey: 'editor.signature.layouts.grid',
+    descriptionKey: 'editor.signature.layouts.gridDesc',
     count: 4,
   },
   {
     id: 'quad-top-heavy',
-    name: 'Tres + Uno',
-    description: 'Tres arriba, una abajo centrada',
+    nameKey: 'editor.signature.layouts.threePlusOne',
+    descriptionKey: 'editor.signature.layouts.threePlusOneDesc',
     count: 4,
   },
   {
     id: 'quad-bottom-heavy',
-    name: 'Uno + Tres',
-    description: 'Una arriba centrada, tres abajo',
+    nameKey: 'editor.signature.layouts.onePlusThree',
+    descriptionKey: 'editor.signature.layouts.onePlusThreeDesc',
     count: 4,
   },
 ]

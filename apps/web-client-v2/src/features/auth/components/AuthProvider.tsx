@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   refreshAccessToken,
@@ -25,9 +25,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isTokenExpired,
   } = useAuthStore()
 
+  // Ref to prevent StrictMode double-initialization
+  const initRef = useRef<{ started: boolean; promise: Promise<void> | null }>({
+    started: false,
+    promise: null,
+  })
+
   useEffect(() => {
     // Initialize theme system
     const cleanupTheme = initializeTheme()
+
+    // Skip if already started (prevents StrictMode double-call)
+    if (initRef.current.started) {
+      // Wait for existing promise if in-flight
+      if (initRef.current.promise) {
+        initRef.current.promise.finally(() => setAuthLoading(false))
+      }
+      return () => {
+        cleanupTheme?.()
+      }
+    }
+    initRef.current.started = true
 
     const init = async () => {
       try {
@@ -58,9 +76,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
               username: userInfo.preferred_username,
             })
 
-            // Fetch roles from API
             const roles = await fetchMyRoles()
             setAllRoles(roles)
+
             console.log('[Auth] User info and roles loaded')
           } catch (error) {
             console.error('[Auth] Failed to load user info or roles:', error)
@@ -76,7 +94,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    init()
+    initRef.current.promise = init()
 
     // Setup automatic token refresh
     const cleanupRefresh = setupTokenRefresh()

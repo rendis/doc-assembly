@@ -80,8 +80,6 @@ export function useAutoSave({
   // Store data - v2 has individual properties, not a `config` object
   const pageSize = usePaginationStore((s) => s.pageSize)
   const margins = usePaginationStore((s) => s.margins)
-  const showPageNumbers = usePaginationStore((s) => s.showPageNumbers)
-  const pageGap = usePaginationStore((s) => s.pageGap)
   const signerRoles = useSignerRolesStore((s) => s.roles)
   const workflowConfig = useSignerRolesStore((s) => s.workflowConfig)
 
@@ -89,8 +87,6 @@ export function useAutoSave({
   const pagination = {
     pageSize,
     margins,
-    showPageNumbers,
-    pageGap,
   }
 
   // Clear timers on unmount

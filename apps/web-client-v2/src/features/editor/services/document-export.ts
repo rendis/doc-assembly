@@ -30,7 +30,7 @@ import { PAGE_SIZES } from '../types'
 // =============================================================================
 
 interface EditorStoreData {
-  pagination: Pick<PaginationStore, 'pageSize' | 'margins' | 'showPageNumbers' | 'pageGap'>
+  pagination: Pick<PaginationStore, 'pageSize' | 'margins'>
   signerRoles: SignerRoleDefinition[]
   workflowConfig: SigningWorkflowConfig
 }
@@ -128,15 +128,13 @@ function getPageFormatId(pageSize: { width: number; height: number }): PageConfi
  * Converts pagination store config to PageConfig format
  */
 function extractPageConfig(pagination: EditorStoreData['pagination']): PageConfig {
-  const { pageSize, margins, showPageNumbers, pageGap } = pagination
+  const { pageSize, margins } = pagination
 
   return {
     formatId: getPageFormatId(pageSize),
     width: pageSize.width,
     height: pageSize.height,
     margins: { ...margins },
-    showPageNumbers,
-    pageGap,
   }
 }
 

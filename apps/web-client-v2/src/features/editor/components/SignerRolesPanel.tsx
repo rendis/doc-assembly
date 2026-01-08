@@ -223,7 +223,7 @@ export function SignerRolesPanel({
                       ? 'bg-muted text-foreground'
                       : 'hover:bg-muted text-muted-foreground'
                   )}
-                  aria-label={isSelectionMode ? 'Cancelar selección' : 'Seleccionar roles'}
+                  aria-label={isSelectionMode ? t('editor.roles.panel.selection.disable') : t('editor.roles.panel.selection.enable')}
                 >
                   <AnimatePresence mode="wait">
                     {isSelectionMode ? (
@@ -251,7 +251,7 @@ export function SignerRolesPanel({
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                {isSelectionMode ? 'Cancelar selección' : 'Seleccionar roles'}
+                {isSelectionMode ? t('editor.roles.panel.selection.disable') : t('editor.roles.panel.selection.enable')}
               </TooltipContent>
             </Tooltip>
           )}
@@ -270,7 +270,7 @@ export function SignerRolesPanel({
                     <button
                       onClick={toggleCompactMode}
                       className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
-                      aria-label={isCompactMode ? 'Vista expandida' : 'Vista compacta'}
+                      aria-label={isCompactMode ? t('editor.roles.panel.view.expanded') : t('editor.roles.panel.view.compact')}
                     >
                       {isCompactMode ? (
                         <Rows3 className="h-4 w-4 text-muted-foreground" />
@@ -280,7 +280,7 @@ export function SignerRolesPanel({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    {isCompactMode ? 'Expandir todas las cards' : 'Vista compacta'}
+                    {isCompactMode ? t('editor.roles.panel.view.expandAll') : t('editor.roles.panel.view.compact')}
                   </TooltipContent>
                 </Tooltip>
               </motion.div>
@@ -292,7 +292,7 @@ export function SignerRolesPanel({
         <button
           onClick={toggleCollapsed}
           className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-0.5"
-          aria-label={isCollapsed ? 'Expandir panel' : 'Colapsar panel'}
+          aria-label={isCollapsed ? t('editor.roles.panel.collapse.expand') : t('editor.roles.panel.collapse.collapse')}
         >
           <motion.div
             animate={{ rotate: isCollapsed ? 180 : 0 }}
@@ -339,9 +339,9 @@ export function SignerRolesPanel({
               // Empty state - centered content
               <div className="flex-1 flex flex-col items-center justify-center py-8 text-center px-4">
                 <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">No hay roles definidos</p>
+                <p className="text-sm text-muted-foreground">{t('editor.roles.empty.title')}</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">
-                  Agrega roles para asignarlos a las firmas
+                  {t('editor.roles.empty.description')}
                 </p>
                 <Button
                   variant="outline"
@@ -350,7 +350,7 @@ export function SignerRolesPanel({
                   onClick={addRole}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Agregar primer rol
+                  {t('editor.roles.addFirst')}
                 </Button>
               </div>
             ) : (
@@ -443,8 +443,7 @@ export function SignerRolesPanel({
                           onClick={handleBulkDelete}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar {selectedRoleIds.length}{' '}
-                          {selectedRoleIds.length === 1 ? 'rol' : 'roles'}
+                          {t('editor.roles.panel.delete.title', { count: selectedRoleIds.length })}
                         </Button>
                       </motion.div>
                     ) : (
@@ -463,7 +462,7 @@ export function SignerRolesPanel({
                           onClick={addRole}
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          Agregar rol
+                          {t('editor.roles.panel.add')}
                         </Button>
                       </motion.div>
                     )}
@@ -484,12 +483,10 @@ export function SignerRolesPanel({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Eliminar {selectedRoleIds.length}{' '}
-              {selectedRoleIds.length === 1 ? 'rol' : 'roles'}
+              {t('editor.roles.panel.delete.title', { count: selectedRoleIds.length })}
             </DialogTitle>
             <DialogDescription className="pt-2">
-              ¿Estás seguro de que deseas eliminar los roles seleccionados? Esta
-              acción no se puede deshacer.
+              {t('editor.roles.panel.delete.confirmation')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -497,15 +494,14 @@ export function SignerRolesPanel({
               variant="outline"
               onClick={() => setShowBulkDeleteConfirmation(false)}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               variant="outline"
               className="border-border hover:bg-muted"
               onClick={confirmBulkDelete}
             >
-              Eliminar {selectedRoleIds.length}{' '}
-              {selectedRoleIds.length === 1 ? 'rol' : 'roles'}
+              {t('editor.roles.panel.delete.title', { count: selectedRoleIds.length })}
             </Button>
           </DialogFooter>
         </DialogContent>
