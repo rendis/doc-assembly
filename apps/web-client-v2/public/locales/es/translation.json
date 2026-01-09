@@ -239,7 +239,11 @@
     },
     "versions": {
       "actions": {
-        "promote": "Promover a Producción"
+        "promote": "Promover a Producción",
+        "delete": "Eliminar",
+        "publishNow": "Publicar Ahora",
+        "schedule": "Programar",
+        "archive": "Archivar"
       }
     },
     "promoteDialog": {
@@ -261,7 +265,25 @@
       "promoting": "Promoviendo...",
       "success": "Versión promovida exitosamente",
       "successNewTemplate": "Nueva plantilla creada en producción",
-      "successNewVersion": "Nueva versión añadida a la plantilla"
+      "successNewVersion": "Nueva versión añadida a la plantilla",
+      "conflictError": "El nombre de versión ya existe",
+      "conflictErrorDesc": "Ya existe una versión con este nombre en la plantilla destino. Por favor elija un nombre diferente."
+    },
+    "publishDialog": {
+      "title": "Publicar Versión",
+      "description": "Hacer la versión \"{{name}}\" disponible",
+      "warningTitle": "Esta acción:",
+      "warning1": "Reemplazará la versión publicada actual",
+      "warning2": "Hará este contenido disponible inmediatamente",
+      "confirm": "Publicar Ahora"
+    },
+    "scheduleDialog": {
+      "title": "Programar Publicación",
+      "description": "Programa cuándo \"{{name}}\" estará disponible",
+      "dateLabel": "Fecha de Publicación",
+      "timeLabel": "Hora de Publicación",
+      "info": "La versión se publicará automáticamente en el horario programado. Puedes cancelar en cualquier momento antes.",
+      "confirm": "Programar"
     }
   },
   "documents": {

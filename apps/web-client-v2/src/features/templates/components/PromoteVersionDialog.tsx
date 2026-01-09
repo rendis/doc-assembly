@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import axios from 'axios'
 import { X, Search, FileText, Check, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -98,6 +99,19 @@ export function PromoteVersionDialog({
 
       onSuccess(response)
     } catch (error) {
+      // Handle 409 Conflict - version name already exists
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        toast({
+          variant: 'destructive',
+          title: t('templates.promoteDialog.conflictError', 'Version name already exists'),
+          description: t(
+            'templates.promoteDialog.conflictErrorDesc',
+            'A version with this name already exists in the target template. Please choose a different name.'
+          ),
+        })
+        return
+      }
+
       toast({
         variant: 'destructive',
         title: t('common.error', 'Error'),

@@ -72,7 +72,8 @@ export function TemplateDetailPage() {
 
   // Sandbox mode and highlight
   const { isSandboxActive, disableSandbox } = useSandboxMode()
-  const { highlightedVersionId, setHighlightedVersionId, clearHighlight } = useVersionHighlightStore()
+  const { highlightedTemplateId, highlightedVersionNumber, setHighlightedVersion, clearHighlight } =
+    useVersionHighlightStore()
 
   // Template update mutation
   const updateTemplate = useUpdateTemplate()
@@ -107,18 +108,15 @@ export function TemplateDetailPage() {
     }
   }, [direction, endTransition])
 
-  // Clear highlight after 5 seconds
+  // Clear highlight after 5 seconds (only if this is the target template)
   useEffect(() => {
-    if (highlightedVersionId) {
-      console.log('[Highlight] Active highlight ID:', highlightedVersionId)
-      console.log('[Highlight] Available versions:', sortedVersions.map(v => v.id))
+    if (highlightedTemplateId === templateId && highlightedVersionNumber !== null) {
       const timer = setTimeout(() => {
-        console.log('[Highlight] Clearing highlight')
         clearHighlight()
       }, 5000)
       return () => clearTimeout(timer)
     }
-  }, [highlightedVersionId, clearHighlight, sortedVersions])
+  }, [highlightedTemplateId, highlightedVersionNumber, templateId, clearHighlight])
 
   const { data: template, isLoading, error } = useTemplateWithVersions(templateId)
 
@@ -242,12 +240,12 @@ export function TemplateDetailPage() {
 
   const handlePromoteSuccess = (response: PromoteVersionResponse) => {
     disableSandbox()
-    setHighlightedVersionId(response.version.id)
     setPromoteDialogOpen(false)
     setSelectedVersion(null)
 
-    // Debug: log the promoted version ID
-    console.log('[Promote] Version promoted, highlighting:', response.version.id)
+    // Get the target template ID and set highlight
+    const targetTemplateId = response.template?.id ?? response.version.templateId
+    setHighlightedVersion(targetTemplateId, response.version.versionNumber)
 
     // If promoted as new template, navigate to it
     if (response.template && currentWorkspace) {
@@ -474,7 +472,10 @@ export function TemplateDetailPage() {
                     onDelete={handleDelete}
                     onPromote={handlePromoteClick}
                     isSandboxMode={isSandboxActive}
-                    isHighlighted={version.id === highlightedVersionId}
+                    isHighlighted={
+                      highlightedTemplateId === templateId &&
+                      version.versionNumber === highlightedVersionNumber
+                    }
                   />
                 ))}
               </div>

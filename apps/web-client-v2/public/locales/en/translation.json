@@ -239,7 +239,11 @@
     },
     "versions": {
       "actions": {
-        "promote": "Promote to Production"
+        "promote": "Promote to Production",
+        "delete": "Delete",
+        "publishNow": "Publish Now",
+        "schedule": "Schedule",
+        "archive": "Archive"
       }
     },
     "promoteDialog": {
@@ -261,7 +265,25 @@
       "promoting": "Promoting...",
       "success": "Version promoted successfully",
       "successNewTemplate": "New template created in production",
-      "successNewVersion": "New version added to template"
+      "successNewVersion": "New version added to template",
+      "conflictError": "Version name already exists",
+      "conflictErrorDesc": "A version with this name already exists in the target template. Please choose a different name."
+    },
+    "publishDialog": {
+      "title": "Publish Version",
+      "description": "Make version \"{{name}}\" live",
+      "warningTitle": "This action will:",
+      "warning1": "Replace the current published version",
+      "warning2": "Make this content immediately available",
+      "confirm": "Publish Now"
+    },
+    "scheduleDialog": {
+      "title": "Schedule Publication",
+      "description": "Schedule when \"{{name}}\" will go live",
+      "dateLabel": "Publish Date",
+      "timeLabel": "Publish Time",
+      "info": "The version will be published automatically at the scheduled time. You can cancel anytime before then.",
+      "confirm": "Schedule"
     }
   },
   "documents": {

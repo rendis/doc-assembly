@@ -13,7 +13,6 @@ import type {
   UpdateVersionRequest,
 } from '../types'
 
-
 export interface TemplatesListParams {
   search?: string
   hasPublishedVersion?: boolean
@@ -260,7 +259,7 @@ export async function promoteVersion(
     request,
     {
       headers: {
-        'X-Sandbox-Mode': '', // Override to prevent sandbox header
+        'X-Sandbox-Mode': 'false', // Explicit false to bypass interceptor and call production API
       },
     }
   )
@@ -277,7 +276,7 @@ export async function fetchProductionTemplates(
   const response = await apiClient.get<TemplatesListResponse>('/content/templates', {
     params: { search, limit: 20 },
     headers: {
-      'X-Sandbox-Mode': '', // Override to prevent sandbox header
+      'X-Sandbox-Mode': 'false', // Explicit false to bypass interceptor and call production API
     },
   })
   return response.data

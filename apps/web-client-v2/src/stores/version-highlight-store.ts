@@ -3,10 +3,13 @@ import { create } from 'zustand'
 /**
  * Version highlight state for promotion feedback
  * Tracks which version should be highlighted after promotion
+ * Uses versionNumber instead of id because the id may differ between
+ * the promote response and the fetched template versions
  */
 export interface VersionHighlightState {
-  highlightedVersionId: string | null
-  setHighlightedVersionId: (id: string | null) => void
+  highlightedTemplateId: string | null
+  highlightedVersionNumber: number | null
+  setHighlightedVersion: (templateId: string, versionNumber: number) => void
   clearHighlight: () => void
 }
 
@@ -15,9 +18,12 @@ export interface VersionHighlightState {
  * Used to provide visual feedback after promoting a version
  */
 export const useVersionHighlightStore = create<VersionHighlightState>((set) => ({
-  highlightedVersionId: null,
+  highlightedTemplateId: null,
+  highlightedVersionNumber: null,
 
-  setHighlightedVersionId: (id) => set({ highlightedVersionId: id }),
+  setHighlightedVersion: (templateId, versionNumber) =>
+    set({ highlightedTemplateId: templateId, highlightedVersionNumber: versionNumber }),
 
-  clearHighlight: () => set({ highlightedVersionId: null }),
+  clearHighlight: () =>
+    set({ highlightedTemplateId: null, highlightedVersionNumber: null }),
 }))
