@@ -12,14 +12,16 @@ import (
 
 // NodeConverter converts ProseMirror/TipTap nodes to HTML.
 type NodeConverter struct {
-	injectables      map[string]any
-	signerRoleValues map[string]port.SignerRoleValue
-	signerRoles      map[string]portabledoc.SignerRole // roleID -> SignerRole
+	injectables        map[string]any
+	injectableDefaults map[string]string
+	signerRoleValues   map[string]port.SignerRoleValue
+	signerRoles        map[string]portabledoc.SignerRole // roleID -> SignerRole
 }
 
 // NewNodeConverter creates a new node converter with the given injectable values.
 func NewNodeConverter(
 	injectables map[string]any,
+	injectableDefaults map[string]string,
 	signerRoleValues map[string]port.SignerRoleValue,
 	signerRoles []portabledoc.SignerRole,
 ) *NodeConverter {
@@ -29,9 +31,10 @@ func NewNodeConverter(
 	}
 
 	return &NodeConverter{
-		injectables:      injectables,
-		signerRoleValues: signerRoleValues,
-		signerRoles:      roleMap,
+		injectables:        injectables,
+		injectableDefaults: injectableDefaults,
+		signerRoleValues:   signerRoleValues,
+		signerRoles:        roleMap,
 	}
 }
 
@@ -212,7 +215,14 @@ func (c *NodeConverter) injector(node portabledoc.Node) string {
 		}
 	}
 
-	// If no value, show placeholder with label
+	// Fallback to default value if no value provided
+	if value == "" {
+		if defaultVal, ok := c.injectableDefaults[variableID]; ok && defaultVal != "" {
+			value = defaultVal
+		}
+	}
+
+	// If still no value, show placeholder with label
 	if value == "" {
 		value = fmt.Sprintf("[%s]", label)
 		return fmt.Sprintf("<span class=\"injectable injectable-empty\">%s</span>", html.EscapeString(value))

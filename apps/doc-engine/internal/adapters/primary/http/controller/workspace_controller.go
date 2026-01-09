@@ -13,10 +13,12 @@ import (
 
 // WorkspaceController handles workspace-related HTTP requests.
 type WorkspaceController struct {
-	workspaceUC usecase.WorkspaceUseCase
-	folderUC    usecase.FolderUseCase
-	tagUC       usecase.TagUseCase
-	memberUC    usecase.WorkspaceMemberUseCase
+	workspaceUC           usecase.WorkspaceUseCase
+	folderUC              usecase.FolderUseCase
+	tagUC                 usecase.TagUseCase
+	memberUC              usecase.WorkspaceMemberUseCase
+	workspaceInjectableUC usecase.WorkspaceInjectableUseCase
+	injectableMapper      *mapper.InjectableMapper
 }
 
 // NewWorkspaceController creates a new workspace controller.
@@ -25,12 +27,16 @@ func NewWorkspaceController(
 	folderUC usecase.FolderUseCase,
 	tagUC usecase.TagUseCase,
 	memberUC usecase.WorkspaceMemberUseCase,
+	workspaceInjectableUC usecase.WorkspaceInjectableUseCase,
+	injectableMapper *mapper.InjectableMapper,
 ) *WorkspaceController {
 	return &WorkspaceController{
-		workspaceUC: workspaceUC,
-		folderUC:    folderUC,
-		tagUC:       tagUC,
-		memberUC:    memberUC,
+		workspaceUC:           workspaceUC,
+		folderUC:              folderUC,
+		tagUC:                 tagUC,
+		memberUC:              memberUC,
+		workspaceInjectableUC: workspaceInjectableUC,
+		injectableMapper:      injectableMapper,
 	}
 }
 
@@ -73,6 +79,15 @@ func (c *WorkspaceController) RegisterRoutes(rg *gin.RouterGroup, middlewareProv
 		workspace.GET("/tags/:tagId", c.GetTag)                                  // VIEWER+
 		workspace.PUT("/tags/:tagId", middleware.RequireEditor(), c.UpdateTag)   // EDITOR+
 		workspace.DELETE("/tags/:tagId", middleware.RequireAdmin(), c.DeleteTag) // ADMIN+
+
+		// Injectable routes (NO sandbox - injectables are shared with parent workspace)
+		workspace.GET("/injectables", c.ListWorkspaceInjectables)                                                   // VIEWER+
+		workspace.POST("/injectables", middleware.RequireEditor(), c.CreateWorkspaceInjectable)                     // EDITOR+
+		workspace.GET("/injectables/:injectableId", c.GetWorkspaceInjectable)                                       // VIEWER+
+		workspace.PUT("/injectables/:injectableId", middleware.RequireEditor(), c.UpdateWorkspaceInjectable)        // EDITOR+
+		workspace.DELETE("/injectables/:injectableId", middleware.RequireAdmin(), c.DeleteWorkspaceInjectable)      // ADMIN+
+		workspace.POST("/injectables/:injectableId/activate", middleware.RequireEditor(), c.ActivateInjectable)     // EDITOR+
+		workspace.POST("/injectables/:injectableId/deactivate", middleware.RequireEditor(), c.DeactivateInjectable) // EDITOR+
 	}
 }
 
@@ -644,4 +659,201 @@ func (c *WorkspaceController) DeleteTag(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// --- Injectable Handlers ---
+
+// ListWorkspaceInjectables lists all injectables owned by the current workspace.
+// @Summary List workspace injectables
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Success 200 {object} dto.ListWorkspaceInjectablesResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables [get]
+func (c *WorkspaceController) ListWorkspaceInjectables(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	injectables, err := c.workspaceInjectableUC.ListInjectables(ctx.Request.Context(), workspaceID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, c.injectableMapper.ToWorkspaceListResponse(injectables))
+}
+
+// CreateWorkspaceInjectable creates a new injectable in the current workspace.
+// @Summary Create workspace injectable
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param request body dto.CreateWorkspaceInjectableRequest true "Injectable data"
+// @Success 201 {object} dto.WorkspaceInjectableResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables [post]
+func (c *WorkspaceController) CreateWorkspaceInjectable(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	var req dto.CreateWorkspaceInjectableRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := usecase.CreateWorkspaceInjectableCommand{
+		WorkspaceID:  workspaceID,
+		Key:          req.Key,
+		Label:        req.Label,
+		Description:  req.Description,
+		DefaultValue: req.DefaultValue,
+		Metadata:     req.Metadata,
+	}
+
+	injectable, err := c.workspaceInjectableUC.CreateInjectable(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, c.injectableMapper.ToWorkspaceResponse(injectable))
+}
+
+// GetWorkspaceInjectable retrieves an injectable by ID.
+// @Summary Get workspace injectable
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param injectableId path string true "Injectable ID"
+// @Success 200 {object} dto.WorkspaceInjectableResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables/{injectableId} [get]
+func (c *WorkspaceController) GetWorkspaceInjectable(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	injectableID := ctx.Param("injectableId")
+
+	injectable, err := c.workspaceInjectableUC.GetInjectable(ctx.Request.Context(), injectableID, workspaceID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, c.injectableMapper.ToWorkspaceResponse(injectable))
+}
+
+// UpdateWorkspaceInjectable updates an injectable.
+// @Summary Update workspace injectable
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param injectableId path string true "Injectable ID"
+// @Param request body dto.UpdateWorkspaceInjectableRequest true "Injectable data"
+// @Success 200 {object} dto.WorkspaceInjectableResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables/{injectableId} [put]
+func (c *WorkspaceController) UpdateWorkspaceInjectable(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	injectableID := ctx.Param("injectableId")
+
+	var req dto.UpdateWorkspaceInjectableRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := usecase.UpdateWorkspaceInjectableCommand{
+		ID:           injectableID,
+		WorkspaceID:  workspaceID,
+		Key:          req.Key,
+		Label:        req.Label,
+		Description:  req.Description,
+		DefaultValue: req.DefaultValue,
+		Metadata:     req.Metadata,
+	}
+
+	injectable, err := c.workspaceInjectableUC.UpdateInjectable(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, c.injectableMapper.ToWorkspaceResponse(injectable))
+}
+
+// DeleteWorkspaceInjectable soft-deletes an injectable.
+// @Summary Delete workspace injectable
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param injectableId path string true "Injectable ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables/{injectableId} [delete]
+func (c *WorkspaceController) DeleteWorkspaceInjectable(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	injectableID := ctx.Param("injectableId")
+
+	if err := c.workspaceInjectableUC.DeleteInjectable(ctx.Request.Context(), injectableID, workspaceID); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// ActivateInjectable activates an injectable.
+// @Summary Activate injectable
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param injectableId path string true "Injectable ID"
+// @Success 200 {object} dto.WorkspaceInjectableResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables/{injectableId}/activate [post]
+func (c *WorkspaceController) ActivateInjectable(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	injectableID := ctx.Param("injectableId")
+
+	injectable, err := c.workspaceInjectableUC.ActivateInjectable(ctx.Request.Context(), injectableID, workspaceID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, c.injectableMapper.ToWorkspaceResponse(injectable))
+}
+
+// DeactivateInjectable deactivates an injectable.
+// @Summary Deactivate injectable
+// @Tags Injectables
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param injectableId path string true "Injectable ID"
+// @Success 200 {object} dto.WorkspaceInjectableResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/workspace/injectables/{injectableId}/deactivate [post]
+func (c *WorkspaceController) DeactivateInjectable(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	injectableID := ctx.Param("injectableId")
+
+	injectable, err := c.workspaceInjectableUC.DeactivateInjectable(ctx.Request.Context(), injectableID, workspaceID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, c.injectableMapper.ToWorkspaceResponse(injectable))
 }

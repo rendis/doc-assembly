@@ -35,6 +35,8 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Injectabl
 		&injectable.DataType,
 		&injectable.SourceType,
 		&injectable.Metadata,
+		&injectable.IsActive,
+		&injectable.IsDeleted,
 		&injectable.CreatedAt,
 		&injectable.UpdatedAt,
 	)
@@ -68,6 +70,8 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string) ([
 			&injectable.DataType,
 			&injectable.SourceType,
 			&injectable.Metadata,
+			&injectable.IsActive,
+			&injectable.IsDeleted,
 			&injectable.CreatedAt,
 			&injectable.UpdatedAt,
 		); err != nil {
@@ -103,6 +107,8 @@ func (r *Repository) FindGlobal(ctx context.Context) ([]*entity.InjectableDefini
 			&injectable.DataType,
 			&injectable.SourceType,
 			&injectable.Metadata,
+			&injectable.IsActive,
+			&injectable.IsDeleted,
 			&injectable.CreatedAt,
 			&injectable.UpdatedAt,
 		); err != nil {
@@ -141,6 +147,8 @@ func (r *Repository) FindByKey(ctx context.Context, workspaceID *string, key str
 		&injectable.DataType,
 		&injectable.SourceType,
 		&injectable.Metadata,
+		&injectable.IsActive,
+		&injectable.IsDeleted,
 		&injectable.CreatedAt,
 		&injectable.UpdatedAt,
 	)

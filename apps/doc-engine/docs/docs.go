@@ -3910,6 +3910,345 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/workspace/injectables": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "List workspace injectables",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "Create workspace injectable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Injectable data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/workspace/injectables/{injectableId}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "Get workspace injectable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Injectable ID",
+                        "name": "injectableId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "Update workspace injectable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Injectable ID",
+                        "name": "injectableId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Injectable data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "Delete workspace injectable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Injectable ID",
+                        "name": "injectableId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/workspace/injectables/{injectableId}/activate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "Activate injectable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Injectable ID",
+                        "name": "injectableId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/workspace/injectables/{injectableId}/deactivate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Injectables"
+                ],
+                "summary": "Deactivate injectable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Injectable ID",
+                        "name": "injectableId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/workspace/members": {
             "get": {
                 "consumes": [
@@ -4713,6 +5052,36 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest": {
+            "type": "object",
+            "required": [
+                "defaultValue",
+                "key",
+                "label"
+            ],
+            "properties": {
+                "defaultValue": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "label": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceRequest": {
             "type": "object",
             "required": [
@@ -5098,6 +5467,20 @@ const docTemplate = `{
                 },
                 "offset": {
                     "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                    }
                 },
                 "total": {
                     "type": "integer"
@@ -6097,6 +6480,31 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest": {
+            "type": "object",
+            "properties": {
+                "defaultValue": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "label": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceRequest": {
             "type": "object",
             "required": [
@@ -6127,6 +6535,48 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "dataType": {
+                    "type": "string"
+                },
+                "defaultValue": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "sourceType": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "workspaceId": {
                     "type": "string"
                 }
             }

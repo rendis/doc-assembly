@@ -25,6 +25,7 @@ import (
 	tenantrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_repo"
 	useraccesshistoryrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
+	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
@@ -60,6 +61,7 @@ var ProviderSet = wire.NewSet(
 
 	// Repositories - Content
 	injectablerepo.New,
+	workspaceinjectablerepo.New,
 	templaterepo.New,
 	templatetagrepo.New,
 	templateversionrepo.New,
@@ -87,6 +89,7 @@ var ProviderSet = wire.NewSet(
 
 	// Services - Content
 	service.NewInjectableService,
+	service.NewWorkspaceInjectableService,
 	service.NewTemplateService,
 	service.NewTemplateVersionService,
 

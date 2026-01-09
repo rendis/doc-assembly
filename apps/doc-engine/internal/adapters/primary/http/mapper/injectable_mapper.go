@@ -84,3 +84,47 @@ func (m *InjectableMapper) VersionInjectablesToResponse(injectables []*entity.Ve
 	}
 	return responses
 }
+
+// ToWorkspaceResponse converts a workspace injectable entity to a response DTO.
+func (m *InjectableMapper) ToWorkspaceResponse(injectable *entity.InjectableDefinition) *dto.WorkspaceInjectableResponse {
+	if injectable == nil {
+		return nil
+	}
+
+	return &dto.WorkspaceInjectableResponse{
+		ID:           injectable.ID,
+		WorkspaceID:  *injectable.WorkspaceID,
+		Key:          injectable.Key,
+		Label:        injectable.Label,
+		Description:  injectable.Description,
+		DataType:     string(injectable.DataType),
+		SourceType:   string(injectable.SourceType),
+		Metadata:     injectable.Metadata,
+		DefaultValue: injectable.DefaultValue,
+		IsActive:     injectable.IsActive,
+		CreatedAt:    injectable.CreatedAt,
+		UpdatedAt:    injectable.UpdatedAt,
+	}
+}
+
+// ToWorkspaceResponseList converts a list of workspace injectable entities to response DTOs.
+func (m *InjectableMapper) ToWorkspaceResponseList(injectables []*entity.InjectableDefinition) []*dto.WorkspaceInjectableResponse {
+	if injectables == nil {
+		return []*dto.WorkspaceInjectableResponse{}
+	}
+
+	responses := make([]*dto.WorkspaceInjectableResponse, len(injectables))
+	for i, injectable := range injectables {
+		responses[i] = m.ToWorkspaceResponse(injectable)
+	}
+	return responses
+}
+
+// ToWorkspaceListResponse converts a list of workspace injectable entities to a list response DTO.
+func (m *InjectableMapper) ToWorkspaceListResponse(injectables []*entity.InjectableDefinition) *dto.ListWorkspaceInjectablesResponse {
+	items := m.ToWorkspaceResponseList(injectables)
+	return &dto.ListWorkspaceInjectablesResponse{
+		Items: items,
+		Total: len(items),
+	}
+}

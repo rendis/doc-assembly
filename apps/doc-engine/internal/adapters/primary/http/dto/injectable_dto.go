@@ -26,6 +26,46 @@ type ListInjectablesResponse struct {
 	Total int                   `json:"total"`
 }
 
+// WorkspaceInjectableResponse represents a workspace-owned injectable in API responses.
+type WorkspaceInjectableResponse struct {
+	ID           string         `json:"id"`
+	WorkspaceID  string         `json:"workspaceId"`
+	Key          string         `json:"key"`
+	Label        string         `json:"label"`
+	Description  string         `json:"description,omitempty"`
+	DataType     string         `json:"dataType"`
+	SourceType   string         `json:"sourceType"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
+	DefaultValue *string        `json:"defaultValue,omitempty"`
+	IsActive     bool           `json:"isActive"`
+	CreatedAt    time.Time      `json:"createdAt"`
+	UpdatedAt    *time.Time     `json:"updatedAt,omitempty"`
+}
+
+// ListWorkspaceInjectablesResponse represents the list of workspace injectables.
+type ListWorkspaceInjectablesResponse struct {
+	Items []*WorkspaceInjectableResponse `json:"items"`
+	Total int                            `json:"total"`
+}
+
+// CreateWorkspaceInjectableRequest represents the request to create a workspace injectable.
+type CreateWorkspaceInjectableRequest struct {
+	Key          string         `json:"key" binding:"required,min=1,max=100"`
+	Label        string         `json:"label" binding:"required,min=1,max=255"`
+	Description  string         `json:"description,omitempty"`
+	DefaultValue string         `json:"defaultValue" binding:"required"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
+}
+
+// UpdateWorkspaceInjectableRequest represents the request to update a workspace injectable.
+type UpdateWorkspaceInjectableRequest struct {
+	Key          *string        `json:"key,omitempty" binding:"omitempty,min=1,max=100"`
+	Label        *string        `json:"label,omitempty" binding:"omitempty,min=1,max=255"`
+	Description  *string        `json:"description,omitempty"`
+	DefaultValue *string        `json:"defaultValue,omitempty"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
+}
+
 // TemplateResponse represents a template in API responses (metadata only).
 type TemplateResponse struct {
 	ID              string     `json:"id"`

@@ -109,6 +109,9 @@ var (
 	ErrInvalidInjectableKey       = errors.New("invalid injectable key")
 	ErrInvalidDataType            = errors.New("invalid injectable data type")
 	ErrTemplateInjectableNotFound = errors.New("template injectable not found")
+	ErrOnlyTextTypeAllowed        = errors.New("only TEXT type injectables can be created by workspaces")
+	ErrWorkspaceIDRequired        = errors.New("workspace ID is required for this injectable")
+	ErrCannotModifyGlobal         = errors.New("cannot modify global injectable definitions")
 )
 
 // Template errors.

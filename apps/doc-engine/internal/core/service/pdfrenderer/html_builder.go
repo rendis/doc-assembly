@@ -18,11 +18,12 @@ type HTMLBuilder struct {
 // NewHTMLBuilder creates a new HTML builder.
 func NewHTMLBuilder(
 	injectables map[string]any,
+	injectableDefaults map[string]string,
 	signerRoleValues map[string]port.SignerRoleValue,
 	signerRoles []portabledoc.SignerRole,
 ) *HTMLBuilder {
 	return &HTMLBuilder{
-		converter: NewNodeConverter(injectables, signerRoleValues, signerRoles),
+		converter: NewNodeConverter(injectables, injectableDefaults, signerRoleValues, signerRoles),
 		styles:    DefaultStyles(),
 	}
 }

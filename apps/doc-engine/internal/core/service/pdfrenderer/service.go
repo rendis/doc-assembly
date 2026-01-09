@@ -37,8 +37,14 @@ func (s *Service) RenderPreview(ctx context.Context, req *port.RenderPreviewRequ
 		signerRoleValues = s.resolveSignerRoleValues(req.Document.SignerRoles, req.Injectables)
 	}
 
+	// Ensure defaults map is not nil
+	injectableDefaults := req.InjectableDefaults
+	if injectableDefaults == nil {
+		injectableDefaults = make(map[string]string)
+	}
+
 	// Build HTML from document
-	builder := NewHTMLBuilder(req.Injectables, signerRoleValues, req.Document.SignerRoles)
+	builder := NewHTMLBuilder(req.Injectables, injectableDefaults, signerRoleValues, req.Document.SignerRoles)
 	html := builder.Build(req.Document)
 
 	// Generate PDF using Chrome

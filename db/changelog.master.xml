@@ -87,6 +87,9 @@
     <!-- Injectable Definitions: Universe of variables -->
     <include file="src/content/injectable_definitions.xml"/>
 
+    <!-- Injectable Definitions: Active & Soft Delete support -->
+    <include file="src/content/injectable_definitions_soft_delete.xml"/>
+
     <!-- Templates: Document blueprints (metadata only) -->
     <include file="src/content/templates.xml"/>
 

@@ -15,6 +15,11 @@ type RenderPreviewRequest struct {
 	// Keys are variable IDs, values are the actual values.
 	Injectables map[string]any
 
+	// InjectableDefaults contains default values for injectables.
+	// Keys are variable IDs, values are the default string values.
+	// Used as fallback when Injectables doesn't contain a value.
+	InjectableDefaults map[string]string
+
 	// SignerRoleValues contains resolved values for signer roles.
 	// Keys are role IDs, values contain name and email.
 	SignerRoleValues map[string]SignerRoleValue

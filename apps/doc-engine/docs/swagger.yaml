@@ -175,6 +175,28 @@ definitions:
     required:
     - name
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest:
+    properties:
+      defaultValue:
+        type: string
+      description:
+        type: string
+      key:
+        maxLength: 100
+        minLength: 1
+        type: string
+      label:
+        maxLength: 255
+        minLength: 1
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+    required:
+    - defaultValue
+    - key
+    - label
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceRequest:
     properties:
       name:
@@ -429,6 +451,15 @@ definitions:
         type: integer
       offset:
         type: integer
+      total:
+        type: integer
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse'
+        type: array
       total:
         type: integer
     type: object
@@ -1089,6 +1120,24 @@ definitions:
         minLength: 1
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest:
+    properties:
+      defaultValue:
+        type: string
+      description:
+        type: string
+      key:
+        maxLength: 100
+        minLength: 1
+        type: string
+      label:
+        maxLength: 255
+        minLength: 1
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceRequest:
     properties:
       name:
@@ -1110,6 +1159,34 @@ definitions:
       id:
         type: string
       status:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse:
+    properties:
+      createdAt:
+        type: string
+      dataType:
+        type: string
+      defaultValue:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      key:
+        type: string
+      label:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      sourceType:
+        type: string
+      updatedAt:
+        type: string
+      workspaceId:
         type: string
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse:
@@ -3715,6 +3792,230 @@ paths:
       summary: Get folder tree
       tags:
       - Folders
+  /api/v1/workspace/injectables:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: List workspace injectables
+      tags:
+      - Injectables
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Injectable data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Create workspace injectable
+      tags:
+      - Injectables
+  /api/v1/workspace/injectables/{injectableId}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Injectable ID
+        in: path
+        name: injectableId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Delete workspace injectable
+      tags:
+      - Injectables
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Injectable ID
+        in: path
+        name: injectableId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Get workspace injectable
+      tags:
+      - Injectables
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Injectable ID
+        in: path
+        name: injectableId
+        required: true
+        type: string
+      - description: Injectable data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Update workspace injectable
+      tags:
+      - Injectables
+  /api/v1/workspace/injectables/{injectableId}/activate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Injectable ID
+        in: path
+        name: injectableId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Activate injectable
+      tags:
+      - Injectables
+  /api/v1/workspace/injectables/{injectableId}/deactivate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Injectable ID
+        in: path
+        name: injectableId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Deactivate injectable
+      tags:
+      - Injectables
   /api/v1/workspace/members:
     get:
       consumes:

@@ -95,7 +95,10 @@ func HandleError(ctx *gin.Context, err error) {
 		errors.Is(err, entity.ErrInvalidTenantRole),
 		errors.Is(err, entity.ErrVersionDoesNotBelongToTemplate),
 		errors.Is(err, entity.ErrTargetTemplateRequired),
-		errors.Is(err, entity.ErrTargetTemplateNotInWorkspace):
+		errors.Is(err, entity.ErrTargetTemplateNotInWorkspace),
+		errors.Is(err, entity.ErrOnlyTextTypeAllowed),
+		errors.Is(err, entity.ErrWorkspaceIDRequired),
+		errors.Is(err, entity.ErrCannotModifyGlobal):
 		statusCode = http.StatusBadRequest
 
 	// 403 Forbidden - Access denied errors

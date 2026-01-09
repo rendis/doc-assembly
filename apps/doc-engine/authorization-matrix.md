@@ -182,20 +182,28 @@ Lista workspaces del tenant actual con soporte de paginación.
 | GET | `/workspace/tags/{tagId}` | Obtiene información de una etiqueta | ✅ | ✅ | ✅ | ✅ | ✅ |
 | PUT | `/workspace/tags/{tagId}` | Actualiza una etiqueta | ✅ | ✅ | ✅ | ❌ | ❌ |
 | DELETE | `/workspace/tags/{tagId}` | Elimina una etiqueta | ✅ | ✅ | ❌ | ❌ | ❌ |
+| GET | `/workspace/injectables` | Lista injectables propios del workspace | ✅ | ✅ | ✅ | ✅ | ✅ |
+| POST | `/workspace/injectables` | Crea un injectable (solo tipo TEXT) | ✅ | ✅ | ✅ | ❌ | ❌ |
+| GET | `/workspace/injectables/{injectableId}` | Obtiene un injectable del workspace | ✅ | ✅ | ✅ | ✅ | ✅ |
+| PUT | `/workspace/injectables/{injectableId}` | Actualiza un injectable | ✅ | ✅ | ✅ | ❌ | ❌ |
+| DELETE | `/workspace/injectables/{injectableId}` | Elimina un injectable (soft delete) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| POST | `/workspace/injectables/{injectableId}/activate` | Activa un injectable | ✅ | ✅ | ✅ | ❌ | ❌ |
+| POST | `/workspace/injectables/{injectableId}/deactivate` | Desactiva un injectable | ✅ | ✅ | ✅ | ❌ | ❌ |
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/workspace_controller.go`
 
-### Endpoints de Injectables (`/api/v1/content/injectables`)
+### Endpoints de Injectables - Lectura (`/api/v1/content/injectables`)
+
+> **Nota**: Estos endpoints son de solo lectura y listan todos los injectables disponibles para el workspace (globales + propios del workspace). Solo se muestran injectables activos (`is_active=true`) y no eliminados (`is_deleted=false`).
 
 | Método | Endpoint | Descripción | OWNER | ADMIN | EDITOR | OPERATOR | VIEWER |
 |--------|----------|-------------|:-----:|:-----:|:------:|:--------:|:------:|
-| GET | `/content/injectables` | Lista todas las definiciones de injectables | ✅ | ✅ | ✅ | ✅ | ✅ |
-| POST | `/content/injectables` | Crea una nueva definición de injectable | ✅ | ✅ | ✅ | ❌ | ❌ |
+| GET | `/content/injectables` | Lista injectables disponibles (globales + workspace, activos y no eliminados) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | GET | `/content/injectables/{injectableId}` | Obtiene una definición de injectable | ✅ | ✅ | ✅ | ✅ | ✅ |
-| PUT | `/content/injectables/{injectableId}` | Actualiza una definición de injectable | ✅ | ✅ | ✅ | ❌ | ❌ |
-| DELETE | `/content/injectables/{injectableId}` | Elimina una definición de injectable | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/content_injectable_controller.go`
+
+> Para crear, editar o eliminar injectables del workspace, usar los endpoints de `/workspace/injectables`.
 
 ### Endpoints de Templates (`/api/v1/content/templates`)
 

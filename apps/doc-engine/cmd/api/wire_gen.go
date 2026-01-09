@@ -23,6 +23,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
@@ -58,10 +59,12 @@ func InitializeApp() (*infra.Initializer, error) {
 	tagRepository := tagrepo.New(pool)
 	tagUseCase := service.NewTagService(tagRepository)
 	workspaceMemberUseCase := service.NewWorkspaceMemberService(workspaceMemberRepository, userRepository)
-	workspaceController := controller.NewWorkspaceController(workspaceUseCase, folderUseCase, tagUseCase, workspaceMemberUseCase)
+	workspaceInjectableRepository := workspaceinjectablerepo.New(pool)
+	workspaceInjectableUseCase := service.NewWorkspaceInjectableService(workspaceInjectableRepository)
+	injectableMapper := mapper.NewInjectableMapper()
+	workspaceController := controller.NewWorkspaceController(workspaceUseCase, folderUseCase, tagUseCase, workspaceMemberUseCase, workspaceInjectableUseCase, injectableMapper)
 	injectableRepository := injectablerepo.New(pool)
 	injectableUseCase := service.NewInjectableService(injectableRepository)
-	injectableMapper := mapper.NewInjectableMapper()
 	contentInjectableController := controller.NewContentInjectableController(injectableUseCase, injectableMapper)
 	templateRepository := templaterepo.New(pool)
 	templateVersionRepository := templateversionrepo.New(pool)

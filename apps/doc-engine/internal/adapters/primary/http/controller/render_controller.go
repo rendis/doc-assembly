@@ -9,6 +9,7 @@ import (
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/core/usecase"
@@ -89,10 +90,14 @@ func (c *RenderController) PreviewVersion(ctx *gin.Context) {
 		return
 	}
 
+	// Build injectable defaults map from version injectables
+	injectableDefaults := buildInjectableDefaults(details.Injectables)
+
 	// Render PDF
 	result, err := c.pdfRenderer.RenderPreview(ctx.Request.Context(), &port.RenderPreviewRequest{
-		Document:    doc,
-		Injectables: req.Injectables,
+		Document:           doc,
+		Injectables:        req.Injectables,
+		InjectableDefaults: injectableDefaults,
 	})
 	if err != nil {
 		slog.Error("failed to render PDF",
@@ -110,4 +115,27 @@ func (c *RenderController) PreviewVersion(ctx *gin.Context) {
 
 	// Write PDF bytes
 	ctx.Data(http.StatusOK, "application/pdf", result.PDF)
+}
+
+// buildInjectableDefaults builds a map of default values from version injectables.
+// Priority: TemplateVersionInjectable.DefaultValue > InjectableDefinition.DefaultValue
+func buildInjectableDefaults(injectables []*entity.VersionInjectableWithDefinition) map[string]string {
+	defaults := make(map[string]string)
+
+	for _, injectable := range injectables {
+		variableID := injectable.InjectableDefinitionID
+
+		// First, try template version specific default
+		if injectable.DefaultValue != nil && *injectable.DefaultValue != "" {
+			defaults[variableID] = *injectable.DefaultValue
+			continue
+		}
+
+		// Fallback to injectable definition default
+		if injectable.Definition != nil && injectable.Definition.DefaultValue != nil && *injectable.Definition.DefaultValue != "" {
+			defaults[variableID] = *injectable.Definition.DefaultValue
+		}
+	}
+
+	return defaults
 }

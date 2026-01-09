@@ -756,13 +756,23 @@ The `path` column enables efficient hierarchical queries without recursive CTEs 
 | `data_type` | injectable_data_type | NOT NULL | `TEXT`, `NUMBER`, `DATE`, `CURRENCY`, `BOOLEAN`, `IMAGE`, `TABLE` |
 | `source_type` | injectable_source_type | NOT NULL, DEFAULT 'EXTERNAL' | `INTERNAL` (system-calculated) or `EXTERNAL` (user/API input) |
 | `metadata` | JSONB | DEFAULT '{}' | Flexible configuration (format options, timezone, etc.) |
+| `default_value` | TEXT | - | Default value for this injectable (optional) |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Whether the injectable is available for use |
+| `is_deleted` | BOOLEAN | NOT NULL, DEFAULT FALSE | Soft delete flag (deletion date tracked via `updated_at`) |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
-| `updated_at` | TIMESTAMPTZ | - | Last modification |
+| `updated_at` | TIMESTAMPTZ | - | Last modification (also tracks deletion date) |
 
 **Indexes**:
 - `idx_injectable_definitions_workspace_id` - List definitions by workspace
 - `idx_injectable_definitions_data_type` - Filter by type
-- `idx_injectable_definitions_unique_key` - Unique key per scope
+- `idx_injectable_definitions_unique_key` - Unique key per scope (partial: WHERE is_deleted = FALSE)
+- `idx_injectable_definitions_is_active` - Filter by active status
+- `idx_injectable_definitions_is_deleted` - Filter by deleted status
+
+**Soft Delete**:
+- Setting `is_deleted = TRUE` allows reusing the same `key` for a new injectable
+- The `updated_at` column tracks when the record was deleted
+- Unique constraint only applies to non-deleted records
 
 **Scope Inheritance**:
 - Global definitions (workspace_id = NULL) are available to all workspaces

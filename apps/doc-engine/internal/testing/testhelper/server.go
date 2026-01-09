@@ -25,6 +25,7 @@ import (
 	tenantrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tenant_repo"
 	useraccesshistoryrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_access_history_repo"
 	userrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/user_repo"
+	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/doc-assembly/doc-engine/internal/core/service"
@@ -64,6 +65,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	templateVersionRepo := templateversionrepo.New(pool)
 	templateVersionInjectableRepo := templateversioninjectablerepo.New(pool)
 	templateVersionSignerRoleRepo := templateversionsignerrolerepo.New(pool)
+	workspaceInjectableRepo := workspaceinjectablerepo.New(pool)
 
 	// Create services - Identity & Tenancy
 	tenantService := service.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
@@ -74,6 +76,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	tagService := service.NewTagService(tagRepo)
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
 	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo)
+	workspaceInjectableService := service.NewWorkspaceInjectableService(workspaceInjectableRepo)
 
 	// Create content validator
 	contentValidator := contentvalidator.New(injectableRepo)
@@ -97,6 +100,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	tagMapper := mapper.NewTagMapper()
 	folderMapper := mapper.NewFolderMapper()
 	templateMapper := mapper.NewTemplateMapper(templateVersionMapper, tagMapper, folderMapper)
+	workspaceInjectableMapper := mapper.NewInjectableMapper()
 
 	// Create middleware provider
 	middlewareProvider := middleware.NewProvider(
@@ -111,7 +115,14 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	adminController := controller.NewAdminController(tenantService, systemRoleService)
 	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo, userAccessHistoryService)
 	tenantController := controller.NewTenantController(tenantService, workspaceService, tenantMemberService)
-	workspaceController := controller.NewWorkspaceController(workspaceService, folderService, tagService, workspaceMemberService)
+	workspaceController := controller.NewWorkspaceController(
+		workspaceService,
+		folderService,
+		tagService,
+		workspaceMemberService,
+		workspaceInjectableService,
+		workspaceInjectableMapper,
+	)
 
 	// Create controllers - Content
 	// Note: RenderController is nil for tests (no PDF renderer configured)
