@@ -93,6 +93,7 @@ type TemplateListItemResponse struct {
 	IsPublicLibrary        bool                 `json:"isPublicLibrary"`
 	HasPublishedVersion    bool                 `json:"hasPublishedVersion"`
 	VersionCount           int                  `json:"versionCount"`
+	ScheduledVersionCount  int                  `json:"scheduledVersionCount"`
 	PublishedVersionNumber *int                 `json:"publishedVersionNumber,omitempty"`
 	Tags                   []*TagSimpleResponse `json:"tags"`
 	CreatedAt              time.Time            `json:"createdAt"`

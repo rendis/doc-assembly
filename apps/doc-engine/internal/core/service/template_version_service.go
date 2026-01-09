@@ -311,6 +311,18 @@ func (s *TemplateVersionService) SchedulePublish(ctx context.Context, cmd usecas
 		return err
 	}
 
+	// Get template to obtain workspace ID for validation
+	template, err := s.templateRepo.FindByID(ctx, version.TemplateID)
+	if err != nil {
+		return fmt.Errorf("finding template: %w", err)
+	}
+
+	// Validate content for publishing (same validation as PublishVersion)
+	result := s.contentValidator.ValidateForPublish(ctx, template.WorkspaceID, version.ID, version.ContentStructure)
+	if !result.Valid {
+		return toContentValidationError(result)
+	}
+
 	// Check for scheduling conflict at the same time
 	conflict, err := s.versionRepo.ExistsScheduledAtTime(ctx, version.TemplateID, cmd.PublishAt, &cmd.VersionID)
 	if err != nil {

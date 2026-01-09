@@ -1,43 +1,44 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { useTranslation } from 'react-i18next'
-import axios from 'axios'
-import {
-  ArrowLeft,
-  Plus,
-  FolderOpen,
-  Calendar,
-  Clock,
-  FileText,
-  Layers,
-  Pencil,
-} from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/use-toast'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { usePageTransitionStore } from '@/stores/page-transition-store'
 import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useVersionHighlightStore } from '@/stores/version-highlight-store'
+import type { TemplateVersionSummaryResponse } from '@/types/api'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import axios from 'axios'
+import { motion } from 'framer-motion'
 import {
-  useTemplateWithVersions,
-  usePublishVersion,
-  useSchedulePublishVersion,
-  useCancelSchedule,
-  useArchiveVersion,
+    ArrowLeft,
+    Calendar,
+    Clock,
+    FileText,
+    FolderOpen,
+    Layers,
+    Pencil,
+    Plus,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { PromoteVersionResponse } from '../api/templates-api'
+import {
+    usePublishVersion,
+    useSchedulePublishVersion,
+    useTemplateWithVersions,
 } from '../hooks/useTemplateDetail'
 import { useUpdateTemplate } from '../hooks/useTemplates'
-import { VersionListItem } from './VersionListItem'
+import { ArchiveVersionDialog } from './ArchiveVersionDialog'
+import { CancelScheduleDialog } from './CancelScheduleDialog'
 import { CreateVersionDialog } from './CreateVersionDialog'
-import { PublishVersionDialog } from './PublishVersionDialog'
-import { SchedulePublishDialog } from './SchedulePublishDialog'
-import { PromoteVersionDialog } from './PromoteVersionDialog'
-import { ValidationErrorsDialog, type ValidationResponse } from './ValidationErrorsDialog'
-import { EditTagsDialog } from './EditTagsDialog'
 import { DeleteVersionDialog } from './DeleteVersionDialog'
 import { EditableTitle } from './EditableTitle'
+import { EditTagsDialog } from './EditTagsDialog'
+import { PromoteVersionDialog } from './PromoteVersionDialog'
+import { PublishVersionDialog } from './PublishVersionDialog'
+import { SchedulePublishDialog } from './SchedulePublishDialog'
 import { TagBadge } from './TagBadge'
-import { Skeleton } from '@/components/ui/skeleton'
-import type { TemplateVersionSummaryResponse } from '@/types/api'
-import type { PromoteVersionResponse } from '../api/templates-api'
+import { ValidationErrorsDialog, type ValidationResponse } from './ValidationErrorsDialog'
+import { VersionListItem } from './VersionListItem'
 
 function formatDate(dateString?: string): string {
   if (!dateString) return '-'
@@ -57,6 +58,7 @@ export function TemplateDetailPage() {
   })
   const { currentWorkspace } = useAppContextStore()
   const { t } = useTranslation()
+  const { toast } = useToast()
   const navigate = useNavigate()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -69,6 +71,10 @@ export function TemplateDetailPage() {
   const [selectedVersion, setSelectedVersion] = useState<TemplateVersionSummaryResponse | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<TemplateVersionSummaryResponse | null>(null)
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
+  const [versionToArchive, setVersionToArchive] = useState<TemplateVersionSummaryResponse | null>(null)
+  const [cancelScheduleDialogOpen, setCancelScheduleDialogOpen] = useState(false)
+  const [versionToCancelSchedule, setVersionToCancelSchedule] = useState<TemplateVersionSummaryResponse | null>(null)
 
   // Sandbox mode and highlight
   const { isSandboxActive, disableSandbox } = useSandboxMode()
@@ -81,8 +87,6 @@ export function TemplateDetailPage() {
   // Version action mutations
   const publishVersion = usePublishVersion(templateId)
   const schedulePublishVersion = useSchedulePublishVersion(templateId)
-  const cancelSchedule = useCancelSchedule(templateId)
-  const archiveVersion = useArchiveVersion(templateId)
 
   const handleTitleSave = async (newTitle: string) => {
     await updateTemplate.mutateAsync({
@@ -212,20 +216,46 @@ export function TemplateDetailPage() {
 
   const handleScheduleConfirm = async (publishAt: string) => {
     if (!selectedVersion) return
-    await schedulePublishVersion.mutateAsync({
-      versionId: selectedVersion.id,
-      publishAt,
-    })
-    setScheduleDialogOpen(false)
-    setSelectedVersion(null)
+    try {
+      await schedulePublishVersion.mutateAsync({
+        versionId: selectedVersion.id,
+        publishAt,
+      })
+      setScheduleDialogOpen(false)
+      setSelectedVersion(null)
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        const errorData = error.response.data as { error?: string }
+        if (errorData.error === 'another version is already scheduled at this time') {
+          toast({
+            variant: 'destructive',
+            title: t('templates.scheduleDialog.error.conflictTitle', 'Scheduling Conflict'),
+            description: t('templates.scheduleDialog.error.conflictDescription', 'Another version is already scheduled at this time.'),
+          })
+          return
+        }
+      }
+      if (axios.isAxiosError(error) && error.response?.status === 422) {
+        const validation = error.response.data?.validation as ValidationResponse | undefined
+        if (validation) {
+          setValidationErrors(validation)
+          setScheduleDialogOpen(false)
+          setValidationDialogOpen(true)
+          return
+        }
+      }
+      throw error
+    }
   }
 
-  const handleCancelSchedule = async (version: TemplateVersionSummaryResponse) => {
-    await cancelSchedule.mutateAsync(version.id)
+  const handleCancelSchedule = (version: TemplateVersionSummaryResponse) => {
+    setVersionToCancelSchedule(version)
+    setCancelScheduleDialogOpen(true)
   }
 
-  const handleArchive = async (version: TemplateVersionSummaryResponse) => {
-    await archiveVersion.mutateAsync(version.id)
+  const handleArchive = (version: TemplateVersionSummaryResponse) => {
+    setVersionToArchive(version)
+    setArchiveDialogOpen(true)
   }
 
   const handleDelete = (version: TemplateVersionSummaryResponse) => {
@@ -547,6 +577,22 @@ export function TemplateDetailPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         version={versionToDelete}
+        templateId={templateId}
+      />
+
+      {/* Archive Version Dialog */}
+      <ArchiveVersionDialog
+        open={archiveDialogOpen}
+        onOpenChange={setArchiveDialogOpen}
+        version={versionToArchive}
+        templateId={templateId}
+      />
+
+      {/* Cancel Schedule Dialog */}
+      <CancelScheduleDialog
+        open={cancelScheduleDialogOpen}
+        onOpenChange={setCancelScheduleDialogOpen}
+        version={versionToCancelSchedule}
         templateId={templateId}
       />
 

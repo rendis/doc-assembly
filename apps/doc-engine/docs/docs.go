@@ -5917,6 +5917,9 @@ const docTemplate = `{
                 "publishedVersionNumber": {
                     "type": "integer"
                 },
+                "scheduledVersionCount": {
+                    "type": "integer"
+                },
                 "tags": {
                     "type": "array",
                     "items": {

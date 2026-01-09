@@ -254,10 +254,10 @@ export function TemplatesPage() {
                 <th className="w-[15%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
                   {t('templates.columns.status', 'Status')}
                 </th>
-                <th className="w-[20%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                <th className="w-[15%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
                   {t('templates.columns.lastModified', 'Last Modified')}
                 </th>
-                <th className="w-[10%] border-b border-border py-4 pr-4 text-right font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                <th className="w-[10%] border-b border-border py-4 pr-4 text-center font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
                   {t('templates.columns.action', 'Action')}
                 </th>
               </tr>

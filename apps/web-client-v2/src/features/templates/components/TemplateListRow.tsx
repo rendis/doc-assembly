@@ -1,4 +1,4 @@
-import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash, Layers, Check } from 'lucide-react'
+import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash, Layers, Check, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { TemplateListItem } from '@/types/api'
 
 interface TemplateListRowProps {
@@ -121,10 +126,36 @@ export function TemplateListRow({
 
           {/* Versión publicada (solo si existe) */}
           {template.hasPublishedVersion && template.publishedVersionNumber && (
-            <span className="inline-flex items-center gap-1 border border-green-500/50 bg-green-500/10 px-1.5 py-0.5 text-green-600 dark:text-green-400">
-              <Check size={12} />
-              <span className="font-mono text-[10px]">v{template.publishedVersionNumber}</span>
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 border border-green-500/50 bg-green-500/10 px-1.5 py-0.5 text-green-600 dark:text-green-400">
+                  <Check size={12} />
+                  <span className="font-mono text-[10px]">v{template.publishedVersionNumber}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {t('templates.tooltips.publishedVersion', 'Versión publicada: v{{version}}', {
+                  version: template.publishedVersionNumber,
+                })}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Versiones programadas (solo si hay) */}
+          {template.scheduledVersionCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 border border-blue-500/50 bg-blue-500/10 px-1.5 py-0.5 text-blue-600 dark:text-blue-400">
+                  <Clock size={12} />
+                  <span className="font-mono text-[10px]">{template.scheduledVersionCount}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {t('templates.tooltips.scheduledVersions', '{{count}} versión(es) programada(s) para publicar', {
+                  count: template.scheduledVersionCount,
+                })}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </td>
@@ -147,7 +178,7 @@ export function TemplateListRow({
       <td className="border-b border-border py-6 pt-8 align-top font-mono text-sm text-muted-foreground">
         {formatDate(template.updatedAt)}
       </td>
-      <td className="border-b border-border py-6 pt-7 pr-4 text-right align-top">
+      <td className="border-b border-border py-6 pt-7 pr-4 text-center align-top">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

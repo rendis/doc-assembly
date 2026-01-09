@@ -167,6 +167,7 @@ export interface TemplateListItem extends Template {
   hasPublishedVersion: boolean
   publishedVersionNumber?: number
   versionCount: number
+  scheduledVersionCount: number
 }
 
 export interface TemplateWithVersions extends Template {

@@ -357,6 +357,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 			&item.UpdatedAt,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
+			&item.ScheduledVersionCount,
 			&item.PublishedVersionNumber,
 		); err != nil {
 			return nil, fmt.Errorf("scanning template: %w", err)
@@ -397,6 +398,7 @@ func (r *Repository) FindByFolder(ctx context.Context, folderID string) ([]*enti
 			&item.UpdatedAt,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
+			&item.ScheduledVersionCount,
 			&item.PublishedVersionNumber,
 		); err != nil {
 			return nil, fmt.Errorf("scanning template: %w", err)
@@ -437,6 +439,7 @@ func (r *Repository) FindPublicLibrary(ctx context.Context, workspaceID string) 
 			&item.UpdatedAt,
 			&item.HasPublishedVersion,
 			&item.VersionCount,
+			&item.ScheduledVersionCount,
 			&item.PublishedVersionNumber,
 		); err != nil {
 			return nil, fmt.Errorf("scanning template: %w", err)

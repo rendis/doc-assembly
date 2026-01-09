@@ -10,6 +10,8 @@
     "saving": "Guardando...",
     "delete": "Eliminar",
     "deleting": "Eliminando...",
+    "archiving": "Archivando...",
+    "cancelling": "Cancelando...",
     "edit": "Editar",
     "create": "Crear",
     "creating": "Creando...",
@@ -143,6 +145,7 @@
     "columns": {
       "name": "Nombre de Plantilla",
       "versions": "Versiones",
+      "scheduled": "Programadas",
       "status": "Estado",
       "lastModified": "Última Modificación",
       "action": "Acción"
@@ -238,6 +241,16 @@
       "message": "¿Estás seguro de que deseas eliminar la versión {{version}}? Esta acción no se puede deshacer.",
       "confirm": "Eliminar"
     },
+    "versionArchiveDialog": {
+      "title": "Archivar Versión",
+      "message": "¿Estás seguro de que deseas archivar la versión {{version}}? Esta acción no se puede deshacer.",
+      "confirm": "Archivar"
+    },
+    "versionCancelScheduleDialog": {
+      "title": "Cancelar Publicación Agendada",
+      "message": "¿Estás seguro de que deseas cancelar la publicación agendada de la versión {{version}}?",
+      "confirm": "Cancelar Programación"
+    },
     "versions": {
       "actions": {
         "promote": "Promover a Producción",
@@ -285,6 +298,10 @@
       "timeLabel": "Hora de Publicación",
       "info": "La versión se publicará automáticamente en el horario programado. Puedes cancelar en cualquier momento antes.",
       "confirm": "Programar"
+    },
+    "tooltips": {
+      "publishedVersion": "Versión publicada: v{{version}}",
+      "scheduledVersions": "{{count}} versión(es) programada(s) para publicar"
     }
   },
   "documents": {

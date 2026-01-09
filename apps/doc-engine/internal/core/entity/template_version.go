@@ -69,6 +69,9 @@ func (tv *TemplateVersion) CanEdit() error {
 	if tv.IsArchived() {
 		return ErrCannotEditArchived
 	}
+	if tv.IsScheduled() {
+		return ErrCannotEditScheduled
+	}
 	return nil
 }
 

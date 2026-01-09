@@ -10,6 +10,8 @@
     "saving": "Saving...",
     "delete": "Delete",
     "deleting": "Deleting...",
+    "archiving": "Archiving...",
+    "cancelling": "Cancelling...",
     "edit": "Edit",
     "create": "Create",
     "creating": "Creating...",
@@ -143,6 +145,7 @@
     "columns": {
       "name": "Template Name",
       "versions": "Versions",
+      "scheduled": "Scheduled",
       "status": "Status",
       "lastModified": "Last Modified",
       "action": "Action"
@@ -238,6 +241,16 @@
       "message": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
       "confirm": "Delete"
     },
+    "versionArchiveDialog": {
+      "title": "Archive Version",
+      "message": "Are you sure you want to archive version {{version}}? This action cannot be undone.",
+      "confirm": "Archive"
+    },
+    "versionCancelScheduleDialog": {
+      "title": "Cancel Scheduled Publication",
+      "message": "Are you sure you want to cancel the scheduled publication of version {{version}}?",
+      "confirm": "Cancel Schedule"
+    },
     "versions": {
       "actions": {
         "promote": "Promote to Production",
@@ -285,6 +298,10 @@
       "timeLabel": "Publish Time",
       "info": "The version will be published automatically at the scheduled time. You can cancel anytime before then.",
       "confirm": "Schedule"
+    },
+    "tooltips": {
+      "publishedVersion": "Published version: v{{version}}",
+      "scheduledVersions": "{{count}} version(s) scheduled to publish"
     }
   },
   "documents": {

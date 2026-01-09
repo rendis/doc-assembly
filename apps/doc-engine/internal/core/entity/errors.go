@@ -129,6 +129,7 @@ var (
 	ErrVersionAlreadyPublished         = errors.New("version is already published")
 	ErrCannotEditPublished             = errors.New("cannot edit published version")
 	ErrCannotEditArchived              = errors.New("cannot edit archived version")
+	ErrCannotEditScheduled             = errors.New("cannot edit scheduled version")
 	ErrNoPublishedVersion              = errors.New("template has no published version")
 	ErrCannotArchiveWithoutReplacement = errors.New("cannot schedule archive without scheduled replacement")
 	ErrInvalidVersionStatus            = errors.New("invalid version status")

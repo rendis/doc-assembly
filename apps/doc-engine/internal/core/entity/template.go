@@ -56,6 +56,7 @@ type TemplateListItem struct {
 	Tags                   []*Tag     `json:"tags"`
 	HasPublishedVersion    bool       `json:"hasPublishedVersion"`
 	VersionCount           int        `json:"versionCount"`
+	ScheduledVersionCount  int        `json:"scheduledVersionCount"`
 	PublishedVersionNumber *int       `json:"publishedVersionNumber,omitempty"`
 	CreatedAt              time.Time  `json:"createdAt"`
 	UpdatedAt              *time.Time `json:"updatedAt,omitempty"`

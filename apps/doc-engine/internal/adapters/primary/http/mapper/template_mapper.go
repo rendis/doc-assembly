@@ -54,6 +54,7 @@ func (m *TemplateMapper) ToListItemResponse(item *entity.TemplateListItem) *dto.
 		IsPublicLibrary:        item.IsPublicLibrary,
 		HasPublishedVersion:    item.HasPublishedVersion,
 		VersionCount:           item.VersionCount,
+		ScheduledVersionCount:  item.ScheduledVersionCount,
 		PublishedVersionNumber: item.PublishedVersionNumber,
 		Tags:                   m.toSimpleTagList(item.Tags),
 		CreatedAt:              item.CreatedAt,

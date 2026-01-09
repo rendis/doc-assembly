@@ -746,6 +746,8 @@ definitions:
         type: boolean
       publishedVersionNumber:
         type: integer
+      scheduledVersionCount:
+        type: integer
       tags:
         items:
           $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse'
