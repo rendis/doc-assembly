@@ -889,7 +889,8 @@
     "deleteDialog": {
       "title": "Delete Variable",
       "message": "Are you sure you want to delete the variable \"{{name}}\"? This action cannot be undone."
-    }
+    },
+    "sandboxWarning": "Variables are shared between sandbox mode and production mode. Changes you make here will affect both modes."
   },
   "admin": {
     "title": "Administration",

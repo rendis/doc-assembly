@@ -1,22 +1,24 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Plus, Variable } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { useAppContextStore } from '@/stores/app-context-store'
-import { useWorkspaceInjectables } from '../hooks/useWorkspaceInjectables'
+import { Skeleton } from '@/components/ui/skeleton'
 import { usePermission } from '@/features/auth/hooks/usePermission'
 import { Permission } from '@/features/auth/rbac/rules'
-import { InjectablesTable } from './InjectablesTable'
-import { CreateInjectableDialog } from './CreateInjectableDialog'
-import { EditInjectableDialog } from './EditInjectableDialog'
-import { DeleteInjectableDialog } from './DeleteInjectableDialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { useSandboxMode } from '@/stores/sandbox-mode-store'
+import { motion } from 'framer-motion'
+import { AlertTriangle, Plus, Variable } from 'lucide-react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useWorkspaceInjectables } from '../hooks/useWorkspaceInjectables'
 import type { WorkspaceInjectable } from '../types'
+import { CreateInjectableDialog } from './CreateInjectableDialog'
+import { DeleteInjectableDialog } from './DeleteInjectableDialog'
+import { EditInjectableDialog } from './EditInjectableDialog'
+import { InjectablesTable } from './InjectablesTable'
 
 export function VariablesPage(): React.ReactElement {
   const { t } = useTranslation()
   const { currentWorkspace } = useAppContextStore()
   const { hasPermission } = usePermission()
+  const { isSandboxActive } = useSandboxMode()
 
   const canCreate = hasPermission(Permission.INJECTABLE_CREATE)
 
@@ -64,6 +66,19 @@ export function VariablesPage(): React.ReactElement {
           )}
         </div>
       </header>
+
+      {/* Sandbox Warning */}
+      {isSandboxActive && (
+        <div className="mx-4 mb-6 flex gap-3 border border-warning-border bg-warning-muted p-4 md:mx-6 lg:mx-6">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" />
+          <p className="font-mono text-xs leading-relaxed text-warning-foreground">
+            {t(
+              'variables.sandboxWarning',
+              'Variables are shared between sandbox mode and production mode. Changes you make here will affect both modes.'
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-12 md:px-6 lg:px-6">

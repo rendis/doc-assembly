@@ -889,7 +889,8 @@
     "deleteDialog": {
       "title": "Eliminar Variable",
       "message": "¿Estás seguro de que deseas eliminar la variable \"{{name}}\"? Esta acción no se puede deshacer."
-    }
+    },
+    "sandboxWarning": "Las variables son compartidas entre modo sandbox y modo producción. Los cambios que realices aquí afectarán ambos modos."
   },
   "admin": {
     "title": "Administración",
