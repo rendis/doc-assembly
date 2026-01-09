@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from '@tanstack/react-router'
-import { X } from 'lucide-react'
-import { Dialog, BaseDialogContent, DialogClose, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { useCloneVersion } from '../hooks/useTemplateDetail'
+import { BaseDialogContent, Dialog, DialogClose, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useAppContextStore } from '@/stores/app-context-store'
 import type { TemplateVersionSummaryResponse } from '@/types/api'
+import { useNavigate } from '@tanstack/react-router'
+import { X } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useCloneVersion } from '../hooks/useTemplateDetail'
 
 interface CloneVersionDialogProps {
   open: boolean

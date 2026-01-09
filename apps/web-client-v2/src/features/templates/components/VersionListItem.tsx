@@ -1,24 +1,24 @@
-import { useTranslation } from 'react-i18next'
 import {
-  Clock,
-  CalendarCheck,
-  Archive,
-  ExternalLink,
-  CalendarClock,
-  Send,
-  Calendar,
-  XCircle,
-  Trash2,
-  ArrowUpRight,
-  Copy,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import type { TemplateVersionSummaryResponse } from '@/types/api'
+import {
+    Archive,
+    ArrowUpRight,
+    Calendar,
+    CalendarCheck,
+    CalendarClock,
+    Clock,
+    Copy,
+    ExternalLink,
+    Send,
+    Trash2,
+    XCircle,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { VersionStatusBadge } from './VersionStatusBadge'
 
 interface VersionListItemProps {

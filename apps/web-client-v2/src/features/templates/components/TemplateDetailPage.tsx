@@ -130,11 +130,71 @@ export function TemplateDetailPage() {
   // Check if we have cached data (to avoid skeleton flash)
   const hasCachedData = !!template
 
-  // Sort versions by version number descending (newest first)
+  // Sort versions according to business rules:
+  // 1. Published version first
+  // 2. Scheduled versions (by scheduledPublishAt ascending)
+  // 3. Draft versions (by updatedAt descending)
+  // 4. Archived versions (by updatedAt descending)
   const versions = template?.versions
   const sortedVersions = useMemo(() => {
-    if (!versions) return []
-    return [...versions].sort((a, b) => b.versionNumber - a.versionNumber)
+    if (!versions || versions.length === 0) return []
+    
+    // Helper function to get sort date for drafts and archived
+    const getSortDate = (version: typeof versions[0]): number => {
+      if (version.updatedAt) {
+        return new Date(version.updatedAt).getTime()
+      }
+      // Fallback to createdAt if updatedAt is not available
+      return new Date(version.createdAt).getTime()
+    }
+    
+    // Separate versions by status
+    const published: typeof versions = []
+    const scheduled: typeof versions = []
+    const drafts: typeof versions = []
+    const archived: typeof versions = []
+    
+    for (const version of versions) {
+      if (version.status === 'PUBLISHED') {
+        published.push(version)
+      } else if (version.status === 'SCHEDULED') {
+        scheduled.push(version)
+      } else if (version.status === 'DRAFT') {
+        drafts.push(version)
+      } else if (version.status === 'ARCHIVED') {
+        archived.push(version)
+      }
+    }
+    
+    // Sort scheduled by scheduledPublishAt ascending (earliest first)
+    scheduled.sort((a, b) => {
+      if (!a.scheduledPublishAt && !b.scheduledPublishAt) return 0
+      if (!a.scheduledPublishAt) return 1 // Versions without scheduledPublishAt go to end
+      if (!b.scheduledPublishAt) return -1
+      const dateA = new Date(a.scheduledPublishAt).getTime()
+      const dateB = new Date(b.scheduledPublishAt).getTime()
+      if (isNaN(dateA) || isNaN(dateB)) return 0
+      return dateA - dateB
+    })
+    
+    // Sort drafts by updatedAt descending (most recent first)
+    drafts.sort((a, b) => {
+      const dateA = getSortDate(a)
+      const dateB = getSortDate(b)
+      if (isNaN(dateA) || isNaN(dateB)) return 0
+      return dateB - dateA
+    })
+    
+    // Sort archived by updatedAt descending (most recent first)
+    archived.sort((a, b) => {
+      const dateA = getSortDate(a)
+      const dateB = getSortDate(b)
+      if (isNaN(dateA) || isNaN(dateB)) return 0
+      return dateB - dateA
+    })
+    
+    // Concatenate in the required order
+    return [...published, ...scheduled, ...drafts, ...archived]
   }, [versions])
 
   const handleBackToList = () => {

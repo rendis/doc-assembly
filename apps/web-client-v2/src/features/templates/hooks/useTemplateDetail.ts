@@ -1,11 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { CreateVersionFromExistingRequest, CreateVersionRequest } from '@/types/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  fetchTemplateWithVersions,
-  createVersion,
-  createVersionFromExisting,
-  versionsApi,
+    createVersion,
+    createVersionFromExisting,
+    fetchTemplateWithVersions,
+    versionsApi,
 } from '../api/templates-api'
-import type { CreateVersionRequest, CreateVersionFromExistingRequest } from '@/types/api'
 import { templateKeys } from './useTemplates'
 
 export const templateDetailKeys = {

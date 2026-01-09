@@ -1,17 +1,17 @@
 import apiClient from '@/lib/api-client'
 import type {
-  TemplateListItem,
-  CreateTemplateRequest,
-  TemplateCreateResponse,
-  TemplateWithAllVersionsResponse,
-  TemplateVersionResponse,
-  CreateVersionRequest,
-  CreateVersionFromExistingRequest,
+    CreateTemplateRequest,
+    CreateVersionFromExistingRequest,
+    CreateVersionRequest,
+    TemplateCreateResponse,
+    TemplateListItem,
+    TemplateVersionResponse,
+    TemplateWithAllVersionsResponse,
 } from '@/types/api'
 // Version types (from local types)
 import type {
-  TemplateVersionDetail,
-  UpdateVersionRequest,
+    TemplateVersionDetail,
+    UpdateVersionRequest,
 } from '../types'
 
 export interface TemplatesListParams {
