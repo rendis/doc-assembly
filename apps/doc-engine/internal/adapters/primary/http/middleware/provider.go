@@ -52,3 +52,8 @@ func (p *Provider) WorkspaceContext() gin.HandlerFunc {
 func (p *Provider) TenantContext() gin.HandlerFunc {
 	return TenantContext(p.tenantMemberRepo)
 }
+
+// SandboxContext returns a middleware that resolves sandbox workspace when X-Sandbox-Mode header is set.
+func (p *Provider) SandboxContext() gin.HandlerFunc {
+	return SandboxContext(p.workspaceRepo)
+}

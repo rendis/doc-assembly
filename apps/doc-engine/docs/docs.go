@@ -118,6 +118,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filter by folder ID. Use 'root' to get only root-level templates (no folder)",
                         "name": "folderId",
                         "in": "query"
@@ -192,6 +198,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
                         "description": "Template data",
                         "name": "request",
                         "in": "body",
@@ -238,6 +250,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -272,6 +297,19 @@ const docTemplate = `{
                 ],
                 "summary": "Update template",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -324,6 +362,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -356,6 +407,19 @@ const docTemplate = `{
                 ],
                 "summary": "Get template with all versions",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -400,6 +464,12 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -461,6 +531,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -510,6 +593,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -551,6 +647,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -584,6 +693,19 @@ const docTemplate = `{
                 ],
                 "summary": "Create template version",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -638,6 +760,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -690,6 +825,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -730,6 +878,19 @@ const docTemplate = `{
                 ],
                 "summary": "Update template version",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -789,6 +950,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -836,6 +1010,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -881,6 +1068,19 @@ const docTemplate = `{
                 ],
                 "summary": "Add injectable to version",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -940,6 +1140,19 @@ const docTemplate = `{
                 ],
                 "summary": "Remove injectable from version",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -1047,6 +1260,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/content/templates/{templateId}/versions/{versionId}/promote": {
+            "post": {
+                "description": "Promotes a PUBLISHED version from sandbox to production workspace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Template Versions"
+                ],
+                "summary": "Promote version to production",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Target Production Workspace ID (cannot be a sandbox workspace)",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source Template ID (in sandbox)",
+                        "name": "templateId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source Version ID (must be PUBLISHED)",
+                        "name": "versionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Promotion configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteVersionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "When mode=NEW_VERSION",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request or target workspace is a sandbox",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/content/templates/{templateId}/versions/{versionId}/publish": {
             "post": {
                 "consumes": [
@@ -1060,6 +1346,19 @@ const docTemplate = `{
                 ],
                 "summary": "Publish template version",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -1109,6 +1408,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Template ID",
                         "name": "templateId",
                         "in": "path",
@@ -1154,6 +1466,19 @@ const docTemplate = `{
                 ],
                 "summary": "Schedule version archival",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -1210,6 +1535,19 @@ const docTemplate = `{
                 ],
                 "summary": "Schedule version publication",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -3205,6 +3543,12 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -3246,6 +3590,12 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
                     },
                     {
                         "description": "Folder data",
@@ -3292,6 +3642,12 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -3341,6 +3697,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Folder ID",
                         "name": "folderId",
                         "in": "path",
@@ -3386,6 +3748,12 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -3446,6 +3814,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Folder ID",
                         "name": "folderId",
                         "in": "path",
@@ -3490,6 +3864,12 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable sandbox mode (operates on sandbox workspace)",
+                        "name": "X-Sandbox-Mode",
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -4844,6 +5224,67 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse"
+                },
+                "version": {
+                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse": {
+            "type": "object",
+            "properties": {
+                "version": {
+                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteVersionRequest": {
+            "type": "object",
+            "required": [
+                "mode"
+            ],
+            "properties": {
+                "mode": {
+                    "enum": [
+                        "NEW_TEMPLATE",
+                        "NEW_VERSION"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromotionMode"
+                        }
+                    ]
+                },
+                "targetFolderId": {
+                    "description": "Optional, only for NEW_TEMPLATE",
+                    "type": "string"
+                },
+                "targetTemplateId": {
+                    "description": "Required if mode=NEW_VERSION",
+                    "type": "string"
+                },
+                "versionName": {
+                    "description": "Optional, default: \"Promoted from Sandbox\"",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromotionMode": {
+            "type": "string",
+            "enum": [
+                "NEW_TEMPLATE",
+                "NEW_VERSION"
+            ],
+            "x-enum-varnames": [
+                "PromotionModeNewTemplate",
+                "PromotionModeNewVersion"
+            ]
         },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse": {
             "type": "object",

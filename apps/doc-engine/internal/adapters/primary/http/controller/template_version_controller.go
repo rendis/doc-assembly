@@ -15,6 +15,7 @@ import (
 type TemplateVersionController struct {
 	versionUC        usecase.TemplateVersionUseCase
 	versionMapper    *mapper.TemplateVersionMapper
+	templateMapper   *mapper.TemplateMapper
 	renderController *RenderController
 }
 
@@ -22,11 +23,13 @@ type TemplateVersionController struct {
 func NewTemplateVersionController(
 	versionUC usecase.TemplateVersionUseCase,
 	versionMapper *mapper.TemplateVersionMapper,
+	templateMapper *mapper.TemplateMapper,
 	renderController *RenderController,
 ) *TemplateVersionController {
 	return &TemplateVersionController{
 		versionUC:        versionUC,
 		versionMapper:    versionMapper,
+		templateMapper:   templateMapper,
 		renderController: renderController,
 	}
 }
@@ -55,6 +58,9 @@ func (c *TemplateVersionController) RegisterRoutes(templates *gin.RouterGroup) {
 		versions.POST("/:versionId/injectables", middleware.RequireEditor(), c.AddInjectable)
 		versions.DELETE("/:versionId/injectables/:injectableId", middleware.RequireEditor(), c.RemoveInjectable)
 
+		// Promotion - EDITOR+
+		versions.POST("/:versionId/promote", middleware.RequireEditor(), c.PromoteVersion)
+
 		// Render routes - EDITOR+ (delegates to RenderController)
 		if c.renderController != nil {
 			c.renderController.RegisterRoutes(versions)
@@ -69,6 +75,8 @@ func (c *TemplateVersionController) RegisterRoutes(templates *gin.RouterGroup) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Success 200 {object} dto.ListTemplateVersionsResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -90,6 +98,8 @@ func (c *TemplateVersionController) ListVersions(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param request body dto.CreateVersionRequest true "Version data"
 // @Success 201 {object} dto.TemplateVersionResponse
@@ -121,6 +131,8 @@ func (c *TemplateVersionController) CreateVersion(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param request body dto.CreateVersionFromExistingRequest true "Version data"
 // @Success 201 {object} dto.TemplateVersionResponse
@@ -156,6 +168,8 @@ func (c *TemplateVersionController) CreateVersionFromExisting(ctx *gin.Context) 
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Success 200 {object} dto.TemplateVersionDetailResponse
@@ -178,6 +192,8 @@ func (c *TemplateVersionController) GetVersion(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Param request body dto.UpdateVersionRequest true "Version data"
@@ -209,6 +225,8 @@ func (c *TemplateVersionController) UpdateVersion(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Success 204 "No Content"
@@ -233,6 +251,8 @@ func (c *TemplateVersionController) DeleteVersion(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Success 204 "No Content"
@@ -256,6 +276,8 @@ func (c *TemplateVersionController) PublishVersion(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Success 204 "No Content"
@@ -279,6 +301,8 @@ func (c *TemplateVersionController) ArchiveVersion(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Param request body dto.SchedulePublishRequest true "Schedule data"
@@ -309,6 +333,8 @@ func (c *TemplateVersionController) SchedulePublish(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Param request body dto.ScheduleArchiveRequest true "Schedule data"
@@ -339,6 +365,8 @@ func (c *TemplateVersionController) ScheduleArchive(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Success 204 "No Content"
@@ -363,6 +391,8 @@ func (c *TemplateVersionController) CancelSchedule(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Param request body dto.AddVersionInjectableRequest true "Injectable data"
@@ -402,6 +432,8 @@ func (c *TemplateVersionController) AddInjectable(ctx *gin.Context) {
 // @Tags Template Versions
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param versionId path string true "Version ID"
 // @Param injectableId path string true "Injectable ID"
@@ -417,4 +449,57 @@ func (c *TemplateVersionController) RemoveInjectable(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// --- Promotion Handlers ---
+
+// PromoteVersion promotes a published version from sandbox to production.
+// @Summary Promote version to production
+// @Description Promotes a PUBLISHED version from sandbox to production workspace.
+// Can create a new template (NEW_TEMPLATE mode) or add as a new version to an existing template (NEW_VERSION mode).
+// **Important**: The target workspace (X-Workspace-ID) must be a production workspace, not a sandbox.
+// Promoting to sandbox workspaces is not allowed.
+// @Tags Template Versions
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Target Production Workspace ID (cannot be a sandbox workspace)"
+// @Param templateId path string true "Source Template ID (in sandbox)"
+// @Param versionId path string true "Source Version ID (must be PUBLISHED)"
+// @Param request body dto.PromoteVersionRequest true "Promotion configuration"
+// @Success 201 {object} dto.PromoteAsNewTemplateResponse "When mode=NEW_TEMPLATE"
+// @Success 201 {object} dto.PromoteAsNewVersionResponse "When mode=NEW_VERSION"
+// @Failure 400 {object} dto.ErrorResponse "Bad request or target workspace is a sandbox"
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
+// @Router /api/v1/content/templates/{templateId}/versions/{versionId}/promote [post]
+func (c *TemplateVersionController) PromoteVersion(ctx *gin.Context) {
+	templateID := ctx.Param("templateId")
+	versionID := ctx.Param("versionId")
+	targetWorkspaceID, _ := middleware.GetWorkspaceID(ctx)
+	userID, _ := middleware.GetInternalUserID(ctx)
+
+	var req dto.PromoteVersionRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := c.versionMapper.ToPromoteCommand(templateID, versionID, &req, targetWorkspaceID, userID)
+	result, err := c.versionUC.PromoteVersion(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	// Respond based on mode
+	if result.Template != nil {
+		ctx.JSON(http.StatusCreated, dto.PromoteAsNewTemplateResponse{
+			Template: *c.templateMapper.ToResponse(result.Template),
+			Version:  *c.versionMapper.ToResponse(result.Version),
+		})
+	} else {
+		ctx.JSON(http.StatusCreated, dto.PromoteAsNewVersionResponse{
+			Version: *c.versionMapper.ToResponse(result.Version),
+		})
+	}
 }

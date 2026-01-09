@@ -209,3 +209,21 @@ func (m *TemplateVersionMapper) ToScheduleArchiveCommand(versionID string, req *
 		ArchiveAt: req.ArchiveAt,
 	}
 }
+
+// ToPromoteCommand converts a promote version request to a command.
+func (m *TemplateVersionMapper) ToPromoteCommand(
+	templateID, versionID string,
+	req *dto.PromoteVersionRequest,
+	targetWorkspaceID, userID string,
+) usecase.PromoteVersionCommand {
+	return usecase.PromoteVersionCommand{
+		SourceVersionID:   versionID,
+		SourceTemplateID:  templateID,
+		TargetWorkspaceID: targetWorkspaceID,
+		Mode:              string(req.Mode),
+		TargetTemplateID:  req.TargetTemplateID,
+		TargetFolderID:    req.TargetFolderID,
+		VersionName:       req.VersionName,
+		PromotedBy:        userID,
+	}
+}

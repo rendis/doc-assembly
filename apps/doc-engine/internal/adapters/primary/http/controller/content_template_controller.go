@@ -34,10 +34,12 @@ func NewContentTemplateController(
 
 // RegisterRoutes registers all template routes.
 // All template routes require X-Workspace-ID header.
+// Template and version routes support sandbox mode via X-Sandbox-Mode header.
 func (c *ContentTemplateController) RegisterRoutes(rg *gin.RouterGroup, middlewareProvider *middleware.Provider) {
 	// Content group requires X-Workspace-ID header
 	content := rg.Group("/content")
 	content.Use(middlewareProvider.WorkspaceContext())
+	content.Use(middlewareProvider.SandboxContext()) // Sandbox support for templates
 	{
 		// Template routes
 		templates := content.Group("/templates")
@@ -66,6 +68,7 @@ func (c *ContentTemplateController) RegisterRoutes(rg *gin.RouterGroup, middlewa
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param folderId query string false "Filter by folder ID. Use 'root' to get only root-level templates (no folder)"
 // @Param hasPublishedVersion query bool false "Filter by published status"
 // @Param tagIds query []string false "Filter by tag IDs"
@@ -104,6 +107,7 @@ func (c *ContentTemplateController) ListTemplates(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param request body dto.CreateTemplateRequest true "Template data"
 // @Success 201 {object} dto.TemplateCreateResponse
 // @Failure 400 {object} dto.ErrorResponse
@@ -134,6 +138,8 @@ func (c *ContentTemplateController) CreateTemplate(ctx *gin.Context) {
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Success 200 {object} dto.TemplateWithDetailsResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -155,6 +161,8 @@ func (c *ContentTemplateController) GetTemplate(ctx *gin.Context) {
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Success 200 {object} dto.TemplateWithAllVersionsResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -177,6 +185,8 @@ func (c *ContentTemplateController) GetTemplateWithAllVersions(ctx *gin.Context)
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param request body dto.UpdateTemplateRequest true "Template data (folderId can be a folder UUID or 'root' to move to root)"
 // @Success 200 {object} dto.TemplateResponse
@@ -207,6 +217,8 @@ func (c *ContentTemplateController) UpdateTemplate(ctx *gin.Context) {
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Success 204 "No Content"
 // @Failure 404 {object} dto.ErrorResponse
@@ -229,6 +241,7 @@ func (c *ContentTemplateController) DeleteTemplate(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param request body dto.CloneTemplateRequest true "Clone data (versionId is required and must belong to the template)"
 // @Success 201 {object} dto.TemplateCreateResponse
@@ -261,6 +274,8 @@ func (c *ContentTemplateController) CloneTemplate(ctx *gin.Context) {
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param request body dto.AddTagsRequest true "Tag IDs"
 // @Success 204 "No Content"
@@ -291,6 +306,8 @@ func (c *ContentTemplateController) AddTemplateTags(ctx *gin.Context) {
 // @Tags Templates
 // @Accept json
 // @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param templateId path string true "Template ID"
 // @Param tagId path string true "Tag ID"
 // @Success 204 "No Content"

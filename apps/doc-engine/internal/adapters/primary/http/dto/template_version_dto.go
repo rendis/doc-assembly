@@ -119,3 +119,34 @@ type UpdateVersionSignerRoleRequest struct {
 	RoleName    string `json:"roleName" binding:"required,min=1,max=100"`
 	SignerOrder int    `json:"signerOrder" binding:"required,min=1"`
 }
+
+// --- Version Promotion DTOs ---
+
+// PromotionMode represents the type of promotion from sandbox to production.
+type PromotionMode string
+
+const (
+	// PromotionModeNewTemplate creates a new template in production.
+	PromotionModeNewTemplate PromotionMode = "NEW_TEMPLATE"
+	// PromotionModeNewVersion adds as a new version to an existing production template.
+	PromotionModeNewVersion PromotionMode = "NEW_VERSION"
+)
+
+// PromoteVersionRequest represents the request to promote a version from sandbox to production.
+type PromoteVersionRequest struct {
+	Mode             PromotionMode `json:"mode" binding:"required,oneof=NEW_TEMPLATE NEW_VERSION"`
+	TargetTemplateID *string       `json:"targetTemplateId"` // Required if mode=NEW_VERSION
+	TargetFolderID   *string       `json:"targetFolderId"`   // Optional, only for NEW_TEMPLATE
+	VersionName      *string       `json:"versionName"`      // Optional, default: "Promoted from Sandbox"
+}
+
+// PromoteAsNewTemplateResponse is returned when promoting as a new template.
+type PromoteAsNewTemplateResponse struct {
+	Template TemplateResponse        `json:"template"`
+	Version  TemplateVersionResponse `json:"version"`
+}
+
+// PromoteAsNewVersionResponse is returned when promoting as a new version of existing template.
+type PromoteAsNewVersionResponse struct {
+	Version TemplateVersionResponse `json:"version"`
+}

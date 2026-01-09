@@ -11,6 +11,8 @@ type Workspace struct {
 	Type           WorkspaceType     `json:"type"`
 	Status         WorkspaceStatus   `json:"status"`
 	Settings       WorkspaceSettings `json:"settings"`
+	IsSandbox      bool              `json:"isSandbox"`
+	SandboxOfID    *string           `json:"sandboxOfId,omitempty"` // ID of parent workspace if is_sandbox = true
 	CreatedAt      time.Time         `json:"createdAt"`
 	UpdatedAt      *time.Time        `json:"updatedAt,omitempty"`
 	LastAccessedAt *time.Time        `json:"-"` // Access metadata, not persisted
@@ -76,6 +78,17 @@ func (w *Workspace) Validate() error {
 		return ErrInvalidWorkspaceType
 	}
 	return nil
+}
+
+// IsSandboxWorkspace returns true if this is a sandbox workspace.
+func (w *Workspace) IsSandboxWorkspace() bool {
+	return w.IsSandbox
+}
+
+// CanHaveSandbox returns true if this workspace can have a sandbox.
+// Only non-sandbox CLIENT workspaces can have sandboxes.
+func (w *Workspace) CanHaveSandbox() bool {
+	return w.Type == WorkspaceTypeClient && !w.IsSandbox
 }
 
 // WorkspaceWithRole represents a workspace with the user's role in it.

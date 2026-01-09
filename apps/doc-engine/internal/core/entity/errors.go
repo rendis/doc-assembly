@@ -57,6 +57,9 @@ var (
 	ErrInvalidWorkspaceType   = errors.New("invalid workspace type")
 	ErrInvalidWorkspaceStatus = errors.New("invalid workspace status")
 	ErrCannotArchiveSystem    = errors.New("cannot archive system workspace")
+	ErrSandboxNotFound        = errors.New("sandbox workspace not found")
+	ErrSandboxNotSupported    = errors.New("this workspace type does not support sandbox mode")
+	ErrCannotPromoteToSandbox = errors.New("cannot promote to a sandbox workspace")
 )
 
 // User errors.
@@ -119,7 +122,7 @@ var (
 	ErrVersionNotFound                 = errors.New("template version not found")
 	ErrVersionAlreadyExists            = errors.New("version number already exists for this template")
 	ErrVersionNameExists               = errors.New("version name already exists for this template")
-	ErrVersionNotPublished             = errors.New("version is not published")
+	ErrVersionNotPublished             = errors.New("version must be published to promote")
 	ErrVersionAlreadyPublished         = errors.New("version is already published")
 	ErrCannotEditPublished             = errors.New("cannot edit published version")
 	ErrCannotEditArchived              = errors.New("cannot edit archived version")
@@ -138,6 +141,8 @@ var (
 	ErrContentValidationFailed         = errors.New("content validation failed")
 	ErrMissingRequiredContent          = errors.New("content structure is required for publishing")
 	ErrVersionDoesNotBelongToTemplate  = errors.New("version does not belong to the specified template")
+	ErrTargetTemplateRequired          = errors.New("target template ID is required for NEW_VERSION mode")
+	ErrTargetTemplateNotInWorkspace    = errors.New("target template does not belong to the destination workspace")
 )
 
 // Document errors.

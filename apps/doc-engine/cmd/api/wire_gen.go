@@ -74,13 +74,13 @@ func InitializeApp() (*infra.Initializer, error) {
 	templateVersionInjectableRepository := templateversioninjectablerepo.New(pool)
 	templateVersionSignerRoleRepository := templateversionsignerrolerepo.New(pool)
 	contentValidator := infra.ProvideContentValidator(injectableRepository)
-	templateVersionUseCase := service.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, contentValidator)
+	templateVersionUseCase := service.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, templateTagRepository, contentValidator, workspaceRepository)
 	pdfRenderer, err := infra.ProvidePDFRenderer()
 	if err != nil {
 		return nil, err
 	}
 	renderController := controller.NewRenderController(templateVersionUseCase, pdfRenderer)
-	templateVersionController := controller.NewTemplateVersionController(templateVersionUseCase, templateVersionMapper, renderController)
+	templateVersionController := controller.NewTemplateVersionController(templateVersionUseCase, templateVersionMapper, templateMapper, renderController)
 	contentTemplateController := controller.NewContentTemplateController(templateUseCase, templateMapper, templateVersionController)
 	tenantUseCase := service.NewTenantService(tenantRepository, workspaceRepository, tenantMemberRepository, systemRoleRepository, userAccessHistoryRepository)
 	systemRoleUseCase := service.NewSystemRoleService(systemRoleRepository, userRepository)

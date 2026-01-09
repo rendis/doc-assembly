@@ -19,14 +19,18 @@ func NewTemplateVersionService(
 	injectableRepo port.TemplateVersionInjectableRepository,
 	signerRoleRepo port.TemplateVersionSignerRoleRepository,
 	templateRepo port.TemplateRepository,
+	tagRepo port.TemplateTagRepository,
 	contentValidator port.ContentValidator,
+	workspaceRepo port.WorkspaceRepository,
 ) usecase.TemplateVersionUseCase {
 	return &TemplateVersionService{
 		versionRepo:      versionRepo,
 		injectableRepo:   injectableRepo,
 		signerRoleRepo:   signerRoleRepo,
 		templateRepo:     templateRepo,
+		tagRepo:          tagRepo,
 		contentValidator: contentValidator,
+		workspaceRepo:    workspaceRepo,
 	}
 }
 
@@ -36,7 +40,9 @@ type TemplateVersionService struct {
 	injectableRepo   port.TemplateVersionInjectableRepository
 	signerRoleRepo   port.TemplateVersionSignerRoleRepository
 	templateRepo     port.TemplateRepository
+	tagRepo          port.TemplateTagRepository
 	contentValidator port.ContentValidator
+	workspaceRepo    port.WorkspaceRepository
 }
 
 // CreateVersion creates a new version for a template.
@@ -549,4 +555,207 @@ func toContentValidationError(result *port.ContentValidationResult) *entity.Cont
 		Errors:   errors,
 		Warnings: warnings,
 	}
+}
+
+// PromoteVersion promotes a published version from sandbox to production.
+func (s *TemplateVersionService) PromoteVersion(ctx context.Context, cmd usecase.PromoteVersionCommand) (*usecase.PromoteVersionResult, error) {
+	// 1. Get source version
+	sourceVersion, err := s.versionRepo.FindByID(ctx, cmd.SourceVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("finding source version: %w", err)
+	}
+
+	// 2. Validate that it's PUBLISHED
+	if sourceVersion.Status != entity.VersionStatusPublished {
+		return nil, entity.ErrVersionNotPublished
+	}
+
+	// 3. Validate that it belongs to the specified template
+	if sourceVersion.TemplateID != cmd.SourceTemplateID {
+		return nil, entity.ErrVersionDoesNotBelongToTemplate
+	}
+
+	// 4. Validate target workspace is NOT a sandbox
+	targetWorkspace, err := s.workspaceRepo.FindByID(ctx, cmd.TargetWorkspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("finding target workspace: %w", err)
+	}
+	if targetWorkspace.IsSandbox {
+		return nil, entity.ErrCannotPromoteToSandbox
+	}
+
+	// 5. Execute based on mode
+	switch cmd.Mode {
+	case "NEW_TEMPLATE":
+		return s.promoteAsNewTemplate(ctx, sourceVersion, cmd)
+	case "NEW_VERSION":
+		return s.promoteAsNewVersion(ctx, sourceVersion, cmd)
+	default:
+		return nil, fmt.Errorf("invalid promotion mode: %s", cmd.Mode)
+	}
+}
+
+// promoteAsNewTemplate creates a new template in production with the promoted version.
+func (s *TemplateVersionService) promoteAsNewTemplate(ctx context.Context, sourceVersion *entity.TemplateVersion, cmd usecase.PromoteVersionCommand) (*usecase.PromoteVersionResult, error) {
+	// 1. Get source template with details (includes tags)
+	sourceTemplate, err := s.templateRepo.FindByIDWithDetails(ctx, sourceVersion.TemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("finding source template: %w", err)
+	}
+
+	// 2. Validate unique title in target workspace
+	exists, err := s.templateRepo.ExistsByTitle(ctx, cmd.TargetWorkspaceID, sourceTemplate.Title)
+	if err != nil {
+		return nil, fmt.Errorf("checking title uniqueness: %w", err)
+	}
+	if exists {
+		return nil, entity.ErrTemplateAlreadyExists
+	}
+
+	// 3. Create new template
+	newTemplate := &entity.Template{
+		ID:              uuid.NewString(),
+		WorkspaceID:     cmd.TargetWorkspaceID,
+		FolderID:        cmd.TargetFolderID,
+		Title:           sourceTemplate.Title,
+		IsPublicLibrary: false,
+		CreatedAt:       time.Now().UTC(),
+	}
+	if _, err := s.templateRepo.Create(ctx, newTemplate); err != nil {
+		return nil, fmt.Errorf("creating template: %w", err)
+	}
+
+	// 4. Create initial version
+	versionName := "Promoted from Sandbox"
+	if cmd.VersionName != nil && *cmd.VersionName != "" {
+		versionName = *cmd.VersionName
+	}
+
+	description := fmt.Sprintf("Promoted from template '%s' version %d", sourceTemplate.Title, sourceVersion.VersionNumber)
+	newVersion := entity.NewTemplateVersion(newTemplate.ID, 1, versionName, &cmd.PromotedBy)
+	newVersion.ID = uuid.NewString()
+	newVersion.Description = &description
+	newVersion.ContentStructure = sourceVersion.ContentStructure
+
+	if _, err := s.versionRepo.Create(ctx, newVersion); err != nil {
+		return nil, fmt.Errorf("creating version: %w", err)
+	}
+
+	// 5. Copy injectables
+	if err := s.injectableRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
+		slog.Warn("failed to copy injectables during promotion",
+			slog.String("source_version_id", sourceVersion.ID),
+			slog.String("target_version_id", newVersion.ID),
+			slog.Any("error", err),
+		)
+	}
+
+	// 6. Copy signer roles
+	if err := s.signerRoleRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
+		slog.Warn("failed to copy signer roles during promotion",
+			slog.String("source_version_id", sourceVersion.ID),
+			slog.String("target_version_id", newVersion.ID),
+			slog.Any("error", err),
+		)
+	}
+
+	// 7. Copy tags
+	for _, tag := range sourceTemplate.Tags {
+		if err := s.tagRepo.AddTag(ctx, newTemplate.ID, tag.ID); err != nil {
+			slog.Warn("failed to copy tag during promotion",
+				slog.String("tag_id", tag.ID),
+				slog.String("template_id", newTemplate.ID),
+				slog.Any("error", err),
+			)
+		}
+	}
+
+	slog.Info("version promoted as new template",
+		slog.String("source_version_id", sourceVersion.ID),
+		slog.String("source_template_id", sourceVersion.TemplateID),
+		slog.String("new_template_id", newTemplate.ID),
+		slog.String("new_version_id", newVersion.ID),
+		slog.String("target_workspace_id", cmd.TargetWorkspaceID),
+	)
+
+	return &usecase.PromoteVersionResult{
+		Template: newTemplate,
+		Version:  newVersion,
+	}, nil
+}
+
+// promoteAsNewVersion adds the promoted version to an existing template.
+func (s *TemplateVersionService) promoteAsNewVersion(ctx context.Context, sourceVersion *entity.TemplateVersion, cmd usecase.PromoteVersionCommand) (*usecase.PromoteVersionResult, error) {
+	// 1. Validate targetTemplateId
+	if cmd.TargetTemplateID == nil || *cmd.TargetTemplateID == "" {
+		return nil, entity.ErrTargetTemplateRequired
+	}
+
+	// 2. Validate target template exists and belongs to workspace
+	targetTemplate, err := s.templateRepo.FindByID(ctx, *cmd.TargetTemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("finding target template: %w", err)
+	}
+	if targetTemplate.WorkspaceID != cmd.TargetWorkspaceID {
+		return nil, entity.ErrTargetTemplateNotInWorkspace
+	}
+
+	// 3. Get source template for description
+	sourceTemplate, err := s.templateRepo.FindByID(ctx, sourceVersion.TemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("finding source template: %w", err)
+	}
+
+	// 4. Get next version number
+	versionNumber, err := s.versionRepo.GetNextVersionNumber(ctx, *cmd.TargetTemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("getting next version number: %w", err)
+	}
+
+	// 5. Create new version
+	versionName := "Promoted from Sandbox"
+	if cmd.VersionName != nil && *cmd.VersionName != "" {
+		versionName = *cmd.VersionName
+	}
+
+	description := fmt.Sprintf("Promoted from template '%s' version %d", sourceTemplate.Title, sourceVersion.VersionNumber)
+	newVersion := entity.NewTemplateVersion(*cmd.TargetTemplateID, versionNumber, versionName, &cmd.PromotedBy)
+	newVersion.ID = uuid.NewString()
+	newVersion.Description = &description
+	newVersion.ContentStructure = sourceVersion.ContentStructure
+
+	if _, err := s.versionRepo.Create(ctx, newVersion); err != nil {
+		return nil, fmt.Errorf("creating version: %w", err)
+	}
+
+	// 6. Copy injectables
+	if err := s.injectableRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
+		slog.Warn("failed to copy injectables during promotion",
+			slog.String("source_version_id", sourceVersion.ID),
+			slog.String("target_version_id", newVersion.ID),
+			slog.Any("error", err),
+		)
+	}
+
+	// 7. Copy signer roles
+	if err := s.signerRoleRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
+		slog.Warn("failed to copy signer roles during promotion",
+			slog.String("source_version_id", sourceVersion.ID),
+			slog.String("target_version_id", newVersion.ID),
+			slog.Any("error", err),
+		)
+	}
+
+	slog.Info("version promoted as new version",
+		slog.String("source_version_id", sourceVersion.ID),
+		slog.String("source_template_id", sourceVersion.TemplateID),
+		slog.String("target_template_id", *cmd.TargetTemplateID),
+		slog.String("new_version_id", newVersion.ID),
+		slog.Int("version_number", versionNumber),
+	)
+
+	return &usecase.PromoteVersionResult{
+		Template: nil,
+		Version:  newVersion,
+	}, nil
 }

@@ -44,6 +44,24 @@ type ScheduleArchiveCommand struct {
 	ArchiveAt time.Time
 }
 
+// PromoteVersionCommand represents the command to promote a version from sandbox to production.
+type PromoteVersionCommand struct {
+	SourceVersionID   string  // Version ID to promote (must be PUBLISHED)
+	SourceTemplateID  string  // Source template ID (for validation)
+	TargetWorkspaceID string  // Production workspace ID
+	Mode              string  // "NEW_TEMPLATE" or "NEW_VERSION"
+	TargetTemplateID  *string // Required for NEW_VERSION mode
+	TargetFolderID    *string // Optional for NEW_TEMPLATE mode
+	VersionName       *string // Optional, default: "Promoted from Sandbox"
+	PromotedBy        string  // User ID performing the promotion
+}
+
+// PromoteVersionResult contains the result of a version promotion.
+type PromoteVersionResult struct {
+	Template *entity.Template        // Only set for NEW_TEMPLATE mode
+	Version  *entity.TemplateVersion // Always set
+}
+
 // TemplateVersionUseCase defines the input port for template version operations.
 type TemplateVersionUseCase interface {
 	// CreateVersion creates a new version for a template.
@@ -96,4 +114,8 @@ type TemplateVersionUseCase interface {
 
 	// ProcessScheduledArchivals archives all published versions whose scheduled archive time has passed.
 	ProcessScheduledArchivals(ctx context.Context) error
+
+	// PromoteVersion promotes a published version from sandbox to production.
+	// Can create a new template (NEW_TEMPLATE mode) or add as a new version to existing template (NEW_VERSION mode).
+	PromoteVersion(ctx context.Context, cmd PromoteVersionCommand) (*PromoteVersionResult, error)
 }

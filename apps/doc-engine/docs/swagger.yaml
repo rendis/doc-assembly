@@ -510,6 +510,46 @@ definitions:
       totalPages:
         type: integer
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewTemplateResponse:
+    properties:
+      template:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse'
+      version:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse'
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse:
+    properties:
+      version:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse'
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteVersionRequest:
+    properties:
+      mode:
+        allOf:
+        - $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromotionMode'
+        enum:
+        - NEW_TEMPLATE
+        - NEW_VERSION
+      targetFolderId:
+        description: Optional, only for NEW_TEMPLATE
+        type: string
+      targetTemplateId:
+        description: Required if mode=NEW_VERSION
+        type: string
+      versionName:
+        description: 'Optional, default: "Promoted from Sandbox"'
+        type: string
+    required:
+    - mode
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromotionMode:
+    enum:
+    - NEW_TEMPLATE
+    - NEW_VERSION
+    type: string
+    x-enum-varnames:
+    - PromotionModeNewTemplate
+    - PromotionModeNewVersion
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse:
     properties:
       createdAt:
@@ -1181,6 +1221,10 @@ paths:
         name: X-Workspace-ID
         required: true
         type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Filter by folder ID. Use 'root' to get only root-level templates
           (no folder)
         in: query
@@ -1232,6 +1276,10 @@ paths:
         name: X-Workspace-ID
         required: true
         type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template data
         in: body
         name: request
@@ -1261,6 +1309,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1282,6 +1339,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1307,6 +1373,15 @@ paths:
       description: Updates a template's metadata. Use folderId="root" to move the
         template to the root folder.
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1342,6 +1417,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1373,6 +1457,10 @@ paths:
         in: header
         name: X-Workspace-ID
         required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
         type: string
       - description: Template ID
         in: path
@@ -1413,6 +1501,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1445,6 +1542,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1472,6 +1578,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1495,6 +1610,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1529,6 +1653,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1559,6 +1692,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1587,6 +1729,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1626,6 +1777,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1657,6 +1817,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1696,6 +1865,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1771,11 +1949,69 @@ paths:
       summary: Generate preview PDF
       tags:
       - Template Versions
+  /api/v1/content/templates/{templateId}/versions/{versionId}/promote:
+    post:
+      consumes:
+      - application/json
+      description: Promotes a PUBLISHED version from sandbox to production workspace.
+      parameters:
+      - description: Target Production Workspace ID (cannot be a sandbox workspace)
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Source Template ID (in sandbox)
+        in: path
+        name: templateId
+        required: true
+        type: string
+      - description: Source Version ID (must be PUBLISHED)
+        in: path
+        name: versionId
+        required: true
+        type: string
+      - description: Promotion configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteVersionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: When mode=NEW_VERSION
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse'
+        "400":
+          description: Bad request or target workspace is a sandbox
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Promote version to production
+      tags:
+      - Template Versions
   /api/v1/content/templates/{templateId}/versions/{versionId}/publish:
     post:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1807,6 +2043,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1838,6 +2083,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1875,6 +2129,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -1912,6 +2175,15 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Template ID
         in: path
         name: templateId
@@ -3198,6 +3470,10 @@ paths:
         name: X-Workspace-ID
         required: true
         type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       produces:
       - application/json
       responses:
@@ -3224,6 +3500,10 @@ paths:
         in: header
         name: X-Workspace-ID
         required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
         type: string
       - description: Folder data
         in: body
@@ -3255,6 +3535,10 @@ paths:
         name: X-Workspace-ID
         required: true
         type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Folder ID
         in: path
         name: folderId
@@ -3284,6 +3568,10 @@ paths:
         in: header
         name: X-Workspace-ID
         required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
         type: string
       - description: Folder ID
         in: path
@@ -3316,6 +3604,10 @@ paths:
         in: header
         name: X-Workspace-ID
         required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
         type: string
       - description: Folder ID
         in: path
@@ -3356,6 +3648,10 @@ paths:
         name: X-Workspace-ID
         required: true
         type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
       - description: Folder ID
         in: path
         name: folderId
@@ -3394,6 +3690,10 @@ paths:
         in: header
         name: X-Workspace-ID
         required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
         type: string
       produces:
       - application/json

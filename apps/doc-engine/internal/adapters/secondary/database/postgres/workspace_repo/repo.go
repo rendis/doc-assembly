@@ -51,6 +51,8 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Workspace
 		&ws.Type,
 		&ws.Status,
 		&ws.Settings,
+		&ws.IsSandbox,
+		&ws.SandboxOfID,
 		&ws.CreatedAt,
 		&ws.UpdatedAt,
 	)
@@ -59,6 +61,31 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Workspace
 	}
 	if err != nil {
 		return nil, fmt.Errorf("querying workspace: %w", err)
+	}
+
+	return &ws, nil
+}
+
+// FindSandboxByParentID finds the sandbox workspace for a given parent workspace ID.
+func (r *Repository) FindSandboxByParentID(ctx context.Context, parentID string) (*entity.Workspace, error) {
+	var ws entity.Workspace
+	err := r.pool.QueryRow(ctx, queryFindSandboxByParentID, parentID).Scan(
+		&ws.ID,
+		&ws.TenantID,
+		&ws.Name,
+		&ws.Type,
+		&ws.Status,
+		&ws.Settings,
+		&ws.IsSandbox,
+		&ws.SandboxOfID,
+		&ws.CreatedAt,
+		&ws.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrSandboxNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying sandbox workspace: %w", err)
 	}
 
 	return &ws, nil
@@ -127,6 +154,8 @@ func (r *Repository) FindSystemByTenant(ctx context.Context, tenantID *string) (
 		&ws.Type,
 		&ws.Status,
 		&ws.Settings,
+		&ws.IsSandbox,
+		&ws.SandboxOfID,
 		&ws.CreatedAt,
 		&ws.UpdatedAt,
 	)
@@ -207,6 +236,8 @@ func scanWorkspaces(rows pgx.Rows) ([]*entity.Workspace, error) {
 			&ws.Type,
 			&ws.Status,
 			&ws.Settings,
+			&ws.IsSandbox,
+			&ws.SandboxOfID,
 			&ws.CreatedAt,
 			&ws.UpdatedAt,
 		)
@@ -231,6 +262,8 @@ func scanWorkspacesWithRole(rows pgx.Rows) ([]*entity.WorkspaceWithRole, error) 
 			&ws.Type,
 			&ws.Status,
 			&ws.Settings,
+			&ws.IsSandbox,
+			&ws.SandboxOfID,
 			&ws.CreatedAt,
 			&ws.UpdatedAt,
 			&role,

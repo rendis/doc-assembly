@@ -33,6 +33,9 @@ type WorkspaceRepository interface {
 	// FindSystemByTenant finds the system workspace for a tenant.
 	FindSystemByTenant(ctx context.Context, tenantID *string) (*entity.Workspace, error)
 
+	// FindSandboxByParentID finds the sandbox workspace for a given parent workspace ID.
+	FindSandboxByParentID(ctx context.Context, parentID string) (*entity.Workspace, error)
+
 	// Update updates a workspace.
 	Update(ctx context.Context, workspace *entity.Workspace) error
 

@@ -42,28 +42,32 @@ func (c *WorkspaceController) RegisterRoutes(rg *gin.RouterGroup, middlewareProv
 	workspace := rg.Group("/workspace")
 	workspace.Use(middlewareProvider.WorkspaceContext())
 	{
-		// Current workspace operations
+		// Current workspace operations (NO sandbox - always operates on parent workspace)
 		workspace.GET("", c.GetWorkspace)                                   // VIEWER+
 		workspace.PUT("", middleware.RequireAdmin(), c.UpdateWorkspace)     // ADMIN+
 		workspace.DELETE("", middleware.RequireOwner(), c.ArchiveWorkspace) // OWNER only
 
-		// Member routes
+		// Member routes (NO sandbox - members are shared with parent workspace)
 		workspace.GET("/members", c.ListMembers)                                           // VIEWER+
 		workspace.POST("/members", middleware.RequireAdmin(), c.InviteMember)              // ADMIN+
 		workspace.GET("/members/:memberId", c.GetMember)                                   // VIEWER+
 		workspace.PUT("/members/:memberId", middleware.RequireOwner(), c.UpdateMemberRole) // OWNER only
 		workspace.DELETE("/members/:memberId", middleware.RequireAdmin(), c.RemoveMember)  // ADMIN+
 
-		// Folder routes
-		workspace.GET("/folders", c.ListFolders)                                             // VIEWER+
-		workspace.GET("/folders/tree", c.GetFolderTree)                                      // VIEWER+
-		workspace.POST("/folders", middleware.RequireEditor(), c.CreateFolder)               // EDITOR+
-		workspace.GET("/folders/:folderId", c.GetFolder)                                     // VIEWER+
-		workspace.PUT("/folders/:folderId", middleware.RequireEditor(), c.UpdateFolder)      // EDITOR+
-		workspace.PATCH("/folders/:folderId/move", middleware.RequireEditor(), c.MoveFolder) // EDITOR+
-		workspace.DELETE("/folders/:folderId", middleware.RequireAdmin(), c.DeleteFolder)    // ADMIN+
+		// Folder routes (WITH sandbox support - each workspace has its own folders)
+		folders := workspace.Group("/folders")
+		folders.Use(middlewareProvider.SandboxContext())
+		{
+			folders.GET("", c.ListFolders)                                             // VIEWER+
+			folders.GET("/tree", c.GetFolderTree)                                      // VIEWER+
+			folders.POST("", middleware.RequireEditor(), c.CreateFolder)               // EDITOR+
+			folders.GET("/:folderId", c.GetFolder)                                     // VIEWER+
+			folders.PUT("/:folderId", middleware.RequireEditor(), c.UpdateFolder)      // EDITOR+
+			folders.PATCH("/:folderId/move", middleware.RequireEditor(), c.MoveFolder) // EDITOR+
+			folders.DELETE("/:folderId", middleware.RequireAdmin(), c.DeleteFolder)    // ADMIN+
+		}
 
-		// Tag routes
+		// Tag routes (NO sandbox - tags are shared with parent workspace)
 		workspace.GET("/tags", c.ListTags)                                       // VIEWER+
 		workspace.POST("/tags", middleware.RequireEditor(), c.CreateTag)         // EDITOR+
 		workspace.GET("/tags/:tagId", c.GetTag)                                  // VIEWER+
@@ -307,6 +311,7 @@ func (c *WorkspaceController) RemoveMember(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Success 200 {object} dto.ListResponse[dto.FolderResponse]
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -330,6 +335,7 @@ func (c *WorkspaceController) ListFolders(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Success 200 {array} dto.FolderTreeResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse
@@ -353,6 +359,7 @@ func (c *WorkspaceController) GetFolderTree(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param request body dto.CreateFolderRequest true "Folder data"
 // @Success 201 {object} dto.FolderResponse
 // @Failure 400 {object} dto.ErrorResponse
@@ -388,6 +395,7 @@ func (c *WorkspaceController) CreateFolder(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param folderId path string true "Folder ID"
 // @Success 200 {object} dto.FolderResponse
 // @Failure 400 {object} dto.ErrorResponse
@@ -411,6 +419,7 @@ func (c *WorkspaceController) GetFolder(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param folderId path string true "Folder ID"
 // @Param request body dto.UpdateFolderRequest true "Folder data"
 // @Success 200 {object} dto.FolderResponse
@@ -447,6 +456,7 @@ func (c *WorkspaceController) UpdateFolder(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param folderId path string true "Folder ID"
 // @Param request body dto.MoveFolderRequest true "Move data"
 // @Success 200 {object} dto.FolderResponse
@@ -478,6 +488,7 @@ func (c *WorkspaceController) MoveFolder(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
 // @Param folderId path string true "Folder ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} dto.ErrorResponse
