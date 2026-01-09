@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FlaskConical, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from '@tanstack/react-router'
-import { Switch } from '@/components/ui/switch'
 import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,15 +16,25 @@ export function SandboxModeSection() {
   const { isSandboxActive, enableSandbox, disableSandbox } = useSandboxMode()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [pendingAction, setPendingAction] = useState<'enable' | 'disable' | null>(null)
+  const [localChecked, setLocalChecked] = useState(isSandboxActive)
 
-  const handleToggle = () => {
-    if (isSandboxActive) {
-      // Exiting sandbox - show confirmation
-      setPendingAction('disable')
-      setShowConfirmDialog(true)
-    } else {
+  // Sync local state with actual state when it changes (but not when dialog is open)
+  useEffect(() => {
+    if (!showConfirmDialog) {
+      setLocalChecked(isSandboxActive)
+    }
+  }, [isSandboxActive, showConfirmDialog])
+
+  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked
+    setLocalChecked(newValue) // Update UI immediately
+    if (newValue) {
       // Entering sandbox - show confirmation
       setPendingAction('enable')
+      setShowConfirmDialog(true)
+    } else {
+      // Exiting sandbox - show confirmation
+      setPendingAction('disable')
       setShowConfirmDialog(true)
     }
   }
@@ -83,6 +92,17 @@ export function SandboxModeSection() {
     setPendingAction(null)
   }
 
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      // User cancelled - revert local state
+      setLocalChecked(isSandboxActive)
+      setShowConfirmDialog(false)
+      setPendingAction(null)
+    } else {
+      setShowConfirmDialog(open)
+    }
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 gap-8 border-b border-border py-12 lg:grid-cols-12">
@@ -123,11 +143,16 @@ export function SandboxModeSection() {
                     )}
               </p>
             </div>
-            <Switch
-              checked={isSandboxActive}
-              onCheckedChange={handleToggle}
-              className="data-[state=checked]:bg-sandbox"
-            />
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={localChecked}
+                onChange={handleToggle}
+                className="peer sr-only"
+              />
+              <div className="h-8 w-14 rounded-none border border-border bg-muted transition-colors duration-300 peer-checked:border-foreground peer-checked:bg-foreground" />
+              <div className="absolute left-1 top-1 h-6 w-6 border border-border bg-background transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-foreground" />
+            </label>
           </div>
 
           {/* Warning notice */}
@@ -145,7 +170,7 @@ export function SandboxModeSection() {
 
       <SandboxConfirmDialog
         open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
+        onOpenChange={handleDialogClose}
         action={pendingAction}
         onConfirm={handleConfirm}
       />
