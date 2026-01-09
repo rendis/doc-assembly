@@ -16,6 +16,7 @@ import { logout } from '@/lib/keycloak'
 import { getInitials } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { SidebarToggleButton } from './SidebarToggleButton'
+import { useWorkspaceTransitionStore } from '@/stores/workspace-transition-store'
 
 interface NavItem {
   label: string
@@ -40,8 +41,11 @@ export function AppSidebar() {
   const { userProfile } = useAuthStore()
   const { currentWorkspace, clearContext } = useAppContextStore()
   const { isPinned, isHovering, closeMobile } = useSidebarStore()
+  const { phase: transitionPhase } = useWorkspaceTransitionStore()
 
   const isExpanded = isPinned || isHovering
+  // Hide workspace name while transition animation is active
+  const showWorkspaceName = transitionPhase === 'idle' || transitionPhase === 'complete'
 
   const workspaceId = currentWorkspace?.id || ''
 
@@ -120,12 +124,12 @@ export function AppSidebar() {
             <motion.div
               initial={false}
               animate={{
-                opacity: isExpanded ? 0 : 1,
+                opacity: isExpanded || !showWorkspaceName ? 0 : 1,
                 scale: isExpanded ? 0.8 : 1,
               }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               className="absolute inset-0 flex items-center"
-              style={{ pointerEvents: isExpanded ? 'none' : 'auto' }}
+              style={{ pointerEvents: isExpanded || !showWorkspaceName ? 'none' : 'auto' }}
             >
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -155,7 +159,7 @@ export function AppSidebar() {
               className="flex h-full items-center"
               style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
             >
-              <div>
+              <div style={{ opacity: showWorkspaceName ? 1 : 0 }}>
                 <label className="block text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   {t('workspace.current')}
                 </label>

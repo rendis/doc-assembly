@@ -5,6 +5,7 @@ import { useMyTenants, useSearchTenants } from '@/features/tenants'
 import { useSearchWorkspaces, useWorkspaces } from '@/features/workspaces'
 import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
+import { useWorkspaceTransitionStore } from '@/stores/workspace-transition-store'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Box, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
@@ -131,10 +132,9 @@ function SelectTenantPage() {
   const [tenantTotalPages, setTenantTotalPages] = useState(1)
   const [workspaceTotalPages, setWorkspaceTotalPages] = useState(1)
 
-  // Animation orchestration states
-  const [selectedWorkspaceForAnim, setSelectedWorkspaceForAnim] = useState<WorkspaceWithRole | null>(null)
-  const [animationPhase, setAnimationPhase] = useState<'idle' | 'toCenter' | 'fadeBorders' | 'toSidebar'>('idle')
-  const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
+  // Animation orchestration via global store (overlay persists across routes)
+  const { startTransition, setPhase, phase: animationPhase } = useWorkspaceTransitionStore()
+  const isAnimating = animationPhase !== 'idle' && animationPhase !== 'complete'
 
   // Fetch tenants
   const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants(tenantPage, ITEMS_PER_PAGE)
@@ -221,29 +221,20 @@ function SelectTenantPage() {
     // Capture full button dimensions
     const button = event.currentTarget as HTMLElement
     const rect = button.getBoundingClientRect()
-    setSelectedPosition({
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height,
-    })
 
-    // Phase 1: Move to center
-    setSelectedWorkspaceForAnim(workspace)
-    setAnimationPhase('toCenter')
+    // Phase 1: Start transition via global store (moves to center)
+    startTransition({ id: workspace.id, name: workspace.name }, rect)
     await new Promise(r => setTimeout(r, 600))
 
     // Phase 2: Fade borders while centered
-    setAnimationPhase('fadeBorders')
+    setPhase('fadeBorders')
     await new Promise(r => setTimeout(r, 400))
 
-    // Phase 3: Move to sidebar (sin bordes)
-    setAnimationPhase('toSidebar')
+    // Phase 3: Fade out and navigate
+    setPhase('fadeOut')
     setCurrentWorkspace(workspace as WorkspaceWithRole)
     recordAccess('WORKSPACE', workspace.id).catch(() => {})
-    await new Promise(r => setTimeout(r, 500))
 
-    // Phase 4: Navigate
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
     navigate({ to: '/workspace/$workspaceId', params: { workspaceId: workspace.id } as any })
   }
@@ -290,7 +281,7 @@ function SelectTenantPage() {
       {/* Main content - hides instantly when workspace is selected */}
       <motion.div
         animate={{
-          opacity: selectedWorkspaceForAnim ? 0 : 1,
+          opacity: isAnimating ? 0 : 1,
         }}
         transition={{ duration: 0 }}
         className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32"
@@ -390,10 +381,10 @@ function SelectTenantPage() {
                         key={ws.id}
                         variants={itemVariants}
                         onClick={(e) => handleWorkspaceSelect(ws, e)}
-                        disabled={!!selectedWorkspaceForAnim}
+                        disabled={!!isAnimating}
                         className={cn(
                           'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent',
-                          selectedWorkspaceForAnim && 'pointer-events-none'
+                          isAnimating && 'pointer-events-none'
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -506,173 +497,6 @@ function SelectTenantPage() {
           </div>
         </div>
       </motion.div>
-
-      {/* Header bottom line - slides from left, fades out on exit */}
-      <AnimatePresence>
-        {animationPhase === 'toSidebar' && (
-          <motion.div
-            key="header-line"
-            className="fixed left-0 right-0 top-16 z-50 h-px bg-border"
-            style={{ transformOrigin: 'left' }}
-            initial={{ scaleX: 0, opacity: 1 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar right line - slides from top, fades out on exit */}
-      <AnimatePresence>
-        {animationPhase === 'toSidebar' && (
-          <motion.div
-            key="sidebar-line"
-            className="fixed bottom-0 left-64 top-16 z-50 w-px bg-border"
-            style={{ transformOrigin: 'top' }}
-            initial={{ scaleY: 0, opacity: 1 }}
-            animate={{ scaleY: 1, opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Floating card */}
-      <AnimatePresence>
-        {selectedWorkspaceForAnim && selectedPosition && (
-          <>
-
-            {/* Floating card - moves to center then to sidebar */}
-            <motion.div
-              key="floating-card"
-              className="pointer-events-none fixed z-50 bg-background"
-              style={{ transformOrigin: 'center center' }}
-              initial={{
-                left: selectedPosition.x,
-                top: selectedPosition.y,
-                width: selectedPosition.width,
-                scale: 1,
-                boxShadow: '0 0 0 rgba(0,0,0,0)',
-              }}
-              animate={{
-                // Position: original -> center (stays during fadeBorders) -> sidebar
-                // Sidebar width = 256px, so content area starts at 256px
-                left: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders')
-                  ? (typeof window !== 'undefined' ? 256 + (window.innerWidth - 256) / 2 - selectedPosition.width / 2 : selectedPosition.x)
-                  : animationPhase === 'toSidebar'
-                    ? 16
-                    : selectedPosition.x,
-                top: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders')
-                  ? (typeof window !== 'undefined' ? window.innerHeight / 2 - 40 : selectedPosition.y)
-                  : animationPhase === 'toSidebar'
-                    ? 64 + 24
-                    : selectedPosition.y,
-                width: animationPhase === 'toSidebar' ? 256 - 32 : selectedPosition.width,
-                // Scale: grows at center (and stays during fadeBorders), back to 1 at sidebar
-                scale: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 1.1 : 1,
-                // Shadow appears during toSidebar (floating effect)
-                boxShadow: animationPhase === 'toSidebar'
-                  ? '0 8px 30px rgba(0,0,0,0.12)'
-                  : '0 0 0 rgba(0,0,0,0)',
-              }}
-              transition={{
-                type: 'spring',
-                damping: 25,
-                stiffness: 200,
-                boxShadow: { duration: 0.4, ease: 'easeOut' },
-              }}
-            >
-              {/* Top border - shrinks from ends to center */}
-              <motion.div
-                className="absolute left-0 right-0 top-0 h-px bg-border"
-                style={{ transformOrigin: 'center' }}
-                initial={{ scaleX: 1 }}
-                animate={{
-                  scaleX: (animationPhase === 'fadeBorders' || animationPhase === 'toSidebar') ? 0 : 1,
-                }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-              />
-              {/* Bottom border - shrinks from ends to center */}
-              <motion.div
-                className="absolute bottom-0 left-0 right-0 h-px bg-border"
-                style={{ transformOrigin: 'center' }}
-                initial={{ scaleX: 1 }}
-                animate={{
-                  scaleX: (animationPhase === 'fadeBorders' || animationPhase === 'toSidebar') ? 0 : 1,
-                }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-              />
-              {/* Container - ROW layout, changes to column during toSidebar */}
-              <motion.div
-                className="flex items-center justify-between relative"
-                initial={{ padding: '1.5rem 1rem' }}
-                animate={{
-                  flexDirection: animationPhase === 'toSidebar' ? 'column' : 'row',
-                  justifyContent: animationPhase === 'toSidebar' ? 'flex-start' : 'space-between',
-                  alignItems: animationPhase === 'toSidebar' ? 'flex-start' : 'center',
-                  padding: animationPhase === 'toSidebar' ? '0 0.5rem' : '1.5rem 1rem',
-                }}
-                transition={{ duration: 0.3 }}
-              >
-                {/* Label "Current Workspace" - fades in after title settles */}
-                <motion.label
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: animationPhase === 'toSidebar' ? 1 : 0,
-                  }}
-                  transition={{ duration: 0.3, delay: 0.5 }}
-                  className={cn(
-                    "mb-2 block text-[10px] font-mono uppercase tracking-widest text-muted-foreground",
-                    animationPhase !== 'toSidebar' && 'absolute'
-                  )}
-                >
-                  Current Workspace
-                </motion.label>
-
-                {/* Name - centered during toCenter/fadeBorders, aligned left during toSidebar */}
-                <motion.h3
-                  initial={{ fontSize: '1.5rem', width: 'auto' }}
-                  animate={{
-                    fontSize: animationPhase === 'toSidebar' ? '1.125rem' : '1.5rem',
-                    width: (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? '100%' : 'auto',
-                  }}
-                  transition={{
-                    type: 'spring',
-                    damping: 25,
-                    stiffness: 200,
-                    fontSize: { duration: 0.4, ease: 'easeOut' },
-                    width: { duration: 0.3 },
-                  }}
-                  className={cn(
-                    "font-display font-medium text-foreground",
-                    (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') ? 'text-center' : 'text-left'
-                  )}
-                >
-                  {selectedWorkspaceForAnim.name}
-                </motion.h3>
-
-                {/* Metadata - fades out during toCenter */}
-                <motion.div
-                  initial={{ opacity: 1 }}
-                  animate={{
-                    opacity: animationPhase === 'idle' ? 1 : 0,
-                  }}
-                  transition={{ duration: 0.3 }}
-                  className={cn(
-                    "flex items-center gap-6",
-                    (animationPhase === 'toCenter' || animationPhase === 'fadeBorders') && 'absolute right-4'
-                  )}
-                >
-                  <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-                    Last accessed: {formatRelativeTime(selectedWorkspaceForAnim.lastAccessedAt)}
-                  </span>
-                  <ArrowRight className="text-muted-foreground" size={24} />
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

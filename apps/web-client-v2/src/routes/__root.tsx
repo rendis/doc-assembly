@@ -1,7 +1,8 @@
 import { createRootRoute, Outlet, useNavigate, useLocation } from '@tanstack/react-router'
-import { LayoutGroup } from 'framer-motion'
+import { AnimatePresence, LayoutGroup } from 'framer-motion'
 import { useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
+import { WorkspaceTransitionOverlay } from '@/components/layout/WorkspaceTransitionOverlay'
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -34,7 +35,14 @@ function RootLayout() {
   return (
     <LayoutGroup>
       <div className="min-h-screen bg-background text-foreground">
-        <Outlet />
+        <AnimatePresence mode="wait" initial={false}>
+          <div key={location.pathname}>
+            <Outlet />
+          </div>
+        </AnimatePresence>
+
+        {/* Overlay que persiste entre rutas para animaciones de transición */}
+        <WorkspaceTransitionOverlay />
       </div>
     </LayoutGroup>
   )
