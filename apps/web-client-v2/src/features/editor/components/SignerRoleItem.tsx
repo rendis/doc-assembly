@@ -57,6 +57,8 @@ interface SignerRoleItemProps {
     updates: Partial<Omit<SignerRoleDefinition, 'id'>>
   ) => void
   onDelete: (id: string) => void
+  /** Whether the item is editable (false when document is published) */
+  editable?: boolean
 }
 
 interface FieldTypeToggleProps {
@@ -224,7 +226,10 @@ export function SignerRoleItem({
   onToggleSelection,
   onUpdate,
   onDelete,
+  editable = true,
 }: SignerRoleItemProps) {
+  // Combine editable and selection mode for disabling interactions
+  const isDisabled = !editable || isSelectionMode
   const { t } = useTranslation()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showNotificationDialog, setShowNotificationDialog] = useState(false)
@@ -330,7 +335,7 @@ export function SignerRoleItem({
     transform,
     transition,
     isDragging: _isSortableDragging,
-  } = useSortable({ id: role.id, disabled: isOverlay || isSelectionMode })
+  } = useSortable({ id: role.id, disabled: isOverlay || isDisabled })
 
   // No aplicar transforms del sortable al overlay
   const style = isOverlay
@@ -379,10 +384,10 @@ export function SignerRoleItem({
           className="flex items-center gap-2"
         >
           <div
-            {...(isSelectionMode ? {} : { ...attributes, ...listeners })}
+            {...(isDisabled ? {} : { ...attributes, ...listeners })}
             className={cn(
               'p-1 -ml-1 touch-none',
-              isSelectionMode
+              isDisabled
                 ? 'text-muted-foreground/20 cursor-default'
                 : 'cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground'
             )}
@@ -442,10 +447,10 @@ export function SignerRoleItem({
             value={role.label}
             onChange={(e) => onUpdate(role.id, { label: e.target.value })}
             placeholder={t('editor.roles.card.placeholder')}
-            disabled={isSelectionMode}
+            disabled={isDisabled}
             className={cn(
               'h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent px-1 rounded-none',
-              isSelectionMode ? 'cursor-default' : 'hover:border-border focus:border-ring'
+              isDisabled ? 'cursor-default' : 'hover:border-border focus:border-ring'
             )}
           />
 
@@ -453,8 +458,8 @@ export function SignerRoleItem({
           {isIndividualMode && (
             <NotificationBadge
               triggers={roleTriggers}
-              onClick={isSelectionMode ? undefined : () => setShowNotificationDialog(true)}
-              className={isSelectionMode ? 'opacity-30 cursor-default' : undefined}
+              onClick={isDisabled ? undefined : () => setShowNotificationDialog(true)}
+              className={isDisabled ? 'opacity-30 cursor-default' : undefined}
             />
           )}
 
@@ -463,14 +468,14 @@ export function SignerRoleItem({
             size="icon"
             className={cn(
               'h-6 w-6 shrink-0',
-              isSelectionMode
+              isDisabled
                 ? 'text-muted-foreground/20 cursor-default'
                 : 'text-muted-foreground/50 hover:text-destructive'
             )}
-            onClick={isSelectionMode ? undefined : handleDeleteClick}
-            disabled={isSelectionMode}
+            onClick={isDisabled ? undefined : handleDeleteClick}
+            disabled={isDisabled}
           >
-            <AnimateIcon animateOnHover={!isSelectionMode}>
+            <AnimateIcon animateOnHover={!isDisabled}>
               <Trash2 size={14} />
             </AnimateIcon>
           </Button>
@@ -521,7 +526,7 @@ export function SignerRoleItem({
               fieldType="name"
               field={role.name}
               variables={variables}
-              disabled={isSelectionMode}
+              disabled={isDisabled}
               onChange={handleNameChange}
             />
             <FieldEditor
@@ -529,7 +534,7 @@ export function SignerRoleItem({
               fieldType="email"
               field={role.email}
               variables={variables}
-              disabled={isSelectionMode}
+              disabled={isDisabled}
               onChange={handleEmailChange}
             />
           </div>

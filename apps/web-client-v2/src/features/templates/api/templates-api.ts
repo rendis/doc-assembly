@@ -226,3 +226,59 @@ export const versionsApi = {
     await apiClient.delete(`/content/templates/${templateId}/versions/${versionId}`)
   },
 }
+
+// ============================================
+// Version Promotion API (Sandbox → Production)
+// ============================================
+
+export type PromotionMode = 'NEW_TEMPLATE' | 'NEW_VERSION'
+
+export interface PromoteVersionRequest {
+  mode: PromotionMode
+  targetTemplateId?: string
+  targetFolderId?: string
+  versionName?: string
+}
+
+export interface PromoteVersionResponse {
+  template?: TemplateListItem
+  version: TemplateVersionResponse
+}
+
+/**
+ * Promotes a published version from sandbox to production.
+ * This call is made WITHOUT the X-Sandbox-Mode header.
+ * POST /api/v1/content/templates/{templateId}/versions/{versionId}/promote
+ */
+export async function promoteVersion(
+  templateId: string,
+  versionId: string,
+  request: PromoteVersionRequest
+): Promise<PromoteVersionResponse> {
+  const response = await apiClient.post<PromoteVersionResponse>(
+    `/content/templates/${templateId}/versions/${versionId}/promote`,
+    request,
+    {
+      headers: {
+        'X-Sandbox-Mode': '', // Override to prevent sandbox header
+      },
+    }
+  )
+  return response.data
+}
+
+/**
+ * Fetches templates from production workspace (without sandbox header).
+ * Used for searching target templates when promoting as NEW_VERSION.
+ */
+export async function fetchProductionTemplates(
+  search: string
+): Promise<TemplatesListResponse> {
+  const response = await apiClient.get<TemplatesListResponse>('/content/templates', {
+    params: { search, limit: 20 },
+    headers: {
+      'X-Sandbox-Mode': '', // Override to prevent sandbox header
+    },
+  })
+  return response.data
+}

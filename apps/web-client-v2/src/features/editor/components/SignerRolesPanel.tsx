@@ -45,11 +45,14 @@ import type { Variable } from '../types/variables'
 interface SignerRolesPanelProps {
   variables: Variable[]
   className?: string
+  /** Whether the panel is editable (false when document is published) */
+  editable?: boolean
 }
 
 export function SignerRolesPanel({
   variables,
   className,
+  editable = true,
 }: SignerRolesPanelProps) {
   const { t } = useTranslation()
   // Access raw roles and sort with useMemo to avoid infinite loop
@@ -109,10 +112,11 @@ export function SignerRolesPanel({
     [roles, activeId]
   )
 
+  // Only enable sensors when editable - disables drag when read-only
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: editable ? 8 : Infinity, // Disable drag when not editable
       },
     }),
     useSensor(KeyboardSensor, {
@@ -211,8 +215,8 @@ export function SignerRolesPanel({
           transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
           className="flex items-center gap-0.5 ml-2 overflow-hidden"
         >
-          {/* Selection mode toggle with tooltip */}
-          {roles.length > 0 && (
+          {/* Selection mode toggle with tooltip - only show when editable */}
+          {editable && roles.length > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -330,10 +334,12 @@ export function SignerRolesPanel({
             transition={{ duration: 0.15 }}
             className="flex-1 flex flex-col min-h-0"
           >
-            {/* Workflow Configuration Button */}
-            <div className="p-4 pb-2">
-              <WorkflowConfigButton />
-            </div>
+            {/* Workflow Configuration Button - only show when editable */}
+            {editable && (
+              <div className="p-4 pb-2">
+                <WorkflowConfigButton />
+              </div>
+            )}
 
             {roles.length === 0 ? (
               // Empty state - centered content
@@ -343,15 +349,17 @@ export function SignerRolesPanel({
                 <p className="text-xs text-muted-foreground/70 mt-1">
                   {t('editor.roles.empty.description')}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 border-border text-muted-foreground hover:text-foreground hover:border-foreground"
-                  onClick={addRole}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('editor.roles.addFirst')}
-                </Button>
+                {editable && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                    onClick={addRole}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('editor.roles.addFirst')}
+                  </Button>
+                )}
               </div>
             ) : (
               <>
@@ -395,6 +403,7 @@ export function SignerRolesPanel({
                                 onToggleSelection={toggleRoleSelection}
                                 onUpdate={updateRole}
                                 onDelete={deleteRole}
+                                editable={editable}
                               />
                             </motion.div>
                           ))}
@@ -416,6 +425,7 @@ export function SignerRolesPanel({
                             onToggleSelection={() => {}}
                             onUpdate={() => {}}
                             onDelete={() => {}}
+                            editable={editable}
                           />
                         )}
                       </DragOverlay>
@@ -423,51 +433,53 @@ export function SignerRolesPanel({
                   </div>
                 </ScrollArea>
 
-                {/* Sticky footer with gradient */}
-                <div className="relative shrink-0">
-                  <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-                  <AnimatePresence mode="wait">
-                    {selectedRoleIds.length > 0 ? (
-                      <motion.div
-                        key="delete-action"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ duration: 0.2 }}
-                        className="p-4 pt-2 bg-card"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
-                          onClick={handleBulkDelete}
+                {/* Sticky footer with gradient - only show when editable */}
+                {editable && (
+                  <div className="relative shrink-0">
+                    <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                    <AnimatePresence mode="wait">
+                      {selectedRoleIds.length > 0 ? (
+                        <motion.div
+                          key="delete-action"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          transition={{ duration: 0.2 }}
+                          className="p-4 pt-2 bg-card"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t('editor.roles.panel.delete.title', { count: selectedRoleIds.length })}
-                        </Button>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="add-action"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ duration: 0.2 }}
-                        className="p-4 pt-2 bg-card"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
-                          onClick={addRole}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                            onClick={handleBulkDelete}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t('editor.roles.panel.delete.title', { count: selectedRoleIds.length })}
+                          </Button>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="add-action"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          transition={{ duration: 0.2 }}
+                          className="p-4 pt-2 bg-card"
                         >
-                          <Plus className="h-4 w-4 mr-2" />
-                          {t('editor.roles.panel.add')}
-                        </Button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                            onClick={addRole}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            {t('editor.roles.panel.add')}
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </>
             )}
           </motion.div>

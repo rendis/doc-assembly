@@ -39,6 +39,9 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only react to selection changes, not full state
   }, [selected, editor.state.selection, getPos]);
 
+  // Check if editor is in editable mode (not read-only/published)
+  const isEditorEditable = editor.isEditable
+
   const { src, alt, title, width, height, displayMode, align, shape } = node.attrs as {
     src: string;
     alt?: string;
@@ -221,7 +224,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
           draggable={false}
         />
 
-        {isDirectlySelected && imageLoaded && (
+        {isEditorEditable && isDirectlySelected && imageLoaded && (
           <>
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
               <ImageAlignSelector

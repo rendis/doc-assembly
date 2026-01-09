@@ -26,6 +26,9 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, deleteNode: _deleteNode, editor, getPos } = props
   const { conditions, expression } = node.attrs
 
+  // Check if editor is in editable mode (not read-only/published)
+  const isEditorEditable = editor.isEditable
+
   const [tempConditions, setTempConditions] = useState<ConditionalSchema>(
     conditions || {
       id: 'root',
@@ -63,8 +66,9 @@ export const ConditionalComponent = (props: NodeViewProps) => {
   const handleOpenEditor = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!isEditorEditable) return
     setOpen(true)
-  }, [])
+  }, [isEditorEditable])
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -143,8 +147,8 @@ export const ConditionalComponent = (props: NodeViewProps) => {
           </div>
         </div>
 
-        {/* Barra de herramientas flotante cuando está seleccionado */}
-        {isDirectlySelected && (
+        {/* Barra de herramientas flotante cuando está seleccionado y es editable */}
+        {isEditorEditable && isDirectlySelected && (
           <TooltipProvider delayDuration={300}>
             <div data-toolbar className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
               <Tooltip>

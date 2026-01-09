@@ -429,6 +429,20 @@ body {
   }
 }
 
+/* Pulse highlight animation for promoted versions */
+@keyframes pulse-highlight {
+  0%, 100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: hsl(var(--primary) / 0.15);
+  }
+}
+
+.animate-pulse-highlight {
+  animation: pulse-highlight 1.5s ease-in-out 3;
+}
+
 /* ============================================
    Tailwind Theme Extensions
    ============================================ */

@@ -13,7 +13,12 @@ import {
 import { PAGE_SIZES, DEFAULT_MARGINS, MARGIN_LIMITS, type PageMargins } from '../types'
 import { usePaginationStore } from '../stores'
 
-export function PageSettings() {
+interface PageSettingsProps {
+  /** Whether the settings are disabled (read-only mode) */
+  disabled?: boolean
+}
+
+export function PageSettings({ disabled = false }: PageSettingsProps) {
   const { t } = useTranslation()
   const { pageSize, margins, setPageSize, setMargins } = usePaginationStore()
 
@@ -101,9 +106,17 @@ export function PageSettings() {
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <DialogPrimitive.Trigger asChild>
-        <button className="flex items-center gap-2 rounded-none border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:border-foreground hover:text-foreground">
+    <DialogPrimitive.Root open={open} onOpenChange={disabled ? undefined : setOpen}>
+      <DialogPrimitive.Trigger asChild disabled={disabled}>
+        <button
+          disabled={disabled}
+          className={cn(
+            'flex items-center gap-2 rounded-none border border-border bg-background px-3 py-1.5 text-sm transition-colors',
+            disabled
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:border-foreground hover:text-foreground'
+          )}
+        >
           <Settings2 className="h-4 w-4" />
           <span>{pageSize.label}</span>
         </button>

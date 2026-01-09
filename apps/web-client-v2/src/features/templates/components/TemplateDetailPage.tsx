@@ -15,6 +15,8 @@ import {
 import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { usePageTransitionStore } from '@/stores/page-transition-store'
+import { useSandboxMode } from '@/stores/sandbox-mode-store'
+import { useVersionHighlightStore } from '@/stores/version-highlight-store'
 import {
   useTemplateWithVersions,
   usePublishVersion,
@@ -27,6 +29,7 @@ import { VersionListItem } from './VersionListItem'
 import { CreateVersionDialog } from './CreateVersionDialog'
 import { PublishVersionDialog } from './PublishVersionDialog'
 import { SchedulePublishDialog } from './SchedulePublishDialog'
+import { PromoteVersionDialog } from './PromoteVersionDialog'
 import { ValidationErrorsDialog, type ValidationResponse } from './ValidationErrorsDialog'
 import { EditTagsDialog } from './EditTagsDialog'
 import { DeleteVersionDialog } from './DeleteVersionDialog'
@@ -34,6 +37,7 @@ import { EditableTitle } from './EditableTitle'
 import { TagBadge } from './TagBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { TemplateVersionSummaryResponse } from '@/types/api'
+import type { PromoteVersionResponse } from '../api/templates-api'
 
 function formatDate(dateString?: string): string {
   if (!dateString) return '-'
@@ -59,11 +63,16 @@ export function TemplateDetailPage() {
   const [editTagsDialogOpen, setEditTagsDialogOpen] = useState(false)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [promoteDialogOpen, setPromoteDialogOpen] = useState(false)
   const [validationDialogOpen, setValidationDialogOpen] = useState(false)
   const [validationErrors, setValidationErrors] = useState<ValidationResponse | null>(null)
   const [selectedVersion, setSelectedVersion] = useState<TemplateVersionSummaryResponse | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<TemplateVersionSummaryResponse | null>(null)
+
+  // Sandbox mode and highlight
+  const { isSandboxActive, disableSandbox } = useSandboxMode()
+  const { highlightedVersionId, setHighlightedVersionId, clearHighlight } = useVersionHighlightStore()
 
   // Template update mutation
   const updateTemplate = useUpdateTemplate()
@@ -97,6 +106,14 @@ export function TemplateDetailPage() {
       return () => clearTimeout(timer)
     }
   }, [direction, endTransition])
+
+  // Clear highlight after 5 seconds
+  useEffect(() => {
+    if (highlightedVersionId) {
+      const timer = setTimeout(clearHighlight, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [highlightedVersionId, clearHighlight])
 
   const { data: template, isLoading, error } = useTemplateWithVersions(templateId)
 
@@ -211,6 +228,35 @@ export function TemplateDetailPage() {
   const handleDelete = (version: TemplateVersionSummaryResponse) => {
     setVersionToDelete(version)
     setDeleteDialogOpen(true)
+  }
+
+  const handlePromoteClick = (version: TemplateVersionSummaryResponse) => {
+    setSelectedVersion(version)
+    setPromoteDialogOpen(true)
+  }
+
+  const handlePromoteSuccess = (response: PromoteVersionResponse) => {
+    disableSandbox()
+    setHighlightedVersionId(response.version.id)
+    setPromoteDialogOpen(false)
+    setSelectedVersion(null)
+
+    // If promoted as new template, navigate to it
+    if (response.template && currentWorkspace) {
+      navigate({
+        to: '/workspace/$workspaceId/templates/$templateId',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
+        params: { workspaceId: currentWorkspace.id, templateId: response.template.id } as any,
+      })
+    } else if (response.version.templateId !== templateId && currentWorkspace) {
+      // If promoted to different existing template, navigate to it
+      navigate({
+        to: '/workspace/$workspaceId/templates/$templateId',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
+        params: { workspaceId: currentWorkspace.id, templateId: response.version.templateId } as any,
+      })
+    }
+    // If promoted to current template, we stay here and the list will refresh
   }
 
   // Loading state - only show skeleton if no cached data
@@ -418,6 +464,9 @@ export function TemplateDetailPage() {
                     onCancelSchedule={handleCancelSchedule}
                     onArchive={handleArchive}
                     onDelete={handleDelete}
+                    onPromote={handlePromoteClick}
+                    isSandboxMode={isSandboxActive}
+                    isHighlighted={version.id === highlightedVersionId}
                   />
                 ))}
               </div>
@@ -490,6 +539,15 @@ export function TemplateDetailPage() {
         onOpenChange={setDeleteDialogOpen}
         version={versionToDelete}
         templateId={templateId}
+      />
+
+      {/* Promote Version Dialog */}
+      <PromoteVersionDialog
+        open={promoteDialogOpen}
+        onOpenChange={setPromoteDialogOpen}
+        version={selectedVersion}
+        templateId={templateId}
+        onSuccess={handlePromoteSuccess}
       />
     </motion.div>
   )

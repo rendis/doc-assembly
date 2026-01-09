@@ -236,6 +236,32 @@
       "title": "Eliminar Versión",
       "message": "¿Estás seguro de que deseas eliminar la versión {{version}}? Esta acción no se puede deshacer.",
       "confirm": "Eliminar"
+    },
+    "versions": {
+      "actions": {
+        "promote": "Promover a Producción"
+      }
+    },
+    "promoteDialog": {
+      "title": "Promover a Producción",
+      "description": "Promover versión \"{{name}}\" a producción",
+      "modeNewTemplate": "Nueva Plantilla",
+      "modeNewTemplateDesc": "Crear una nueva plantilla con esta versión",
+      "modeExistingTemplate": "Plantilla Existente",
+      "modeExistingTemplateDesc": "Añadir como nueva versión a plantilla existente",
+      "templateName": "Nombre de la Plantilla",
+      "templateNamePlaceholder": "Ingrese el nombre de la plantilla",
+      "targetTemplate": "Plantilla Destino",
+      "searchPlaceholder": "Buscar plantillas...",
+      "versionName": "Nombre de la Versión",
+      "versionNamePlaceholder": "Ingrese el nombre de la versión",
+      "noTemplatesFound": "No se encontraron plantillas",
+      "selectTemplate": "Buscar y seleccionar una plantilla",
+      "promote": "Promover",
+      "promoting": "Promoviendo...",
+      "success": "Versión promovida exitosamente",
+      "successNewTemplate": "Nueva plantilla creada en producción",
+      "successNewVersion": "Nueva versión añadida a la plantilla"
     }
   },
   "documents": {
@@ -310,7 +336,8 @@
     "document": "Documento",
     "status": {
       "editable": "Editable",
-      "readOnly": "Solo lectura"
+      "readOnly": "Solo lectura",
+      "readOnlyBanner": "Este documento está publicado y no puede ser editado"
     },
     "errors": {
       "loadFailed": "Error al cargar",

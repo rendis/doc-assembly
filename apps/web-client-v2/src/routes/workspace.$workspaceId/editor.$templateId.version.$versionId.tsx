@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { ArrowLeft, AlertCircle, Save, RefreshCw } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, RefreshCw, Lock } from 'lucide-react'
 import { DocumentEditor } from '@/features/editor/components/DocumentEditor'
 import { DocumentPreparationOverlay } from '@/features/editor/components/DocumentPreparationOverlay'
 import { SaveStatusIndicator } from '@/features/editor/components/SaveStatusIndicator'
@@ -237,13 +237,9 @@ function EditorPage() {
                 <span className="text-xs text-muted-foreground">
                   v{version?.versionNumber || versionId}
                 </span>
-                {isEditable ? (
+                {isEditable && (
                   <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                     {t('editor.status.editable')}
-                  </span>
-                ) : (
-                  <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                    {t('editor.status.readOnly')}
                   </span>
                 )}
               </div>
@@ -272,6 +268,16 @@ function EditorPage() {
             )}
           </div>
         </header>
+
+        {/* Read-only banner - shows when document is published */}
+        {!isEditable && (
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-warning-muted border-b border-warning-border">
+            <Lock className="h-4 w-4 text-warning-foreground" />
+            <span className="text-sm font-medium text-warning-foreground">
+              {t('editor.status.readOnlyBanner')}
+            </span>
+          </div>
+        )}
 
         {/* Editor - renders in background while overlay shows */}
         <div className="flex-1 overflow-hidden">

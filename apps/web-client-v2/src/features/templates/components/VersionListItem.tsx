@@ -9,7 +9,9 @@ import {
   Calendar,
   XCircle,
   Trash2,
+  ArrowUpRight,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -26,6 +28,9 @@ interface VersionListItemProps {
   onCancelSchedule?: (version: TemplateVersionSummaryResponse) => void
   onArchive?: (version: TemplateVersionSummaryResponse) => void
   onDelete?: (version: TemplateVersionSummaryResponse) => void
+  onPromote?: (version: TemplateVersionSummaryResponse) => void
+  isSandboxMode?: boolean
+  isHighlighted?: boolean
 }
 
 function formatDate(dateString?: string): string | null {
@@ -77,6 +82,9 @@ export function VersionListItem({
   onCancelSchedule,
   onArchive,
   onDelete,
+  onPromote,
+  isSandboxMode = false,
+  isHighlighted = false,
 }: VersionListItemProps) {
   const { t } = useTranslation()
 
@@ -85,13 +93,17 @@ export function VersionListItem({
   const showCancelSchedule = version.status === 'SCHEDULED'
   const showArchive = version.status === 'PUBLISHED'
   const showDelete = version.status === 'DRAFT'
+  const showPromote = isSandboxMode && version.status === 'PUBLISHED'
 
-  const hasActions = showPublish || showSchedule || showCancelSchedule || showArchive || showDelete
+  const hasActions = showPublish || showSchedule || showCancelSchedule || showArchive || showDelete || showPromote
 
   return (
     <div
       onClick={() => onOpenEditor(version.id)}
-      className="group cursor-pointer border-b border-border px-4 py-4 transition-colors hover:bg-accent"
+      className={cn(
+        'group cursor-pointer border-b border-border px-4 py-4 transition-colors hover:bg-accent',
+        isHighlighted && 'animate-pulse-highlight'
+      )}
     >
       <div className="flex items-start justify-between gap-4">
         {/* Version number and name */}
@@ -176,6 +188,13 @@ export function VersionListItem({
                 icon={<Archive size={18} />}
                 label={t('templates.versions.actions.archive', 'Archive')}
                 onClick={() => onArchive?.(version)}
+              />
+            )}
+            {showPromote && (
+              <ActionButton
+                icon={<ArrowUpRight size={18} />}
+                label={t('templates.versions.actions.promote', 'Promote to Production')}
+                onClick={() => onPromote?.(version)}
               />
             )}
             {showDelete && (

@@ -439,25 +439,31 @@ export function DocumentEditor({
         onDragEnd={handleDragEnd}
       >
         <div className="flex h-full">
-          {/* Left: Variables Panel */}
-          <VariablesPanel
-            onVariableClick={handleVariableClick}
-            draggingIds={activeDragData ? [activeDragData.id] : []}
-          />
+          {/* Left: Variables Panel - only show when editable */}
+          {editable && (
+            <VariablesPanel
+              onVariableClick={handleVariableClick}
+              draggingIds={activeDragData ? [activeDragData.id] : []}
+            />
+          )}
 
           {/* Center: Main Editor Area */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Header with Toolbar and Settings */}
+            {/* Header with Toolbar and Settings - Toolbar only when editable */}
             <div className="flex items-center justify-between border-b border-border bg-card">
-              <EditorToolbar
-                editor={editor}
-                onExport={onExport}
-                onImport={onImport}
-                templateId={templateId}
-                versionId={versionId}
-              />
+              {editable ? (
+                <EditorToolbar
+                  editor={editor}
+                  onExport={onExport}
+                  onImport={onImport}
+                  templateId={templateId}
+                  versionId={versionId}
+                />
+              ) : (
+                <div className="flex-1" />
+              )}
               <div className="pr-2">
-                <PageSettings />
+                <PageSettings disabled={!editable} />
               </div>
             </div>
 
@@ -480,7 +486,7 @@ export function DocumentEditor({
           </div>
 
           {/* Right: Signer Roles Panel */}
-          <SignerRolesPanel variables={variables} />
+          <SignerRolesPanel variables={variables} editable={editable} />
         </div>
 
         {/* Drag Overlay - shows ghost image while dragging */}

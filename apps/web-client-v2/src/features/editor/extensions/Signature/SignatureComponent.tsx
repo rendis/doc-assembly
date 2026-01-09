@@ -47,6 +47,9 @@ export const SignatureComponent = (props: NodeViewProps) => {
     signatures,
   }
 
+  // Check if editor is in editable mode (not read-only/published)
+  const isEditorEditable = editor.isEditable
+
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
   const [, forceUpdate] = useState({})
@@ -82,8 +85,9 @@ export const SignatureComponent = (props: NodeViewProps) => {
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!isEditorEditable) return
     setEditorOpen(true)
-  }, [])
+  }, [isEditorEditable])
 
   const handleSelectNode = useCallback(
     (e: React.MouseEvent) => {
@@ -167,7 +171,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
                     signature={signature}
                     lineWidth={lineWidth}
                     className={itemWidthClasses}
-                    editable={isDirectlySelected}
+                    editable={isEditorEditable && isDirectlySelected}
                     isImageSelected={selectedImageId === signature.id}
                     onImageSelect={() => setSelectedImageId(signature.id)}
                     onImageDeselect={() => setSelectedImageId(null)}
@@ -190,7 +194,7 @@ export const SignatureComponent = (props: NodeViewProps) => {
         signature={signature}
         lineWidth={lineWidth}
         className={itemWidthClasses}
-        editable={isDirectlySelected}
+        editable={isEditorEditable && isDirectlySelected}
         isImageSelected={selectedImageId === signature.id}
         onImageSelect={() => setSelectedImageId(signature.id)}
         onImageDeselect={() => setSelectedImageId(null)}
@@ -245,8 +249,8 @@ export const SignatureComponent = (props: NodeViewProps) => {
         {/* Contenedor de firmas según layout */}
         <div className={containerClasses}>{renderSignatures()}</div>
 
-        {/* Barra de herramientas flotante cuando está seleccionado */}
-        {isDirectlySelected && (
+        {/* Barra de herramientas flotante cuando está seleccionado y es editable */}
+        {isEditorEditable && isDirectlySelected && (
           <TooltipProvider delayDuration={300}>
             <div data-toolbar className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-50">
               <Tooltip>

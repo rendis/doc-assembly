@@ -236,6 +236,32 @@
       "title": "Delete Version",
       "message": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
       "confirm": "Delete"
+    },
+    "versions": {
+      "actions": {
+        "promote": "Promote to Production"
+      }
+    },
+    "promoteDialog": {
+      "title": "Promote to Production",
+      "description": "Promote version \"{{name}}\" to production",
+      "modeNewTemplate": "New Template",
+      "modeNewTemplateDesc": "Create a new template with this version",
+      "modeExistingTemplate": "Existing Template",
+      "modeExistingTemplateDesc": "Add as new version to existing template",
+      "templateName": "Template Name",
+      "templateNamePlaceholder": "Enter template name",
+      "targetTemplate": "Target Template",
+      "searchPlaceholder": "Search templates...",
+      "versionName": "Version Name",
+      "versionNamePlaceholder": "Enter version name",
+      "noTemplatesFound": "No templates found",
+      "selectTemplate": "Search and select a template",
+      "promote": "Promote",
+      "promoting": "Promoting...",
+      "success": "Version promoted successfully",
+      "successNewTemplate": "New template created in production",
+      "successNewVersion": "New version added to template"
     }
   },
   "documents": {
@@ -310,7 +336,8 @@
     "document": "Document",
     "status": {
       "editable": "Editable",
-      "readOnly": "Read only"
+      "readOnly": "Read only",
+      "readOnlyBanner": "This document is published and cannot be edited"
     },
     "errors": {
       "loadFailed": "Failed to load",
