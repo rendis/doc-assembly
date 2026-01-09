@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { motion } from 'framer-motion'
-import { LayoutGrid, FileText, FolderOpen, Settings, LogOut } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { LayoutGrid, FileText, FolderOpen, Settings, LogOut, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -12,21 +13,38 @@ import {
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { useSidebarStore } from '@/stores/sidebar-store'
+import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { logout } from '@/lib/keycloak'
 import { getInitials } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { SidebarToggleButton } from './SidebarToggleButton'
 import { useWorkspaceTransitionStore } from '@/stores/workspace-transition-store'
+import { SandboxIndicator } from '@/components/common/SandboxIndicator'
+import { SandboxConfirmDialog } from '@/features/settings/components/SandboxConfirmDialog'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface NavItem {
   label: string
   icon: typeof LayoutGrid
   href: string
+  showInSandbox: boolean
 }
 
 const navItemVariants = {
   hidden: { opacity: 0, x: -20 },
   visible: { opacity: 1, x: 0 },
+}
+
+const sandboxNavVariants = {
+  initial: { opacity: 1, height: 'auto' },
+  animate: { opacity: 1, height: 'auto' },
+  exit: {
+    opacity: 0,
+    height: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
+  },
 }
 
 const footerItemVariants = {
@@ -38,10 +56,13 @@ export function AppSidebar() {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { userProfile } = useAuthStore()
   const { currentWorkspace, clearContext } = useAppContextStore()
   const { isPinned, isHovering, closeMobile } = useSidebarStore()
+  const { isSandboxActive, disableSandbox } = useSandboxMode()
   const { phase: transitionPhase } = useWorkspaceTransitionStore()
+  const [showExitDialog, setShowExitDialog] = useState(false)
 
   const isExpanded = isPinned || isHovering
   // Hide workspace name while transition animation is active
@@ -49,28 +70,37 @@ export function AppSidebar() {
 
   const workspaceId = currentWorkspace?.id || ''
 
-  const navItems: NavItem[] = [
+  const allNavItems: NavItem[] = [
     {
       label: t('nav.dashboard'),
       icon: LayoutGrid,
       href: `/workspace/${workspaceId}`,
+      showInSandbox: false,
     },
     {
       label: t('nav.templates'),
       icon: FileText,
       href: `/workspace/${workspaceId}/templates`,
+      showInSandbox: true,
     },
     {
       label: t('nav.documents'),
       icon: FolderOpen,
       href: `/workspace/${workspaceId}/documents`,
+      showInSandbox: true,
     },
     {
       label: t('nav.settings'),
       icon: Settings,
       href: `/workspace/${workspaceId}/settings`,
+      showInSandbox: false,
     },
   ]
+
+  // Filter nav items based on sandbox mode
+  const visibleNavItems = isSandboxActive
+    ? allNavItems.filter((item) => item.showInSandbox)
+    : allNavItems
 
   const displayName = userProfile
     ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() ||
@@ -88,6 +118,14 @@ export function AppSidebar() {
     navigate({ to: '/login' })
   }
 
+  const handleExitSandbox = () => {
+    disableSandbox()
+    // Invalidate queries to refetch without sandbox header
+    queryClient.invalidateQueries({ queryKey: ['templates'] })
+    queryClient.invalidateQueries({ queryKey: ['folders'] })
+    setShowExitDialog(false)
+  }
+
   const isActive = (href: string) => {
     // Exact match for dashboard (index route)
     if (href === `/workspace/${workspaceId}`) {
@@ -102,7 +140,10 @@ export function AppSidebar() {
       initial={false}
       animate={{ width: isExpanded ? 256 : 64 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="relative flex h-full flex-col overflow-visible bg-sidebar-background pt-16"
+      className={cn(
+        'relative flex h-full flex-col overflow-visible bg-sidebar-background pt-16',
+        isSandboxActive && 'border-l-2 border-l-sandbox'
+      )}
     >
       {/* Toggle button - only visible on desktop */}
       <div className="hidden lg:block">
@@ -119,7 +160,7 @@ export function AppSidebar() {
       <ScrollArea className={cn('flex-1 py-6', isExpanded ? 'px-4' : 'px-2')}>
         {/* Current Workspace */}
         {currentWorkspace && (
-          <div className="relative mb-8 h-10 px-1">
+          <div className="relative mb-8 px-1">
             {/* Avatar - visible solo cuando colapsado */}
             <motion.div
               initial={false}
@@ -144,6 +185,11 @@ export function AppSidebar() {
                     {t('workspace.current')}
                   </div>
                   <div className="font-medium">{currentWorkspace.name}</div>
+                  {isSandboxActive && (
+                    <div className="mt-1">
+                      <SandboxIndicator variant="badge" />
+                    </div>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </motion.div>
@@ -156,7 +202,7 @@ export function AppSidebar() {
                 x: isExpanded ? 0 : -10,
               }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-              className="flex h-full items-center"
+              className="flex h-10 items-center"
               style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
             >
               <div style={{ opacity: showWorkspaceName ? 1 : 0 }}>
@@ -168,56 +214,124 @@ export function AppSidebar() {
                 </div>
               </div>
             </motion.div>
+
+            {/* Sandbox indicator with exit button - visible when expanded and sandbox active */}
+            <AnimatePresence>
+              {isSandboxActive && isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -5, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-2 flex items-center justify-between"
+                >
+                  <SandboxIndicator variant="label" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowExitDialog(true)}
+                        className="flex h-6 w-6 items-center justify-center rounded text-sandbox transition-colors hover:bg-sandbox-muted"
+                      >
+                        <X size={14} strokeWidth={2} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>
+                      {t('sandbox.exit', 'Exit Sandbox')}
+                    </TooltipContent>
+                  </Tooltip>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Sandbox exit button - visible when collapsed */}
+            <AnimatePresence>
+              {isSandboxActive && !isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-2 flex justify-center"
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowExitDialog(true)}
+                        className="flex h-8 w-8 items-center justify-center rounded border border-sandbox-border bg-sandbox-muted text-sandbox transition-colors hover:bg-sandbox/20"
+                      >
+                        <X size={14} strokeWidth={2} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>
+                      <div className="text-xs text-muted-foreground">
+                        {t('sandbox.label', 'Sandbox')}
+                      </div>
+                      <div className="font-medium">{t('sandbox.exit', 'Exit Sandbox')}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
         {/* Navigation */}
         <nav className="space-y-1">
-          {navItems.map((item, index) => {
-            const active = isActive(item.href)
-            return (
-              <motion.div
-                key={item.href}
-                variants={navItemVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ duration: 0.3, delay: 0.8 + index * 0.08 }}
-              >
-                <Link
-                  to={item.href}
-                  onClick={closeMobile}
-                  className={cn(
-                    'group flex w-full items-center gap-4 rounded-md px-3 py-3 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  )}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {visibleNavItems.map((item, index) => {
+              const active = isActive(item.href)
+              return (
+                <motion.div
+                  key={item.href}
+                  layout
+                  variants={sandboxNavVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
                 >
-                  <item.icon
-                    size={20}
-                    strokeWidth={1.5}
-                    className={cn(
-                      'shrink-0',
-                      active
-                        ? 'text-sidebar-accent-foreground'
-                        : 'text-muted-foreground group-hover:text-sidebar-accent-foreground'
-                    )}
-                  />
-                  <motion.span
-                    initial={false}
-                    animate={{
-                      opacity: isExpanded ? 1 : 0,
-                      width: isExpanded ? 'auto' : 0,
-                    }}
-                    transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-                    className="overflow-hidden whitespace-nowrap font-mono"
+                  <motion.div
+                    variants={navItemVariants}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ duration: 0.3, delay: 0.8 + index * 0.08 }}
                   >
-                    {item.label}
-                  </motion.span>
-                </Link>
-              </motion.div>
-            )
-          })}
+                    <Link
+                      to={item.href}
+                      onClick={closeMobile}
+                      className={cn(
+                        'group flex w-full items-center gap-4 rounded-md px-3 py-3 text-sm font-medium transition-colors',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                      )}
+                    >
+                      <item.icon
+                        size={20}
+                        strokeWidth={1.5}
+                        className={cn(
+                          'shrink-0',
+                          active
+                            ? 'text-sidebar-accent-foreground'
+                            : 'text-muted-foreground group-hover:text-sidebar-accent-foreground'
+                        )}
+                      />
+                      <motion.span
+                        initial={false}
+                        animate={{
+                          opacity: isExpanded ? 1 : 0,
+                          width: isExpanded ? 'auto' : 0,
+                        }}
+                        transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                        className="overflow-hidden whitespace-nowrap font-mono"
+                      >
+                        {item.label}
+                      </motion.span>
+                    </Link>
+                  </motion.div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         </nav>
       </ScrollArea>
 
@@ -291,6 +405,14 @@ export function AppSidebar() {
           </button>
         </motion.div>
       </div>
+
+      {/* Exit Sandbox Confirmation Dialog */}
+      <SandboxConfirmDialog
+        open={showExitDialog}
+        onOpenChange={setShowExitDialog}
+        action="disable"
+        onConfirm={handleExitSandbox}
+      />
     </motion.aside>
   )
 }

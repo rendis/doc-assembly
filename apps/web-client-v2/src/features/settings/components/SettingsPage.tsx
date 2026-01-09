@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { WorkspaceTypeSection } from './WorkspaceTypeSection'
+import { SandboxModeSection } from './SandboxModeSection'
 import { MemberManagementSection } from './MemberManagementSection'
 import { GlobalInjectablesSection } from './GlobalInjectablesSection'
 import { UnsavedChangesAlert } from './UnsavedChangesAlert'
@@ -9,7 +9,6 @@ export function SettingsPage() {
   const { t } = useTranslation()
 
   // Form state
-  const [workspaceType, setWorkspaceType] = useState<'development' | 'production'>('production')
   const [allowGuestAccess, setAllowGuestAccess] = useState(false)
   const [adminContact, setAdminContact] = useState('admin@doc-assembly.io')
   const [hasChanges, setHasChanges] = useState(false)
@@ -20,7 +19,6 @@ export function SettingsPage() {
   ]
 
   const handleReset = () => {
-    setWorkspaceType('production')
     setAllowGuestAccess(false)
     setAdminContact('admin@doc-assembly.io')
     setHasChanges(false)
@@ -53,13 +51,7 @@ export function SettingsPage() {
 
       <main className="w-full px-4 pb-24 md:px-6 lg:px-6">
         <form className="w-full border-t border-border">
-          <WorkspaceTypeSection
-            value={workspaceType}
-            onChange={(v) => {
-              setWorkspaceType(v)
-              handleChange()
-            }}
-          />
+          <SandboxModeSection />
 
           <MemberManagementSection
             allowGuestAccess={allowGuestAccess}

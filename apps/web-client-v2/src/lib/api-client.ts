@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppContextStore } from '@/stores/app-context-store'
+import { useSandboxModeStore } from '@/stores/sandbox-mode-store'
 import { refreshAccessToken } from '@/lib/keycloak'
 
 // API Base URL from environment
@@ -55,6 +56,12 @@ apiClient.interceptors.request.use(
 
     if (currentWorkspace?.id) {
       config.headers['X-Workspace-ID'] = currentWorkspace.id
+
+      // Inject sandbox mode header if active for this workspace
+      const { sandboxWorkspaces } = useSandboxModeStore.getState()
+      if (sandboxWorkspaces[currentWorkspace.id]) {
+        config.headers['X-Sandbox-Mode'] = 'true'
+      }
     }
 
     return config

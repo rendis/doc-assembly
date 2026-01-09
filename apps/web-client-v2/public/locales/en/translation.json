@@ -743,7 +743,30 @@
     "addVariable": "Inject new variable",
     "unsavedChanges": "You have unsaved changes",
     "reset": "Reset",
-    "applyConfig": "Apply Config"
+    "applyConfig": "Apply Config",
+    "sandbox": {
+      "title": "Sandbox Mode",
+      "description": "Test templates and documents in an isolated environment without affecting production data.",
+      "active": "Sandbox Active",
+      "inactive": "Production Mode",
+      "activeDesc": "Changes are isolated and will not affect production",
+      "inactiveDesc": "All changes will be applied to production data",
+      "warning": "Sandbox data is workspace-specific and may be reset periodically. Use production mode for permanent changes.",
+      "dialog": {
+        "enableTitle": "Enter Sandbox Mode",
+        "disableTitle": "Exit Sandbox Mode",
+        "enableDesc": "Switch to an isolated testing environment",
+        "disableDesc": "Return to production mode",
+        "enableWarning": "In sandbox mode, your changes will be isolated from production. You can exit sandbox mode at any time from the sidebar.",
+        "disableWarning": "Returning to production mode. Your sandbox changes will remain available if you re-enter sandbox mode.",
+        "enableConfirm": "Enter Sandbox",
+        "disableConfirm": "Exit Sandbox"
+      }
+    }
+  },
+  "sandbox": {
+    "label": "Sandbox",
+    "exit": "Exit Sandbox"
   },
   "admin": {
     "title": "Administration",

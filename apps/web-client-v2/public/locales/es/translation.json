@@ -743,7 +743,30 @@
     "addVariable": "Agregar nueva variable",
     "unsavedChanges": "Tienes cambios sin guardar",
     "reset": "Restablecer",
-    "applyConfig": "Aplicar Configuración"
+    "applyConfig": "Aplicar Configuración",
+    "sandbox": {
+      "title": "Modo Sandbox",
+      "description": "Prueba plantillas y documentos en un entorno aislado sin afectar los datos de producción.",
+      "active": "Sandbox Activo",
+      "inactive": "Modo Producción",
+      "activeDesc": "Los cambios están aislados y no afectarán a producción",
+      "inactiveDesc": "Todos los cambios se aplicarán a los datos de producción",
+      "warning": "Los datos de sandbox son específicos del workspace y pueden reiniciarse periódicamente. Usa el modo producción para cambios permanentes.",
+      "dialog": {
+        "enableTitle": "Entrar a Modo Sandbox",
+        "disableTitle": "Salir de Modo Sandbox",
+        "enableDesc": "Cambiar a un entorno de pruebas aislado",
+        "disableDesc": "Volver al modo producción",
+        "enableWarning": "En modo sandbox, tus cambios estarán aislados de producción. Puedes salir del modo sandbox en cualquier momento desde la barra lateral.",
+        "disableWarning": "Volviendo al modo producción. Tus cambios de sandbox permanecerán disponibles si vuelves a entrar.",
+        "enableConfirm": "Entrar a Sandbox",
+        "disableConfirm": "Salir de Sandbox"
+      }
+    }
+  },
+  "sandbox": {
+    "label": "Sandbox",
+    "exit": "Salir de Sandbox"
   },
   "admin": {
     "title": "Administración",

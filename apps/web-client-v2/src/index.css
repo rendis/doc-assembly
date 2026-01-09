@@ -95,6 +95,12 @@
   --role-foreground: 350 60% 20%;
   --role-muted: 350 50% 94%;
   --role-border: 350 65% 65%;
+
+  /* Sandbox (amber/gold - for sandbox mode indicator) */
+  --sandbox: 45 90% 35%;
+  --sandbox-foreground: 45 10% 15%;
+  --sandbox-muted: 45 50% 95%;
+  --sandbox-border: 45 70% 55%;
 }
 
 .dark {
@@ -177,6 +183,12 @@
   --role-foreground: 350 30% 99%;
   --role-muted: 350 20% 30%;
   --role-border: 350 50% 55%;
+
+  /* Sandbox (amber/gold - for sandbox mode indicator) */
+  --sandbox: 45 85% 60%;
+  --sandbox-foreground: 45 90% 95%;
+  --sandbox-muted: 45 30% 18%;
+  --sandbox-border: 45 60% 40%;
 }
 
 /* ============================================
@@ -492,6 +504,12 @@ body {
   --color-role-foreground: hsl(var(--role-foreground));
   --color-role-muted: hsl(var(--role-muted));
   --color-role-border: hsl(var(--role-border));
+
+  /* Sandbox colors */
+  --color-sandbox: hsl(var(--sandbox));
+  --color-sandbox-foreground: hsl(var(--sandbox-foreground));
+  --color-sandbox-muted: hsl(var(--sandbox-muted));
+  --color-sandbox-border: hsl(var(--sandbox-border));
 
   /* Border radius */
   --radius-sm: calc(var(--radius) - 4px);

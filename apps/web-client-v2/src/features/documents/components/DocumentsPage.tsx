@@ -80,14 +80,6 @@ const gridContainerVariants = {
   exit: { opacity: 0, transition: { duration: 0.15 } },
 }
 
-const gridItemVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.2, ease: 'easeOut' as const },
-  },
-}
 
 function DocumentsPageContent() {
   const { t } = useTranslation()
@@ -524,25 +516,34 @@ function DocumentsPageContent() {
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {currentFolders.map((folder) => (
-                        <motion.div key={folder.id} variants={gridItemVariants}>
-                          <DroppableFolderZone folderId={folder.id}>
-                            <DraggableFolderCard
-                              folder={folder}
-                              disabled={isSelecting}
-                              isOtherDragging={activeDragItem !== null}
-                            >
-                              <FolderCard
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {currentFolders.map((folder) => (
+                          <motion.div
+                            key={folder.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                          >
+                            <DroppableFolderZone folderId={folder.id}>
+                              <DraggableFolderCard
                                 folder={folder}
-                                onClick={() => navigateToFolder(folder.id)}
-                                onRename={() => handleRenameFolder(folder)}
-                                onMove={() => handleMoveFolder(folder)}
-                                onDelete={() => handleDeleteFolder(folder)}
-                              />
-                            </DraggableFolderCard>
-                          </DroppableFolderZone>
-                        </motion.div>
-                      ))}
+                                disabled={isSelecting}
+                                isOtherDragging={activeDragItem !== null}
+                              >
+                                <FolderCard
+                                  folder={folder}
+                                  onClick={() => navigateToFolder(folder.id)}
+                                  onRename={() => handleRenameFolder(folder)}
+                                  onMove={() => handleMoveFolder(folder)}
+                                  onDelete={() => handleDeleteFolder(folder)}
+                                />
+                              </DraggableFolderCard>
+                            </DroppableFolderZone>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>
@@ -559,31 +560,37 @@ function DocumentsPageContent() {
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {templatesData.items.map((template) => (
-                        <motion.div
-                          key={template.id}
-                          variants={gridItemVariants}
-                        >
-                          <DraggableTemplateCard
-                            template={template}
-                            disabled={isSelecting}
-                            isOtherDragging={activeDragItem !== null}
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {templatesData.items.map((template) => (
+                          <motion.div
+                            key={template.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                           >
-                            <TemplateCard
+                            <DraggableTemplateCard
                               template={template}
-                              onClick={() => {
-                                navigate({
-                                  to: '/workspace/$workspaceId/templates/$templateId',
-                                  /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
-                                  params: { workspaceId: workspaceId ?? '', templateId: template.id } as any,
-                                  search: { fromFolderId: currentFolderId ?? 'root' } as any,
-                                  /* eslint-enable @typescript-eslint/no-explicit-any */
-                                })
-                              }}
-                            />
-                          </DraggableTemplateCard>
-                        </motion.div>
-                      ))}
+                              disabled={isSelecting}
+                              isOtherDragging={activeDragItem !== null}
+                            >
+                              <TemplateCard
+                                template={template}
+                                onClick={() => {
+                                  navigate({
+                                    to: '/workspace/$workspaceId/templates/$templateId',
+                                    /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
+                                    params: { workspaceId: workspaceId ?? '', templateId: template.id } as any,
+                                    search: { fromFolderId: currentFolderId ?? 'root' } as any,
+                                    /* eslint-enable @typescript-eslint/no-explicit-any */
+                                  })
+                                }}
+                              />
+                            </DraggableTemplateCard>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>

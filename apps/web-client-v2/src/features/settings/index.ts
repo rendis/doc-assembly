@@ -1,5 +1,6 @@
 export { SettingsPage } from './components/SettingsPage'
-export { WorkspaceTypeSection } from './components/WorkspaceTypeSection'
+export { SandboxModeSection } from './components/SandboxModeSection'
+export { SandboxConfirmDialog } from './components/SandboxConfirmDialog'
 export { MemberManagementSection } from './components/MemberManagementSection'
 export { GlobalInjectablesSection } from './components/GlobalInjectablesSection'
 export { UnsavedChangesAlert } from './components/UnsavedChangesAlert'

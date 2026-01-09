@@ -21,7 +21,7 @@ export function CreateFolderDialog({
 
   // Handle dialog open state change and reset form
   const handleOpenChange = useCallback((isOpen: boolean) => {
-    if (isOpen) {
+    if (!isOpen) {
       setName('')
     }
     onOpenChange(isOpen)
@@ -36,7 +36,7 @@ export function CreateFolderDialog({
         name: name.trim(),
         parentId: parentId ?? undefined,
       })
-      onOpenChange(false)
+      handleOpenChange(false)
     } catch {
       // Error is handled by mutation
     }
@@ -95,7 +95,7 @@ export function CreateFolderDialog({
           <div className="flex justify-end gap-3 border-t border-border p-6">
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={createFolder.isPending}
               className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
             >
