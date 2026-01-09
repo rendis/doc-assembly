@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet, useNavigate, useLocation } from '@tanstack/react-router'
 import { AnimatePresence, LayoutGroup } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { WorkspaceTransitionOverlay } from '@/components/layout/WorkspaceTransitionOverlay'
 
@@ -15,6 +15,14 @@ function RootLayout() {
   const location = useLocation()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated())
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading)
+
+  // Calcular key que agrupa rutas del mismo layout
+  // Para rutas /workspace/xxx/* usar solo /workspace/xxx
+  // Para otras rutas usar el pathname completo
+  const layoutKey = useMemo(() => {
+    const match = location.pathname.match(/^\/workspace\/[^/]+/)
+    return match ? match[0] : location.pathname
+  }, [location.pathname])
 
   useEffect(() => {
     // Skip check while auth is loading
@@ -36,7 +44,7 @@ function RootLayout() {
     <LayoutGroup>
       <div className="min-h-screen bg-background text-foreground">
         <AnimatePresence mode="wait" initial={false}>
-          <div key={location.pathname}>
+          <div key={layoutKey}>
             <Outlet />
           </div>
         </AnimatePresence>

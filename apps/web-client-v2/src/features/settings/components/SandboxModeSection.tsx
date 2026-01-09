@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
-import { FlaskConical, AlertTriangle } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation } from '@tanstack/react-router'
-import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useAppContextStore } from '@/stores/app-context-store'
+import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useQueryClient } from '@tanstack/react-query'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { AlertTriangle, FlaskConical } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SandboxConfirmDialog } from './SandboxConfirmDialog'
 
 export function SandboxModeSection() {
