@@ -1,14 +1,14 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { X, Info } from 'lucide-react'
 import {
-  Dialog,
   BaseDialogContent,
+  Dialog,
   DialogClose,
-  DialogTitle,
   DialogDescription,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import type { TemplateVersionSummaryResponse } from '@/types/api'
+import { Info, X } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface SchedulePublishDialogProps {
   open: boolean
@@ -44,14 +44,6 @@ export function SchedulePublishDialog({
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
-      setDate('')
-      setTime('')
-    }
-  }, [open])
-
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
       onOpenChange(isOpen)
@@ -74,7 +66,7 @@ export function SchedulePublishDialog({
   if (!version) return null
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog key={version.id} open={open} onOpenChange={handleOpenChange}>
       <BaseDialogContent className="max-w-md">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border p-6">
@@ -110,7 +102,7 @@ export function SchedulePublishDialog({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               min={getMinDate()}
-              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus-visible:border-foreground focus-visible:ring-0 dark:[color-scheme:dark]"
+              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus-visible:border-foreground focus-visible:ring-0 dark:scheme-dark"
             />
           </div>
 
@@ -128,7 +120,7 @@ export function SchedulePublishDialog({
               value={time}
               onChange={(e) => setTime(e.target.value)}
               min={date ? getMinTime(date) : undefined}
-              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus-visible:border-foreground focus-visible:ring-0 dark:[color-scheme:dark]"
+              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus-visible:border-foreground focus-visible:ring-0 dark:scheme-dark"
             />
           </div>
 
