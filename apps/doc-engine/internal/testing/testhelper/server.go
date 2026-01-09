@@ -86,7 +86,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		templateVersionInjectableRepo,
 		templateVersionSignerRoleRepo,
 		templateRepo,
+		templateTagRepo,
 		contentValidator,
+		workspaceRepo,
 	)
 
 	// Create mappers
@@ -113,7 +115,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Create controllers - Content
 	// Note: RenderController is nil for tests (no PDF renderer configured)
-	templateVersionController := controller.NewTemplateVersionController(templateVersionService, templateVersionMapper, nil)
+	templateVersionController := controller.NewTemplateVersionController(templateVersionService, templateVersionMapper, templateMapper, nil)
 	injectableController := controller.NewContentInjectableController(
 		injectableService,
 		injectableMapper,

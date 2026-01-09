@@ -626,7 +626,8 @@ func (s *TemplateVersionService) promoteAsNewTemplate(ctx context.Context, sourc
 	}
 
 	// 4. Create initial version
-	versionName := "Promoted from Sandbox"
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	versionName := fmt.Sprintf("Promoted from Sandbox %s", timestamp)
 	if cmd.VersionName != nil && *cmd.VersionName != "" {
 		versionName = *cmd.VersionName
 	}
@@ -712,12 +713,22 @@ func (s *TemplateVersionService) promoteAsNewVersion(ctx context.Context, source
 		return nil, fmt.Errorf("getting next version number: %w", err)
 	}
 
-	// 5. Create new version
+	// 5. Determine version name
 	versionName := "Promoted from Sandbox"
 	if cmd.VersionName != nil && *cmd.VersionName != "" {
 		versionName = *cmd.VersionName
 	}
 
+	// 6. Check for duplicate version name
+	exists, err := s.versionRepo.ExistsByName(ctx, *cmd.TargetTemplateID, versionName)
+	if err != nil {
+		return nil, fmt.Errorf("checking version name: %w", err)
+	}
+	if exists {
+		return nil, entity.ErrVersionNameExists
+	}
+
+	// 7. Create new version
 	description := fmt.Sprintf("Promoted from template '%s' version %d", sourceTemplate.Title, sourceVersion.VersionNumber)
 	newVersion := entity.NewTemplateVersion(*cmd.TargetTemplateID, versionNumber, versionName, &cmd.PromotedBy)
 	newVersion.ID = uuid.NewString()
@@ -728,7 +739,7 @@ func (s *TemplateVersionService) promoteAsNewVersion(ctx context.Context, source
 		return nil, fmt.Errorf("creating version: %w", err)
 	}
 
-	// 6. Copy injectables
+	// 8. Copy injectables
 	if err := s.injectableRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
 		slog.Warn("failed to copy injectables during promotion",
 			slog.String("source_version_id", sourceVersion.ID),
@@ -737,7 +748,7 @@ func (s *TemplateVersionService) promoteAsNewVersion(ctx context.Context, source
 		)
 	}
 
-	// 7. Copy signer roles
+	// 9. Copy signer roles
 	if err := s.signerRoleRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
 		slog.Warn("failed to copy signer roles during promotion",
 			slog.String("source_version_id", sourceVersion.ID),
