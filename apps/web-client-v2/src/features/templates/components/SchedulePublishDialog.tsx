@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Info } from 'lucide-react'
 import {
@@ -44,12 +44,16 @@ export function SchedulePublishDialog({
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
 
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setDate('')
+      setTime('')
+    }
+  }, [open])
+
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
-      if (isOpen) {
-        setDate('')
-        setTime('')
-      }
       onOpenChange(isOpen)
     },
     [onOpenChange]
@@ -60,6 +64,9 @@ export function SchedulePublishDialog({
 
     const publishAt = new Date(`${date}T${time}`).toISOString()
     onConfirm(publishAt)
+    // Reset form after successful submission
+    setDate('')
+    setTime('')
   }
 
   const isValid = date && time

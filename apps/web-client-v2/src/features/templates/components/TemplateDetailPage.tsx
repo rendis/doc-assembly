@@ -1,16 +1,24 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { usePageTransitionStore } from '@/stores/page-transition-store'
 import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useVersionHighlightStore } from '@/stores/version-highlight-store'
-import type { TemplateVersionSummaryResponse } from '@/types/api'
+import type { TemplateVersionSummaryResponse, VersionStatus } from '@/types/api'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import {
+    Archive,
     ArrowLeft,
     Calendar,
+    CheckCircle2,
     Clock,
     FileText,
     FolderOpen,
@@ -130,6 +138,50 @@ export function TemplateDetailPage() {
   // Check if we have cached data (to avoid skeleton flash)
   const hasCachedData = !!template
 
+  // Calculate version counts by status
+  const versionCounts = useMemo(() => {
+    if (!template?.versions) {
+      return {
+        PUBLISHED: 0,
+        SCHEDULED: 0,
+        DRAFT: 0,
+        ARCHIVED: 0,
+      }
+    }
+    return template.versions.reduce(
+      (acc, version) => {
+        acc[version.status] = (acc[version.status] || 0) + 1
+        return acc
+      },
+      {
+        PUBLISHED: 0,
+        SCHEDULED: 0,
+        DRAFT: 0,
+        ARCHIVED: 0,
+      } as Record<VersionStatus, number>
+    )
+  }, [template?.versions])
+
+  // Version filters state (only active for statuses with versions > 0)
+  const [versionFilters, setVersionFilters] = useState<Record<VersionStatus, boolean>>(() => ({
+    PUBLISHED: true,
+    SCHEDULED: true,
+    DRAFT: true,
+    ARCHIVED: true,
+  }))
+
+  // Update filters when version counts change (disable filters with 0 versions, enable when count > 0)
+  useEffect(() => {
+    setVersionFilters((prev) => ({
+      // If count > 0, enable the filter (or keep it enabled if already enabled)
+      // If count === 0, disable the filter
+      PUBLISHED: versionCounts.PUBLISHED > 0 ? true : false,
+      SCHEDULED: versionCounts.SCHEDULED > 0 ? true : false,
+      DRAFT: versionCounts.DRAFT > 0 ? true : false,
+      ARCHIVED: versionCounts.ARCHIVED > 0 ? true : false,
+    }))
+  }, [versionCounts])
+
   // Sort versions according to business rules:
   // 1. Published version first
   // 2. Scheduled versions (by scheduledPublishAt ascending)
@@ -139,8 +191,11 @@ export function TemplateDetailPage() {
   const sortedVersions = useMemo(() => {
     if (!versions || versions.length === 0) return []
     
+    // Filter versions based on active filters
+    const filteredVersions = versions.filter((v) => versionFilters[v.status])
+    
     // Helper function to get sort date for drafts and archived
-    const getSortDate = (version: typeof versions[0]): number => {
+    const getSortDate = (version: typeof filteredVersions[0]): number => {
       if (version.updatedAt) {
         return new Date(version.updatedAt).getTime()
       }
@@ -149,12 +204,12 @@ export function TemplateDetailPage() {
     }
     
     // Separate versions by status
-    const published: typeof versions = []
-    const scheduled: typeof versions = []
-    const drafts: typeof versions = []
-    const archived: typeof versions = []
+    const published: typeof filteredVersions = []
+    const scheduled: typeof filteredVersions = []
+    const drafts: typeof filteredVersions = []
+    const archived: typeof filteredVersions = []
     
-    for (const version of versions) {
+    for (const version of filteredVersions) {
       if (version.status === 'PUBLISHED') {
         published.push(version)
       } else if (version.status === 'SCHEDULED') {
@@ -195,7 +250,7 @@ export function TemplateDetailPage() {
     
     // Concatenate in the required order
     return [...published, ...scheduled, ...drafts, ...archived]
-  }, [versions])
+  }, [versions, versionFilters])
 
   const handleBackToList = () => {
     if (currentWorkspace && !isTransitioning) {
@@ -549,11 +604,133 @@ export function TemplateDetailPage() {
               <h2 className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                 {t('templates.detail.versionsSection', 'Version History')}
               </h2>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {t('templates.detail.versionsTotal', '{{count}} version(s)', {
-                  count: template.versions?.length ?? 0,
-                })}
-              </span>
+              <div className="flex items-center gap-3">
+                {/* Version filters */}
+                <div className="flex items-center gap-1.5">
+                  {/* Published filter */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() =>
+                          setVersionFilters((prev) => ({
+                            ...prev,
+                            PUBLISHED: !prev.PUBLISHED,
+                          }))
+                        }
+                        disabled={versionCounts.PUBLISHED === 0}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-sm border px-1.5 py-1 transition-colors',
+                          versionCounts.PUBLISHED === 0
+                            ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
+                            : versionFilters.PUBLISHED
+                              ? 'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400'
+                              : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
+                        )}
+                      >
+                        <CheckCircle2 size={14} />
+                        <span className="font-mono text-[10px]">{versionCounts.PUBLISHED}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="font-mono text-xs">
+                      {t('templates.detail.filters.published', 'Publicadas')}
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Scheduled filter */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() =>
+                          setVersionFilters((prev) => ({
+                            ...prev,
+                            SCHEDULED: !prev.SCHEDULED,
+                          }))
+                        }
+                        disabled={versionCounts.SCHEDULED === 0}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-sm border px-1.5 py-1 transition-colors',
+                          versionCounts.SCHEDULED === 0
+                            ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
+                            : versionFilters.SCHEDULED
+                              ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                              : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
+                        )}
+                      >
+                        <Clock size={14} />
+                        <span className="font-mono text-[10px]">{versionCounts.SCHEDULED}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="font-mono text-xs">
+                      {t('templates.detail.filters.scheduled', 'Agendadas')}
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Draft filter */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() =>
+                          setVersionFilters((prev) => ({
+                            ...prev,
+                            DRAFT: !prev.DRAFT,
+                          }))
+                        }
+                        disabled={versionCounts.DRAFT === 0}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-sm border px-1.5 py-1 transition-colors',
+                          versionCounts.DRAFT === 0
+                            ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
+                            : versionFilters.DRAFT
+                              ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
+                        )}
+                      >
+                        <FileText size={14} />
+                        <span className="font-mono text-[10px]">{versionCounts.DRAFT}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="font-mono text-xs">
+                      {t('templates.detail.filters.draft', 'Borradores')}
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Archived filter */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() =>
+                          setVersionFilters((prev) => ({
+                            ...prev,
+                            ARCHIVED: !prev.ARCHIVED,
+                          }))
+                        }
+                        disabled={versionCounts.ARCHIVED === 0}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-sm border px-1.5 py-1 transition-colors',
+                          versionCounts.ARCHIVED === 0
+                            ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
+                            : versionFilters.ARCHIVED
+                              ? 'border-muted-foreground/30 bg-muted text-muted-foreground'
+                              : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
+                        )}
+                      >
+                        <Archive size={14} />
+                        <span className="font-mono text-[10px]">{versionCounts.ARCHIVED}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="font-mono text-xs">
+                      {t('templates.detail.filters.archived', 'Archivadas')}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                {/* Version count */}
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {t('templates.detail.versionsTotal', '{{count}} version(s)', {
+                    count: sortedVersions.length,
+                  })}
+                </span>
+              </div>
             </div>
 
             {sortedVersions.length > 0 ? (
