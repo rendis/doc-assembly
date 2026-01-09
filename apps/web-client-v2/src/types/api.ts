@@ -293,6 +293,12 @@ export interface CreateVersionRequest {
   description?: string
 }
 
+export interface CreateVersionFromExistingRequest {
+  sourceVersionId: string
+  name: string
+  description?: string
+}
+
 export interface UpdateVersionRequest {
   name?: string
   description?: string

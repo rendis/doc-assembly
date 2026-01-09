@@ -6,6 +6,7 @@ import type {
   TemplateWithAllVersionsResponse,
   TemplateVersionResponse,
   CreateVersionRequest,
+  CreateVersionFromExistingRequest,
 } from '@/types/api'
 // Version types (from local types)
 import type {
@@ -111,6 +112,17 @@ export async function createVersion(
 ): Promise<TemplateVersionResponse> {
   const response = await apiClient.post<TemplateVersionResponse>(
     `/content/templates/${templateId}/versions`,
+    data
+  )
+  return response.data
+}
+
+export async function createVersionFromExisting(
+  templateId: string,
+  data: CreateVersionFromExistingRequest
+): Promise<TemplateVersionResponse> {
+  const response = await apiClient.post<TemplateVersionResponse>(
+    `/content/templates/${templateId}/versions/from-existing`,
     data
   )
   return response.data

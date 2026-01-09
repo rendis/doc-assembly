@@ -236,6 +236,12 @@
       "descriptionPlaceholder": "Optional description of changes...",
       "submit": "Create Version"
     },
+    "cloneVersionDialog": {
+      "title": "Clone Version",
+      "description": "Create a new version from {{versionName}}",
+      "sourceVersion": "Source version: v{{versionNumber}} - {{versionName}}",
+      "submit": "Clone Version"
+    },
     "versionDeleteDialog": {
       "title": "Delete Version",
       "message": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
@@ -257,7 +263,8 @@
         "delete": "Delete",
         "publishNow": "Publish Now",
         "schedule": "Schedule",
-        "archive": "Archive"
+        "archive": "Archive",
+        "clone": "Clone version"
       }
     },
     "promoteDialog": {

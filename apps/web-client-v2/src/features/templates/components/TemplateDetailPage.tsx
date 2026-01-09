@@ -29,6 +29,7 @@ import {
 import { useUpdateTemplate } from '../hooks/useTemplates'
 import { ArchiveVersionDialog } from './ArchiveVersionDialog'
 import { CancelScheduleDialog } from './CancelScheduleDialog'
+import { CloneVersionDialog } from './CloneVersionDialog'
 import { CreateVersionDialog } from './CreateVersionDialog'
 import { DeleteVersionDialog } from './DeleteVersionDialog'
 import { EditableTitle } from './EditableTitle'
@@ -75,6 +76,8 @@ export function TemplateDetailPage() {
   const [versionToArchive, setVersionToArchive] = useState<TemplateVersionSummaryResponse | null>(null)
   const [cancelScheduleDialogOpen, setCancelScheduleDialogOpen] = useState(false)
   const [versionToCancelSchedule, setVersionToCancelSchedule] = useState<TemplateVersionSummaryResponse | null>(null)
+  const [cloneDialogOpen, setCloneDialogOpen] = useState(false)
+  const [versionToClone, setVersionToClone] = useState<TemplateVersionSummaryResponse | null>(null)
 
   // Sandbox mode and highlight
   const { isSandboxActive, disableSandbox } = useSandboxMode()
@@ -266,6 +269,11 @@ export function TemplateDetailPage() {
   const handlePromoteClick = (version: TemplateVersionSummaryResponse) => {
     setSelectedVersion(version)
     setPromoteDialogOpen(true)
+  }
+
+  const handleCloneClick = (version: TemplateVersionSummaryResponse) => {
+    setVersionToClone(version)
+    setCloneDialogOpen(true)
   }
 
   const handlePromoteSuccess = (response: PromoteVersionResponse) => {
@@ -501,6 +509,7 @@ export function TemplateDetailPage() {
                     onArchive={handleArchive}
                     onDelete={handleDelete}
                     onPromote={handlePromoteClick}
+                    onClone={handleCloneClick}
                     isSandboxMode={isSandboxActive}
                     isHighlighted={
                       highlightedTemplateId === templateId &&
@@ -603,6 +612,14 @@ export function TemplateDetailPage() {
         version={selectedVersion}
         templateId={templateId}
         onSuccess={handlePromoteSuccess}
+      />
+
+      {/* Clone Version Dialog */}
+      <CloneVersionDialog
+        open={cloneDialogOpen}
+        onOpenChange={setCloneDialogOpen}
+        templateId={templateId}
+        sourceVersion={versionToClone}
       />
     </motion.div>
   )

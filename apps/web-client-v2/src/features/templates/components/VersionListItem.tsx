@@ -10,6 +10,7 @@ import {
   XCircle,
   Trash2,
   ArrowUpRight,
+  Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -29,6 +30,7 @@ interface VersionListItemProps {
   onArchive?: (version: TemplateVersionSummaryResponse) => void
   onDelete?: (version: TemplateVersionSummaryResponse) => void
   onPromote?: (version: TemplateVersionSummaryResponse) => void
+  onClone?: (version: TemplateVersionSummaryResponse) => void
   isSandboxMode?: boolean
   isHighlighted?: boolean
 }
@@ -83,6 +85,7 @@ export function VersionListItem({
   onArchive,
   onDelete,
   onPromote,
+  onClone,
   isSandboxMode = false,
   isHighlighted = false,
 }: VersionListItemProps) {
@@ -94,8 +97,9 @@ export function VersionListItem({
   const showArchive = version.status === 'PUBLISHED'
   const showDelete = version.status === 'DRAFT'
   const showPromote = isSandboxMode && version.status === 'PUBLISHED'
+  const showClone = !!onClone // Always visible if handler is provided
 
-  const hasActions = showPublish || showSchedule || showCancelSchedule || showArchive || showDelete || showPromote
+  const hasActions = showPublish || showSchedule || showCancelSchedule || showArchive || showDelete || showPromote || showClone
 
   return (
     <div
@@ -162,6 +166,13 @@ export function VersionListItem({
         {/* Action buttons - always visible, aligned with metadata */}
         {hasActions && (
           <div className="flex items-center gap-1">
+            {showClone && (
+              <ActionButton
+                icon={<Copy size={18} />}
+                label={t('templates.versions.actions.clone', 'Clonar versión')}
+                onClick={() => onClone?.(version)}
+              />
+            )}
             {showPublish && (
               <ActionButton
                 icon={<Send size={18} />}

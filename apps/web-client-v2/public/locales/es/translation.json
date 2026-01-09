@@ -236,6 +236,12 @@
       "descriptionPlaceholder": "Descripción opcional de los cambios...",
       "submit": "Crear Versión"
     },
+    "cloneVersionDialog": {
+      "title": "Clonar Versión",
+      "description": "Crear una nueva versión a partir de {{versionName}}",
+      "sourceVersion": "Versión origen: v{{versionNumber}} - {{versionName}}",
+      "submit": "Clonar Versión"
+    },
     "versionDeleteDialog": {
       "title": "Eliminar Versión",
       "message": "¿Estás seguro de que deseas eliminar la versión {{version}}? Esta acción no se puede deshacer.",
@@ -257,7 +263,8 @@
         "delete": "Eliminar",
         "publishNow": "Publicar Ahora",
         "schedule": "Programar",
-        "archive": "Archivar"
+        "archive": "Archivar",
+        "clone": "Clonar versión"
       }
     },
     "promoteDialog": {
