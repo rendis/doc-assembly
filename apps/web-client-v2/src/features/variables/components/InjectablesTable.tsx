@@ -34,8 +34,10 @@ export function InjectablesTable({
           <th className="w-[10%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
             {t('variables.columns.status', 'Status')}
           </th>
-          <th className="w-[10%] border-b border-border py-4 pr-4 text-right font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
-            {t('variables.columns.action', 'Action')}
+          <th className="w-[10%] border-b border-border py-4 pr-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+            <div className="flex items-center justify-center">
+              {t('variables.columns.action', 'Action')}
+            </div>
           </th>
         </tr>
       </thead>

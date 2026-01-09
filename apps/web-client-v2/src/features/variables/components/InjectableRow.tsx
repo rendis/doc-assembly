@@ -1,24 +1,24 @@
-import { Variable, MoreHorizontal, Pencil, Trash, Power, PowerOff } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { usePermission } from '@/features/auth/hooks/usePermission'
 import { Permission } from '@/features/auth/rbac/rules'
+import { cn } from '@/lib/utils'
+import { motion } from 'framer-motion'
+import { MoreHorizontal, Pencil, Power, PowerOff, Trash, Variable } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
-  useActivateWorkspaceInjectable,
-  useDeactivateWorkspaceInjectable,
+    useActivateWorkspaceInjectable,
+    useDeactivateWorkspaceInjectable,
 } from '../hooks/useWorkspaceInjectables'
 import type { WorkspaceInjectable } from '../types'
 
@@ -149,13 +149,14 @@ export function InjectableRow({
             : t('variables.inactive', 'Inactive')}
         </span>
       </td>
-      <td className="border-b border-border py-5 pr-4 text-right align-middle">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-muted-foreground transition-colors hover:text-foreground">
-              <MoreHorizontal size={20} />
-            </button>
-          </DropdownMenuTrigger>
+      <td className="border-b border-border py-4 pr-4 align-middle">
+        <div className="flex items-center justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <MoreHorizontal size={20} />
+              </button>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {canEdit && (
               <DropdownMenuItem onClick={onEdit}>
@@ -192,6 +193,7 @@ export function InjectableRow({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </td>
     </motion.tr>
   )
