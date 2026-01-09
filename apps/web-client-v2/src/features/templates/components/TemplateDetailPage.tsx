@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import axios from 'axios'
 import {
   ArrowLeft,
   Plus,
@@ -14,14 +15,25 @@ import {
 import { motion } from 'framer-motion'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { usePageTransitionStore } from '@/stores/page-transition-store'
-import { useTemplateWithVersions } from '../hooks/useTemplateDetail'
+import {
+  useTemplateWithVersions,
+  usePublishVersion,
+  useSchedulePublishVersion,
+  useCancelSchedule,
+  useArchiveVersion,
+  useDeleteVersion,
+} from '../hooks/useTemplateDetail'
 import { useUpdateTemplate } from '../hooks/useTemplates'
 import { VersionListItem } from './VersionListItem'
 import { CreateVersionDialog } from './CreateVersionDialog'
+import { PublishVersionDialog } from './PublishVersionDialog'
+import { SchedulePublishDialog } from './SchedulePublishDialog'
+import { ValidationErrorsDialog, type ValidationResponse } from './ValidationErrorsDialog'
 import { EditTagsDialog } from './EditTagsDialog'
 import { EditableTitle } from './EditableTitle'
 import { TagBadge } from './TagBadge'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { TemplateVersionSummaryResponse } from '@/types/api'
 
 function formatDate(dateString?: string): string {
   if (!dateString) return '-'
@@ -45,9 +57,21 @@ export function TemplateDetailPage() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editTagsDialogOpen, setEditTagsDialogOpen] = useState(false)
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [validationDialogOpen, setValidationDialogOpen] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<ValidationResponse | null>(null)
+  const [selectedVersion, setSelectedVersion] = useState<TemplateVersionSummaryResponse | null>(null)
 
   // Template update mutation
   const updateTemplate = useUpdateTemplate()
+
+  // Version action mutations
+  const publishVersion = usePublishVersion(templateId)
+  const schedulePublishVersion = useSchedulePublishVersion(templateId)
+  const cancelSchedule = useCancelSchedule(templateId)
+  const archiveVersion = useArchiveVersion(templateId)
+  const deleteVersion = useDeleteVersion(templateId)
 
   const handleTitleSave = async (newTitle: string) => {
     await updateTemplate.mutateAsync({
@@ -132,6 +156,59 @@ export function TemplateDetailPage() {
       search: { folderId: template.folderId } as any,
       /* eslint-enable @typescript-eslint/no-explicit-any */
     })
+  }
+
+  // Version action handlers
+  const handlePublishClick = (version: TemplateVersionSummaryResponse) => {
+    setSelectedVersion(version)
+    setPublishDialogOpen(true)
+  }
+
+  const handleScheduleClick = (version: TemplateVersionSummaryResponse) => {
+    setSelectedVersion(version)
+    setScheduleDialogOpen(true)
+  }
+
+  const handlePublishConfirm = async () => {
+    if (!selectedVersion) return
+    try {
+      await publishVersion.mutateAsync(selectedVersion.id)
+      setPublishDialogOpen(false)
+      setSelectedVersion(null)
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 422) {
+        const validation = error.response.data?.validation as ValidationResponse | undefined
+        if (validation) {
+          setValidationErrors(validation)
+          setPublishDialogOpen(false)
+          setValidationDialogOpen(true)
+          return
+        }
+      }
+      throw error
+    }
+  }
+
+  const handleScheduleConfirm = async (publishAt: string) => {
+    if (!selectedVersion) return
+    await schedulePublishVersion.mutateAsync({
+      versionId: selectedVersion.id,
+      publishAt,
+    })
+    setScheduleDialogOpen(false)
+    setSelectedVersion(null)
+  }
+
+  const handleCancelSchedule = async (version: TemplateVersionSummaryResponse) => {
+    await cancelSchedule.mutateAsync(version.id)
+  }
+
+  const handleArchive = async (version: TemplateVersionSummaryResponse) => {
+    await archiveVersion.mutateAsync(version.id)
+  }
+
+  const handleDelete = async (version: TemplateVersionSummaryResponse) => {
+    await deleteVersion.mutateAsync(version.id)
   }
 
   // Loading state - only show skeleton if no cached data
@@ -334,6 +411,11 @@ export function TemplateDetailPage() {
                     key={version.id}
                     version={version}
                     onOpenEditor={handleOpenEditor}
+                    onPublish={handlePublishClick}
+                    onSchedule={handleScheduleClick}
+                    onCancelSchedule={handleCancelSchedule}
+                    onArchive={handleArchive}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
@@ -368,6 +450,36 @@ export function TemplateDetailPage() {
         onOpenChange={setEditTagsDialogOpen}
         templateId={templateId}
         currentTags={template.tags ?? []}
+      />
+
+      {/* Publish Version Dialog */}
+      <PublishVersionDialog
+        open={publishDialogOpen}
+        onOpenChange={setPublishDialogOpen}
+        version={selectedVersion}
+        onConfirm={handlePublishConfirm}
+        isLoading={publishVersion.isPending}
+      />
+
+      {/* Schedule Publish Dialog */}
+      <SchedulePublishDialog
+        open={scheduleDialogOpen}
+        onOpenChange={setScheduleDialogOpen}
+        version={selectedVersion}
+        onConfirm={handleScheduleConfirm}
+        isLoading={schedulePublishVersion.isPending}
+      />
+
+      {/* Validation Errors Dialog */}
+      <ValidationErrorsDialog
+        open={validationDialogOpen}
+        onOpenChange={setValidationDialogOpen}
+        validation={validationErrors}
+        onOpenEditor={
+          selectedVersion
+            ? () => handleOpenEditor(selectedVersion.id)
+            : undefined
+        }
       />
     </motion.div>
   )

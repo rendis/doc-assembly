@@ -414,6 +414,8 @@
           "email": "Email"
         },
         "fieldType": {
+          "text": "Text",
+          "variable": "Variable",
           "toVariable": "Switch to variable",
           "toText": "Switch to text"
         },

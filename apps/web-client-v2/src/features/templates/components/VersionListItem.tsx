@@ -1,11 +1,31 @@
 import { useTranslation } from 'react-i18next'
-import { Clock, CalendarCheck, Archive, ExternalLink } from 'lucide-react'
+import {
+  Clock,
+  CalendarCheck,
+  Archive,
+  ExternalLink,
+  CalendarClock,
+  Send,
+  Calendar,
+  XCircle,
+  Trash2,
+} from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { TemplateVersionSummaryResponse } from '@/types/api'
 import { VersionStatusBadge } from './VersionStatusBadge'
 
 interface VersionListItemProps {
   version: TemplateVersionSummaryResponse
   onOpenEditor: (versionId: string) => void
+  onPublish?: (version: TemplateVersionSummaryResponse) => void
+  onSchedule?: (version: TemplateVersionSummaryResponse) => void
+  onCancelSchedule?: (version: TemplateVersionSummaryResponse) => void
+  onArchive?: (version: TemplateVersionSummaryResponse) => void
+  onDelete?: (version: TemplateVersionSummaryResponse) => void
 }
 
 function formatDate(dateString?: string): string | null {
@@ -17,8 +37,56 @@ function formatDate(dateString?: string): string | null {
   })
 }
 
-export function VersionListItem({ version, onOpenEditor }: VersionListItemProps) {
+interface ActionButtonProps {
+  icon: React.ReactNode
+  label: string
+  onClick: () => void
+  variant?: 'default' | 'destructive'
+}
+
+function ActionButton({ icon, label, onClick, variant = 'default' }: ActionButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick()
+          }}
+          className={`flex h-9 w-9 items-center justify-center rounded-sm transition-colors ${
+            variant === 'destructive'
+              ? 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+          }`}
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="font-mono text-xs">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+export function VersionListItem({
+  version,
+  onOpenEditor,
+  onPublish,
+  onSchedule,
+  onCancelSchedule,
+  onArchive,
+  onDelete,
+}: VersionListItemProps) {
   const { t } = useTranslation()
+
+  const showPublish = version.status === 'DRAFT' || version.status === 'SCHEDULED'
+  const showSchedule = version.status === 'DRAFT'
+  const showCancelSchedule = version.status === 'SCHEDULED'
+  const showArchive = version.status === 'PUBLISHED'
+  const showDelete = version.status === 'DRAFT'
+
+  const hasActions = showPublish || showSchedule || showCancelSchedule || showArchive || showDelete
 
   return (
     <div
@@ -51,23 +119,74 @@ export function VersionListItem({ version, onOpenEditor }: VersionListItemProps)
         <VersionStatusBadge status={version.status} />
       </div>
 
-      {/* Metadata row */}
-      <div className="mt-3 flex flex-wrap gap-4 pl-11 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock size={12} />
-          {t('templates.versionInfo.createdAt', 'Created')}: {formatDate(version.createdAt)}
-        </span>
-        {version.publishedAt && (
-          <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-            <CalendarCheck size={12} />
-            {t('templates.versionInfo.publishedAt', 'Published')}: {formatDate(version.publishedAt)}
-          </span>
-        )}
-        {version.archivedAt && (
+      {/* Metadata row with action buttons */}
+      <div className="mt-3 flex items-center justify-between pl-11">
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Archive size={12} />
-            {t('templates.versionInfo.archivedAt', 'Archived')}: {formatDate(version.archivedAt)}
+            <Clock size={12} />
+            {t('templates.versionInfo.createdAt', 'Created')}: {formatDate(version.createdAt)}
           </span>
+          {version.scheduledPublishAt && (
+            <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+              <CalendarClock size={12} />
+              {t('templates.versionInfo.scheduledAt', 'Scheduled')}:{' '}
+              {formatDate(version.scheduledPublishAt)}
+            </span>
+          )}
+          {version.publishedAt && (
+            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+              <CalendarCheck size={12} />
+              {t('templates.versionInfo.publishedAt', 'Published')}: {formatDate(version.publishedAt)}
+            </span>
+          )}
+          {version.archivedAt && (
+            <span className="flex items-center gap-1">
+              <Archive size={12} />
+              {t('templates.versionInfo.archivedAt', 'Archived')}: {formatDate(version.archivedAt)}
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons - always visible, aligned with metadata */}
+        {hasActions && (
+          <div className="flex items-center gap-1">
+            {showPublish && (
+              <ActionButton
+                icon={<Send size={18} />}
+                label={t('templates.versions.actions.publishNow', 'Publish Now')}
+                onClick={() => onPublish?.(version)}
+              />
+            )}
+            {showSchedule && (
+              <ActionButton
+                icon={<Calendar size={18} />}
+                label={t('templates.versions.actions.schedule', 'Schedule')}
+                onClick={() => onSchedule?.(version)}
+              />
+            )}
+            {showCancelSchedule && (
+              <ActionButton
+                icon={<XCircle size={18} />}
+                label={t('templates.versions.actions.cancelSchedule', 'Cancel Schedule')}
+                onClick={() => onCancelSchedule?.(version)}
+              />
+            )}
+            {showArchive && (
+              <ActionButton
+                icon={<Archive size={18} />}
+                label={t('templates.versions.actions.archive', 'Archive')}
+                onClick={() => onArchive?.(version)}
+              />
+            )}
+            {showDelete && (
+              <ActionButton
+                icon={<Trash2 size={18} />}
+                label={t('templates.versions.actions.delete', 'Delete')}
+                onClick={() => onDelete?.(version)}
+                variant="destructive"
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

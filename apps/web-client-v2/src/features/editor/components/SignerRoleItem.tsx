@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { GripVertical, Type, Variable, AlertTriangle, ChevronDown, Check } from 'lucide-react'
+import { GripVertical, AlertTriangle, ChevronDown, Check, Type, Variable } from 'lucide-react'
 import { Trash2 } from '@/components/animate-ui/icons/trash-2'
 import { AnimateIcon } from '@/components/animate-ui/icons/icon'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,6 +24,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
 import { NotificationBadge, NotificationConfigDialog } from './workflow'
 import type {
@@ -53,6 +59,93 @@ interface SignerRoleItemProps {
   onDelete: (id: string) => void
 }
 
+interface FieldTypeToggleProps {
+  value: 'text' | 'injectable'
+  onChange: (value: 'text' | 'injectable') => void
+  disabled?: boolean
+}
+
+function FieldTypeToggle({ value, onChange, disabled }: FieldTypeToggleProps) {
+  const { t } = useTranslation()
+  const isVariable = value === 'injectable'
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <div className="inline-flex items-center gap-1 shrink-0">
+        {/* Text icon */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onChange('text')}
+              disabled={disabled}
+              className={cn(
+                'p-1 rounded transition-colors',
+                !isVariable
+                  ? 'text-foreground'
+                  : 'text-muted-foreground/50 hover:text-muted-foreground',
+                disabled && 'pointer-events-none opacity-50'
+              )}
+            >
+              <Type className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {t('editor.roles.card.fieldType.text')}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Switch track */}
+        <button
+          type="button"
+          onClick={() => onChange(isVariable ? 'text' : 'injectable')}
+          disabled={disabled}
+          className={cn(
+            'relative w-8 h-4 rounded-full transition-colors border',
+            isVariable
+              ? 'bg-role-muted border-role-muted'
+              : 'bg-muted-foreground/20 border-muted-foreground/30',
+            disabled && 'pointer-events-none opacity-50'
+          )}
+        >
+          {/* Switch knob */}
+          <motion.div
+            className={cn(
+              'absolute top-0.5 w-3 h-3 rounded-full shadow-sm',
+              isVariable ? 'bg-role-foreground' : 'bg-foreground'
+            )}
+            animate={{ left: isVariable ? 16 : 2 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          />
+        </button>
+
+        {/* Variable icon */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onChange('injectable')}
+              disabled={disabled}
+              className={cn(
+                'p-1 rounded transition-colors',
+                isVariable
+                  ? 'text-role-foreground'
+                  : 'text-muted-foreground/50 hover:text-muted-foreground',
+                disabled && 'pointer-events-none opacity-50'
+              )}
+            >
+              <Variable className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {t('editor.roles.card.fieldType.variable')}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  )
+}
+
 interface FieldEditorProps {
   label: string
   fieldType: 'name' | 'email'
@@ -64,39 +157,21 @@ interface FieldEditorProps {
 
 function FieldEditor({ label, fieldType, field, variables, disabled, onChange }: FieldEditorProps) {
   const { t } = useTranslation()
-  const isText = field.type === 'text'
   const textVariables = variables.filter((v) => v.type === 'TEXT')
 
-  const handleTypeToggle = () => {
-    if (disabled) return
-    onChange({
-      type: isText ? 'injectable' : 'text',
-      value: '',
-    })
-  }
-
   return (
-    <div className={cn('flex items-center gap-2', disabled && 'opacity-50')}>
-      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-14 shrink-0">
+    <div className={cn('flex items-center gap-2 overflow-hidden', disabled && 'opacity-50')}>
+      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-11 shrink-0">
         {label}:
       </span>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-        onClick={handleTypeToggle}
+      <FieldTypeToggle
+        value={field.type}
+        onChange={(type) => onChange({ type, value: '' })}
         disabled={disabled}
-        title={isText ? t('editor.roles.card.fieldType.toVariable') : t('editor.roles.card.fieldType.toText')}
-      >
-        {isText ? (
-          <Type className="h-3.5 w-3.5" />
-        ) : (
-          <Variable className="h-3.5 w-3.5 text-role" />
-        )}
-      </Button>
+      />
 
-      {isText ? (
+      {field.type === 'text' ? (
         <Input
           value={field.value}
           onChange={(e) => onChange({ type: 'text', value: e.target.value })}
@@ -435,7 +510,7 @@ export function SignerRoleItem({
           transition={{
             height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
           }}
-          style={{ overflow: 'hidden' }}
+          style={{ overflowY: 'hidden', overflowX: 'visible' }}
         >
           <div className="space-y-2 pt-2">
             <FieldEditor

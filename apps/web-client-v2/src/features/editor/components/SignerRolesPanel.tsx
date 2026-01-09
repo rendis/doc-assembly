@@ -163,7 +163,7 @@ export function SignerRolesPanel({
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isCollapsed ? 56 : 288 }}
+      animate={{ width: isCollapsed ? 56 : 360 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       className={cn(
         'flex flex-col border-l border-border bg-card shrink-0 overflow-hidden',

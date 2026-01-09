@@ -137,9 +137,9 @@
   --destructive-foreground: 210 20% 93%;
 
   /* Border, Input, Ring */
-  --border: 220 10% 30%;
-  --input: 220 10% 26%;
-  --ring: 250 60% 75%;
+  --border: 220 10% 32%;
+  --input: 220 10% 20%;
+  --ring: 217 90% 58%;
 
   /* Sidebar */
   --sidebar-background: 220 13% 13%;

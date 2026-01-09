@@ -178,4 +178,51 @@ export const versionsApi = {
     )
     return response.data
   },
+
+  /**
+   * Publica una versión inmediatamente.
+   * POST /api/v1/content/templates/{templateId}/versions/{versionId}/publish
+   */
+  publish: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.post(`/content/templates/${templateId}/versions/${versionId}/publish`)
+  },
+
+  /**
+   * Programa la publicación de una versión.
+   * POST /api/v1/content/templates/{templateId}/versions/{versionId}/schedule-publish
+   */
+  schedulePublish: async (
+    templateId: string,
+    versionId: string,
+    publishAt: string
+  ): Promise<void> => {
+    await apiClient.post(
+      `/content/templates/${templateId}/versions/${versionId}/schedule-publish`,
+      { publishAt }
+    )
+  },
+
+  /**
+   * Cancela una acción programada (publicación o archivo).
+   * DELETE /api/v1/content/templates/{templateId}/versions/{versionId}/schedule
+   */
+  cancelSchedule: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.delete(`/content/templates/${templateId}/versions/${versionId}/schedule`)
+  },
+
+  /**
+   * Archiva una versión publicada.
+   * POST /api/v1/content/templates/{templateId}/versions/{versionId}/archive
+   */
+  archive: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.post(`/content/templates/${templateId}/versions/${versionId}/archive`)
+  },
+
+  /**
+   * Elimina una versión (solo DRAFT).
+   * DELETE /api/v1/content/templates/{templateId}/versions/{versionId}
+   */
+  delete: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.delete(`/content/templates/${templateId}/versions/${versionId}`)
+  },
 }
