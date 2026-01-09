@@ -48,6 +48,9 @@
     <!-- Workspaces: Root operational entities -->
     <include file="src/tenancy/workspaces.xml"/>
 
+    <!-- Workspace Sandbox: Sandbox support for CLIENT workspaces -->
+    <include file="src/tenancy/workspaces_sandbox.xml"/>
+
     <!-- ============================================ -->
     <!-- PHASE 4: Identity Tables                    -->
     <!-- ============================================ -->

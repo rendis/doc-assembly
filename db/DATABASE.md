@@ -480,6 +480,7 @@ flowchart LR
 **Why it exists**: Workspaces provide the primary unit of isolation and organization. They can be either:
 - **SYSTEM workspaces**: Own master templates (one per tenant, including system tenant)
 - **CLIENT workspaces**: End-user workspaces that use/copy templates from system workspaces
+- **Sandbox workspaces**: Test environment for CLIENT workspaces (auto-created, 1:1 relationship)
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -489,6 +490,8 @@ flowchart LR
 | `type` | workspace_type | NOT NULL | `SYSTEM` or `CLIENT` |
 | `status` | workspace_status | NOT NULL, DEFAULT 'ACTIVE' | `ACTIVE`, `SUSPENDED`, `ARCHIVED` |
 | `settings` | JSONB | - | Visual/behavioral configuration |
+| `is_sandbox` | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE = sandbox workspace |
+| `sandbox_of_id` | UUID | FK → workspaces, CASCADE | Reference to parent prod workspace (only if is_sandbox = TRUE) |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | - | Last modification |
 
@@ -496,14 +499,29 @@ flowchart LR
 - `idx_workspaces_tenant_id` - Filter workspaces by tenant
 - `idx_workspaces_status` - Filter by status
 - `idx_workspaces_type` - Filter by type
+- `idx_workspaces_is_sandbox` - Filter by sandbox status
+- `idx_workspaces_sandbox_of_id` - Lookup sandbox by parent (partial, WHERE sandbox_of_id IS NOT NULL)
 
 **Special Partial Unique Indexes**:
 - `idx_unique_tenant_system_workspace` - Ensures only ONE SYSTEM workspace per tenant
+- `idx_unique_sandbox_per_workspace` - Ensures only ONE sandbox per parent workspace
+
+**Check Constraints**:
+- `chk_sandbox_requires_parent` - Ensures is_sandbox and sandbox_of_id are consistent:
+  - If `is_sandbox = FALSE` then `sandbox_of_id` must be NULL
+  - If `is_sandbox = TRUE` then `sandbox_of_id` must NOT be NULL
 
 **Triggers**:
 - `trigger_workspaces_updated_at` - Auto-updates `updated_at` on modification
 - `trigger_validate_system_tenant_workspace` - Validates that system tenant can only have one SYSTEM workspace
 - `trigger_protect_system_tenant_workspace` - Prevents deletion of system tenant's workspace
+- `trigger_create_workspace_sandbox` - Auto-creates sandbox when CLIENT workspace is created
+- `trigger_protect_sandbox_fields` - Prevents direct modification of sandbox name and is_sandbox flag
+- `trigger_sync_sandbox_name` - Syncs sandbox name when parent workspace name changes
+- `trigger_sync_sandbox_status` - Syncs sandbox status when parent workspace status changes
+
+**Functions**:
+- `tenancy.sync_workspace_sandboxes()` - Manual repair function that creates missing sandboxes and fixes desynchronized names
 
 **Business Rules**:
 - Every workspace must belong to a tenant (`tenant_id` is NOT NULL)
@@ -511,6 +529,33 @@ flowchart LR
 - The system tenant (is_system = TRUE) can only have ONE workspace of type SYSTEM
 - The system tenant cannot have CLIENT workspaces
 - The system tenant's workspace cannot be deleted
+- Every CLIENT workspace automatically gets a sandbox workspace (1:1 relationship)
+- Sandbox workspace name follows pattern `{parent_name} (SANDBOX)` and syncs automatically
+- Sandbox workspace status syncs with parent workspace status
+- Deleting a parent workspace cascades to delete its sandbox
+
+**Sandbox Feature**:
+
+CLIENT workspaces have an associated sandbox workspace for testing templates before promoting to production.
+
+| Aspect | Behavior |
+|--------|----------|
+| **Creation** | Automatic via trigger when CLIENT workspace is created |
+| **Name** | `{parent_name} (SANDBOX)` - auto-synced on parent rename |
+| **Status** | Syncs with parent (ACTIVE, SUSPENDED, ARCHIVED) |
+| **Deletion** | Cascades when parent is deleted |
+| **Resources** | Folders, templates, documents are independent; members, tags, injectables shared via code |
+
+```sql
+-- Sync/repair sandboxes manually
+SELECT * FROM tenancy.sync_workspace_sandboxes();
+
+-- Get workspace with its sandbox
+SELECT p.id, p.name, s.id as sandbox_id, s.name as sandbox_name
+FROM tenancy.workspaces p
+LEFT JOIN tenancy.workspaces s ON s.sandbox_of_id = p.id
+WHERE p.type = 'CLIENT' AND p.is_sandbox = FALSE;
+```
 
 ---
 
