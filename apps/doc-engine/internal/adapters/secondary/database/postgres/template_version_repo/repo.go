@@ -461,6 +461,17 @@ func (r *Repository) HasScheduledVersion(ctx context.Context, templateID string)
 	return exists, nil
 }
 
+// ExistsScheduledAtTime checks if another version is scheduled at the exact time for the template.
+func (r *Repository) ExistsScheduledAtTime(ctx context.Context, templateID string, scheduledAt time.Time, excludeVersionID *string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, queryExistsScheduledAtTime, templateID, scheduledAt, excludeVersionID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking scheduled time conflict: %w", err)
+	}
+
+	return exists, nil
+}
+
 // CountByTemplateID returns the number of versions for a template.
 func (r *Repository) CountByTemplateID(ctx context.Context, templateID string) (int, error) {
 	var count int

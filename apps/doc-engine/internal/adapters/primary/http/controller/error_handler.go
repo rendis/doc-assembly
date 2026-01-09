@@ -60,7 +60,8 @@ func HandleError(ctx *gin.Context, err error) {
 		errors.Is(err, entity.ErrMemberAlreadyExists),
 		errors.Is(err, entity.ErrTenantAlreadyExists),
 		errors.Is(err, entity.ErrGlobalWorkspaceExists),
-		errors.Is(err, entity.ErrTenantMemberExists):
+		errors.Is(err, entity.ErrTenantMemberExists),
+		errors.Is(err, entity.ErrScheduledTimeConflict):
 		statusCode = http.StatusConflict
 
 	// 400 Bad Request - Validation and business rule errors

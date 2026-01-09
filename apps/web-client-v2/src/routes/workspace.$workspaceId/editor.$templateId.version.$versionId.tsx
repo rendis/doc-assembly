@@ -7,7 +7,7 @@ import { useInjectables } from '@/features/editor/hooks/useInjectables'
 import { useAutoSave } from '@/features/editor/hooks/useAutoSave'
 import { importDocument } from '@/features/editor/services/document-import'
 import { usePaginationStore, useSignerRolesStore } from '@/features/editor/stores'
-import { versionsApi } from '@/features/templates/api/templates-api'
+import { versionsApi, isVersionEditable } from '@/features/templates'
 import type { TemplateVersionDetail } from '@/features/templates/types'
 import type { PortableDocument } from '@/features/editor/types/document-format'
 import { Button } from '@/components/ui/button'
@@ -82,8 +82,7 @@ function EditorPage() {
   }, [fetchVersion, templateId, versionId])
 
   // Check if version is editable
-  const status = version?.status ?? 'DRAFT'
-  const isEditable = status === 'DRAFT'
+  const isEditable = isVersionEditable(version)
 
   // Load content into editor when both are ready
   useEffect(() => {

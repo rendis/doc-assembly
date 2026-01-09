@@ -67,6 +67,9 @@ type TemplateVersionRepository interface {
 	// HasScheduledVersion checks if the template has a version with SCHEDULED status.
 	HasScheduledVersion(ctx context.Context, templateID string) (bool, error)
 
+	// ExistsScheduledAtTime checks if another version is scheduled at the exact time for the template.
+	ExistsScheduledAtTime(ctx context.Context, templateID string, scheduledAt time.Time, excludeVersionID *string) (bool, error)
+
 	// CountByTemplateID returns the number of versions for a template.
 	CountByTemplateID(ctx context.Context, templateID string) (int, error)
 }

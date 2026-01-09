@@ -311,6 +311,15 @@ func (s *TemplateVersionService) SchedulePublish(ctx context.Context, cmd usecas
 		return err
 	}
 
+	// Check for scheduling conflict at the same time
+	conflict, err := s.versionRepo.ExistsScheduledAtTime(ctx, version.TemplateID, cmd.PublishAt, &cmd.VersionID)
+	if err != nil {
+		return fmt.Errorf("checking schedule conflict: %w", err)
+	}
+	if conflict {
+		return entity.ErrScheduledTimeConflict
+	}
+
 	if err := s.versionRepo.Update(ctx, version); err != nil {
 		return fmt.Errorf("scheduling publish: %w", err)
 	}

@@ -1,5 +1,6 @@
 // Types
 export * from './types'
+export * from './utils'
 
 // API
 export * from './api/templates-api'

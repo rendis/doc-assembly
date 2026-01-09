@@ -95,5 +95,7 @@ const (
 
 	queryHasScheduledVersion = `SELECT EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = $1 AND status = 'SCHEDULED')`
 
+	queryExistsScheduledAtTime = `SELECT EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = $1 AND status = 'SCHEDULED' AND scheduled_publish_at = $2 AND ($3::text IS NULL OR id != $3))`
+
 	queryCountByTemplateID = `SELECT COUNT(*) FROM content.template_versions WHERE template_id = $1`
 )
