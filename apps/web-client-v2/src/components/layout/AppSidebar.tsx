@@ -124,6 +124,23 @@ export function AppSidebar() {
     queryClient.invalidateQueries({ queryKey: ['templates'] })
     queryClient.invalidateQueries({ queryKey: ['folders'] })
     setShowExitDialog(false)
+
+    // Redirect to section root if on a detail/editor/folder route (sandbox data won't exist in production)
+    const templatesBase = `/workspace/${workspaceId}/templates`
+    const documentsBase = `/workspace/${workspaceId}/documents`
+    const searchParams = location.search as Record<string, unknown>
+    const hasFolder = 'folderId' in searchParams
+
+    const isOnTemplatesDetail = location.pathname.startsWith(templatesBase) && location.pathname !== templatesBase
+    const isOnDocumentsDetail = location.pathname.startsWith(documentsBase) && location.pathname !== documentsBase
+    const isOnTemplates = location.pathname.startsWith(templatesBase)
+    const isOnDocuments = location.pathname.startsWith(documentsBase)
+
+    if (isOnTemplatesDetail || (isOnTemplates && hasFolder)) {
+      navigate({ to: templatesBase })
+    } else if (isOnDocumentsDetail || (isOnDocuments && hasFolder)) {
+      navigate({ to: documentsBase })
+    }
   }
 
   const isActive = (href: string) => {

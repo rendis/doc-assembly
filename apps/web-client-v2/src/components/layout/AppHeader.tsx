@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { LanguageSelector } from '@/components/common/LanguageSelector'
 import { ContextBreadcrumb } from '@/components/common/ContextBreadcrumb'
 import { Button } from '@/components/ui/button'
+import { useSandboxMode } from '@/stores/sandbox-mode-store'
 
 interface AppHeaderProps {
   variant?: 'minimal' | 'full'
@@ -22,6 +23,7 @@ export function AppHeader({
   onMobileMenuToggle
 }: AppHeaderProps) {
   const isMinimal = variant === 'minimal'
+  const { isSandboxActive } = useSandboxMode()
 
   return (
     <motion.header
@@ -40,13 +42,26 @@ export function AppHeader({
         >
           <motion.div
             layoutId="app-logo-icon"
-            className="flex h-8 w-8 items-center justify-center border-2 border-foreground"
+            className={cn(
+              'flex h-8 w-8 items-center justify-center border-2 transition-colors',
+              isSandboxActive ? 'border-sandbox' : 'border-foreground'
+            )}
           >
-            <Box size={16} fill="currentColor" className="text-foreground" />
+            <Box
+              size={16}
+              fill="currentColor"
+              className={cn(
+                'transition-colors',
+                isSandboxActive ? 'text-sandbox' : 'text-foreground'
+              )}
+            />
           </motion.div>
           <motion.span
             layoutId="app-logo-text"
-            className="font-display text-lg font-bold uppercase tracking-tight text-foreground"
+            className={cn(
+              'font-display text-lg font-bold uppercase tracking-tight transition-colors',
+              isSandboxActive ? 'text-sandbox' : 'text-foreground'
+            )}
           >
             Doc-Assembly
           </motion.span>

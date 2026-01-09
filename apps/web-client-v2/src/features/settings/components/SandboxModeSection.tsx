@@ -57,6 +57,26 @@ export function SandboxModeSection() {
       // Invalidate queries to refetch without sandbox header
       queryClient.invalidateQueries({ queryKey: ['templates'] })
       queryClient.invalidateQueries({ queryKey: ['folders'] })
+
+      // Redirect to section root if on a detail/editor/folder route (sandbox data won't exist in production)
+      const workspaceId = currentWorkspace?.id
+      if (workspaceId) {
+        const templatesBase = `/workspace/${workspaceId}/templates`
+        const documentsBase = `/workspace/${workspaceId}/documents`
+        const searchParams = location.search as Record<string, unknown>
+        const hasFolder = 'folderId' in searchParams
+
+        const isOnTemplatesDetail = location.pathname.startsWith(templatesBase) && location.pathname !== templatesBase
+        const isOnDocumentsDetail = location.pathname.startsWith(documentsBase) && location.pathname !== documentsBase
+        const isOnTemplates = location.pathname.startsWith(templatesBase)
+        const isOnDocuments = location.pathname.startsWith(documentsBase)
+
+        if (isOnTemplatesDetail || (isOnTemplates && hasFolder)) {
+          navigate({ to: '/workspace/$workspaceId/templates', params: { workspaceId } })
+        } else if (isOnDocumentsDetail || (isOnDocuments && hasFolder)) {
+          navigate({ to: '/workspace/$workspaceId/documents', params: { workspaceId } })
+        }
+      }
     }
 
     setShowConfirmDialog(false)
