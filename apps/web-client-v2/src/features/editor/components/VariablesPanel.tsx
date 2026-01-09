@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, Database, Users, Search, Loader2 } from 'lucide-react'
+import { ChevronRight, Users, Search, Loader2, Variable as VariableIcon } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -139,7 +139,7 @@ export function VariablesPanel({
       {/* Header */}
       <div className="relative flex items-center h-14 px-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Database className="h-4 w-4 text-muted-foreground shrink-0" />
+          <VariableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
           <motion.span
             initial={false}
             animate={{
@@ -239,12 +239,12 @@ export function VariablesPanel({
                   </div>
                 )}
 
-                {/* Empty state */}
-                {!isLoading &&
-                  filteredGlobalVariables.length === 0 &&
-                  filteredRoleInjectables.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Database className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                 {/* Empty state */}
+                 {!isLoading &&
+                   filteredGlobalVariables.length === 0 &&
+                   filteredRoleInjectables.length === 0 && (
+                     <div className="flex flex-col items-center justify-center py-8 text-center">
+                       <VariableIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">
                         {t('editor.variablesPanel.empty.title')}
                       </p>
@@ -315,20 +315,20 @@ export function VariablesPanel({
                   </div>
                 )}
 
-                {/* Global Variables Section - SEGUNDO (con animación) */}
-                {!isLoading && filteredGlobalVariables.length > 0 && (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setVariablesSectionOpen(!variablesSectionOpen)}
-                      className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-full hover:text-foreground/80 transition-colors"
-                    >
-                      <motion.div
-                        animate={{ rotate: variablesSectionOpen ? 90 : 0 }}
-                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </motion.div>
-                      <Database className="h-3 w-3" />
+                 {/* Global Variables Section - SEGUNDO (con animación) */}
+                 {!isLoading && filteredGlobalVariables.length > 0 && (
+                   <div className="space-y-2">
+                     <button
+                       onClick={() => setVariablesSectionOpen(!variablesSectionOpen)}
+                       className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-full hover:text-foreground/80 transition-colors"
+                     >
+                       <motion.div
+                         animate={{ rotate: variablesSectionOpen ? 90 : 0 }}
+                         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                       >
+                         <ChevronRight className="h-3 w-3" />
+                       </motion.div>
+                       <VariableIcon className="h-3 w-3" />
                       <span>{t('editor.variablesPanel.sections.variables')}</span>
                       <span className="ml-auto text-[9px] bg-muted text-muted-foreground px-1.5 rounded">
                         {filteredGlobalVariables.length}
