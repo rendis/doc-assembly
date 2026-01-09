@@ -21,7 +21,7 @@ function AdminSettings() {
               <input
                 type="text"
                 defaultValue="Doc-Assembly"
-                className="w-full rounded-sm border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
+                className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
             <div>
@@ -31,7 +31,7 @@ function AdminSettings() {
               <input
                 type="email"
                 defaultValue="support@doc-assembly.io"
-                className="w-full rounded-sm border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
+                className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
           </div>

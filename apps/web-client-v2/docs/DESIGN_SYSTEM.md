@@ -83,6 +83,7 @@ Todos los colores están definidos como variables CSS en formato HSL en `src/ind
 | `--popover` | Fondo de popovers/dropdowns |
 | `--border` | Bordes estándar |
 | `--input` | Bordes de inputs |
+| `--ring` | Anillo de focus (gris sutil, no azul primario) |
 
 > **Archivo fuente:** `src/index.css` (secciones `:root` y `.dark`)
 
@@ -298,6 +299,8 @@ focus-visible:ring-2
 focus-visible:ring-ring
 focus-visible:ring-offset-2
 ```
+
+> **Nota**: Usar siempre `focus-visible:` en lugar de `focus:` para elementos interactivos como inputs, botones y selects. Esto evita que aparezca el ring al hacer clic con el mouse, mostrándolo solo cuando se navega con teclado. Los elementos de menú/dropdown usan `focus:` para la navegación con teclado.
 
 ### Hover
 

@@ -57,7 +57,7 @@ export function CreateTagInline({
           onChange={(e) => setName(e.target.value)}
           placeholder={t('tags.create.namePlaceholder', 'Tag name (3-50 chars)')}
           maxLength={50}
-          className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+          className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
           autoFocus
         />
         {name.trim().length > 0 && name.trim().length < 3 && (

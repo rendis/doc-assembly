@@ -103,7 +103,7 @@ export function SchedulePublishDialog({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               min={getMinDate()}
-              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus:border-foreground focus:ring-0 dark:[color-scheme:dark]"
+              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus-visible:border-foreground focus-visible:ring-0 dark:[color-scheme:dark]"
             />
           </div>
 
@@ -121,7 +121,7 @@ export function SchedulePublishDialog({
               value={time}
               onChange={(e) => setTime(e.target.value)}
               min={date ? getMinTime(date) : undefined}
-              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus:border-foreground focus:ring-0 dark:[color-scheme:dark]"
+              className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all focus-visible:border-foreground focus-visible:ring-0 dark:[color-scheme:dark]"
             />
           </div>
 

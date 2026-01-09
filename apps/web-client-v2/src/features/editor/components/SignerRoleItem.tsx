@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -174,12 +173,13 @@ function FieldEditor({ label, fieldType, field, variables, disabled, onChange }:
       />
 
       {field.type === 'text' ? (
-        <Input
+        <input
+          type="text"
           value={field.value}
           onChange={(e) => onChange({ type: 'text', value: e.target.value })}
           placeholder={t(`editor.roles.card.placeholders.${fieldType}`)}
           disabled={disabled}
-          className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus-visible:ring-0"
+          className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent px-1 outline-none transition-all placeholder:text-muted-foreground focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-50"
         />
       ) : (
         <Select
@@ -187,7 +187,7 @@ function FieldEditor({ label, fieldType, field, variables, disabled, onChange }:
           onValueChange={(value) => onChange({ type: 'injectable', value })}
           disabled={disabled}
         >
-          <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus:border-ring focus:ring-0">
+          <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus-visible:border-foreground focus-visible:ring-0 focus-visible:ring-offset-0">
             <SelectValue placeholder={t('editor.roles.card.selectVariable')} />
           </SelectTrigger>
           <SelectContent>
@@ -234,6 +234,7 @@ export function SignerRoleItem({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showNotificationDialog, setShowNotificationDialog] = useState(false)
   const [isExpanded, setIsExpanded] = useState(!isCompactMode)
+  const [isGripHovered, setIsGripHovered] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -369,8 +370,9 @@ export function SignerRoleItem({
           'border border-border rounded-lg p-3 bg-card transition-all',
           // Efecto 3D base
           'shadow-sm',
-          // Hover: elevación
-          'hover:shadow-md hover:-translate-y-0.5 hover:border-border/60',
+          // Hover: elevación solo cuando grip está hovered
+          'hover:shadow-md hover:border-border/60',
+          isGripHovered && !isDisabled && '-translate-y-0.5',
           isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted/30',
           isDragging && 'opacity-40 scale-[0.98]',
           isOverlay && 'shadow-xl ring-2 ring-primary/20 rotate-1 scale-105'
@@ -385,6 +387,8 @@ export function SignerRoleItem({
         >
           <div
             {...(isDisabled ? {} : { ...attributes, ...listeners })}
+            onMouseEnter={() => !isDisabled && setIsGripHovered(true)}
+            onMouseLeave={() => setIsGripHovered(false)}
             className={cn(
               'p-1 -ml-1 touch-none',
               isDisabled
@@ -443,14 +447,15 @@ export function SignerRoleItem({
             </AnimatePresence>
           </motion.span>
 
-          <Input
+          <input
+            type="text"
             value={role.label}
             onChange={(e) => onUpdate(role.id, { label: e.target.value })}
             placeholder={t('editor.roles.card.placeholder')}
             disabled={isDisabled}
             className={cn(
-              'h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent px-1 rounded-none',
-              isDisabled ? 'cursor-default' : 'hover:border-border focus:border-ring'
+              'h-6 text-xs font-medium flex-1 min-w-0 border-0 border-b border-transparent bg-transparent px-1 rounded-none outline-none transition-all placeholder:text-muted-foreground',
+              isDisabled ? 'cursor-default disabled:opacity-50' : 'hover:border-border focus-visible:border-foreground'
             )}
           />
 

@@ -242,7 +242,7 @@ export function PromoteVersionDialog({
                   )}
                   maxLength={200}
                   autoFocus
-                  className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                  className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
                 />
               </div>
             ) : (
@@ -266,7 +266,7 @@ export function PromoteVersionDialog({
                       'Search templates...'
                     )}
                     autoFocus
-                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-6 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-6 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
                   />
                   {isSearching && (
                     <Loader2 className="absolute right-0 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
@@ -332,7 +332,7 @@ export function PromoteVersionDialog({
                   'Enter version name'
                 )}
                 maxLength={100}
-                className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
               />
             </div>
           </div>

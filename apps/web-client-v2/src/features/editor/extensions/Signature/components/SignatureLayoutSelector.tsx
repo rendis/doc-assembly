@@ -179,7 +179,7 @@ export function SignatureLayoutSelector({
             className={cn(
               'relative p-3 border rounded-lg',
               'hover:border-muted-foreground hover:bg-muted',
-              'focus:outline-none focus:ring-2 focus:ring-foreground/10',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               value === layout.id
                 ? 'border-foreground bg-muted ring-2 ring-foreground/10'
                 : 'border-border'

@@ -194,7 +194,7 @@ export function PageSettings({ disabled = false }: PageSettingsProps) {
                     value={inputValues.top}
                     onChange={(e) => handleMarginChange('top', e.target.value)}
                     onBlur={() => handleMarginBlur('top')}
-                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
                   />
                 </div>
                 <div>
@@ -212,7 +212,7 @@ export function PageSettings({ disabled = false }: PageSettingsProps) {
                     value={inputValues.bottom}
                     onChange={(e) => handleMarginChange('bottom', e.target.value)}
                     onBlur={() => handleMarginBlur('bottom')}
-                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
                   />
                 </div>
                 <div>
@@ -230,7 +230,7 @@ export function PageSettings({ disabled = false }: PageSettingsProps) {
                     value={inputValues.left}
                     onChange={(e) => handleMarginChange('left', e.target.value)}
                     onBlur={() => handleMarginBlur('left')}
-                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
                   />
                 </div>
                 <div>
@@ -248,7 +248,7 @@ export function PageSettings({ disabled = false }: PageSettingsProps) {
                     value={inputValues.right}
                     onChange={(e) => handleMarginChange('right', e.target.value)}
                     onBlur={() => handleMarginBlur('right')}
-                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-foreground focus:ring-0"
+                    className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
                   />
                 </div>
               </div>

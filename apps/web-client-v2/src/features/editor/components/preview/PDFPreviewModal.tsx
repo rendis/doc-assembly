@@ -305,7 +305,7 @@ export function PDFPreviewModal({
                     onChange={handlePageInputChange}
                     onBlur={handlePageInputSubmit}
                     onKeyDown={(e) => e.key === 'Enter' && handlePageInputSubmit()}
-                    className="w-12 h-8 px-2 text-center font-mono text-xs border border-border bg-background focus:outline-none focus:border-foreground"
+                    className="w-12 h-8 px-2 text-center font-mono text-xs border border-border bg-background focus-visible:outline-none focus-visible:border-foreground"
                   />
                   <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                     / {numPages}

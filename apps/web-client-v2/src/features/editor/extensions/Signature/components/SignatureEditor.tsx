@@ -238,7 +238,7 @@ export function SignatureEditor({
                             handleSignatureUpdate(index, { label: e.target.value })
                           }
                           placeholder={t('editor.signature.labelPlaceholder')}
-                          className="h-8 text-sm border-border rounded-none focus:border-foreground"
+                          className="h-8 text-sm border-border rounded-none focus-visible:border-foreground"
                         />
                       </div>
 
@@ -255,7 +255,7 @@ export function SignatureEditor({
                             })
                           }
                           placeholder={t('editor.signature.subtitlePlaceholder')}
-                          className="h-8 text-sm border-border rounded-none focus:border-foreground"
+                          className="h-8 text-sm border-border rounded-none focus-visible:border-foreground"
                         />
                       </div>
 

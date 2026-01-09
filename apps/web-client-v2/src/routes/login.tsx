@@ -112,7 +112,7 @@ function LoginPage() {
                   required
                   disabled={isLoading}
                   autoComplete="username"
-                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus:border-foreground focus:ring-0 disabled:opacity-50"
+                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus-visible:border-foreground focus-visible:ring-0 disabled:opacity-50"
                 />
               </div>
               <div className="group">
@@ -126,7 +126,7 @@ function LoginPage() {
                   required
                   disabled={isLoading}
                   autoComplete="current-password"
-                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus:border-foreground focus:ring-0 disabled:opacity-50"
+                  className="w-full rounded-none border-0 border-b-2 border-border bg-transparent py-3 font-light text-xl text-foreground outline-none transition-all placeholder:text-muted focus-visible:border-foreground focus-visible:ring-0 disabled:opacity-50"
                 />
               </div>
             </div>

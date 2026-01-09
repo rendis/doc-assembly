@@ -41,7 +41,7 @@
   /* Border, Input, Ring */
   --border: 220 15% 85%;
   --input: 220 15% 88%;
-  --ring: 217 90% 50%;
+  --ring: 220 15% 65%;
 
   /* Radius */
   --radius: 0.5rem;
@@ -139,7 +139,7 @@
   /* Border, Input, Ring */
   --border: 220 10% 32%;
   --input: 220 10% 20%;
-  --ring: 217 90% 58%;
+  --ring: 220 10% 55%;
 
   /* Sidebar */
   --sidebar-background: 220 13% 13%;
