@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, Users, Search, Loader2, Variable as VariableIcon } from 'lucide-react'
+import { AnimatePresence, motion, type Transition } from 'framer-motion'
+import { ChevronRight, Users, Search, Loader2, Variable as VariableIcon, Clock, Database } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,8 @@ import { DraggableVariable } from './DraggableVariable'
 import type { VariableDragData } from '../types/drag'
 import type { Variable } from '../types/variables'
 import type { RoleInjectable } from '../types/role-injectable'
+
+const COLLAPSE_TRANSITION: Transition = { duration: 0.2, ease: [0.4, 0, 0.2, 1] }
 
 interface VariablesPanelProps {
   /**
@@ -76,29 +78,43 @@ export function VariablesPanel({
 
   // Collapsible sections state
   const [rolesSectionOpen, setRolesSectionOpen] = useState(true)
-  const [variablesSectionOpen, setVariablesSectionOpen] = useState(true)
 
-  // Filter variables based on search query
-  const filteredGlobalVariables = useMemo(() => {
-    if (!searchQuery.trim()) return globalVariables
-    const lowerQuery = searchQuery.toLowerCase()
-    return globalVariables.filter(
-      (v) =>
-        v.label.toLowerCase().includes(lowerQuery) ||
-        v.variableId.toLowerCase().includes(lowerQuery)
-    )
-  }, [globalVariables, searchQuery])
+  // Filter state for variables by source type
+  const [variablesFilter, setVariablesFilter] = useState<'all' | 'internal' | 'external'>('all')
+
+  // Collapsible sections state for internal/external variables
+  const [internalSectionOpen, setInternalSectionOpen] = useState(true)
+  const [externalSectionOpen, setExternalSectionOpen] = useState(true)
+
+  const lowerSearchQuery = searchQuery.toLowerCase().trim()
 
   const filteredRoleInjectables = useMemo(() => {
-    if (!searchQuery.trim()) return roleInjectables
-    const lowerQuery = searchQuery.toLowerCase()
+    if (!lowerSearchQuery) return roleInjectables
     return roleInjectables.filter(
       (ri) =>
-        ri.label.toLowerCase().includes(lowerQuery) ||
-        ri.roleLabel.toLowerCase().includes(lowerQuery) ||
-        ri.propertyLabel.toLowerCase().includes(lowerQuery)
+        ri.label.toLowerCase().includes(lowerSearchQuery) ||
+        ri.roleLabel.toLowerCase().includes(lowerSearchQuery) ||
+        ri.propertyLabel.toLowerCase().includes(lowerSearchQuery)
     )
-  }, [roleInjectables, searchQuery])
+  }, [roleInjectables, lowerSearchQuery])
+
+  const { internalVariables, externalVariables } = useMemo(() => {
+    const filterBySourceType = (sourceType: 'INTERNAL' | 'EXTERNAL', excludeFilter: 'internal' | 'external'): Variable[] => {
+      if (variablesFilter === excludeFilter) return []
+      const filtered = globalVariables.filter(v => v.sourceType === sourceType)
+      if (!lowerSearchQuery) return filtered
+      return filtered.filter(
+        (v) =>
+          v.label.toLowerCase().includes(lowerSearchQuery) ||
+          v.variableId.toLowerCase().includes(lowerSearchQuery)
+      )
+    }
+
+    return {
+      internalVariables: filterBySourceType('INTERNAL', 'external'),
+      externalVariables: filterBySourceType('EXTERNAL', 'internal'),
+    }
+  }, [globalVariables, variablesFilter, lowerSearchQuery])
 
   // Convert Variable to VariableDragData
   const mapVariableToDragData = (v: Variable): VariableDragData => ({
@@ -108,6 +124,8 @@ export function VariablesPanel({
     label: v.label,
     injectorType: v.type,
     metadata: v.metadata,
+    sourceType: v.sourceType,
+    description: v.description,
   })
 
   // Convert RoleInjectable to VariableDragData
@@ -124,13 +142,13 @@ export function VariablesPanel({
   })
 
   // Total count for badge
-  const totalCount = filteredGlobalVariables.length + filteredRoleInjectables.length
+  const totalCount = filteredRoleInjectables.length + internalVariables.length + externalVariables.length
 
   return (
     <motion.aside
       initial={false}
       animate={{ width: isCollapsed ? 56 : 288 }}
-      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      transition={COLLAPSE_TRANSITION}
       className={cn(
         'flex flex-col border-r border-border bg-card shrink-0 overflow-hidden',
         className
@@ -174,7 +192,7 @@ export function VariablesPanel({
         >
           <motion.div
             animate={{ rotate: isCollapsed ? 180 : 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            transition={COLLAPSE_TRANSITION}
           >
             <ChevronRight className="h-4 w-4" />
           </motion.div>
@@ -221,16 +239,57 @@ export function VariablesPanel({
               </div>
             </div>
 
+            {/* Variables Filter Toggle - 3-step segmented control */}
+            <div className="px-4 pb-2">
+              <div className="flex rounded-none border border-border bg-background p-0.5">
+                <button
+                  onClick={() => setVariablesFilter('internal')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                    variablesFilter === 'internal'
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <Clock className="h-3 w-3" />
+                  Internal
+                </button>
+                <button
+                  onClick={() => setVariablesFilter('all')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                    variablesFilter === 'all'
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setVariablesFilter('external')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                    variablesFilter === 'external'
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <Database className="h-3 w-3" />
+                  External
+                </button>
+              </div>
+            </div>
+
             {/* Scroll container with gradient overlays */}
-            <div className="relative flex-1 min-h-0">
+            <div className="relative flex-1 min-h-0 overflow-hidden">
               {/* Top fade area - solid bg + gradient */}
               <div className="absolute top-0 left-0 right-0 h-10 pointer-events-none z-10 flex flex-col">
                 <div className="h-4 bg-card" />
                 <div className="h-6 bg-gradient-to-b from-card to-transparent" />
               </div>
 
-              <ScrollArea className="h-full">
-                <div className="p-4 pt-8 pb-12 space-y-4 min-w-0">
+              <ScrollArea className="h-full w-full [&>div]:!overflow-x-hidden">
+                <div className="p-4 pt-8 pb-12 space-y-4 min-w-0 w-full overflow-hidden">
                 {/* Loading state */}
                 {isLoading && (
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -241,8 +300,9 @@ export function VariablesPanel({
 
                  {/* Empty state */}
                  {!isLoading &&
-                   filteredGlobalVariables.length === 0 &&
-                   filteredRoleInjectables.length === 0 && (
+                   filteredRoleInjectables.length === 0 &&
+                   internalVariables.length === 0 &&
+                   externalVariables.length === 0 && (
                      <div className="flex flex-col items-center justify-center py-8 text-center">
                        <VariableIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">
@@ -258,14 +318,14 @@ export function VariablesPanel({
 
                 {/* Role Injectables Section - PRIMERO (con animación) */}
                 {!isLoading && filteredRoleInjectables.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <button
                       onClick={() => setRolesSectionOpen(!rolesSectionOpen)}
                       className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-role w-full hover:text-role/80 transition-colors"
                     >
                       <motion.div
                         animate={{ rotate: rolesSectionOpen ? 90 : 0 }}
-                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                        transition={COLLAPSE_TRANSITION}
                       >
                         <ChevronRight className="h-3 w-3" />
                       </motion.div>
@@ -288,7 +348,7 @@ export function VariablesPanel({
                       }}
                       style={{ overflow: 'hidden' }}
                     >
-                      <div className="space-y-2 pt-2">
+                      <div className="space-y-2 pt-2 min-w-0">
                         {filteredRoleInjectables.map((ri, index, array) => {
                           // Check if we need to add a separator before this item
                           // Add separator when:
@@ -297,7 +357,7 @@ export function VariablesPanel({
                           const showSeparator = index > 0 && ri.roleId !== array[index - 1].roleId
 
                           return (
-                            <div key={ri.id}>
+                            <div key={ri.id} className="min-w-0">
                               {/* Dotted line separator between different roles */}
                               {showSeparator && (
                                 <div className="border-b border-dashed border-role-border/30 my-2 mx-1" />
@@ -315,51 +375,97 @@ export function VariablesPanel({
                   </div>
                 )}
 
-                 {/* Global Variables Section - SEGUNDO (con animación) */}
-                 {!isLoading && filteredGlobalVariables.length > 0 && (
-                   <div className="space-y-2">
-                     <button
-                       onClick={() => setVariablesSectionOpen(!variablesSectionOpen)}
-                       className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-full hover:text-foreground/80 transition-colors"
-                     >
-                       <motion.div
-                         animate={{ rotate: variablesSectionOpen ? 90 : 0 }}
-                         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                       >
-                         <ChevronRight className="h-3 w-3" />
-                       </motion.div>
-                       <VariableIcon className="h-3 w-3" />
-                      <span>{t('editor.variablesPanel.sections.variables')}</span>
-                      <span className="ml-auto text-[9px] bg-muted text-muted-foreground px-1.5 rounded">
-                        {filteredGlobalVariables.length}
-                      </span>
-                    </button>
+                  {/* Internal Variables Section */}
+                  {!isLoading && internalVariables.length > 0 && (
+                    <div className="space-y-2 min-w-0">
+                      <button
+                        onClick={() => setInternalSectionOpen(!internalSectionOpen)}
+                        className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
+                      >
+                        <motion.div
+                          animate={{ rotate: internalSectionOpen ? 90 : 0 }}
+                          transition={COLLAPSE_TRANSITION}
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                        </motion.div>
+                        <Clock className="h-3 w-3" />
+                        <span>{t('editor.variablesPanel.sections.internalVariables')}</span>
+                        <span className="ml-auto text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
+                          {internalVariables.length}
+                        </span>
+                      </button>
 
-                    <motion.div
-                      initial={false}
-                      animate={{
-                        height: variablesSectionOpen ? 'auto' : 0,
-                        opacity: variablesSectionOpen ? 1 : 0,
-                      }}
-                      transition={{
-                        duration: 0.2,
-                        ease: [0.4, 0, 0.2, 1],
-                      }}
-                      style={{ overflow: 'hidden' }}
-                    >
-                      <div className="space-y-2 pt-2">
-                        {filteredGlobalVariables.map((v) => (
-                          <DraggableVariable
-                            key={v.variableId}
-                            data={mapVariableToDragData(v)}
-                            onClick={onVariableClick}
-                            isDragging={draggingIds.includes(v.variableId)}
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
+                      <motion.div
+                        initial={false}
+                        animate={{
+                          height: internalSectionOpen ? 'auto' : 0,
+                          opacity: internalSectionOpen ? 1 : 0,
+                        }}
+                        transition={{
+                          duration: 0.2,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div className="space-y-2 pt-2 min-w-0">
+                          {internalVariables.map((v) => (
+                            <DraggableVariable
+                              key={v.variableId}
+                              data={mapVariableToDragData(v)}
+                              onClick={onVariableClick}
+                              isDragging={draggingIds.includes(v.variableId)}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
+
+                  {/* External Variables Section */}
+                  {!isLoading && externalVariables.length > 0 && (
+                    <div className="space-y-2 min-w-0">
+                      <button
+                        onClick={() => setExternalSectionOpen(!externalSectionOpen)}
+                        className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-external w-full hover:text-external/80 transition-colors"
+                      >
+                        <motion.div
+                          animate={{ rotate: externalSectionOpen ? 90 : 0 }}
+                          transition={COLLAPSE_TRANSITION}
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                        </motion.div>
+                        <Database className="h-3 w-3" />
+                        <span>{t('editor.variablesPanel.sections.externalVariables')}</span>
+                        <span className="ml-auto text-[9px] bg-external-muted/50 text-external-foreground px-1.5 rounded">
+                          {externalVariables.length}
+                        </span>
+                      </button>
+
+                      <motion.div
+                        initial={false}
+                        animate={{
+                          height: externalSectionOpen ? 'auto' : 0,
+                          opacity: externalSectionOpen ? 1 : 0,
+                        }}
+                        transition={{
+                          duration: 0.2,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div className="space-y-2 pt-2 min-w-0">
+                          {externalVariables.map((v) => (
+                            <DraggableVariable
+                              key={v.variableId}
+                              data={mapVariableToDragData(v)}
+                              onClick={onVariableClick}
+                              isDragging={draggingIds.includes(v.variableId)}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
 

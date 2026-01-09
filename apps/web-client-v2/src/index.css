@@ -101,6 +101,18 @@
   --sandbox-foreground: 45 10% 15%;
   --sandbox-muted: 45 50% 95%;
   --sandbox-border: 45 70% 55%;
+
+  /* Internal Variables (ámbar/naranja pastel) */
+  --internal: 45 93% 47%;
+  --internal-foreground: 45 92% 20%;
+  --internal-muted: 48 96% 89%;
+  --internal-border: 45 90% 55%;
+
+  /* External Variables (teal/verde azulado pastel) */
+  --external: 175 70% 45%;
+  --external-foreground: 175 80% 25%;
+  --external-muted: 175 95% 93%;
+  --external-border: 175 60% 50%;
 }
 
 .dark {
@@ -189,6 +201,18 @@
   --sandbox-foreground: 45 90% 95%;
   --sandbox-muted: 45 30% 18%;
   --sandbox-border: 45 60% 40%;
+
+  /* Internal Variables - Dark Mode */
+  --internal: 45 85% 60%;
+  --internal-foreground: 45 90% 95%;
+  --internal-muted: 45 40% 25%;
+  --internal-border: 45 70% 40%;
+
+  /* External Variables - Dark Mode */
+  --external: 175 60% 50%;
+  --external-foreground: 175 80% 95%;
+  --external-muted: 175 40% 25%;
+  --external-border: 175 50% 40%;
 }
 
 /* ============================================

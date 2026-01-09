@@ -53,6 +53,7 @@
     "dashboard": "Panel",
     "templates": "Plantillas",
     "documents": "Documentos",
+    "variables": "Variables",
     "settings": "Configuración",
     "admin": "Administración",
     "logout": "Cerrar Sesión"
@@ -383,7 +384,8 @@
       },
       "sections": {
         "signerRoles": "Roles de Firmantes",
-        "variables": "Variables"
+        "internalVariables": "Variables del Sistema",
+        "externalVariables": "Variables Personalizadas"
       }
     },
     "toolbar": {
@@ -823,6 +825,47 @@
   "sandbox": {
     "label": "Sandbox",
     "exit": "Salir de Sandbox"
+  },
+  "variables": {
+    "title": "Variables",
+    "header": "Workspace",
+    "create": "CREAR VARIABLE",
+    "empty": "No hay variables definidas",
+    "emptyHint": "Crea tu primera variable para usar en plantillas",
+    "columns": {
+      "key": "Clave de Variable",
+      "label": "Etiqueta",
+      "description": "Descripción",
+      "defaultValue": "Valor por Defecto",
+      "status": "Estado",
+      "action": "Acción"
+    },
+    "key": "Clave de Variable",
+    "keyPlaceholder": "ej., nombre_empresa",
+    "keyHint": "Usa formato snake_case (letras, números, guiones bajos)",
+    "label": "Etiqueta",
+    "labelPlaceholder": "ej., Nombre de la Empresa",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Breve descripción de la variable",
+    "defaultValue": "Valor por Defecto",
+    "defaultValuePlaceholder": "ej., Acme Corporation",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "activate": "Activar",
+    "deactivate": "Desactivar",
+    "createDialog": {
+      "title": "Nueva Variable",
+      "description": "Crear una nueva variable para usar en plantillas",
+      "submit": "Crear Variable"
+    },
+    "editDialog": {
+      "title": "Editar Variable",
+      "description": "Actualizar las propiedades de la variable"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Variable",
+      "message": "¿Estás seguro de que deseas eliminar la variable \"{{name}}\"? Esta acción no se puede deshacer."
+    }
   },
   "admin": {
     "title": "Administración",

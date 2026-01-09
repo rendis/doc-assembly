@@ -45,6 +45,16 @@ export interface VariableDragData {
   metadata?: InjectableMetadata
 
   /**
+   * Source type for regular variables (INTERNAL or EXTERNAL)
+   */
+  sourceType?: 'INTERNAL' | 'EXTERNAL'
+
+  /**
+   * Optional description for info tooltip display
+   */
+  description?: string
+
+  /**
    * Role-specific properties (only for itemType: 'role-variable')
    */
   roleId?: string

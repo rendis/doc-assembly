@@ -309,6 +309,7 @@ export function DocumentEditor({
             label: data.label,
             type: data.injectorType,
             metadata: data.metadata,
+            sourceType: data.sourceType || 'EXTERNAL',
           },
           position: insertPos,
         })

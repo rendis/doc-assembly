@@ -2,8 +2,6 @@
 
 This file provides guidance to IA Agents when working with code in this repository.
 
-
-
 ## Commands
 
 ```bash

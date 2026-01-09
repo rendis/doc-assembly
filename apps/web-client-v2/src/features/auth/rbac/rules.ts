@@ -62,6 +62,13 @@ export const Permission = {
   TENANT_CREATE: 'tenant:create',
   TENANT_MANAGE_SETTINGS: 'tenant:manage_settings',
   TENANT_MANAGE_WORKSPACES: 'tenant:manage_workspaces',
+
+  // Injectable Management
+  INJECTABLE_VIEW: 'injectable:view',
+  INJECTABLE_CREATE: 'injectable:create',
+  INJECTABLE_EDIT: 'injectable:edit',
+  INJECTABLE_DELETE: 'injectable:delete',
+  INJECTABLE_TOGGLE_STATUS: 'injectable:toggle_status',
 } as const
 export type Permission = (typeof Permission)[keyof typeof Permission]
 
@@ -89,6 +96,11 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
     Permission.VERSION_EDIT_DRAFT,
     Permission.VERSION_DELETE_DRAFT,
     Permission.VERSION_PUBLISH,
+    Permission.INJECTABLE_VIEW,
+    Permission.INJECTABLE_CREATE,
+    Permission.INJECTABLE_EDIT,
+    Permission.INJECTABLE_DELETE,
+    Permission.INJECTABLE_TOGGLE_STATUS,
   ],
   [WorkspaceRole.ADMIN]: [
     ...COMMON_CONTENT_READ,
@@ -102,6 +114,11 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
     Permission.VERSION_EDIT_DRAFT,
     Permission.VERSION_DELETE_DRAFT,
     Permission.VERSION_PUBLISH,
+    Permission.INJECTABLE_VIEW,
+    Permission.INJECTABLE_CREATE,
+    Permission.INJECTABLE_EDIT,
+    Permission.INJECTABLE_DELETE,
+    Permission.INJECTABLE_TOGGLE_STATUS,
   ],
   [WorkspaceRole.EDITOR]: [
     ...COMMON_CONTENT_READ,
@@ -109,9 +126,19 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
     Permission.CONTENT_EDIT,
     Permission.VERSION_CREATE,
     Permission.VERSION_EDIT_DRAFT,
+    Permission.INJECTABLE_VIEW,
+    Permission.INJECTABLE_CREATE,
+    Permission.INJECTABLE_EDIT,
+    Permission.INJECTABLE_TOGGLE_STATUS,
   ],
-  [WorkspaceRole.OPERATOR]: [...COMMON_CONTENT_READ],
-  [WorkspaceRole.VIEWER]: [...COMMON_CONTENT_READ],
+  [WorkspaceRole.OPERATOR]: [
+    ...COMMON_CONTENT_READ,
+    Permission.INJECTABLE_VIEW,
+  ],
+  [WorkspaceRole.VIEWER]: [
+    ...COMMON_CONTENT_READ,
+    Permission.INJECTABLE_VIEW,
+  ],
 }
 
 export const TENANT_RULES: Record<TenantRole, Permission[]> = {
@@ -135,6 +162,28 @@ export const SYSTEM_RULES: Record<SystemRole, Permission[]> = {
     Permission.TENANT_CREATE,
     Permission.TENANT_MANAGE_SETTINGS,
     Permission.TENANT_MANAGE_WORKSPACES,
+    // Workspace-level permissions (superadmin has full access)
+    Permission.WORKSPACE_VIEW,
+    Permission.WORKSPACE_UPDATE,
+    Permission.WORKSPACE_ARCHIVE,
+    Permission.MEMBERS_VIEW,
+    Permission.MEMBERS_INVITE,
+    Permission.MEMBERS_REMOVE,
+    Permission.MEMBERS_UPDATE_ROLE,
+    Permission.CONTENT_VIEW,
+    Permission.CONTENT_CREATE,
+    Permission.CONTENT_EDIT,
+    Permission.CONTENT_DELETE,
+    Permission.VERSION_VIEW,
+    Permission.VERSION_CREATE,
+    Permission.VERSION_EDIT_DRAFT,
+    Permission.VERSION_DELETE_DRAFT,
+    Permission.VERSION_PUBLISH,
+    Permission.INJECTABLE_VIEW,
+    Permission.INJECTABLE_CREATE,
+    Permission.INJECTABLE_EDIT,
+    Permission.INJECTABLE_DELETE,
+    Permission.INJECTABLE_TOGGLE_STATUS,
   ],
   [SystemRole.PLATFORM_ADMIN]: [
     Permission.ADMIN_ACCESS,

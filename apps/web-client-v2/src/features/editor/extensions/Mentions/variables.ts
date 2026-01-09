@@ -1,7 +1,9 @@
 import {
   Calendar,
   CheckSquare,
+  Clock,
   Coins,
+  Database,
   Hash,
   Image as ImageIcon,
   Table,
@@ -30,6 +32,7 @@ export interface MentionVariable {
   label: string
   type: VariableType
   metadata?: InjectableMetadata
+  sourceType?: 'INTERNAL' | 'EXTERNAL'
   /** Grupo para categorización en el menú */
   group: 'variable' | 'role'
   /** Solo para role injectables */
@@ -56,6 +59,12 @@ export const ROLE_PROPERTY_ICONS: Record<RolePropertyKey, LucideIcon> = {
   email: Mail,
 }
 
+// Icons for source type
+export const SOURCE_TYPE_ICONS: Record<'INTERNAL' | 'EXTERNAL', LucideIcon> = {
+  INTERNAL: Clock,
+  EXTERNAL: Database,
+}
+
 /**
  * Map Variable to MentionVariable format
  */
@@ -65,6 +74,7 @@ function mapToMentionVariable(v: Variable): MentionVariable {
     label: v.label,
     type: v.type,
     metadata: v.metadata,
+    sourceType: v.sourceType,
     group: 'variable',
   }
 }

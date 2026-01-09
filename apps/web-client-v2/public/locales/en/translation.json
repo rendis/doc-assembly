@@ -53,6 +53,7 @@
     "dashboard": "Dashboard",
     "templates": "Templates",
     "documents": "Documents",
+    "variables": "Variables",
     "settings": "Settings",
     "admin": "Admin",
     "logout": "Logout"
@@ -383,7 +384,8 @@
       },
       "sections": {
         "signerRoles": "Signer Roles",
-        "variables": "Variables"
+        "internalVariables": "System Variables",
+        "externalVariables": "Custom Variables"
       }
     },
     "toolbar": {
@@ -823,6 +825,47 @@
   "sandbox": {
     "label": "Sandbox",
     "exit": "Exit Sandbox"
+  },
+  "variables": {
+    "title": "Variables",
+    "header": "Workspace",
+    "create": "CREATE VARIABLE",
+    "empty": "No variables defined yet",
+    "emptyHint": "Create your first variable to use in templates",
+    "columns": {
+      "key": "Variable Key",
+      "label": "Display Label",
+      "description": "Description",
+      "defaultValue": "Default Value",
+      "status": "Status",
+      "action": "Action"
+    },
+    "key": "Variable Key",
+    "keyPlaceholder": "e.g., company_name",
+    "keyHint": "Use snake_case format (letters, numbers, underscores)",
+    "label": "Display Label",
+    "labelPlaceholder": "e.g., Company Name",
+    "description": "Description",
+    "descriptionPlaceholder": "Brief description of the variable",
+    "defaultValue": "Default Value",
+    "defaultValuePlaceholder": "e.g., Acme Corporation",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "createDialog": {
+      "title": "New Variable",
+      "description": "Create a new variable to use in templates",
+      "submit": "Create Variable"
+    },
+    "editDialog": {
+      "title": "Edit Variable",
+      "description": "Update the variable properties"
+    },
+    "deleteDialog": {
+      "title": "Delete Variable",
+      "message": "Are you sure you want to delete the variable \"{{name}}\"? This action cannot be undone."
+    }
   },
   "admin": {
     "title": "Administration",

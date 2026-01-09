@@ -25,4 +25,5 @@ export interface Variable {
   type: InjectorType
   description?: string
   metadata?: InjectableMetadata
+  sourceType: 'INTERNAL' | 'EXTERNAL'
 }

@@ -151,6 +151,7 @@ export function mapInjectableToVariable(injectable: Injectable): Variable {
     type: injectable.dataType,
     description: injectable.description,
     metadata: injectable.metadata,
+    sourceType: injectable.sourceType,
   }
 }
 

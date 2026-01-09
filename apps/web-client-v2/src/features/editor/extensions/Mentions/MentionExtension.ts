@@ -58,6 +58,7 @@ export const MentionExtension = Mention.configure({
           label: item.label,
           type: item.type,
           metadata: item.metadata,
+          sourceType: item.sourceType || 'EXTERNAL',
         }
 
         // Emit event to open format selector

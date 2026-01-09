@@ -7,6 +7,16 @@ interface VariableDragOverlayProps {
   data: VariableDragData
 }
 
+const OVERLAY_SOURCE_TYPE_STYLES: Record<'INTERNAL' | 'EXTERNAL' | 'default', string> = {
+  INTERNAL: 'border-internal-border/60 bg-internal-muted/90 text-internal-foreground',
+  EXTERNAL: 'border-external-border/60 bg-external-muted/90 text-external-foreground',
+  default: 'border-border/80 bg-muted/90 text-foreground',
+}
+
+function getOverlaySourceTypeStyles(sourceType?: 'INTERNAL' | 'EXTERNAL'): string {
+  return OVERLAY_SOURCE_TYPE_STYLES[sourceType ?? 'default']
+}
+
 /**
  * Ghost image shown while dragging a variable from the VariablesPanel
  * Displays the variable with icon, label, and visual feedback
@@ -24,15 +34,15 @@ export function VariableDragOverlay({ data }: VariableDragOverlayProps) {
     data.metadata?.options && Object.keys(data.metadata.options).length > 0
 
   const isRole = data.itemType === 'role-variable'
-
+  
   return (
     <div
       className={cn(
         'flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-card shadow-lg cursor-grabbing z-[100]',
-        // Visual differentiation for role variables
+        // Visual differentiation for role variables and source types
         isRole
           ? 'border-role-border/60 bg-role-muted/90 text-role-foreground'
-          : 'border-border'
+          : getOverlaySourceTypeStyles(data.sourceType)
       )}
     >
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

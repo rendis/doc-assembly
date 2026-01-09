@@ -17,6 +17,11 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { RolePropertyKey } from '../../types/role-injectable'
 import { ROLE_PROPERTIES } from '../../types/role-injectable'
 import { useSignerRolesStore } from '../../stores/signer-roles-store'
@@ -36,6 +41,16 @@ const icons = {
 const rolePropertyIcons: Record<RolePropertyKey, typeof User> = {
   name: User,
   email: Mail,
+}
+
+// Truncate label to prevent overflow in editor
+const MAX_LABEL_LENGTH = 50
+
+function truncateLabel(label: string): { text: string; isTruncated: boolean } {
+  if (label.length <= MAX_LABEL_LENGTH) {
+    return { text: label, isTruncated: false }
+  }
+  return { text: label.slice(0, MAX_LABEL_LENGTH) + '...', isTruncated: true }
 }
 
 export const InjectorComponent = (props: NodeViewProps) => {
@@ -123,7 +138,21 @@ export const InjectorComponent = (props: NodeViewProps) => {
         )}
       >
         <Icon className="h-3 w-3" />
-        {displayLabel}
+        {(() => {
+          const { text: truncatedLabel, isTruncated } = truncateLabel(displayLabel)
+          return isTruncated ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-default">{truncatedLabel}</span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                {displayLabel}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            truncatedLabel
+          )
+        })()}
         {format && (
           <span className="text-[10px] opacity-70 bg-background/50 px-1 rounded font-mono">
             {format}

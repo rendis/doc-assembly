@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutGrid, FileText, FolderOpen, Settings, LogOut, X } from 'lucide-react'
+import { LayoutGrid, FileText, FolderOpen, Variable, Settings, LogOut, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -87,6 +87,12 @@ export function AppSidebar() {
       label: t('nav.documents'),
       icon: FolderOpen,
       href: `/workspace/${workspaceId}/documents`,
+      showInSandbox: true,
+    },
+    {
+      label: t('nav.variables'),
+      icon: Variable,
+      href: `/workspace/${workspaceId}/variables`,
       showInSandbox: true,
     },
     {

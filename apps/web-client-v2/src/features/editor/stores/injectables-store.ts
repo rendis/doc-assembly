@@ -134,3 +134,16 @@ export function getVariableById(id: string): Variable | undefined {
   const variables = useInjectablesStore.getState().variables
   return variables.find((v) => v.id === id || v.variableId === id)
 }
+
+/**
+ * Selector para obtener variables internas (sourceType='INTERNAL')
+ */
+export const selectInternalVariables = (state: InjectablesState) =>
+  state.variables.filter((v) => v.sourceType === 'INTERNAL')
+
+/**
+ * Selector para obtener variables externas (sourceType='EXTERNAL')
+ */
+export const selectExternalVariables = (state: InjectablesState) =>
+  state.variables.filter((v) => v.sourceType === 'EXTERNAL')
+

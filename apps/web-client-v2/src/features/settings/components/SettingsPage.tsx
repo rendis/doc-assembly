@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SandboxModeSection } from './SandboxModeSection'
 import { MemberManagementSection } from './MemberManagementSection'
-import { GlobalInjectablesSection } from './GlobalInjectablesSection'
 import { UnsavedChangesAlert } from './UnsavedChangesAlert'
 
 export function SettingsPage() {
@@ -12,11 +11,6 @@ export function SettingsPage() {
   const [allowGuestAccess, setAllowGuestAccess] = useState(false)
   const [adminContact, setAdminContact] = useState('admin@doc-assembly.io')
   const [hasChanges, setHasChanges] = useState(false)
-
-  const injectables = [
-    { key: 'company_name', value: 'Acme Legal Solutions Inc.' },
-    { key: 'disclaimer_footer', value: 'Confidentiality Notice: This document...' },
-  ]
 
   const handleReset = () => {
     setAllowGuestAccess(false)
@@ -64,12 +58,6 @@ export function SettingsPage() {
               setAdminContact(v)
               handleChange()
             }}
-          />
-
-          <GlobalInjectablesSection
-            injectables={injectables}
-            onEdit={(key) => console.log('Edit', key)}
-            onAdd={() => console.log('Add new injectable')}
           />
 
           <UnsavedChangesAlert
