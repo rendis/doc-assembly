@@ -231,6 +231,11 @@
       "descriptionLabel": "Descripción",
       "descriptionPlaceholder": "Descripción opcional de los cambios...",
       "submit": "Crear Versión"
+    },
+    "versionDeleteDialog": {
+      "title": "Eliminar Versión",
+      "message": "¿Estás seguro de que deseas eliminar la versión {{version}}? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar"
     }
   },
   "documents": {

@@ -318,7 +318,7 @@ export function DocumentEditor({
         // Use type assertion to bypass TipTap type limitations
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(editor.chain().focus(insertPos) as any).setInjector({
-          type: data.injectorType,
+          type: data.itemType === 'role-variable' ? 'ROLE_TEXT' : data.injectorType,
           label: data.label,
           variableId: data.variableId,
           // For role variables, add additional attributes

@@ -21,7 +21,6 @@ import {
   useSchedulePublishVersion,
   useCancelSchedule,
   useArchiveVersion,
-  useDeleteVersion,
 } from '../hooks/useTemplateDetail'
 import { useUpdateTemplate } from '../hooks/useTemplates'
 import { VersionListItem } from './VersionListItem'
@@ -30,6 +29,7 @@ import { PublishVersionDialog } from './PublishVersionDialog'
 import { SchedulePublishDialog } from './SchedulePublishDialog'
 import { ValidationErrorsDialog, type ValidationResponse } from './ValidationErrorsDialog'
 import { EditTagsDialog } from './EditTagsDialog'
+import { DeleteVersionDialog } from './DeleteVersionDialog'
 import { EditableTitle } from './EditableTitle'
 import { TagBadge } from './TagBadge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -62,6 +62,8 @@ export function TemplateDetailPage() {
   const [validationDialogOpen, setValidationDialogOpen] = useState(false)
   const [validationErrors, setValidationErrors] = useState<ValidationResponse | null>(null)
   const [selectedVersion, setSelectedVersion] = useState<TemplateVersionSummaryResponse | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [versionToDelete, setVersionToDelete] = useState<TemplateVersionSummaryResponse | null>(null)
 
   // Template update mutation
   const updateTemplate = useUpdateTemplate()
@@ -71,7 +73,6 @@ export function TemplateDetailPage() {
   const schedulePublishVersion = useSchedulePublishVersion(templateId)
   const cancelSchedule = useCancelSchedule(templateId)
   const archiveVersion = useArchiveVersion(templateId)
-  const deleteVersion = useDeleteVersion(templateId)
 
   const handleTitleSave = async (newTitle: string) => {
     await updateTemplate.mutateAsync({
@@ -207,8 +208,9 @@ export function TemplateDetailPage() {
     await archiveVersion.mutateAsync(version.id)
   }
 
-  const handleDelete = async (version: TemplateVersionSummaryResponse) => {
-    await deleteVersion.mutateAsync(version.id)
+  const handleDelete = (version: TemplateVersionSummaryResponse) => {
+    setVersionToDelete(version)
+    setDeleteDialogOpen(true)
   }
 
   // Loading state - only show skeleton if no cached data
@@ -480,6 +482,14 @@ export function TemplateDetailPage() {
             ? () => handleOpenEditor(selectedVersion.id)
             : undefined
         }
+      />
+
+      {/* Delete Version Dialog */}
+      <DeleteVersionDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        version={versionToDelete}
+        templateId={templateId}
       />
     </motion.div>
   )

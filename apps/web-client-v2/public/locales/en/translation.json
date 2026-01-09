@@ -231,6 +231,11 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Optional description of changes...",
       "submit": "Create Version"
+    },
+    "versionDeleteDialog": {
+      "title": "Delete Version",
+      "message": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
+      "confirm": "Delete"
     }
   },
   "documents": {
