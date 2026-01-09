@@ -361,16 +361,19 @@ export function SignerRoleItem({
         onBlur={handleBlur}
         onFocus={handleFocus}
         className={cn(
-          'border border-border rounded p-3 bg-card transition-all',
-          'hover:border-border/80',
+          'border border-border rounded-lg p-3 bg-card transition-all',
+          // Efecto 3D base
+          'shadow-sm',
+          // Hover: elevación
+          'hover:shadow-md hover:-translate-y-0.5 hover:border-border/60',
           isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted/30',
-          isDragging && 'opacity-40',
-          isOverlay && 'shadow-xl ring-2 ring-primary/20'
+          isDragging && 'opacity-40 scale-[0.98]',
+          isOverlay && 'shadow-xl ring-2 ring-primary/20 rotate-1 scale-105'
         )}
       >
         {/* Header */}
         <motion.div
-          layout
+          layout={!isDragging && !isOverlay}
           animate={{ marginBottom: isExpanded ? 12 : 0 }}
           transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           className="flex items-center gap-2"
