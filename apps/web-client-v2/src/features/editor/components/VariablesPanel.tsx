@@ -1,17 +1,17 @@
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
+import { AnimatePresence, motion, type Transition } from 'framer-motion'
+import { ChevronRight, Clock, Database, Loader2, Search, Users, Variable as VariableIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, motion, type Transition } from 'framer-motion'
-import { ChevronRight, Users, Search, Loader2, Variable as VariableIcon, Clock, Database } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import { useVariablesPanelStore } from '../stores/variables-panel-store'
-import { useInjectablesStore } from '../stores/injectables-store'
 import { useRoleInjectables } from '../hooks/useRoleInjectables'
-import { DraggableVariable } from './DraggableVariable'
+import { useInjectablesStore } from '../stores/injectables-store'
+import { useVariablesPanelStore } from '../stores/variables-panel-store'
 import type { VariableDragData } from '../types/drag'
-import type { Variable } from '../types/variables'
 import type { RoleInjectable } from '../types/role-injectable'
+import type { Variable } from '../types/variables'
+import { DraggableVariable } from './DraggableVariable'
 
 const COLLAPSE_TRANSITION: Transition = { duration: 0.2, ease: [0.4, 0, 0.2, 1] }
 
@@ -285,10 +285,10 @@ export function VariablesPanel({
               {/* Top fade area - solid bg + gradient */}
               <div className="absolute top-0 left-0 right-0 h-10 pointer-events-none z-10 flex flex-col">
                 <div className="h-4 bg-card" />
-                <div className="h-6 bg-gradient-to-b from-card to-transparent" />
+                <div className="h-6 bg-linear-to-b from-card to-transparent" />
               </div>
 
-              <ScrollArea className="h-full w-full [&>div]:!overflow-x-hidden">
+              <ScrollArea className="h-full w-full [&>div]:overflow-x-hidden!">
                 <div className="p-4 pt-8 pb-12 space-y-4 min-w-0 w-full overflow-hidden">
                 {/* Loading state */}
                 {isLoading && (
@@ -471,7 +471,7 @@ export function VariablesPanel({
 
               {/* Bottom fade area - solid bg + gradient */}
               <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none z-10 flex flex-col">
-                <div className="h-6 bg-gradient-to-t from-card to-transparent" />
+                <div className="h-6 bg-linear-to-t from-card to-transparent" />
                 <div className="h-4 bg-card" />
               </div>
             </div>

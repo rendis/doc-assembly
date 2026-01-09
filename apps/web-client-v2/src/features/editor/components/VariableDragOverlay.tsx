@@ -1,7 +1,7 @@
-import type { VariableDragData } from '../types/drag'
-import { VARIABLE_ICONS, ROLE_PROPERTY_ICONS } from '../extensions/Mentions/variables'
-import { GripVertical, Settings2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { GripVertical, Settings2 } from 'lucide-react'
+import { ROLE_PROPERTY_ICONS, VARIABLE_ICONS } from '../extensions/Mentions/variables'
+import type { VariableDragData } from '../types/drag'
 
 interface VariableDragOverlayProps {
   data: VariableDragData
@@ -38,7 +38,7 @@ export function VariableDragOverlay({ data }: VariableDragOverlayProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-card shadow-lg cursor-grabbing z-[100]',
+        'flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-card shadow-lg cursor-grabbing z-100',
         // Visual differentiation for role variables and source types
         isRole
           ? 'border-role-border/60 bg-role-muted/90 text-role-foreground'
