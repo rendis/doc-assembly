@@ -110,10 +110,15 @@ export function TemplateDetailPage() {
   // Clear highlight after 5 seconds
   useEffect(() => {
     if (highlightedVersionId) {
-      const timer = setTimeout(clearHighlight, 5000)
+      console.log('[Highlight] Active highlight ID:', highlightedVersionId)
+      console.log('[Highlight] Available versions:', sortedVersions.map(v => v.id))
+      const timer = setTimeout(() => {
+        console.log('[Highlight] Clearing highlight')
+        clearHighlight()
+      }, 5000)
       return () => clearTimeout(timer)
     }
-  }, [highlightedVersionId, clearHighlight])
+  }, [highlightedVersionId, clearHighlight, sortedVersions])
 
   const { data: template, isLoading, error } = useTemplateWithVersions(templateId)
 
@@ -240,6 +245,9 @@ export function TemplateDetailPage() {
     setHighlightedVersionId(response.version.id)
     setPromoteDialogOpen(false)
     setSelectedVersion(null)
+
+    // Debug: log the promoted version ID
+    console.log('[Promote] Version promoted, highlighting:', response.version.id)
 
     // If promoted as new template, navigate to it
     if (response.template && currentWorkspace) {

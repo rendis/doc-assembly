@@ -432,15 +432,18 @@ body {
 /* Pulse highlight animation for promoted versions */
 @keyframes pulse-highlight {
   0%, 100% {
-    background-color: transparent;
+    background-color: hsl(var(--success) / 0.1);
+    box-shadow: inset 0 0 0 2px hsl(var(--success) / 0.3);
   }
   50% {
-    background-color: hsl(var(--primary) / 0.15);
+    background-color: hsl(var(--success) / 0.3);
+    box-shadow: inset 0 0 0 3px hsl(var(--success) / 0.6);
   }
 }
 
 .animate-pulse-highlight {
-  animation: pulse-highlight 1.5s ease-in-out 3;
+  animation: pulse-highlight 1.2s ease-in-out 4 !important;
+  transition: none !important;
 }
 
 /* ============================================
@@ -653,3 +656,10 @@ body {
 }
 
 
+.bg-muted  {
+  background: #FFFFFF;
+}
+
+.dark .bg-muted  {
+  background: #363A46;
+}
