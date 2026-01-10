@@ -287,30 +287,60 @@ function SelectTenantPage() {
         className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-16 px-6 py-24 md:px-12 lg:grid-cols-12 lg:gap-24 lg:px-32"
       >
         {/* Left column */}
-        <div className="lg:sticky lg:top-32 lg:col-span-4">
-          <h1 className="mb-8 font-display text-5xl font-light leading-[1.05] tracking-tighter text-foreground md:text-6xl">
-            {selectedTenant ? (
-              <>
-                Select your
-                <br />
-                <span className="font-semibold">Workspace.</span>
-              </>
-            ) : (
-              <>
-                {t('selectTenant.title', 'Select your')}
-                <br />
-                <span className="font-semibold">{t('selectTenant.subtitle', 'Organization.')}</span>
-              </>
+        <motion.div layout className="lg:sticky lg:top-32 lg:col-span-4">
+          {/* Indicador de organización seleccionada */}
+          <AnimatePresence>
+            {selectedTenant && (
+              <motion.div
+                key="org-indicator"
+                layout
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { duration: 0.4, ease: 'easeOut' } 
+                }}
+                exit={{ 
+                  opacity: 0, 
+                  y: -10,
+                  transition: { duration: 0.4, ease: 'easeIn' } 
+                }}
+                className="mb-6"
+              >
+                <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  Organization
+                </span>
+                <p className="mt-1 font-display text-lg font-medium tracking-tight text-foreground">
+                  {selectedTenant.name}
+                </p>
+              </motion.div>
             )}
-          </h1>
-          <p className="mb-12 max-w-sm text-lg font-light leading-relaxed text-muted-foreground">
-            {selectedTenant
-              ? 'Choose a workspace to access document templates and assembly tools.'
-              : t(
-                  'selectTenant.description',
-                  'Choose a tenant environment to access your document templates and assembly tools.'
-                )}
-          </p>
+          </AnimatePresence>
+          <motion.div layout transition={{ duration: 0.4, ease: 'easeOut' }}>
+            <h1 className="mb-8 font-display text-5xl font-light leading-[1.05] tracking-tighter text-foreground md:text-6xl">
+              {selectedTenant ? (
+                <>
+                  Select your
+                  <br />
+                  <span className="font-semibold">Workspace.</span>
+                </>
+              ) : (
+                <>
+                  {t('selectTenant.title', 'Select your')}
+                  <br />
+                  <span className="font-semibold">{t('selectTenant.subtitle', 'Organization.')}</span>
+                </>
+              )}
+            </h1>
+            <p className="mb-12 max-w-sm text-lg font-light leading-relaxed text-muted-foreground">
+              {selectedTenant
+                ? 'Choose a workspace to access document templates and assembly tools.'
+                : t(
+                    'selectTenant.description',
+                    'Choose a tenant environment to access your document templates and assembly tools.'
+                  )}
+            </p>
+          </motion.div>
           <button
             onClick={handleBack}
             className="group inline-flex items-center gap-2 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -318,7 +348,7 @@ function SelectTenantPage() {
             <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
             <span>{selectedTenant ? 'Back to organizations' : t('selectTenant.back', 'Back to login')}</span>
           </button>
-        </div>
+        </motion.div>
 
         {/* Right column */}
         <div className="flex flex-col justify-center lg:col-span-8">
