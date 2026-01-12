@@ -105,6 +105,15 @@
     <!-- Template Tags: Many-to-many pivot table (shared across versions) -->
     <include file="src/content/template_tags.xml"/>
 
+    <!-- System Injectable Definitions: Registry of system-defined injectables -->
+    <include file="src/content/system_injectable_definitions.xml"/>
+
+    <!-- System Injectable Assignments: Scope assignments for system injectables -->
+    <include file="src/content/system_injectable_assignments.xml"/>
+
+    <!-- Template Version Injectables: System injectable support -->
+    <include file="src/content/template_version_injectables_system.xml"/>
+
     <!-- ============================================ -->
     <!-- PHASE 7: Execution Tables                   -->
     <!-- ============================================ -->

@@ -71,6 +71,12 @@
         <rollback>DROP TYPE IF EXISTS version_status;</rollback>
     </changeSet>
 
+    <changeSet id="enum:injectable_scope_type" author="doc-assembly">
+        <comment>Scope type for system injectable assignments: PUBLIC (all), TENANT (specific tenant), WORKSPACE (specific workspace)</comment>
+        <sql>CREATE TYPE injectable_scope_type AS ENUM ('PUBLIC', 'TENANT', 'WORKSPACE');</sql>
+        <rollback>DROP TYPE IF EXISTS injectable_scope_type;</rollback>
+    </changeSet>
+
     <!-- ========== EXECUTION ENUMs ========== -->
 
     <changeSet id="enum:recipient_status" author="doc-assembly">

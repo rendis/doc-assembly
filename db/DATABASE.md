@@ -103,6 +103,8 @@ graph TB
 
     subgraph content["CONTENT SCHEMA"]
         ID[injectable_definitions]
+        SID[system_injectable_definitions]
+        SIA[system_injectable_assignments]
         TP[templates]
         TV[template_versions]
         TVI[template_version_injectables]
@@ -131,6 +133,10 @@ graph TB
     TP -->|N:M| TG
     TT -.->|pivot| TP
     TT -.->|pivot| TG
+    SID -->|1:N| SIA
+    T -->|1:N| SIA
+    W -->|1:N| SIA
+    SID -->|1:N| TVI
     W -->|1:N| D
     TV -->|1:N| D
     D -->|1:N| DR
@@ -998,7 +1004,130 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.14 `execution.documents`
+### 5.14 `content.system_injectable_definitions`
+
+**Purpose**: Registry of system-defined injectables that are managed in code but controlled via database for activation.
+
+**Why it exists**: Some injectables are defined programmatically (in code) but need database-level control for:
+- Enabling/disabling globally across the system
+- Tracking which system injectables exist for FK validation
+- Providing a reference for scope assignments
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `key` | VARCHAR(100) | **PK**, NOT NULL | Unique identifier matching the code definition |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Global activation switch |
+| `created_at` | TIMESTAMPTZ | NOT NULL | When the injectable was registered |
+| `updated_at` | TIMESTAMPTZ | - | Last modification (auto-updated via trigger) |
+
+**Indexes**:
+- `idx_system_injectable_definitions_is_active` - Filter by active status
+
+**Triggers**:
+- `trigger_system_injectable_definitions_updated_at` - Auto-updates `updated_at` on modification
+
+**Key Design Points**:
+- The `key` is the primary key (no UUID) since it must match code-defined identifiers
+- Metadata (label, description, data_type, format) comes from code, not the database
+- `is_active` provides global control - if FALSE, the injectable is unavailable everywhere
+- This table serves as the parent for `system_injectable_assignments` FK validation
+
+---
+
+### 5.15 `content.system_injectable_assignments`
+
+**Purpose**: Controls where system injectables are available by defining scope assignments.
+
+**Why it exists**: System injectables can be made available at different levels:
+- **PUBLIC**: Available to all tenants and workspaces
+- **TENANT**: Available to a specific tenant's workspaces
+- **WORKSPACE**: Available only to a specific workspace
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `injectable_key` | VARCHAR(100) | FK → system_injectable_definitions, NOT NULL | Reference to the system injectable |
+| `scope_type` | injectable_scope_type | NOT NULL | `PUBLIC`, `TENANT`, or `WORKSPACE` |
+| `tenant_id` | UUID | FK → tenants, NULLABLE | Required when scope_type = 'TENANT' |
+| `workspace_id` | UUID | FK → workspaces, NULLABLE | Required when scope_type = 'WORKSPACE' |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Activation switch for this assignment |
+| `created_at` | TIMESTAMPTZ | NOT NULL | When the assignment was created |
+
+**Check Constraint** (`chk_scope_target_consistency`):
+```sql
+(scope_type = 'PUBLIC' AND tenant_id IS NULL AND workspace_id IS NULL) OR
+(scope_type = 'TENANT' AND tenant_id IS NOT NULL AND workspace_id IS NULL) OR
+(scope_type = 'WORKSPACE' AND workspace_id IS NOT NULL AND tenant_id IS NULL)
+```
+
+**Unique Constraints** (partial indexes):
+- `idx_system_injectable_assignments_unique_public` - One PUBLIC assignment per key
+- `idx_system_injectable_assignments_unique_tenant` - One assignment per (key, tenant_id)
+- `idx_system_injectable_assignments_unique_workspace` - One assignment per (key, workspace_id)
+
+**Foreign Keys**:
+- `fk_system_injectable_assignments_injectable_key` → `system_injectable_definitions(key)` CASCADE
+- `fk_system_injectable_assignments_tenant_id` → `tenants(id)` CASCADE
+- `fk_system_injectable_assignments_workspace_id` → `workspaces(id)` CASCADE
+
+**Indexes**:
+- `idx_system_injectable_assignments_injectable_key` - Lookup by injectable
+- `idx_system_injectable_assignments_scope_type` - Filter by scope
+- `idx_system_injectable_assignments_tenant_id` - Filter by tenant
+- `idx_system_injectable_assignments_workspace_id` - Filter by workspace
+- `idx_system_injectable_assignments_is_active` - Filter by active status
+
+**Exception Handling Pattern**:
+
+The `is_active` column allows for exceptions within broader assignments:
+
+| Scenario | Implementation |
+|----------|----------------|
+| Injectable available to all EXCEPT workspace X | Create TENANT assignment (is_active=TRUE) + WORKSPACE assignment for X (is_active=FALSE) |
+| Injectable available to entire tenant EXCEPT workspace Y | Create TENANT assignment + WORKSPACE exception for Y with is_active=FALSE |
+| Temporarily disable a specific assignment | Set is_active=FALSE on the assignment |
+
+**Query Pattern** - Get system injectables for a workspace (with exception handling):
+
+The query must respect priority: WORKSPACE > TENANT > PUBLIC. A WORKSPACE assignment with `is_active=FALSE` overrides an active TENANT/PUBLIC assignment.
+
+```sql
+WITH workspace_tenant AS (
+    SELECT tenant_id FROM tenancy.workspaces WHERE id = :workspace_id
+),
+injectable_assignments AS (
+    SELECT
+        sia.injectable_key,
+        sia.scope_type,
+        sia.is_active,
+        -- Priority: WORKSPACE=1, TENANT=2, PUBLIC=3
+        CASE sia.scope_type
+            WHEN 'WORKSPACE' THEN 1
+            WHEN 'TENANT' THEN 2
+            WHEN 'PUBLIC' THEN 3
+        END AS priority
+    FROM content.system_injectable_assignments sia
+    WHERE (sia.scope_type = 'PUBLIC')
+       OR (sia.scope_type = 'TENANT' AND sia.tenant_id = (SELECT tenant_id FROM workspace_tenant))
+       OR (sia.scope_type = 'WORKSPACE' AND sia.workspace_id = :workspace_id)
+),
+best_assignment AS (
+    SELECT DISTINCT ON (injectable_key)
+        injectable_key,
+        is_active
+    FROM injectable_assignments
+    ORDER BY injectable_key, priority ASC
+)
+SELECT sid.key
+FROM content.system_injectable_definitions sid
+JOIN best_assignment ba ON sid.key = ba.injectable_key
+WHERE sid.is_active = TRUE
+  AND ba.is_active = TRUE;
+```
+
+---
+
+### 5.16 `execution.documents`
 
 **Purpose**: Represents a generated document instance with all injected data and signature tracking.
 
@@ -1035,7 +1164,7 @@ Documents reference a specific `template_version_id`, not just the template. Thi
 
 ---
 
-### 5.15 `execution.document_recipients`
+### 5.17 `execution.document_recipients`
 
 **Purpose**: Tracks individual participants (signers) of a document and their signature status.
 
@@ -1258,7 +1387,24 @@ LIMIT 10;
 
 ---
 
-### 7.8 `version_status`
+### 7.8 `injectable_scope_type`
+
+**Purpose**: Defines the visibility scope for system injectable assignments.
+
+| Value | Description |
+|-------|-------------|
+| `PUBLIC` | Available to all tenants and workspaces globally |
+| `TENANT` | Available to all workspaces within a specific tenant |
+| `WORKSPACE` | Available only to a specific workspace |
+
+**Scope Rules**:
+- `PUBLIC`: No tenant_id or workspace_id needed
+- `TENANT`: Requires tenant_id, workspace_id must be NULL
+- `WORKSPACE`: Requires workspace_id, tenant_id must be NULL
+
+---
+
+### 7.9 `version_status`
 
 **Purpose**: Lifecycle status of template versions.
 
@@ -1277,7 +1423,7 @@ LIMIT 10;
 
 ---
 
-### 7.9 `recipient_status`
+### 7.10 `recipient_status`
 
 **Purpose**: Individual signer's progress through the signing workflow.
 
@@ -1712,9 +1858,9 @@ WHERE id IN (
 | tenancy | 2 |
 | identity | 3 (users, workspace_members, user_access_history) |
 | organizer | 3 (includes cache table) |
-| content | 6 (templates, template_versions, template_version_injectables, template_version_signer_roles, template_tags, injectable_definitions) |
+| content | 8 (templates, template_versions, template_version_injectables, template_version_signer_roles, template_tags, injectable_definitions, system_injectable_definitions, system_injectable_assignments) |
 | execution | 2 |
-| **Total** | **16** |
+| **Total** | **18** |
 
 ### PostgreSQL Extensions Required
 
