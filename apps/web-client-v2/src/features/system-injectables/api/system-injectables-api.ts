@@ -1,0 +1,111 @@
+import { apiClient } from '@/lib/api-client'
+import type {
+  SystemInjectable,
+  SystemInjectableAssignment,
+  ListSystemInjectablesResponse,
+  ListAssignmentsResponse,
+  CreateAssignmentRequest,
+  BulkPublicAssignmentsResponse,
+} from '../types'
+
+const BASE_PATH = '/system/injectables'
+
+// List all system injectables
+export async function listSystemInjectables(): Promise<SystemInjectable[]> {
+  const response = await apiClient.get<ListSystemInjectablesResponse>(BASE_PATH)
+  return response.data.injectables
+}
+
+// Activate a system injectable globally
+export async function activateSystemInjectable(key: string): Promise<void> {
+  await apiClient.patch(`${BASE_PATH}/${key}/activate`)
+}
+
+// Deactivate a system injectable globally
+export async function deactivateSystemInjectable(key: string): Promise<void> {
+  await apiClient.patch(`${BASE_PATH}/${key}/deactivate`)
+}
+
+// List assignments for a specific injectable
+export async function listInjectableAssignments(
+  key: string
+): Promise<SystemInjectableAssignment[]> {
+  const response = await apiClient.get<ListAssignmentsResponse>(
+    `${BASE_PATH}/${key}/assignments`
+  )
+  return response.data.assignments
+}
+
+// Create a new assignment for an injectable
+export async function createAssignment(
+  key: string,
+  data: CreateAssignmentRequest
+): Promise<SystemInjectableAssignment> {
+  const response = await apiClient.post<SystemInjectableAssignment>(
+    `${BASE_PATH}/${key}/assignments`,
+    data
+  )
+  return response.data
+}
+
+// Delete an assignment
+export async function deleteAssignment(key: string, assignmentId: string): Promise<void> {
+  await apiClient.delete(`${BASE_PATH}/${key}/assignments/${assignmentId}`)
+}
+
+// Exclude an assignment (set is_active = false)
+export async function excludeAssignment(
+  key: string,
+  assignmentId: string
+): Promise<SystemInjectableAssignment> {
+  const response = await apiClient.patch<SystemInjectableAssignment>(
+    `${BASE_PATH}/${key}/assignments/${assignmentId}/exclude`
+  )
+  return response.data
+}
+
+// Include an assignment (set is_active = true)
+export async function includeAssignment(
+  key: string,
+  assignmentId: string
+): Promise<SystemInjectableAssignment> {
+  const response = await apiClient.patch<SystemInjectableAssignment>(
+    `${BASE_PATH}/${key}/assignments/${assignmentId}/include`
+  )
+  return response.data
+}
+
+// Bulk create PUBLIC assignments for multiple keys
+export async function bulkMakePublic(
+  keys: string[]
+): Promise<BulkPublicAssignmentsResponse> {
+  const response = await apiClient.post<BulkPublicAssignmentsResponse>(
+    `${BASE_PATH}/bulk/public`,
+    { keys }
+  )
+  return response.data
+}
+
+// Bulk delete PUBLIC assignments for multiple keys
+export async function bulkRemovePublic(
+  keys: string[]
+): Promise<BulkPublicAssignmentsResponse> {
+  const response = await apiClient.delete<BulkPublicAssignmentsResponse>(
+    `${BASE_PATH}/bulk/public`,
+    { data: { keys } }
+  )
+  return response.data
+}
+
+export const systemInjectablesApi = {
+  list: listSystemInjectables,
+  activate: activateSystemInjectable,
+  deactivate: deactivateSystemInjectable,
+  listAssignments: listInjectableAssignments,
+  createAssignment,
+  deleteAssignment,
+  excludeAssignment,
+  includeAssignment,
+  bulkMakePublic,
+  bulkRemovePublic,
+}

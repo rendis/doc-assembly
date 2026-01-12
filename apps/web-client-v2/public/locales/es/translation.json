@@ -36,7 +36,8 @@
     "selectAll": "Seleccionar Todo",
     "actions": "Acciones",
     "clear": "Limpiar todo",
-    "optional": "opcional"
+    "optional": "opcional",
+    "processing": "Procesando..."
   },
   "tags": {
     "searchPlaceholder": "Buscar o crear etiquetas...",
@@ -57,7 +58,7 @@
     "documents": "Documentos",
     "variables": "Variables",
     "settings": "Configuración",
-    "admin": "Administración",
+    "administration": "Administración",
     "logout": "Cerrar Sesión"
   },
   "sidebar": {
@@ -99,7 +100,8 @@
     "description": "Elige un ambiente de tenant para acceder a tus plantillas de documentos y herramientas de ensamblaje.",
     "back": "Volver al login",
     "filter": "Filtrar por organización...",
-    "minChars": "Escribe al menos 3 caracteres para buscar"
+    "minChars": "Escribe al menos 3 caracteres para buscar",
+    "join": "Unirse a Nueva Organización"
   },
   "workspace": {
     "current": "Workspace Actual",
@@ -900,13 +902,134 @@
     },
     "sandboxWarning": "Las variables son compartidas entre modo sandbox y modo producción. Los cambios que realices aquí afectarán ambos modos."
   },
-  "admin": {
+  "pagination": {
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "page": "Página"
+  },
+  "administration": {
+    "label": "Sistema",
     "title": "Administración",
-    "dashboard": "Panel",
-    "tenants": "Tenants",
-    "users": "Usuarios",
-    "systemSettings": "Configuración del Sistema",
-    "auditLog": "Registro de Auditoría"
+    "tabs": {
+      "tenants": "Tenants",
+      "users": "Usuarios",
+      "injectables": "Inyectables",
+      "audit": "Auditoría"
+    },
+    "tenants": {
+      "description": "Gestiona las organizaciones tenant y sus configuraciones.",
+      "searchPlaceholder": "Buscar tenants...",
+      "loadError": "Error al cargar los tenants",
+      "noResults": "No hay tenants que coincidan con tu búsqueda",
+      "empty": "No se encontraron tenants",
+      "columns": {
+        "name": "Nombre",
+        "code": "Código",
+        "status": "Estado",
+        "users": "Usuarios",
+        "created": "Creado"
+      }
+    },
+    "users": {
+      "description": "Gestiona los usuarios del sistema y sus roles.",
+      "columns": {
+        "name": "Nombre",
+        "email": "Correo",
+        "role": "Rol",
+        "status": "Estado"
+      }
+    },
+    "audit": {
+      "description": "Ver actividad del sistema y registros de seguridad.",
+      "columns": {
+        "action": "Acción",
+        "user": "Usuario",
+        "details": "Detalles",
+        "timestamp": "Fecha"
+      }
+    }
+  },
+  "systemInjectables": {
+    "description": "Administra las funciones inyectables del sistema y sus ámbitos de disponibilidad.",
+    "readOnlyWarning": "Tienes acceso de solo lectura. Solo SUPERADMIN puede modificar la configuración.",
+    "loadError": "Error al cargar los inyectables del sistema",
+    "empty": "No hay inyectables del sistema configurados",
+    "scopeAssignments": "Asignaciones de Ámbito",
+    "addScope": "Agregar",
+    "globalAvailability": "Disponible globalmente para todos los workspaces",
+    "globalHint": "Agrega asignaciones para restringir la disponibilidad a ámbitos específicos",
+    "tenantScope": "Tenant",
+    "workspaceScope": "Workspace",
+    "included": "Incluido",
+    "excluded": "Excluido",
+    "include": "Incluir",
+    "exclude": "Excluir",
+    "includeDesc": "Disponible en el ámbito",
+    "excludeDesc": "Restringir acceso en el ámbito",
+    "createAssignment": "Crear Asignación",
+    "createAssignmentDesc": "Asignar este inyectable a un ámbito específico",
+    "addInclusion": "Añadir Inclusión",
+    "addExclusion": "Añadir Exclusión",
+    "scopeType": "Tipo de Ámbito",
+    "public": "Público",
+    "publicDesc": "Global",
+    "tenant": "Tenant",
+    "tenantDesc": "Organización",
+    "workspace": "Workspace",
+    "workspaceDesc": "Específico",
+    "tenantId": "ID del Tenant",
+    "workspaceId": "ID del Workspace",
+    "selectTenant": "Seleccionar Tenant",
+    "selectWorkspace": "Seleccionar Workspace",
+    "assignmentMode": "Modo de Asignación",
+    "searchTenants": "Buscar organizaciones...",
+    "searchWorkspaces": "Buscar workspaces...",
+    "noTenants": "No se encontraron organizaciones",
+    "noWorkspaces": "No se encontraron workspaces",
+    "minChars": "Escribe al menos 3 caracteres",
+    "noResults": "No hay inyectables que coincidan con los filtros",
+    "filters": {
+      "searchPlaceholder": "Buscar por nombre...",
+      "status": "Estado",
+      "statusAll": "Todos",
+      "statusActive": "Activos",
+      "statusInactive": "Inactivos",
+      "sortBy": "Ordenar",
+      "sortName": "Nombre",
+      "sortStatus": "Estado",
+      "sortType": "Tipo"
+    },
+    "visibility": {
+      "public": "Público",
+      "scoped": "Restringido"
+    },
+    "loadingMore": "Cargando más...",
+    "showingOf": "Mostrando {{visible}} de {{total}}",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "noRule": "Sin regla",
+    "workspaces": "workspaces",
+    "workspace": "workspace",
+    "noMatchingAssignments": "No hay asignaciones que coincidan con tu búsqueda",
+    "inheritedFromGlobal": "Heredado de global",
+    "selectOrganization": "Seleccionar Organización",
+    "stepOf": "Paso {{current}} de {{total}}",
+    "change": "Cambiar",
+    "selectMode": "Seleccionar",
+    "bulk": {
+      "selected": "seleccionados",
+      "makePublic": "Hacer Público",
+      "removePublic": "Quitar Público",
+      "confirmMakePublic": "Hacer Inyectables Públicos",
+      "confirmRemovePublic": "Quitar Acceso Público",
+      "confirmMakePublicDescription": "Los siguientes {{count}} inyectables se harán PÚBLICOS:",
+      "confirmRemovePublicDescription": "Se quitará el acceso PÚBLICO de los siguientes {{count}} inyectables:",
+      "warningMakePublic": "Los inyectables PÚBLICOS están disponibles para TODOS los workspaces sin asignaciones explícitas.",
+      "warningRemovePublic": "Quitar el acceso PÚBLICO restringirá estos inyectables solo a sus asignaciones de ámbito.",
+      "success": "Operación masiva completada",
+      "successDescription": "{{count}} inyectables actualizados",
+      "partialSuccess": "Operación parcialmente completada",
+      "error": "Error al ejecutar la operación masiva"
+    }
   },
   "status": {
     "draft": "Borrador",

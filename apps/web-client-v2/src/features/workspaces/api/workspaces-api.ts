@@ -7,30 +7,16 @@ import type {
 } from '../types'
 
 /**
- * List workspaces in current tenant
+ * Get workspaces in current tenant with optional search
  */
-export async function fetchWorkspaces(
+export async function getWorkspaces(
   page = 1,
-  perPage = 20
+  perPage = 20,
+  query?: string
 ): Promise<PaginatedResponse<WorkspaceWithRole>> {
   const response = await apiClient.get<PaginatedResponse<WorkspaceWithRole>>(
-    '/tenant/workspaces/list',
-    { params: { page, perPage } }
-  )
-  return response.data
-}
-
-/**
- * Search workspaces by name
- */
-export async function searchWorkspaces(
-  query: string,
-  page = 1,
-  perPage = 20
-): Promise<PaginatedResponse<WorkspaceWithRole>> {
-  const response = await apiClient.get<PaginatedResponse<WorkspaceWithRole>>(
-    '/tenant/workspaces/search',
-    { params: { q: query, page, perPage } }
+    '/tenant/workspaces',
+    { params: { page, perPage, ...(query && { q: query }) } }
   )
   return response.data
 }

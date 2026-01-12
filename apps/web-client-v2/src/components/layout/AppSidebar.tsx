@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutGrid, FileText, FolderOpen, Variable, Settings, LogOut, X } from 'lucide-react'
+import { LayoutGrid, FileText, FolderOpen, Variable, Settings, Shield, LogOut, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -58,7 +58,7 @@ export function AppSidebar() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { userProfile } = useAuthStore()
-  const { currentWorkspace, clearContext } = useAppContextStore()
+  const { currentWorkspace, clearContext, isSystemContext } = useAppContextStore()
   const { isPinned, isHovering, closeMobile } = useSidebarStore()
   const { isSandboxActive, disableSandbox } = useSandboxMode()
   const { phase: transitionPhase } = useWorkspaceTransitionStore()
@@ -101,6 +101,17 @@ export function AppSidebar() {
       href: `/workspace/${workspaceId}/settings`,
       showInSandbox: false,
     },
+    // Administration - only visible in SYSTEM workspace
+    ...(isSystemContext()
+      ? [
+          {
+            label: t('nav.administration', 'Administration'),
+            icon: Shield,
+            href: `/workspace/${workspaceId}/administration`,
+            showInSandbox: false,
+          },
+        ]
+      : []),
   ]
 
   // Filter nav items based on sandbox mode
@@ -306,7 +317,6 @@ export function AppSidebar() {
               return (
                 <motion.div
                   key={item.href}
-                  layout
                   variants={sandboxNavVariants}
                   initial="initial"
                   animate="animate"

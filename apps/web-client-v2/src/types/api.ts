@@ -1,6 +1,7 @@
 /**
  * API Response Types
  * Based on ../doc-engine/docs/swagger.yaml definitions
+ * Use the MCP `doc-engine-api` to get the latest definitions
  */
 
 // ============================================

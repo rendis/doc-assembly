@@ -36,7 +36,8 @@
     "selectAll": "Select All",
     "actions": "Actions",
     "clear": "Clear all",
-    "optional": "optional"
+    "optional": "optional",
+    "processing": "Processing..."
   },
   "tags": {
     "searchPlaceholder": "Search or create tags...",
@@ -57,7 +58,7 @@
     "documents": "Documents",
     "variables": "Variables",
     "settings": "Settings",
-    "admin": "Admin",
+    "administration": "Administration",
     "logout": "Logout"
   },
   "sidebar": {
@@ -99,7 +100,8 @@
     "description": "Choose a tenant environment to access your document templates and assembly tools.",
     "back": "Back to login",
     "filter": "Filter by organization...",
-    "minChars": "Type at least 3 characters to search"
+    "minChars": "Type at least 3 characters to search",
+    "join": "Join New Organization"
   },
   "workspace": {
     "current": "Current Workspace",
@@ -900,13 +902,134 @@
     },
     "sandboxWarning": "Variables are shared between sandbox mode and production mode. Changes you make here will affect both modes."
   },
-  "admin": {
+  "pagination": {
+    "prev": "Previous",
+    "next": "Next",
+    "page": "Page"
+  },
+  "administration": {
+    "label": "System",
     "title": "Administration",
-    "dashboard": "Dashboard",
-    "tenants": "Tenants",
-    "users": "Users",
-    "systemSettings": "System Settings",
-    "auditLog": "Audit Log"
+    "tabs": {
+      "tenants": "Tenants",
+      "users": "Users",
+      "injectables": "Injectables",
+      "audit": "Audit"
+    },
+    "tenants": {
+      "description": "Manage tenant organizations and their configurations.",
+      "searchPlaceholder": "Search tenants...",
+      "loadError": "Failed to load tenants",
+      "noResults": "No tenants match your search",
+      "empty": "No tenants found",
+      "columns": {
+        "name": "Name",
+        "code": "Code",
+        "status": "Status",
+        "users": "Users",
+        "created": "Created"
+      }
+    },
+    "users": {
+      "description": "Manage system users and their roles.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status"
+      }
+    },
+    "audit": {
+      "description": "View system activity and security logs.",
+      "columns": {
+        "action": "Action",
+        "user": "User",
+        "details": "Details",
+        "timestamp": "Timestamp"
+      }
+    }
+  },
+  "systemInjectables": {
+    "description": "Manage system-level injectable functions and their availability scopes.",
+    "readOnlyWarning": "You have read-only access. Only SUPERADMIN can modify settings.",
+    "loadError": "Failed to load system injectables",
+    "empty": "No system injectables configured",
+    "scopeAssignments": "Scope Assignments",
+    "addScope": "Add",
+    "globalAvailability": "Available globally to all workspaces",
+    "globalHint": "Add assignments to restrict availability to specific scopes",
+    "tenantScope": "Tenant",
+    "workspaceScope": "Workspace",
+    "included": "Included",
+    "excluded": "Excluded",
+    "include": "Include",
+    "exclude": "Exclude",
+    "includeDesc": "Make available in scope",
+    "excludeDesc": "Restrict access in scope",
+    "createAssignment": "Create Assignment",
+    "createAssignmentDesc": "Assign this injectable to a specific scope",
+    "addInclusion": "Add Inclusion",
+    "addExclusion": "Add Exclusion",
+    "scopeType": "Scope Type",
+    "public": "Public",
+    "publicDesc": "Global",
+    "tenant": "Tenant",
+    "tenantDesc": "Organization",
+    "workspace": "Workspace",
+    "workspaceDesc": "Specific",
+    "tenantId": "Tenant ID",
+    "workspaceId": "Workspace ID",
+    "selectTenant": "Select Tenant",
+    "selectWorkspace": "Select Workspace",
+    "assignmentMode": "Assignment Mode",
+    "searchTenants": "Search organizations...",
+    "searchWorkspaces": "Search workspaces...",
+    "noTenants": "No organizations found",
+    "noWorkspaces": "No workspaces found",
+    "minChars": "Type at least 3 characters",
+    "noResults": "No injectables match your filters",
+    "filters": {
+      "searchPlaceholder": "Search by name...",
+      "status": "Status",
+      "statusAll": "All",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "sortBy": "Sort",
+      "sortName": "Name",
+      "sortStatus": "Status",
+      "sortType": "Type"
+    },
+    "visibility": {
+      "public": "Public",
+      "scoped": "Scoped"
+    },
+    "loadingMore": "Loading more...",
+    "showingOf": "Showing {{visible}} of {{total}}",
+    "filterPlaceholder": "Filter by name...",
+    "noRule": "No rule",
+    "workspaces": "workspaces",
+    "workspace": "workspace",
+    "noMatchingAssignments": "No assignments match your search",
+    "inheritedFromGlobal": "Inherited from global",
+    "selectOrganization": "Select Organization",
+    "stepOf": "Step {{current}} of {{total}}",
+    "change": "Change",
+    "selectMode": "Select",
+    "bulk": {
+      "selected": "selected",
+      "makePublic": "Make Public",
+      "removePublic": "Remove Public",
+      "confirmMakePublic": "Make Injectables Public",
+      "confirmRemovePublic": "Remove Public Access",
+      "confirmMakePublicDescription": "The following {{count}} injectables will be made PUBLIC:",
+      "confirmRemovePublicDescription": "PUBLIC access will be removed from the following {{count}} injectables:",
+      "warningMakePublic": "PUBLIC injectables are available to ALL workspaces without explicit assignments.",
+      "warningRemovePublic": "Removing PUBLIC access will restrict these injectables to their scoped assignments only.",
+      "success": "Bulk operation completed",
+      "successDescription": "{{count}} injectables updated",
+      "partialSuccess": "Operation partially completed",
+      "error": "Failed to execute bulk operation"
+    }
   },
   "status": {
     "draft": "Draft",

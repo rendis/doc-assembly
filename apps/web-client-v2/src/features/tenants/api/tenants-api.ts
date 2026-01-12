@@ -2,30 +2,16 @@ import apiClient, { type PaginatedResponse } from '@/lib/api-client'
 import type { TenantWithRole, CreateTenantRequest, UpdateTenantRequest, Tenant } from '../types'
 
 /**
- * List tenants accessible by current user
+ * Get tenants accessible by current user with optional search
  */
-export async function fetchMyTenants(
+export async function getMyTenants(
   page = 1,
-  perPage = 20
+  perPage = 20,
+  query?: string
 ): Promise<PaginatedResponse<TenantWithRole>> {
   const response = await apiClient.get<PaginatedResponse<TenantWithRole>>(
-    '/me/tenants/list',
-    { params: { page, perPage } }
-  )
-  return response.data
-}
-
-/**
- * Search tenants by name or code
- */
-export async function searchMyTenants(
-  query: string,
-  page = 1,
-  perPage = 20
-): Promise<PaginatedResponse<TenantWithRole>> {
-  const response = await apiClient.get<PaginatedResponse<TenantWithRole>>(
-    '/me/tenants/search',
-    { params: { q: query, page, perPage } }
+    '/me/tenants',
+    { params: { page, perPage, ...(query && { q: query }) } }
   )
   return response.data
 }

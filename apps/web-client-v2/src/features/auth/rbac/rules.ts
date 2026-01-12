@@ -33,6 +33,8 @@ export const Permission = {
   SYSTEM_SETTINGS_VIEW: 'system:settings:view',
   SYSTEM_SETTINGS_MANAGE: 'system:settings:manage',
   SYSTEM_AUDIT_VIEW: 'system:audit:view',
+  SYSTEM_INJECTABLES_VIEW: 'system:injectables:view',
+  SYSTEM_INJECTABLES_MANAGE: 'system:injectables:manage',
 
   // Workspace Management
   WORKSPACE_VIEW: 'workspace:view',
@@ -159,6 +161,8 @@ export const SYSTEM_RULES: Record<SystemRole, Permission[]> = {
     Permission.SYSTEM_SETTINGS_VIEW,
     Permission.SYSTEM_SETTINGS_MANAGE,
     Permission.SYSTEM_AUDIT_VIEW,
+    Permission.SYSTEM_INJECTABLES_VIEW,
+    Permission.SYSTEM_INJECTABLES_MANAGE,
     Permission.TENANT_CREATE,
     Permission.TENANT_MANAGE_SETTINGS,
     Permission.TENANT_MANAGE_WORKSPACES,
@@ -190,5 +194,6 @@ export const SYSTEM_RULES: Record<SystemRole, Permission[]> = {
     Permission.SYSTEM_TENANTS_VIEW,
     Permission.SYSTEM_TENANTS_MANAGE,
     Permission.SYSTEM_AUDIT_VIEW,
+    Permission.SYSTEM_INJECTABLES_VIEW,
   ],
 }

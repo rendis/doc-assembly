@@ -49,9 +49,14 @@ This is a React 19 + TypeScript SPA for a multi-tenant document assembly platfor
   - `Authorization` header (Bearer token)
   - `X-Tenant-ID` and `X-Workspace-ID` headers from context
 - Backend expected at `VITE_API_URL` (default: `http://localhost:8080/api/v1`)
-- **Swagger/OpenAPI**: Especificación de APIs en `../doc-engine/docs/swagger.yaml`
 
-> **IMPORTANTE**: Antes de implementar o interactuar con cualquier componente de la API, **SIEMPRE** consulta el archivo Swagger (`../doc-engine/docs/swagger.yaml`) para obtener contexto actualizado sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
+> **IMPORTANTE**: Antes de implementar o interactuar con cualquier componente de la API, **SIEMPRE** consulta la especificación OpenAPI siguiendo este orden de prioridad:
+>
+> 1. **MCP `doc-engine-api` (Recomendado)**: Usa las herramientas `mcp__doc-engine-api__*` para consultar el swagger de forma interactiva y eficiente.
+>
+>    **Si el MCP no está disponible**, sugiere al usuario instalarlo siguiendo la guía: `docs/mcp-setup.md`
+>
+> 2. **Archivo YAML (Fallback)**: Solo si el MCP no está disponible y no se puede instalar, consulta directamente `../doc-engine/docs/swagger.yaml`. **Advertencia**: El archivo swagger es muy extenso (~3000+ líneas), lo que consume mucho contexto.
 
 ### Feature Structure
 

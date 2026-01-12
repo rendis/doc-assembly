@@ -1,14 +1,15 @@
 import { LanguageSelector } from '@/components/common/LanguageSelector'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { Paginator } from '@/components/ui/paginator'
 import { recordAccess } from '@/features/auth'
-import { useMyTenants, useSearchTenants } from '@/features/tenants'
-import { useSearchWorkspaces, useWorkspaces } from '@/features/workspaces'
+import { useMyTenants } from '@/features/tenants'
+import { useWorkspaces } from '@/features/workspaces'
 import { cn } from '@/lib/utils'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
 import { useWorkspaceTransitionStore } from '@/stores/workspace-transition-store'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Box, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Box, Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -49,44 +50,6 @@ const itemVariants = {
 
 const ITEMS_PER_PAGE = 5
 const LIST_MIN_HEIGHT = 400 // Fixed height to prevent layout shifts
-
-function PaginationControls({
-  page,
-  totalPages,
-  onPageChange,
-}: {
-  page: number
-  totalPages: number
-  onPageChange: (page: number) => void
-}) {
-  if (totalPages <= 1) return null
-
-  return (
-    <div className="flex items-center justify-between py-6">
-      <button
-        onClick={() => onPageChange(page - 1)}
-        disabled={page <= 1}
-        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground/50 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-      >
-        <ChevronLeft size={14} />
-        <span>Previous</span>
-      </button>
-
-      <span className="font-mono text-xs text-muted-foreground/50">
-        Page {page} / {totalPages}
-      </span>
-
-      <button
-        onClick={() => onPageChange(page + 1)}
-        disabled={page >= totalPages}
-        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground/50 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-      >
-        <span>Next</span>
-        <ChevronRight size={14} />
-      </button>
-    </div>
-  )
-}
 
 function LoadingDots() {
   const [dots, setDots] = useState('')
@@ -136,13 +99,19 @@ function SelectTenantPage() {
   const { startTransition, setPhase, phase: animationPhase } = useWorkspaceTransitionStore()
   const isAnimating = animationPhase !== 'idle' && animationPhase !== 'complete'
 
-  // Fetch tenants
-  const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants(tenantPage, ITEMS_PER_PAGE)
-  const { data: searchData, isLoading: isSearching } = useSearchTenants(searchQuery)
+  // Effective query (only search when 3+ chars)
+  const effectiveQuery = searchQuery.length >= 3 ? searchQuery : undefined
 
-  // Fetch workspaces for selected tenant (only when a tenant is selected)
-  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(selectedTenant?.id ?? null, workspacePage, ITEMS_PER_PAGE)
-  const { data: workspaceSearchData, isLoading: isSearchingWorkspaces } = useSearchWorkspaces(selectedTenant ? searchQuery : '')
+  // Fetch tenants with optional search
+  const { data: tenantsData, isLoading: isLoadingTenants } = useMyTenants(tenantPage, ITEMS_PER_PAGE, effectiveQuery)
+
+  // Fetch workspaces for selected tenant (only when a tenant is selected) with optional search
+  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useWorkspaces(
+    selectedTenant?.id ?? null,
+    workspacePage,
+    ITEMS_PER_PAGE,
+    selectedTenant ? effectiveQuery : undefined
+  )
 
   // Pagination metadata
   const tenantPagination = tenantsData?.pagination
@@ -199,16 +168,12 @@ function SelectTenantPage() {
     }
   }, [workspacePagination?.totalPages])
 
-  // Combined loading conditions (only include isSearching when actively searching)
-  // Also show loading when not searching but tenant data hasn't loaded yet
-  const showTenantLoading = !minLoadingComplete || isLoadingTenants || (searchQuery.length >= 3 && isSearching) || (searchQuery.length < 3 && !tenantsData?.data)
-  const showWorkspaceLoading = !minLoadingComplete || isLoadingWorkspaces || (searchQuery.length >= 3 && isSearchingWorkspaces) || (searchQuery.length < 3 && selectedTenant && !workspacesData?.data)
+  // Combined loading conditions
+  const showTenantLoading = !minLoadingComplete || isLoadingTenants || !tenantsData?.data
+  const showWorkspaceLoading = !minLoadingComplete || isLoadingWorkspaces || (selectedTenant && !workspacesData?.data)
 
-  const tenants = searchQuery.length >= 3 ? searchData?.data : tenantsData?.data
-  const workspaces = searchQuery.length >= 3 ? workspaceSearchData?.data : workspacesData?.data
-
-  const displayTenants: TenantWithRole[] = tenants ?? []
-  const displayWorkspaces: WorkspaceWithRole[] = workspaces ?? []
+  const displayTenants: TenantWithRole[] = tenantsData?.data ?? []
+  const displayWorkspaces: WorkspaceWithRole[] = workspacesData?.data ?? []
 
   const handleTenantSelect = (tenant: TenantWithRole) => {
     setSearchQuery('')
@@ -499,18 +464,20 @@ function SelectTenantPage() {
           </div>
 
           {/* Pagination */}
-          {!selectedTenant && tenantTotalPages > 1 && (
-            <PaginationControls
+          {!selectedTenant && (
+            <Paginator
               page={tenantPage}
               totalPages={tenantTotalPages}
               onPageChange={setTenantPage}
+              className="py-6"
             />
           )}
-          {selectedTenant && workspaceTotalPages > 1 && (
-            <PaginationControls
+          {selectedTenant && (
+            <Paginator
               page={workspacePage}
               totalPages={workspaceTotalPages}
               onPageChange={setWorkspacePage}
+              className="py-6"
             />
           )}
 

@@ -1,28 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  fetchWorkspaces,
-  searchWorkspaces,
+  getWorkspaces,
   createWorkspace,
   fetchCurrentWorkspace,
   updateCurrentWorkspace,
 } from '../api/workspaces-api'
 import type { CreateWorkspaceRequest, UpdateWorkspaceRequest } from '../types'
 
-export function useWorkspaces(tenantId: string | null, page = 1, perPage = 20) {
+export function useWorkspaces(
+  tenantId: string | null,
+  page = 1,
+  perPage = 20,
+  query?: string
+) {
   return useQuery({
-    queryKey: ['workspaces', tenantId, page, perPage],
-    queryFn: () => fetchWorkspaces(page, perPage),
+    queryKey: ['workspaces', tenantId, page, perPage, query],
+    queryFn: () => getWorkspaces(page, perPage, query),
     enabled: !!tenantId,
     staleTime: 0,
     gcTime: 0,
-  })
-}
-
-export function useSearchWorkspaces(query: string, page = 1, perPage = 20) {
-  return useQuery({
-    queryKey: ['search-workspaces', query, page, perPage],
-    queryFn: () => searchWorkspaces(query, page, perPage),
-    enabled: query.length >= 3,
   })
 }
 
