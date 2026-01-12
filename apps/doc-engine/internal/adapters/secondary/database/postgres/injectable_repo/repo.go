@@ -33,8 +33,8 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Injectabl
 		&injectable.Label,
 		&injectable.Description,
 		&injectable.DataType,
-		&injectable.SourceType,
 		&injectable.Metadata,
+		&injectable.FormatConfig,
 		&injectable.IsActive,
 		&injectable.IsDeleted,
 		&injectable.CreatedAt,
@@ -47,6 +47,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Injectabl
 		return nil, fmt.Errorf("finding injectable definition %s: %w", id, err)
 	}
 
+	injectable.SourceType = entity.InjectableSourceTypeInternal
 	return injectable, nil
 }
 
@@ -68,8 +69,8 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string) ([
 			&injectable.Label,
 			&injectable.Description,
 			&injectable.DataType,
-			&injectable.SourceType,
 			&injectable.Metadata,
+			&injectable.FormatConfig,
 			&injectable.IsActive,
 			&injectable.IsDeleted,
 			&injectable.CreatedAt,
@@ -77,6 +78,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string) ([
 		); err != nil {
 			return nil, fmt.Errorf("scanning injectable definition: %w", err)
 		}
+		injectable.SourceType = entity.InjectableSourceTypeInternal
 		injectables = append(injectables, injectable)
 	}
 
@@ -105,8 +107,8 @@ func (r *Repository) FindGlobal(ctx context.Context) ([]*entity.InjectableDefini
 			&injectable.Label,
 			&injectable.Description,
 			&injectable.DataType,
-			&injectable.SourceType,
 			&injectable.Metadata,
+			&injectable.FormatConfig,
 			&injectable.IsActive,
 			&injectable.IsDeleted,
 			&injectable.CreatedAt,
@@ -114,6 +116,7 @@ func (r *Repository) FindGlobal(ctx context.Context) ([]*entity.InjectableDefini
 		); err != nil {
 			return nil, fmt.Errorf("scanning injectable definition: %w", err)
 		}
+		injectable.SourceType = entity.InjectableSourceTypeInternal
 		injectables = append(injectables, injectable)
 	}
 
@@ -145,8 +148,8 @@ func (r *Repository) FindByKey(ctx context.Context, workspaceID *string, key str
 		&injectable.Label,
 		&injectable.Description,
 		&injectable.DataType,
-		&injectable.SourceType,
 		&injectable.Metadata,
+		&injectable.FormatConfig,
 		&injectable.IsActive,
 		&injectable.IsDeleted,
 		&injectable.CreatedAt,
@@ -159,6 +162,7 @@ func (r *Repository) FindByKey(ctx context.Context, workspaceID *string, key str
 		return nil, fmt.Errorf("finding injectable by key: %w", err)
 	}
 
+	injectable.SourceType = entity.InjectableSourceTypeInternal
 	return injectable, nil
 }
 

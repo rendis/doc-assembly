@@ -43,7 +43,6 @@ func (s *WorkspaceInjectableService) CreateInjectable(ctx context.Context, cmd u
 		Label:        cmd.Label,
 		Description:  cmd.Description,
 		DataType:     entity.InjectableDataTypeText, // Only TEXT type allowed
-		SourceType:   entity.InjectableSourceTypeExternal,
 		Metadata:     cmd.Metadata,
 		DefaultValue: &cmd.DefaultValue,
 		IsActive:     true,

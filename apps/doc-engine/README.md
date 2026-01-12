@@ -135,7 +135,7 @@ Configuration is loaded from `settings/app.yaml` and can be overridden with envi
 
 ## API Endpoints
 
-For a complete list of API endpoints, authentication requirements, roles, and required headers, see **[authorization-matrix.md](authorization-matrix.md)**.
+For a complete list of API endpoints, authentication requirements, roles, and required headers, see **[authorization-matrix.md](docs/authorization-matrix.md)**.
 
 ## Sandbox & Promotion Flow
 
@@ -359,6 +359,66 @@ The project uses golangci-lint with the following enabled linters:
 
 Run `make lint` before committing.
 
+## Extensibility System
+
+Doc Engine supports custom **injectors**, **mappers**, and **init functions** to extend document generation with business-specific logic.
+
+### Quick Overview
+
+| Component | Marker | Limit | Purpose |
+|-----------|--------|-------|---------|
+| Injector | `//docengine:injector` | Multiple | Resolve dynamic values (CRM, APIs, calculations) |
+| Mapper | `//docengine:mapper` | ONE | Parse request payload into typed struct |
+| Init | `//docengine:init` | ONE | Load shared data before injectors run |
+
+### Flow
+
+```
+Request → Mapper → Payload → Init → InitializedData → Injectors → Document
+```
+
+### Creating an Injector
+
+```go
+//docengine:injector
+type ClientNameInjector struct{}
+
+func (i *ClientNameInjector) Code() string { return "client_name" }
+
+func (i *ClientNameInjector) Resolve() (port.ResolveFunc, []string) {
+    return func(ctx context.Context, injCtx *entity.InjectorContext) (*entity.InjectorResult, error) {
+        return &entity.InjectorResult{
+            Value: entity.StringValue("John Doe"),
+        }, nil
+    }, nil
+}
+
+func (i *ClientNameInjector) IsCritical() bool { return true }
+func (i *ClientNameInjector) Timeout() time.Duration { return 0 }
+```
+
+### Adding i18n
+
+Add translations in `settings/injectors.i18n.yaml`:
+
+```yaml
+client_name:
+  name:
+    en: "Client Name"
+    es: "Nombre del Cliente"
+  description:
+    en: "The client's full name"
+    es: "El nombre completo del cliente"
+```
+
+### Generating Registry
+
+```bash
+make gen  # Scans //docengine:* markers and generates registry_gen.go
+```
+
+For complete documentation including mappers, init functions, dependencies, and troubleshooting, see **[docs/extensibility-guide.md](docs/extensibility-guide.md)**.
+
 ## Integration Tests
 
 The project includes comprehensive integration tests that validate repository operations against a real PostgreSQL database using **[Testcontainers](https://golang.testcontainers.org)**.
@@ -490,7 +550,7 @@ Workspace roles hierarchy (highest to lowest):
 | OPERATOR | 20 | Generate documents |
 | VIEWER | 10 | Read-only access |
 
-For a complete authorization matrix with all endpoints, roles (System, Tenant, Workspace), and required headers, see **[authorization-matrix.md](authorization-matrix.md)**.
+For a complete authorization matrix with all endpoints, roles (System, Tenant, Workspace), and required headers, see **[authorization-matrix.md](docs/authorization-matrix.md)**.
 
 ## License
 

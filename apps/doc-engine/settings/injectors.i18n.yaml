@@ -1,0 +1,70 @@
+# Traducciones i18n para inyectores
+# Estructura: code → name/description → locale → texto
+#
+# El sistema carga este archivo automáticamente al iniciar.
+# No es necesario reiniciar el servidor para ver cambios (hot reload en desarrollo).
+#
+# Ejemplo de uso:
+#   1. Crear inyector en internal/extensions/injectors/ con Code() = "example_value"
+#   2. Agregar entrada aquí con el mismo code
+#   3. Ejecutar: make gen
+
+example_value:
+  name:
+    en: "Example Value"
+    es: "Valor de Ejemplo"
+  description:
+    en: "An example injector that returns a static value"
+    es: "Un inyector de ejemplo que retorna un valor estático"
+
+# ============================================================================
+# Date/Time Injectors
+# ============================================================================
+
+date_time_now:
+  name:
+    en: "Current Date and Time"
+    es: "Fecha y Hora Actual"
+  description:
+    en: "Date and time at document generation"
+    es: "Fecha y hora al momento de generar el documento"
+
+date_now:
+  name:
+    en: "Current Date"
+    es: "Fecha Actual"
+  description:
+    en: "Date at document generation"
+    es: "Fecha al momento de generar el documento"
+
+time_now:
+  name:
+    en: "Current Time"
+    es: "Hora Actual"
+  description:
+    en: "Time at document generation"
+    es: "Hora al momento de generar el documento"
+
+year_now:
+  name:
+    en: "Current Year"
+    es: "Año Actual"
+  description:
+    en: "Year at document generation"
+    es: "Año al momento de generar el documento"
+
+month_now:
+  name:
+    en: "Current Month"
+    es: "Mes Actual"
+  description:
+    en: "Month at document generation"
+    es: "Mes al momento de generar el documento"
+
+day_now:
+  name:
+    en: "Current Day"
+    es: "Día Actual"
+  description:
+    en: "Day of month at document generation"
+    es: "Día del mes al momento de generar el documento"

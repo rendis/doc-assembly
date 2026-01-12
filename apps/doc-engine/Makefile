@@ -1,4 +1,4 @@
-.PHONY: all build run test test-integration test-all lint wire swagger gen clean tidy coverage coverage-all help
+.PHONY: all build run test test-integration test-all lint wire swagger docengine-gen gen clean tidy coverage coverage-all help
 
 # Variables
 BINARY_NAME=doc-engine
@@ -61,8 +61,13 @@ swagger:
 	@echo "Generating Swagger docs..."
 	@swag init -g ./internal/infra/server/http.go -o ./docs --parseDependency --parseInternal
 
-# Generate all (Wire + Swagger)
-gen: wire swagger
+# Generate docengine extensions registry
+docengine-gen:
+	@echo "Generating docengine extensions registry..."
+	@go run ./tools/docengine-gen/main.go
+
+# Generate all (Wire + Swagger + Docengine Extensions)
+gen: wire swagger docengine-gen
 	@echo "Code generation complete."
 
 # Generate and open HTML coverage report (run 'make test' first)
@@ -108,7 +113,8 @@ help:
 	@echo "  lint             - Run golangci-lint"
 	@echo "  wire             - Generate Wire DI code"
 	@echo "  swagger          - Generate Swagger documentation"
-	@echo "  gen              - Generate all (Wire + Swagger)"
+	@echo "  docengine-gen    - Generate extensions registry (auto-discover injectors/mappers)"
+	@echo "  gen              - Generate all (Wire + Swagger + Docengine Extensions)"
 	@echo "  clean            - Remove build artifacts"
 	@echo "  tidy             - Tidy go.mod dependencies"
 	@echo "  dev              - Run with hot reload (requires air)"

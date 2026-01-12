@@ -18,6 +18,7 @@ type InjectableDefinition struct {
 	DataType     InjectableDataType   `json:"dataType"`
 	SourceType   InjectableSourceType `json:"sourceType"`             // INTERNAL (system-calculated) or EXTERNAL (user input)
 	Metadata     map[string]any       `json:"metadata"`               // Flexible configuration (format options, etc.)
+	FormatConfig *FormatConfig        `json:"formatConfig,omitempty"` // Formatting options for this injectable
 	DefaultValue *string              `json:"defaultValue,omitempty"` // Default value for workspace injectables
 	IsActive     bool                 `json:"isActive"`               // Enable/disable injectable
 	IsDeleted    bool                 `json:"isDeleted"`              // Soft delete flag
@@ -32,7 +33,7 @@ func NewInjectableDefinition(workspaceID *string, key, label string, dataType In
 		Key:         key,
 		Label:       label,
 		DataType:    dataType,
-		SourceType:  InjectableSourceTypeExternal,
+		SourceType:  InjectableSourceTypeInternal,
 		Metadata:    make(map[string]any),
 		IsActive:    true,
 		IsDeleted:   false,

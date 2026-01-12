@@ -148,3 +148,21 @@ Key variables:
 - **Keycloak/JWKS** for JWT authentication
 - **Testcontainers** for integration tests (PostgreSQL + Liquibase)
 - **golangci-lint** with errcheck, gosimple, govet, staticcheck, gosec, revive, errorlint
+
+## Extensibility System
+
+The project includes an extensibility system for custom injectors, mappers, and initialization logic.
+
+**Documentation:** See `docs/extensibility-guide.md` for complete guide.
+
+**Quick reference:**
+- `//docengine:injector` - Mark struct as injector (multiple allowed)
+- `//docengine:mapper` - Mark struct as mapper (ONE only)
+- `//docengine:init` - Mark function as init (ONE only)
+- `make gen` - Regenerate `internal/extensions/registry_gen.go`
+
+**Key files:**
+- `internal/extensions/injectors/` - Custom injectors
+- `internal/extensions/mappers/` - Request mapper
+- `internal/extensions/init.go` - Init function
+- `settings/injectors.i18n.yaml` - Injector translations for frontend

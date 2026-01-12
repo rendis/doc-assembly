@@ -13,6 +13,17 @@ func NewInjectableMapper() *InjectableMapper {
 	return &InjectableMapper{}
 }
 
+// mapFormatConfig converts entity.FormatConfig to dto.FormatConfigResponse.
+func mapFormatConfig(fc *entity.FormatConfig) *dto.FormatConfigResponse {
+	if fc == nil {
+		return nil
+	}
+	return &dto.FormatConfigResponse{
+		Default: fc.Default,
+		Options: fc.Options,
+	}
+}
+
 // ToResponse converts an injectable entity to a response DTO.
 func (m *InjectableMapper) ToResponse(injectable *entity.InjectableDefinition) *dto.InjectableResponse {
 	if injectable == nil {
@@ -20,17 +31,18 @@ func (m *InjectableMapper) ToResponse(injectable *entity.InjectableDefinition) *
 	}
 
 	return &dto.InjectableResponse{
-		ID:          injectable.ID,
-		WorkspaceID: injectable.WorkspaceID,
-		Key:         injectable.Key,
-		Label:       injectable.Label,
-		Description: injectable.Description,
-		DataType:    string(injectable.DataType),
-		SourceType:  string(injectable.SourceType),
-		Metadata:    injectable.Metadata,
-		IsGlobal:    injectable.IsGlobal(),
-		CreatedAt:   injectable.CreatedAt,
-		UpdatedAt:   injectable.UpdatedAt,
+		ID:           injectable.ID,
+		WorkspaceID:  injectable.WorkspaceID,
+		Key:          injectable.Key,
+		Label:        injectable.Label,
+		Description:  injectable.Description,
+		DataType:     string(injectable.DataType),
+		SourceType:   string(injectable.SourceType),
+		Metadata:     injectable.Metadata,
+		FormatConfig: mapFormatConfig(injectable.FormatConfig),
+		IsGlobal:     injectable.IsGlobal(),
+		CreatedAt:    injectable.CreatedAt,
+		UpdatedAt:    injectable.UpdatedAt,
 	}
 }
 
@@ -100,6 +112,7 @@ func (m *InjectableMapper) ToWorkspaceResponse(injectable *entity.InjectableDefi
 		DataType:     string(injectable.DataType),
 		SourceType:   string(injectable.SourceType),
 		Metadata:     injectable.Metadata,
+		FormatConfig: mapFormatConfig(injectable.FormatConfig),
 		DefaultValue: injectable.DefaultValue,
 		IsActive:     injectable.IsActive,
 		CreatedAt:    injectable.CreatedAt,

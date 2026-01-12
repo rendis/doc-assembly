@@ -315,6 +315,36 @@ func (r RecipientStatus) String() string {
 	return string(r)
 }
 
+// OperationType defines the type of operation on documents.
+type OperationType string
+
+const (
+	// OperationCreate creates a new document.
+	OperationCreate OperationType = "CREATE"
+	// OperationRenew renews an existing document.
+	OperationRenew OperationType = "RENEW"
+	// OperationAmend amends/modifies an existing document.
+	OperationAmend OperationType = "AMEND"
+	// OperationCancel cancels a document.
+	OperationCancel OperationType = "CANCEL"
+	// OperationPreview generates a preview only (no signing).
+	OperationPreview OperationType = "PREVIEW"
+)
+
+// IsValid checks if the operation type is valid.
+func (o OperationType) IsValid() bool {
+	switch o {
+	case OperationCreate, OperationRenew, OperationAmend, OperationCancel, OperationPreview:
+		return true
+	}
+	return false
+}
+
+// String returns the string representation of the operation type.
+func (o OperationType) String() string {
+	return string(o)
+}
+
 // DocumentStatus represents the signing workflow status of a document.
 type DocumentStatus string
 

@@ -1,0 +1,44 @@
+package port
+
+// InjectorRegistry gestiona el registro de inyectores.
+type InjectorRegistry interface {
+	// Register registra un inyector en el registry.
+	Register(injector Injector) error
+
+	// Get obtiene un inyector por su code.
+	Get(code string) (Injector, bool)
+
+	// GetAll retorna todos los inyectores registrados.
+	GetAll() []Injector
+
+	// Codes retorna todos los codes de inyectores registrados.
+	Codes() []string
+
+	// GetName retorna el nombre traducido del inyector.
+	// Si no existe traducción, retorna el code.
+	GetName(code, locale string) string
+
+	// GetDescription retorna la descripción traducida del inyector.
+	// Si no existe traducción, retorna cadena vacía.
+	GetDescription(code, locale string) string
+
+	// SetInitFunc registra la función de inicialización GLOBAL.
+	// Se ejecuta UNA vez antes de todos los inyectores.
+	SetInitFunc(fn InitFunc)
+
+	// GetInitFunc retorna la función de inicialización registrada.
+	GetInitFunc() InitFunc
+}
+
+// MapperRegistry manages a single request mapper.
+// Only ONE mapper is allowed; if multiple document types are needed,
+// the user handles routing internally in their mapper implementation.
+type MapperRegistry interface {
+	// Set registers the request mapper.
+	// Returns error if mapper is nil or already set.
+	Set(mapper RequestMapper) error
+
+	// Get returns the registered mapper.
+	// Returns false if no mapper is registered.
+	Get() (RequestMapper, bool)
+}

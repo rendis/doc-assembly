@@ -32,8 +32,8 @@ func (r *Repository) Create(ctx context.Context, injectable *entity.InjectableDe
 		injectable.Label,
 		injectable.Description,
 		injectable.DataType,
-		injectable.SourceType,
 		injectable.Metadata,
+		injectable.FormatConfig,
 		injectable.DefaultValue,
 		injectable.IsActive,
 		injectable.IsDeleted,
@@ -56,8 +56,8 @@ func (r *Repository) FindByID(ctx context.Context, id, workspaceID string) (*ent
 		&injectable.Label,
 		&injectable.Description,
 		&injectable.DataType,
-		&injectable.SourceType,
 		&injectable.Metadata,
+		&injectable.FormatConfig,
 		&injectable.DefaultValue,
 		&injectable.IsActive,
 		&injectable.IsDeleted,
@@ -71,6 +71,7 @@ func (r *Repository) FindByID(ctx context.Context, id, workspaceID string) (*ent
 		return nil, fmt.Errorf("querying injectable: %w", err)
 	}
 
+	injectable.SourceType = entity.InjectableSourceTypeInternal
 	return injectable, nil
 }
 
@@ -93,6 +94,7 @@ func (r *Repository) Update(ctx context.Context, injectable *entity.InjectableDe
 		injectable.Label,
 		injectable.Description,
 		injectable.Metadata,
+		injectable.FormatConfig,
 		injectable.DefaultValue,
 		injectable.UpdatedAt,
 		injectable.WorkspaceID,
@@ -170,8 +172,8 @@ func scanInjectables(rows pgx.Rows) ([]*entity.InjectableDefinition, error) {
 			&injectable.Label,
 			&injectable.Description,
 			&injectable.DataType,
-			&injectable.SourceType,
 			&injectable.Metadata,
+			&injectable.FormatConfig,
 			&injectable.DefaultValue,
 			&injectable.IsActive,
 			&injectable.IsDeleted,
@@ -181,6 +183,7 @@ func scanInjectables(rows pgx.Rows) ([]*entity.InjectableDefinition, error) {
 		if err != nil {
 			return nil, fmt.Errorf("scanning injectable: %w", err)
 		}
+		injectable.SourceType = entity.InjectableSourceTypeInternal
 		result = append(result, injectable)
 	}
 	return result, rows.Err()

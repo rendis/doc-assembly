@@ -86,11 +86,14 @@ func (r *Repository) FindByVersionID(ctx context.Context, versionID string) ([]*
 			&iwd.Definition.Label,
 			&iwd.Definition.Description,
 			&iwd.Definition.DataType,
+			&iwd.Definition.Metadata,
+			&iwd.Definition.FormatConfig,
 			&iwd.Definition.CreatedAt,
 			&iwd.Definition.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scanning version injectable: %w", err)
 		}
+		iwd.Definition.SourceType = entity.InjectableSourceTypeInternal
 		results = append(results, iwd)
 	}
 

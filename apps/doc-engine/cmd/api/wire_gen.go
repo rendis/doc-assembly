@@ -64,7 +64,14 @@ func InitializeApp() (*infra.Initializer, error) {
 	injectableMapper := mapper.NewInjectableMapper()
 	workspaceController := controller.NewWorkspaceController(workspaceUseCase, folderUseCase, tagUseCase, workspaceMemberUseCase, workspaceInjectableUseCase, injectableMapper)
 	injectableRepository := injectablerepo.New(pool)
-	injectableUseCase := service.NewInjectableService(injectableRepository)
+	injectorI18nConfig, err := config.LoadInjectorI18n()
+	if err != nil {
+		return nil, err
+	}
+	mapperRegistry := infra.ProvideMapperRegistry()
+	initDeps := infra.ProvideExtensionDeps()
+	injectorRegistry := infra.ProvideInjectorRegistry(injectorI18nConfig, mapperRegistry, initDeps)
+	injectableUseCase := service.NewInjectableService(injectableRepository, injectorRegistry)
 	contentInjectableController := controller.NewContentInjectableController(injectableUseCase, injectableMapper)
 	templateRepository := templaterepo.New(pool)
 	templateVersionRepository := templateversionrepo.New(pool)

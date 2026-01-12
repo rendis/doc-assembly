@@ -5255,6 +5255,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse": {
             "type": "object",
             "properties": {
@@ -5266,6 +5280,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "formatConfig": {
+                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse"
                 },
                 "id": {
                     "type": "string"
@@ -6556,6 +6573,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "formatConfig": {
+                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse"
                 },
                 "id": {
                     "type": "string"

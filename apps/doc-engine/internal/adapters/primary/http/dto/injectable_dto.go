@@ -5,19 +5,26 @@ import (
 	"time"
 )
 
+// FormatConfigResponse represents format configuration in API responses.
+type FormatConfigResponse struct {
+	Default string   `json:"default"`
+	Options []string `json:"options"`
+}
+
 // InjectableResponse represents an injectable definition in API responses.
 type InjectableResponse struct {
-	ID          string         `json:"id"`
-	WorkspaceID *string        `json:"workspaceId,omitempty"`
-	Key         string         `json:"key"`
-	Label       string         `json:"label"`
-	Description string         `json:"description,omitempty"`
-	DataType    string         `json:"dataType"`
-	SourceType  string         `json:"sourceType"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
-	IsGlobal    bool           `json:"isGlobal"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   *time.Time     `json:"updatedAt,omitempty"`
+	ID           string                `json:"id"`
+	WorkspaceID  *string               `json:"workspaceId,omitempty"`
+	Key          string                `json:"key"`
+	Label        string                `json:"label"`
+	Description  string                `json:"description,omitempty"`
+	DataType     string                `json:"dataType"`
+	SourceType   string                `json:"sourceType"`
+	Metadata     map[string]any        `json:"metadata,omitempty"`
+	FormatConfig *FormatConfigResponse `json:"formatConfig,omitempty"`
+	IsGlobal     bool                  `json:"isGlobal"`
+	CreatedAt    time.Time             `json:"createdAt"`
+	UpdatedAt    *time.Time            `json:"updatedAt,omitempty"`
 }
 
 // ListInjectablesResponse represents the list of injectables.
@@ -28,18 +35,19 @@ type ListInjectablesResponse struct {
 
 // WorkspaceInjectableResponse represents a workspace-owned injectable in API responses.
 type WorkspaceInjectableResponse struct {
-	ID           string         `json:"id"`
-	WorkspaceID  string         `json:"workspaceId"`
-	Key          string         `json:"key"`
-	Label        string         `json:"label"`
-	Description  string         `json:"description,omitempty"`
-	DataType     string         `json:"dataType"`
-	SourceType   string         `json:"sourceType"`
-	Metadata     map[string]any `json:"metadata,omitempty"`
-	DefaultValue *string        `json:"defaultValue,omitempty"`
-	IsActive     bool           `json:"isActive"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    *time.Time     `json:"updatedAt,omitempty"`
+	ID           string                `json:"id"`
+	WorkspaceID  string                `json:"workspaceId"`
+	Key          string                `json:"key"`
+	Label        string                `json:"label"`
+	Description  string                `json:"description,omitempty"`
+	DataType     string                `json:"dataType"`
+	SourceType   string                `json:"sourceType"`
+	Metadata     map[string]any        `json:"metadata,omitempty"`
+	FormatConfig *FormatConfigResponse `json:"formatConfig,omitempty"`
+	DefaultValue *string               `json:"defaultValue,omitempty"`
+	IsActive     bool                  `json:"isActive"`
+	CreatedAt    time.Time             `json:"createdAt"`
+	UpdatedAt    *time.Time            `json:"updatedAt,omitempty"`
 }
 
 // ListWorkspaceInjectablesResponse represents the list of workspace injectables.

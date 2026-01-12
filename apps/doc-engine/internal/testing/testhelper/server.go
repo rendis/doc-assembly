@@ -82,7 +82,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	contentValidator := contentvalidator.New(injectableRepo)
 
 	// Create services - Content
-	injectableService := service.NewInjectableService(injectableRepo)
+	injectableService := service.NewInjectableService(injectableRepo, nil)
 	templateService := service.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
 	templateVersionService := service.NewTemplateVersionService(
 		templateVersionRepo,

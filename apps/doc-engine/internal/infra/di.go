@@ -2,6 +2,7 @@ package infra
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,7 +34,9 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/service"
 	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
 	"github.com/doc-assembly/doc-engine/internal/core/service/pdfrenderer"
+	"github.com/doc-assembly/doc-engine/internal/extensions"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
+	"github.com/doc-assembly/doc-engine/internal/infra/registry"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
 )
 
@@ -101,6 +104,13 @@ var ProviderSet = wire.NewSet(
 
 	// PDF Renderer
 	ProvidePDFRenderer,
+
+	// Extensibility - Registries and Resolver
+	config.LoadInjectorI18n,
+	ProvideInjectorRegistry,
+	ProvideMapperRegistry,
+	ProvideExtensionDeps,
+	ProvideInjectableResolver,
 
 	// Mappers
 	mapper.NewInjectableMapper,
@@ -186,4 +196,30 @@ func ProvideWebhookHandlers(cfg *documenso.Config) (map[string]port.WebhookHandl
 	return map[string]port.WebhookHandler{
 		"documenso": documensoAdapter,
 	}, nil
+}
+
+// ProvideInjectorRegistry creates the injector registry with i18n support and registers all extensions.
+func ProvideInjectorRegistry(
+	i18n *config.InjectorI18nConfig,
+	mapReg port.MapperRegistry,
+	deps *extensions.InitDeps,
+) port.InjectorRegistry {
+	injReg := registry.NewInjectorRegistry(i18n)
+	extensions.RegisterAll(injReg, mapReg, deps)
+	return injReg
+}
+
+// ProvideMapperRegistry creates the mapper registry.
+func ProvideMapperRegistry() port.MapperRegistry {
+	return registry.NewMapperRegistry()
+}
+
+// ProvideExtensionDeps creates the dependencies for extension init functions.
+func ProvideExtensionDeps() *extensions.InitDeps {
+	return &extensions.InitDeps{}
+}
+
+// ProvideInjectableResolver creates the injectable resolver service.
+func ProvideInjectableResolver(reg port.InjectorRegistry) *service.InjectableResolverService {
+	return service.NewInjectableResolverService(reg, slog.Default())
 }
