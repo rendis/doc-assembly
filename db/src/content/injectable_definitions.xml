@@ -141,4 +141,41 @@
         </rollback>
     </changeSet>
 
+    <!-- ========== FORMAT CONFIG COLUMN ========== -->
+
+    <changeSet id="injectable_definitions:add_column:format_config" author="doc-assembly">
+        <comment>Dedicated column for format configuration (default format and available options)</comment>
+        <addColumn tableName="injectable_definitions" schemaName="content">
+            <column name="format_config" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="injectable_definitions" schemaName="content" columnName="format_config"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="injectable_definitions:add_check_constraint:format_config" author="doc-assembly">
+        <comment>Validate format_config structure: must be NULL, empty object, OR contain 'default' (string) and 'options' (array)</comment>
+        <sql>
+            ALTER TABLE content.injectable_definitions
+            ADD CONSTRAINT chk_format_config_structure CHECK (
+                format_config IS NULL
+                OR (
+                    jsonb_typeof(format_config) = 'object'
+                    AND (
+                        format_config = '{}'::jsonb
+                        OR (
+                            (format_config->'default' IS NOT NULL AND jsonb_typeof(format_config->'default') = 'string')
+                            AND (format_config->'options' IS NOT NULL AND jsonb_typeof(format_config->'options') = 'array')
+                        )
+                    )
+                )
+            );
+        </sql>
+        <rollback>
+            ALTER TABLE content.injectable_definitions DROP CONSTRAINT chk_format_config_structure;
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

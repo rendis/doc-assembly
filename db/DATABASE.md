@@ -233,6 +233,7 @@ erDiagram
         injectable_data_type data_type "NOT NULL"
         injectable_source_type source_type "NOT NULL DEFAULT EXTERNAL"
         jsonb metadata "DEFAULT {}"
+        jsonb format_config "CHECK constraint"
         timestamptz created_at "NOT NULL"
         timestamptz updated_at
     }
@@ -756,6 +757,7 @@ The `path` column enables efficient hierarchical queries without recursive CTEs 
 | `data_type` | injectable_data_type | NOT NULL | `TEXT`, `NUMBER`, `DATE`, `CURRENCY`, `BOOLEAN`, `IMAGE`, `TABLE` |
 | `source_type` | injectable_source_type | NOT NULL, DEFAULT 'EXTERNAL' | `INTERNAL` (system-calculated) or `EXTERNAL` (user/API input) |
 | `metadata` | JSONB | DEFAULT '{}' | Flexible configuration (format options, timezone, etc.) |
+| `format_config` | JSONB | CHECK constraint | Format configuration: default format and available options |
 | `default_value` | TEXT | - | Default value for this injectable (optional) |
 | `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Whether the injectable is available for use |
 | `is_deleted` | BOOLEAN | NOT NULL, DEFAULT FALSE | Soft delete flag (deletion date tracked via `updated_at`) |
@@ -811,6 +813,33 @@ The `metadata` JSONB column stores configuration options per injectable. Common 
   }
 }
 ```
+
+**Format Config Structure**:
+
+The `format_config` JSONB column stores dedicated format configuration with schema validation via CHECK constraint:
+
+```go
+type FormatConfig struct {
+    Default string   `json:"default"` // Default format to apply
+    Options []string `json:"options"` // Available format options for user selection
+}
+```
+
+Valid values:
+- `NULL` - No format configuration
+- `{}` - Empty object (no format configured)
+- `{"default": "string", "options": ["array"]}` - Full configuration
+
+```json
+// Example: Date format configuration
+{
+  "default": "DD/MM/YYYY",
+  "options": ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "long"]
+}
+```
+
+**Check Constraint** (`chk_format_config_structure`):
+- Validates that `format_config` is either NULL, empty object `{}`, or contains both `default` (string) and `options` (array)
 
 **System Injectables (Seed Data)**:
 
@@ -1302,6 +1331,7 @@ PENDING → SENT → DELIVERED → SIGNED
 |-------|------------|------|
 | `tags` | `chk_tags_color_format` | Color must match `^#[0-9A-Fa-f]{6}$` |
 | `user_access_history` | `chk_user_access_history_entity_type` | entity_type must be `TENANT` or `WORKSPACE` |
+| `injectable_definitions` | `chk_format_config_structure` | format_config must be NULL, `{}`, or `{"default": string, "options": array}` |
 
 ### Auto-Update Triggers
 
