@@ -79,7 +79,7 @@ export function DraggableVariable({
       : (VARIABLE_ICONS[data.injectorType] || VARIABLE_ICONS.TEXT)
 
   // Check if variable has configurable format options
-  const hasOptions = hasConfigurableOptions(data.metadata)
+  const hasOptions = hasConfigurableOptions(data.formatConfig)
 
   const isRole = data.itemType === 'role-variable'
 

@@ -300,7 +300,7 @@ export function DocumentEditor({
       const insertPos = position ?? editor.state.selection.from
 
       // Check if variable has configurable format options
-      if (hasConfigurableOptions(data.metadata)) {
+      if (hasConfigurableOptions(data.formatConfig)) {
         // Open format dialog
         setPendingVariable({
           variable: {
@@ -308,7 +308,7 @@ export function DocumentEditor({
             variableId: data.variableId,
             label: data.label,
             type: data.injectorType,
-            metadata: data.metadata,
+            formatConfig: data.formatConfig,
             sourceType: data.sourceType || 'EXTERNAL',
           },
           position: insertPos,

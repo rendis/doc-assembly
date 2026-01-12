@@ -123,7 +123,7 @@ export function VariablesPanel({
     variableId: v.variableId,
     label: v.label,
     injectorType: v.type,
-    metadata: v.metadata,
+    formatConfig: v.formatConfig,
     sourceType: v.sourceType,
     description: v.description,
   })

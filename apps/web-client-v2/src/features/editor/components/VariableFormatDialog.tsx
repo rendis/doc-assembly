@@ -28,8 +28,8 @@ export function VariableFormatDialog({
   onSelect,
   onCancel,
 }: VariableFormatDialogProps) {
-  const formats = getAvailableFormats(variable.metadata)
-  const defaultFormat = getDefaultFormat(variable.metadata)
+  const formats = getAvailableFormats(variable.formatConfig)
+  const defaultFormat = getDefaultFormat(variable.formatConfig)
   const [selectedFormat, setSelectedFormat] = useState(defaultFormat)
   const [isSubmitting, setIsSubmitting] = useState(false)
 

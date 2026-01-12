@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { InjectorType, Variable } from '../../types/variables'
-import type { InjectableMetadata } from '../../types/injectable'
+import type { FormatConfig } from '../../types/injectable'
 import {
   getVariables,
   filterVariables as storeFilterVariables,
@@ -31,7 +31,7 @@ export interface MentionVariable {
   id: string
   label: string
   type: VariableType
-  metadata?: InjectableMetadata
+  formatConfig?: FormatConfig
   sourceType?: 'INTERNAL' | 'EXTERNAL'
   /** Grupo para categorización en el menú */
   group: 'variable' | 'role'
@@ -73,7 +73,7 @@ function mapToMentionVariable(v: Variable): MentionVariable {
     id: v.variableId,
     label: v.label,
     type: v.type,
-    metadata: v.metadata,
+    formatConfig: v.formatConfig,
     sourceType: v.sourceType,
     group: 'variable',
   }

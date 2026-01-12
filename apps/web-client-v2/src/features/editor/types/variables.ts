@@ -1,4 +1,4 @@
-import type { InjectableMetadata } from './injectable'
+import type { FormatConfig } from './injectable'
 
 /**
  * Injectable variable types supported by the editor
@@ -24,6 +24,6 @@ export interface Variable {
   label: string
   type: InjectorType
   description?: string
-  metadata?: InjectableMetadata
+  formatConfig?: FormatConfig
   sourceType: 'INTERNAL' | 'EXTERNAL'
 }

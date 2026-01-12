@@ -76,7 +76,6 @@ export function SystemInjectablesSection({
               onChange={(value) => onChange(variable.variableId, value)}
               isEmulated={!touchedFields.has(variable.variableId)}
               onResetToEmulated={() => onResetToEmulated(variable.variableId)}
-              metadata={variable.metadata}
               disabled={disabled}
             />
           ))}

@@ -31,7 +31,7 @@ export function VariableDragOverlay({ data }: VariableDragOverlayProps) {
 
   // Check if variable has configurable format options
   const hasConfigurableOptions =
-    data.metadata?.options && Object.keys(data.metadata.options).length > 0
+    data.formatConfig?.options && data.formatConfig.options.length > 1
 
   const isRole = data.itemType === 'role-variable'
   

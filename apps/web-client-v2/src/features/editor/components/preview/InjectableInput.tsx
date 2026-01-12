@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { RotateCcw, Sparkles } from 'lucide-react'
 import type { InjectorType } from '../../types/variables'
-import type { InjectableMetadata } from '../../types/injectable'
 import type { RolePropertyKey } from '../../types/role-injectable'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
@@ -17,7 +16,6 @@ interface InjectableInputProps {
   value: unknown
   error?: string
   onChange: (value: unknown) => void
-  metadata?: InjectableMetadata
   propertyKey?: RolePropertyKey
   isEmulated?: boolean
   onResetToEmulated?: () => void

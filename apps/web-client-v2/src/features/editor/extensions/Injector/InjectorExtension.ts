@@ -9,6 +9,8 @@ export interface InjectorOptions {
   type: InjectorType
   label: string
   variableId?: string
+  /** Formato seleccionado para la variable (ej: "DD/MM/YYYY" para fechas) */
+  format?: string | null
   /** Indica si es una variable de rol */
   isRoleVariable?: boolean
   /** ID del rol (solo para role variables) */

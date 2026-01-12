@@ -44,7 +44,6 @@ export function StandardInjectablesSection({
           value={values[variable.variableId]}
           error={errors[variable.variableId]}
           onChange={(value) => onChange(variable.variableId, value)}
-          metadata={variable.metadata}
           disabled={disabled}
         />
       ))}

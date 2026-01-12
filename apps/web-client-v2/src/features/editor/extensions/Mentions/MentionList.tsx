@@ -105,7 +105,7 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
         item.isRoleVariable && item.propertyKey
           ? ROLE_PROPERTY_ICONS[item.propertyKey]
           : VARIABLE_ICONS[item.type]
-      const hasOptions = hasConfigurableOptions(item.metadata)
+      const hasOptions = hasConfigurableOptions(item.formatConfig)
       const isRole = item.group === 'role'
 
       return (

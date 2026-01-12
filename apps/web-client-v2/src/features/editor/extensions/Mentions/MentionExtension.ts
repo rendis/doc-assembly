@@ -50,14 +50,14 @@ export const MentionExtension = Mention.configure({
       }
 
       // Check if variable has configurable options
-      if (hasConfigurableOptions(item.metadata)) {
+      if (hasConfigurableOptions(item.formatConfig)) {
         // Convert to Variable format for the event
         const variable: Variable = {
           id: item.id,
           variableId: item.id,
           label: item.label,
           type: item.type,
-          metadata: item.metadata,
+          formatConfig: item.formatConfig,
           sourceType: item.sourceType || 'EXTERNAL',
         }
 
@@ -69,7 +69,7 @@ export const MentionExtension = Mention.configure({
         )
       } else {
         // Insert directly with default format
-        const defaultFormat = getDefaultFormat(item.metadata)
+        const defaultFormat = getDefaultFormat(item.formatConfig)
         editor
           .chain()
           .focus()

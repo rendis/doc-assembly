@@ -1,5 +1,5 @@
 import type { InjectorType } from './variables'
-import type { InjectableMetadata } from './injectable'
+import type { FormatConfig } from './injectable'
 
 /**
  * Data structure passed through @dnd-kit drag context
@@ -39,10 +39,10 @@ export interface VariableDragData {
   injectorType: InjectorType
 
   /**
-   * Optional metadata for configurable formats
+   * Optional format configuration
    * Used for DATE, CURRENCY, etc. with format options
    */
-  metadata?: InjectableMetadata
+  formatConfig?: FormatConfig
 
   /**
    * Source type for regular variables (INTERNAL or EXTERNAL)
