@@ -160,27 +160,24 @@ export function TemplateDetailPage() {
         ARCHIVED: 0,
       } as Record<VersionStatus, number>
     )
-  }, [template?.versions])
+  }, [template.versions])
 
-  // Version filters state (only active for statuses with versions > 0)
-  const [versionFilters, setVersionFilters] = useState<Record<VersionStatus, boolean>>(() => ({
+  // User's filter toggle preferences (true = show, false = hide)
+  const [userFilterToggles, setUserFilterToggles] = useState<Record<VersionStatus, boolean>>({
     PUBLISHED: true,
     SCHEDULED: true,
     DRAFT: true,
     ARCHIVED: true,
-  }))
+  })
 
-  // Update filters when version counts change (disable filters with 0 versions, enable when count > 0)
-  useEffect(() => {
-    setVersionFilters((prev) => ({
-      // If count > 0, enable the filter (or keep it enabled if already enabled)
-      // If count === 0, disable the filter
-      PUBLISHED: versionCounts.PUBLISHED > 0 ? true : false,
-      SCHEDULED: versionCounts.SCHEDULED > 0 ? true : false,
-      DRAFT: versionCounts.DRAFT > 0 ? true : false,
-      ARCHIVED: versionCounts.ARCHIVED > 0 ? true : false,
-    }))
-  }, [versionCounts])
+  // Effective filters: user preference AND count > 0
+  const versionFilters = useMemo(() => ({
+    PUBLISHED: userFilterToggles.PUBLISHED && versionCounts.PUBLISHED > 0,
+    SCHEDULED: userFilterToggles.SCHEDULED && versionCounts.SCHEDULED > 0,
+    DRAFT: userFilterToggles.DRAFT && versionCounts.DRAFT > 0,
+    ARCHIVED: userFilterToggles.ARCHIVED && versionCounts.ARCHIVED > 0,
+  }), [userFilterToggles, versionCounts])
+
 
   // Sort versions according to business rules:
   // 1. Published version first
@@ -612,7 +609,7 @@ export function TemplateDetailPage() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() =>
-                          setVersionFilters((prev) => ({
+                          setUserFilterToggles((prev) => ({
                             ...prev,
                             PUBLISHED: !prev.PUBLISHED,
                           }))
@@ -641,7 +638,7 @@ export function TemplateDetailPage() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() =>
-                          setVersionFilters((prev) => ({
+                          setUserFilterToggles((prev) => ({
                             ...prev,
                             SCHEDULED: !prev.SCHEDULED,
                           }))
@@ -670,7 +667,7 @@ export function TemplateDetailPage() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() =>
-                          setVersionFilters((prev) => ({
+                          setUserFilterToggles((prev) => ({
                             ...prev,
                             DRAFT: !prev.DRAFT,
                           }))
@@ -699,7 +696,7 @@ export function TemplateDetailPage() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() =>
-                          setVersionFilters((prev) => ({
+                          setUserFilterToggles((prev) => ({
                             ...prev,
                             ARCHIVED: !prev.ARCHIVED,
                           }))

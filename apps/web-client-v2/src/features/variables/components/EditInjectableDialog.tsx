@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import {
@@ -24,20 +24,12 @@ export function EditInjectableDialog({
   injectable,
 }: EditInjectableDialogProps): React.ReactElement {
   const { t } = useTranslation()
-  const [key, setKey] = useState('')
-  const [label, setLabel] = useState('')
-  const [defaultValue, setDefaultValue] = useState('')
-  const [description, setDescription] = useState('')
+  // State initialized from injectable prop - component remounts via key when injectable changes
+  const [key, setKey] = useState(injectable?.key ?? '')
+  const [label, setLabel] = useState(injectable?.label ?? '')
+  const [defaultValue, setDefaultValue] = useState(injectable?.defaultValue ?? '')
+  const [description, setDescription] = useState(injectable?.description ?? '')
   const updateInjectable = useUpdateWorkspaceInjectable()
-
-  useEffect(() => {
-    if (open && injectable) {
-      setKey(injectable.key)
-      setLabel(injectable.label)
-      setDefaultValue(injectable.defaultValue || '')
-      setDescription(injectable.description || '')
-    }
-  }, [open, injectable])
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault()

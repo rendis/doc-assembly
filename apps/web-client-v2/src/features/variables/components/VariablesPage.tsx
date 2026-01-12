@@ -135,6 +135,7 @@ export function VariablesPage(): React.ReactElement {
       />
 
       <EditInjectableDialog
+        key={selectedInjectable?.id ?? 'new'}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         injectable={selectedInjectable}

@@ -3,7 +3,7 @@ import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, FlaskConical } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SandboxConfirmDialog } from './SandboxConfirmDialog'
 
@@ -16,18 +16,15 @@ export function SandboxModeSection() {
   const { isSandboxActive, enableSandbox, disableSandbox } = useSandboxMode()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [pendingAction, setPendingAction] = useState<'enable' | 'disable' | null>(null)
-  const [localChecked, setLocalChecked] = useState(isSandboxActive)
+  // Pending checked value while dialog is open (null = use actual value)
+  const [pendingChecked, setPendingChecked] = useState<boolean | null>(null)
 
-  // Sync local state with actual state when it changes (but not when dialog is open)
-  useEffect(() => {
-    if (!showConfirmDialog) {
-      setLocalChecked(isSandboxActive)
-    }
-  }, [isSandboxActive, showConfirmDialog])
+  // Use pending value if set (dialog open), otherwise use actual sandbox state
+  const localChecked = pendingChecked ?? isSandboxActive
 
   const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked
-    setLocalChecked(newValue) // Update UI immediately
+    setPendingChecked(newValue) // Update UI immediately
     if (newValue) {
       // Entering sandbox - show confirmation
       setPendingAction('enable')
@@ -90,12 +87,13 @@ export function SandboxModeSection() {
 
     setShowConfirmDialog(false)
     setPendingAction(null)
+    setPendingChecked(null)
   }
 
   const handleDialogClose = (open: boolean) => {
     if (!open) {
-      // User cancelled - revert local state
-      setLocalChecked(isSandboxActive)
+      // User cancelled - revert to actual state
+      setPendingChecked(null)
       setShowConfirmDialog(false)
       setPendingAction(null)
     } else {
