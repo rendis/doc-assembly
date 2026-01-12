@@ -12,6 +12,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_role_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tag_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_repo"
@@ -64,6 +65,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	injectableMapper := mapper.NewInjectableMapper()
 	workspaceController := controller.NewWorkspaceController(workspaceUseCase, folderUseCase, tagUseCase, workspaceMemberUseCase, workspaceInjectableUseCase, injectableMapper)
 	injectableRepository := injectablerepo.New(pool)
+	systemInjectableRepository := systeminjectablerepo.New(pool)
 	injectorI18nConfig, err := config.LoadInjectorI18n()
 	if err != nil {
 		return nil, err
@@ -71,7 +73,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	mapperRegistry := infra.ProvideMapperRegistry()
 	initDeps := infra.ProvideExtensionDeps()
 	injectorRegistry := infra.ProvideInjectorRegistry(injectorI18nConfig, mapperRegistry, initDeps)
-	injectableUseCase := service.NewInjectableService(injectableRepository, injectorRegistry)
+	injectableUseCase := service.NewInjectableService(injectableRepository, systemInjectableRepository, injectorRegistry)
 	contentInjectableController := controller.NewContentInjectableController(injectableUseCase, injectableMapper)
 	templateRepository := templaterepo.New(pool)
 	templateVersionRepository := templateversionrepo.New(pool)
@@ -94,7 +96,8 @@ func InitializeApp() (*infra.Initializer, error) {
 	contentTemplateController := controller.NewContentTemplateController(templateUseCase, templateMapper, templateVersionController)
 	tenantUseCase := service.NewTenantService(tenantRepository, workspaceRepository, tenantMemberRepository, systemRoleRepository, userAccessHistoryRepository)
 	systemRoleUseCase := service.NewSystemRoleService(systemRoleRepository, userRepository)
-	adminController := controller.NewAdminController(tenantUseCase, systemRoleUseCase)
+	systemInjectableUseCase := service.NewSystemInjectableService(systemInjectableRepository, injectorRegistry)
+	adminController := controller.NewAdminController(tenantUseCase, systemRoleUseCase, systemInjectableUseCase)
 	userAccessHistoryUseCase := service.NewUserAccessHistoryService(userAccessHistoryRepository)
 	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository, userAccessHistoryUseCase)
 	tenantMemberUseCase := service.NewTenantMemberService(tenantMemberRepository, userRepository)

@@ -14,6 +14,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	folderrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
+	systeminjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	systemrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tag_repo"
 	templaterepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_repo"
@@ -60,6 +61,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Create repositories - Content
 	injectableRepo := injectablerepo.New(pool)
+	systemInjectableRepo := systeminjectablerepo.New(pool)
 	templateRepo := templaterepo.New(pool)
 	templateTagRepo := templatetagrepo.New(pool)
 	templateVersionRepo := templateversionrepo.New(pool)
@@ -77,12 +79,13 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
 	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo)
 	workspaceInjectableService := service.NewWorkspaceInjectableService(workspaceInjectableRepo)
+	systemInjectableService := service.NewSystemInjectableService(systemInjectableRepo, nil)
 
 	// Create content validator
 	contentValidator := contentvalidator.New(injectableRepo)
 
 	// Create services - Content
-	injectableService := service.NewInjectableService(injectableRepo, nil)
+	injectableService := service.NewInjectableService(injectableRepo, systemInjectableRepo, nil)
 	templateService := service.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
 	templateVersionService := service.NewTemplateVersionService(
 		templateVersionRepo,
@@ -112,7 +115,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	)
 
 	// Create controllers - Admin, Me, Tenant, Workspace
-	adminController := controller.NewAdminController(tenantService, systemRoleService)
+	adminController := controller.NewAdminController(tenantService, systemRoleService, systemInjectableService)
 	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo, userAccessHistoryService)
 	tenantController := controller.NewTenantController(tenantService, workspaceService, tenantMemberService)
 	workspaceController := controller.NewWorkspaceController(

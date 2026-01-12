@@ -91,9 +91,18 @@ func (r *Repository) FindSandboxByParentID(ctx context.Context, parentID string)
 	return &ws, nil
 }
 
-// FindByTenantPaginated lists workspaces for a tenant with pagination.
+// FindByTenantPaginated lists workspaces for a tenant with pagination and optional search.
+// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 func (r *Repository) FindByTenantPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
-	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.UserID, filters.Limit, filters.Offset)
+	var total int64
+
+	// Get total count with search filter
+	if err := r.pool.QueryRow(ctx, queryCountByTenant, tenantID, filters.Query).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("counting workspaces: %w", err)
+	}
+
+	// Query with unified ordering (similarity when Query provided, access history otherwise)
+	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.UserID, filters.Query, filters.Limit, filters.Offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying workspaces: %w", err)
 	}
@@ -104,23 +113,7 @@ func (r *Repository) FindByTenantPaginated(ctx context.Context, tenantID string,
 		return nil, 0, err
 	}
 
-	var total int64
-	if err := r.pool.QueryRow(ctx, queryCountByTenant, tenantID).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("counting workspaces: %w", err)
-	}
-
 	return workspaces, total, nil
-}
-
-// SearchByNameInTenant searches workspaces by name similarity within a tenant.
-func (r *Repository) SearchByNameInTenant(ctx context.Context, tenantID, query string, limit int) ([]*entity.Workspace, error) {
-	rows, err := r.pool.Query(ctx, querySearchByNameInTenant, tenantID, query, limit)
-	if err != nil {
-		return nil, fmt.Errorf("searching workspaces: %w", err)
-	}
-	defer rows.Close()
-
-	return scanWorkspaces(rows)
 }
 
 // FindByUser lists all workspaces a user has access to.

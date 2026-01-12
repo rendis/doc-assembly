@@ -16,18 +16,21 @@ import (
 func NewAdminController(
 	tenantUC usecase.TenantUseCase,
 	systemRoleUC usecase.SystemRoleUseCase,
+	systemInjectableUC usecase.SystemInjectableUseCase,
 ) *AdminController {
 	return &AdminController{
-		tenantUC:     tenantUC,
-		systemRoleUC: systemRoleUC,
+		tenantUC:           tenantUC,
+		systemRoleUC:       systemRoleUC,
+		systemInjectableUC: systemInjectableUC,
 	}
 }
 
 // AdminController handles admin-related HTTP requests.
 // All routes require system-level roles (SUPERADMIN or PLATFORM_ADMIN).
 type AdminController struct {
-	tenantUC     usecase.TenantUseCase
-	systemRoleUC usecase.SystemRoleUseCase
+	tenantUC           usecase.TenantUseCase
+	systemRoleUC       usecase.SystemRoleUseCase
+	systemInjectableUC usecase.SystemInjectableUseCase
 }
 
 // RegisterRoutes registers all admin routes.
@@ -37,64 +40,55 @@ func (c *AdminController) RegisterRoutes(rg *gin.RouterGroup) {
 	system.Use(middleware.RequirePlatformAdmin()) // Base requirement: PLATFORM_ADMIN
 	{
 		// Tenant routes
-		// Search, List and Get: PLATFORM_ADMIN
+		// List and Get: PLATFORM_ADMIN
 		// Create and Delete: SUPERADMIN
-		system.GET("/tenants/search", c.SearchTenants)
-		system.GET("/tenants/list", c.ListTenantsPaginated)
+		system.GET("/tenants", c.ListTenantsPaginated)
 		system.POST("/tenants", middleware.RequireSuperAdmin(), c.CreateTenant)
 		system.GET("/tenants/:tenantId", c.GetTenant)
 		system.PUT("/tenants/:tenantId", c.UpdateTenant)
 		system.DELETE("/tenants/:tenantId", middleware.RequireSuperAdmin(), c.DeleteTenant)
+		system.GET("/tenants/:tenantId/workspaces", c.ListTenantWorkspaces)
 
 		// System roles management (SUPERADMIN only)
 		system.GET("/users", middleware.RequireSuperAdmin(), c.ListSystemUsers)
 		system.POST("/users/:userId/role", middleware.RequireSuperAdmin(), c.AssignSystemRole)
 		system.DELETE("/users/:userId/role", middleware.RequireSuperAdmin(), c.RevokeSystemRole)
+
+		// System injectables management
+		// List: PLATFORM_ADMIN+
+		// Activate/Deactivate and assignments: SUPERADMIN only
+		injectables := system.Group("/injectables")
+		{
+			injectables.GET("", c.ListSystemInjectables)
+			injectables.PATCH("/:key/activate", middleware.RequireSuperAdmin(), c.ActivateInjectable)
+			injectables.PATCH("/:key/deactivate", middleware.RequireSuperAdmin(), c.DeactivateInjectable)
+			injectables.GET("/:key/assignments", c.ListAssignments)
+			injectables.POST("/:key/assignments", middleware.RequireSuperAdmin(), c.CreateAssignment)
+			injectables.DELETE("/:key/assignments/:assignmentId", middleware.RequireSuperAdmin(), c.DeleteAssignment)
+			injectables.PATCH("/:key/assignments/:assignmentId/exclude", middleware.RequireSuperAdmin(), c.ExcludeAssignment)
+			injectables.PATCH("/:key/assignments/:assignmentId/include", middleware.RequireSuperAdmin(), c.IncludeAssignment)
+
+			// Bulk operations for PUBLIC assignments
+			injectables.POST("/bulk/public", middleware.RequireSuperAdmin(), c.BulkCreatePublicAssignments)
+			injectables.DELETE("/bulk/public", middleware.RequireSuperAdmin(), c.BulkDeletePublicAssignments)
+		}
 	}
 }
 
 // --- Tenant Handlers ---
 
-// SearchTenants searches tenants by name or code similarity.
-// @Summary Search tenants by name or code
-// @Tags System - Tenants
-// @Accept json
-// @Produce json
-// @Param q query string true "Search query (name or code)"
-// @Success 200 {object} dto.ListResponse[dto.TenantResponse]
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 403 {object} dto.ErrorResponse
-// @Router /api/v1/system/tenants/search [get]
-// @Security BearerAuth
-func (c *AdminController) SearchTenants(ctx *gin.Context) {
-	var req dto.TenantSearchRequest
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		respondError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	tenants, err := c.tenantUC.SearchTenants(ctx.Request.Context(), req.Query)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	responses := mapper.TenantsToResponses(tenants)
-	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
-}
-
-// ListTenantsPaginated lists tenants with pagination.
+// ListTenantsPaginated lists tenants with pagination and optional search.
 // @Summary List tenants with pagination
 // @Tags System - Tenants
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number" default(1)
 // @Param perPage query int false "Items per page" default(10)
+// @Param q query string false "Search query (name or code)"
 // @Success 200 {object} dto.PaginatedTenantsResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
-// @Router /api/v1/system/tenants/list [get]
+// @Router /api/v1/system/tenants [get]
 // @Security BearerAuth
 func (c *AdminController) ListTenantsPaginated(ctx *gin.Context) {
 	var req dto.TenantListRequest
@@ -234,6 +228,40 @@ func (c *AdminController) DeleteTenant(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// ListTenantWorkspaces lists workspaces for a specific tenant with optional search.
+// @Summary List tenant workspaces
+// @Tags System - Tenants
+// @Accept json
+// @Produce json
+// @Param tenantId path string true "Tenant ID"
+// @Param page query int false "Page number" default(1)
+// @Param perPage query int false "Items per page" default(10)
+// @Param q query string false "Search query (name)"
+// @Success 200 {object} dto.PaginatedWorkspacesResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/tenants/{tenantId}/workspaces [get]
+// @Security BearerAuth
+func (c *AdminController) ListTenantWorkspaces(ctx *gin.Context) {
+	tenantID := ctx.Param("tenantId")
+
+	var req dto.WorkspaceListRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	filters := mapper.WorkspaceListRequestToFilters(req)
+	workspaces, total, err := c.tenantUC.ListTenantWorkspaces(ctx.Request.Context(), tenantID, filters)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.WorkspacesToPaginatedResponse(workspaces, total, req.Page, req.PerPage))
+}
+
 // --- System Role Handlers ---
 
 // ListSystemUsers lists all users with system roles.
@@ -332,6 +360,283 @@ func (c *AdminController) RevokeSystemRole(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// --- System Injectable Handlers ---
+
+// ListSystemInjectables lists all system injectables with their active state.
+// @Summary List system injectables
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.ListSystemInjectablesResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables [get]
+// @Security BearerAuth
+func (c *AdminController) ListSystemInjectables(ctx *gin.Context) {
+	injectables, err := c.systemInjectableUC.ListAll(ctx.Request.Context())
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.ToListSystemInjectablesResponse(injectables))
+}
+
+// ActivateInjectable activates a system injectable globally.
+// @Summary Activate system injectable
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Success 204 "No Content"
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/activate [patch]
+// @Security BearerAuth
+func (c *AdminController) ActivateInjectable(ctx *gin.Context) {
+	key := ctx.Param("key")
+
+	if err := c.systemInjectableUC.Activate(ctx.Request.Context(), key); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// DeactivateInjectable deactivates a system injectable globally.
+// @Summary Deactivate system injectable
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Success 204 "No Content"
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/deactivate [patch]
+// @Security BearerAuth
+func (c *AdminController) DeactivateInjectable(ctx *gin.Context) {
+	key := ctx.Param("key")
+
+	if err := c.systemInjectableUC.Deactivate(ctx.Request.Context(), key); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// ListAssignments lists all assignments for a system injectable.
+// @Summary List injectable assignments
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Success 200 {object} dto.ListAssignmentsResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/assignments [get]
+// @Security BearerAuth
+func (c *AdminController) ListAssignments(ctx *gin.Context) {
+	key := ctx.Param("key")
+
+	assignments, err := c.systemInjectableUC.ListAssignments(ctx.Request.Context(), key)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.ToListAssignmentsResponse(assignments))
+}
+
+// CreateAssignment creates a new assignment for a system injectable.
+// @Summary Create injectable assignment
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Param request body dto.CreateAssignmentRequest true "Assignment data"
+// @Success 201 {object} dto.SystemInjectableAssignmentResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/assignments [post]
+// @Security BearerAuth
+func (c *AdminController) CreateAssignment(ctx *gin.Context) {
+	key := ctx.Param("key")
+
+	var req dto.CreateAssignmentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := usecase.CreateAssignmentCommand{
+		InjectableKey: key,
+		ScopeType:     entity.InjectableScopeType(req.ScopeType),
+		TenantID:      req.TenantID,
+		WorkspaceID:   req.WorkspaceID,
+	}
+
+	assignment, err := c.systemInjectableUC.CreateAssignment(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, dto.ToAssignmentResponse(assignment))
+}
+
+// DeleteAssignment deletes an assignment.
+// @Summary Delete injectable assignment
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Param assignmentId path string true "Assignment ID"
+// @Success 204 "No Content"
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/assignments/{assignmentId} [delete]
+// @Security BearerAuth
+func (c *AdminController) DeleteAssignment(ctx *gin.Context) {
+	key := ctx.Param("key")
+	assignmentID := ctx.Param("assignmentId")
+
+	if err := c.systemInjectableUC.DeleteAssignment(ctx.Request.Context(), key, assignmentID); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// ExcludeAssignment excludes an assignment (sets is_active=false).
+// @Summary Exclude injectable assignment
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Param assignmentId path string true "Assignment ID"
+// @Success 204 "No Content"
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/assignments/{assignmentId}/exclude [patch]
+// @Security BearerAuth
+func (c *AdminController) ExcludeAssignment(ctx *gin.Context) {
+	key := ctx.Param("key")
+	assignmentID := ctx.Param("assignmentId")
+
+	if err := c.systemInjectableUC.ExcludeAssignment(ctx.Request.Context(), key, assignmentID); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// IncludeAssignment includes an assignment (sets is_active=true).
+// @Summary Include injectable assignment
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param key path string true "Injectable key"
+// @Param assignmentId path string true "Assignment ID"
+// @Success 204 "No Content"
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/{key}/assignments/{assignmentId}/include [patch]
+// @Security BearerAuth
+func (c *AdminController) IncludeAssignment(ctx *gin.Context) {
+	key := ctx.Param("key")
+	assignmentID := ctx.Param("assignmentId")
+
+	if err := c.systemInjectableUC.IncludeAssignment(ctx.Request.Context(), key, assignmentID); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// BulkCreatePublicAssignments creates PUBLIC assignments for multiple injectables.
+// @Summary Bulk create PUBLIC assignments
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param request body dto.BulkPublicAssignmentsRequest true "Keys to make public"
+// @Success 200 {object} dto.BulkPublicAssignmentsResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/bulk/public [post]
+// @Security BearerAuth
+func (c *AdminController) BulkCreatePublicAssignments(ctx *gin.Context) {
+	var req dto.BulkPublicAssignmentsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := c.systemInjectableUC.BulkCreatePublicAssignments(ctx.Request.Context(), req.Keys)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, toBulkResponse(result))
+}
+
+// BulkDeletePublicAssignments deletes PUBLIC assignments for multiple injectables.
+// @Summary Bulk delete PUBLIC assignments
+// @Tags System - Injectables
+// @Accept json
+// @Produce json
+// @Param request body dto.BulkPublicAssignmentsRequest true "Keys to remove from public"
+// @Success 200 {object} dto.BulkPublicAssignmentsResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Router /api/v1/system/injectables/bulk/public [delete]
+// @Security BearerAuth
+func (c *AdminController) BulkDeletePublicAssignments(ctx *gin.Context) {
+	var req dto.BulkPublicAssignmentsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := c.systemInjectableUC.BulkDeletePublicAssignments(ctx.Request.Context(), req.Keys)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, toBulkResponse(result))
+}
+
+// toBulkResponse converts a BulkAssignmentResult to a BulkPublicAssignmentsResponse.
+func toBulkResponse(result *usecase.BulkAssignmentResult) dto.BulkPublicAssignmentsResponse {
+	failed := make([]dto.BulkOperationError, len(result.Failed))
+	for i, f := range result.Failed {
+		failed[i] = dto.BulkOperationError{
+			Key:   f.Key,
+			Error: f.Error.Error(),
+		}
+	}
+	return dto.BulkPublicAssignmentsResponse{
+		Succeeded: result.Succeeded,
+		Failed:    failed,
+	}
 }
 
 // --- Helper Functions ---

@@ -86,6 +86,7 @@ func WorkspaceListRequestToFilters(req dto.WorkspaceListRequest) port.WorkspaceF
 	return port.WorkspaceFilters{
 		Limit:  req.PerPage,
 		Offset: offset,
+		Query:  req.Query,
 	}
 }
 

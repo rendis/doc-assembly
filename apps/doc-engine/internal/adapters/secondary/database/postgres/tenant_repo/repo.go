@@ -182,15 +182,26 @@ func (r *Repository) FindSystemTenant(ctx context.Context) (*entity.Tenant, erro
 
 // FindAllPaginated lists tenants with pagination and returns total count.
 func (r *Repository) FindAllPaginated(ctx context.Context, filters port.TenantFilters) ([]*entity.Tenant, int64, error) {
-	// Get total count
 	var total int64
-	err := r.pool.QueryRow(ctx, queryCountAll).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("counting tenants: %w", err)
-	}
+	var rows pgx.Rows
+	var err error
 
-	// Get paginated results
-	rows, err := r.pool.Query(ctx, queryFindAllPaginated, filters.UserID, filters.Limit, filters.Offset)
+	// System endpoint: use simple or search query based on Query filter
+	if filters.UserID == "" {
+		// Get total count with search filter
+		err = r.pool.QueryRow(ctx, queryCountAllWithSearch, filters.Query).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("counting tenants: %w", err)
+		}
+		rows, err = r.pool.Query(ctx, queryFindAllPaginatedWithSearch, filters.Query, filters.Limit, filters.Offset)
+	} else {
+		// User endpoint: use unified query with optional search and access history ordering
+		err = r.pool.QueryRow(ctx, queryCountAllUnified, filters.Query).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("counting tenants: %w", err)
+		}
+		rows, err = r.pool.Query(ctx, queryFindAllPaginatedUnified, filters.UserID, filters.Query, filters.Limit, filters.Offset)
+	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying tenants paginated: %w", err)
 	}

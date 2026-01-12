@@ -22,6 +22,12 @@ type InjectorRegistry interface {
 	// Si no existe traducción, retorna cadena vacía.
 	GetDescription(code, locale string) string
 
+	// GetAllNames retorna todas las traducciones del nombre para un code.
+	GetAllNames(code string) map[string]string
+
+	// GetAllDescriptions retorna todas las traducciones de la descripción para un code.
+	GetAllDescriptions(code string) map[string]string
+
 	// SetInitFunc registra la función de inicialización GLOBAL.
 	// Se ejecuta UNA vez antes de todos los inyectores.
 	SetInitFunc(fn InitFunc)

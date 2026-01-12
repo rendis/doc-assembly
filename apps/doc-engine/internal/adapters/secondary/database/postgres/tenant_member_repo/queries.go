@@ -62,18 +62,9 @@ const (
 		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
 		ORDER BY input.ord`
 
-	// querySearchTenantsWithRoleByUser searches tenants by name or code similarity using pg_trgm.
-	querySearchTenantsWithRoleByUser = `
-		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
-		FROM identity.tenant_members m
-		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
-		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
-		  AND (t.name % $2 OR t.code % $2)
-		ORDER BY GREATEST(similarity(t.name, $2), similarity(t.code, $2)) DESC
-		LIMIT $3`
-
-	// queryFindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination.
-	// Orders by most recent access first, then by name for those without access history.
+	// queryFindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination and optional search.
+	// When query ($2) is provided: orders by similarity (relevance).
+	// When query is empty: orders by access history (most recent), then by name.
 	queryFindTenantsWithRoleByUserPaginated = `
 		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
 		FROM identity.tenant_members m
@@ -83,13 +74,18 @@ const (
 			AND h.entity_type = 'TENANT'
 			AND h.user_id = $1
 		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
-		ORDER BY h.accessed_at DESC NULLS LAST, t.name ASC
-		LIMIT $2 OFFSET $3`
+		  AND ($2 = '' OR t.name ILIKE '%' || $2 || '%' OR t.code ILIKE '%' || $2 || '%')
+		ORDER BY
+			CASE WHEN $2 != '' THEN GREATEST(similarity(t.name, $2), similarity(t.code, $2)) ELSE 0 END DESC,
+			CASE WHEN $2 = '' THEN h.accessed_at END DESC NULLS LAST,
+			t.name ASC
+		LIMIT $3 OFFSET $4`
 
-	// queryCountTenantsWithRoleByUser counts tenants a user belongs to.
+	// queryCountTenantsWithRoleByUser counts tenants a user belongs to with optional search filter.
 	queryCountTenantsWithRoleByUser = `
 		SELECT COUNT(*)
 		FROM identity.tenant_members m
 		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
-		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'`
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		  AND ($2 = '' OR t.name ILIKE '%' || $2 || '%' OR t.code ILIKE '%' || $2 || '%')`
 )

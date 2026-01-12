@@ -288,50 +288,18 @@ func (r *Repository) FindTenantsWithRoleByUserAndIDs(ctx context.Context, userID
 	return result, rows.Err()
 }
 
-// SearchTenantsWithRoleByUser searches tenants by name or code similarity using pg_trgm.
-func (r *Repository) SearchTenantsWithRoleByUser(ctx context.Context, userID, query string, limit int) ([]*entity.TenantWithRole, error) {
-	rows, err := r.pool.Query(ctx, querySearchTenantsWithRoleByUser, userID, query, limit)
-	if err != nil {
-		return nil, fmt.Errorf("searching user tenants: %w", err)
-	}
-	defer rows.Close()
-
-	var result []*entity.TenantWithRole
-	for rows.Next() {
-		var tenant entity.Tenant
-		var role entity.TenantRole
-		err := rows.Scan(
-			&tenant.ID,
-			&tenant.Name,
-			&tenant.Code,
-			&tenant.Settings,
-			&tenant.CreatedAt,
-			&tenant.UpdatedAt,
-			&role,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scanning tenant with role: %w", err)
-		}
-		result = append(result, &entity.TenantWithRole{
-			Tenant: &tenant,
-			Role:   role,
-		})
-	}
-
-	return result, rows.Err()
-}
-
-// FindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination.
+// FindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination and optional search.
+// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 func (r *Repository) FindTenantsWithRoleByUserPaginated(ctx context.Context, userID string, filters port.TenantMemberFilters) ([]*entity.TenantWithRole, int64, error) {
-	// Get total count
+	// Get total count with search filter
 	var total int64
-	err := r.pool.QueryRow(ctx, queryCountTenantsWithRoleByUser, userID).Scan(&total)
+	err := r.pool.QueryRow(ctx, queryCountTenantsWithRoleByUser, userID, filters.Query).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting user tenants: %w", err)
 	}
 
-	// Get paginated results
-	rows, err := r.pool.Query(ctx, queryFindTenantsWithRoleByUserPaginated, userID, filters.Limit, filters.Offset)
+	// Get paginated results with unified ordering
+	rows, err := r.pool.Query(ctx, queryFindTenantsWithRoleByUserPaginated, userID, filters.Query, filters.Limit, filters.Offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying user tenants paginated: %w", err)
 	}

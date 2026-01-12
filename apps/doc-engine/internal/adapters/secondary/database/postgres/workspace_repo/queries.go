@@ -19,6 +19,9 @@ const (
 		FROM tenancy.workspaces
 		WHERE sandbox_of_id = $1 AND is_sandbox = TRUE`
 
+	// queryFindByTenantPaginated lists workspaces with pagination, optional search, and conditional ordering.
+	// When query ($3) is provided: orders by similarity (relevance).
+	// When query is empty: orders by access history (most recent), then by name.
 	queryFindByTenantPaginated = `
 		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'),
 		       w.is_sandbox, w.sandbox_of_id, w.created_at, w.updated_at
@@ -28,19 +31,17 @@ const (
 			AND h.entity_type = 'WORKSPACE'
 			AND h.user_id = $2
 		WHERE w.tenant_id = $1 AND w.is_sandbox = FALSE
-		ORDER BY h.accessed_at DESC NULLS LAST, w.name ASC
-		LIMIT $3 OFFSET $4`
+		  AND ($3 = '' OR w.name ILIKE '%' || $3 || '%')
+		ORDER BY
+			CASE WHEN $3 != '' THEN similarity(w.name, $3) ELSE 0 END DESC,
+			CASE WHEN $3 = '' THEN h.accessed_at END DESC NULLS LAST,
+			w.name ASC
+		LIMIT $4 OFFSET $5`
 
 	queryCountByTenant = `
-		SELECT COUNT(*) FROM tenancy.workspaces WHERE tenant_id = $1 AND is_sandbox = FALSE`
-
-	querySearchByNameInTenant = `
-		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'),
-		       is_sandbox, sandbox_of_id, created_at, updated_at
-		FROM tenancy.workspaces
-		WHERE tenant_id = $1 AND name ILIKE '%' || $2 || '%' AND is_sandbox = FALSE
-		ORDER BY similarity(name, $2) DESC, name
-		LIMIT $3`
+		SELECT COUNT(*) FROM tenancy.workspaces
+		WHERE tenant_id = $1 AND is_sandbox = FALSE
+		  AND ($2 = '' OR name ILIKE '%' || $2 || '%')`
 
 	queryFindByUser = `
 		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'),

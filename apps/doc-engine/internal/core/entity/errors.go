@@ -114,6 +114,14 @@ var (
 	ErrCannotModifyGlobal         = errors.New("cannot modify global injectable definitions")
 )
 
+// System Injectable errors.
+var (
+	ErrSystemInjectableNotFound = errors.New("system injectable not found in registry")
+	ErrInvalidScopeType         = errors.New("invalid scope type")
+	ErrTenantIDRequired         = errors.New("tenant ID is required for TENANT scope")
+	ErrAssignmentNotFound       = errors.New("system injectable assignment not found")
+)
+
 // Template errors.
 var (
 	ErrTemplateNotFound      = errors.New("template not found")

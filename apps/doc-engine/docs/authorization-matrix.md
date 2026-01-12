@@ -33,15 +33,34 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 
 | Método | Endpoint | Descripción | SUPERADMIN | PLATFORM_ADMIN |
 |--------|----------|-------------|:----------:|:--------------:|
-| GET | `/system/tenants/search?q={query}` | Busca tenants por similitud de nombre o código (máx 10 resultados, pg_trgm) | ✅ | ✅ |
-| GET | `/system/tenants/list?limit=20&offset=0` | Lista tenants con paginación | ✅ | ✅ |
+| GET | `/system/tenants?page=1&perPage=10&q={query}` | Lista tenants con paginación y búsqueda opcional | ✅ | ✅ |
 | POST | `/system/tenants` | Crea un nuevo tenant | ✅ | ❌ |
 | GET | `/system/tenants/{tenantId}` | Obtiene información de un tenant específico | ✅ | ✅ |
 | PUT | `/system/tenants/{tenantId}` | Actualiza la información de un tenant | ✅ | ✅ |
 | DELETE | `/system/tenants/{tenantId}` | Elimina un tenant y todos sus datos | ✅ | ❌ |
+| GET | `/system/tenants/{tenantId}/workspaces?page=1&perPage=10&q={query}` | Lista workspaces de un tenant con paginación y búsqueda opcional | ✅ | ✅ |
 | GET | `/system/users` | Lista usuarios con roles de sistema asignados | ✅ | ❌ |
 | POST | `/system/users/{userId}/role` | Asigna un rol de sistema a un usuario | ✅ | ❌ |
 | DELETE | `/system/users/{userId}/role` | Revoca el rol de sistema de un usuario | ✅ | ❌ |
+
+**Archivo fuente**: `internal/adapters/primary/http/controller/admin_controller.go`
+
+### Endpoints de System Injectables (`/api/v1/system/injectables`)
+
+Gestión de inyectores del sistema definidos en código (extensibility system).
+
+| Método | Endpoint | Descripción | SUPERADMIN | PLATFORM_ADMIN |
+|--------|----------|-------------|:----------:|:--------------:|
+| GET | `/system/injectables` | Lista todos los injectors con su estado (activo/inactivo) | ✅ | ✅ |
+| PATCH | `/system/injectables/:key/activate` | Activa un injector globalmente | ✅ | ❌ |
+| PATCH | `/system/injectables/:key/deactivate` | Desactiva un injector globalmente | ✅ | ❌ |
+| GET | `/system/injectables/:key/assignments` | Lista assignments de un injector | ✅ | ✅ |
+| POST | `/system/injectables/:key/assignments` | Crea assignment (asigna a scope) | ✅ | ❌ |
+| DELETE | `/system/injectables/:key/assignments/:id` | Elimina un assignment | ✅ | ❌ |
+| PATCH | `/system/injectables/:key/assignments/:id/exclude` | Excluye un assignment (is_active=false) | ✅ | ❌ |
+| PATCH | `/system/injectables/:key/assignments/:id/include` | Incluye un assignment (is_active=true) | ✅ | ❌ |
+| POST | `/system/injectables/bulk/public` | Crea assignments PUBLIC para múltiples keys (bulk) | ✅ | ❌ |
+| DELETE | `/system/injectables/bulk/public` | Elimina assignments PUBLIC para múltiples keys (bulk) | ✅ | ❌ |
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/admin_controller.go`
 
@@ -57,8 +76,7 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 |--------|----------|-------------|:------------:|:------------:|
 | GET | `/tenant` | Obtiene información del tenant actual | ✅ | ✅ |
 | PUT | `/tenant` | Actualiza la información del tenant actual | ✅ | ❌ |
-| GET | `/tenant/workspaces/search?q={query}` | Busca workspaces por similitud de nombre (máx 20, pg_trgm) | ✅ | ✅ |
-| GET | `/tenant/workspaces/list?limit=20&offset=0` | Lista workspaces del tenant con paginación | ✅ | ✅ |
+| GET | `/tenant/workspaces?page=1&perPage=10&q={query}` | Lista workspaces con paginación y búsqueda opcional | ✅ | ✅ |
 | GET | `/tenant/my-workspaces` | Lista los workspaces a los que el usuario tiene acceso en el tenant | ✅ | ✅ |
 | POST | `/tenant/workspaces` | Crea un nuevo workspace en el tenant | ✅ | ❌ |
 | DELETE | `/tenant/workspaces/{workspaceId}` | Elimina (archiva) un workspace del tenant | ✅ | ❌ |
@@ -70,53 +88,21 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/tenant_controller.go`
 
-### Endpoint `/tenant/workspaces/search` - Detalle
+### Endpoint `/tenant/workspaces` - Detalle
 
-Busca workspaces dentro del tenant actual por similitud de nombre usando pg_trgm.
-
-**Parámetros:**
-| Param | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| `q` | string | ✅ | Texto de búsqueda (mínimo 1 caracter) |
-
-**Comportamiento:**
-- Retorna máximo **20 workspaces** ordenados por similitud
-- Solo busca workspaces del tenant indicado en el header `X-Tenant-ID`
-- Usa índice trigram de PostgreSQL para búsqueda fuzzy
-- Busca por nombre del workspace
-
-**Ejemplo de respuesta:**
-```json
-{
-  "count": 2,
-  "data": [
-    {
-      "id": "uuid-workspace-1",
-      "tenantId": "uuid-tenant",
-      "name": "Marketing Team",
-      "type": "CLIENT",
-      "status": "ACTIVE",
-      "createdAt": "2024-01-15T10:00:00Z"
-    }
-  ]
-}
-```
-
----
-
-### Endpoint `/tenant/workspaces/list` - Detalle
-
-Lista workspaces del tenant actual con soporte de paginación.
+Lista workspaces del tenant actual con paginación y búsqueda opcional.
 
 **Parámetros:**
 | Param | Tipo | Default | Descripción |
 |-------|------|---------|-------------|
-| `limit` | int | 20 | Cantidad de items por página |
-| `offset` | int | 0 | Posición inicial |
+| `page` | int | 1 | Número de página |
+| `perPage` | int | 10 | Cantidad de items por página |
+| `q` | string | (opcional) | Texto de búsqueda por nombre |
 
 **Comportamiento:**
 - Solo retorna workspaces del tenant indicado en el header `X-Tenant-ID`
-- Ordenados por fecha de creación (más recientes primero)
+- **Sin parámetro `q`**: Ordenados por historial de acceso (más recientes), luego por nombre
+- **Con parámetro `q`**: Ordenados por similitud (pg_trgm), búsqueda fuzzy por nombre
 - Incluye metadata de paginación
 
 **Ejemplo de respuesta:**
@@ -134,7 +120,7 @@ Lista workspaces del tenant actual con soporte de paginación.
   ],
   "pagination": {
     "page": 1,
-    "perPage": 20,
+    "perPage": 10,
     "total": 5,
     "totalPages": 1
   }
@@ -326,57 +312,25 @@ Genera un documento de contrato estructurado (PortableDocument JSON) analizando 
 
 | Método | Endpoint | Descripción | Cualquier usuario autenticado |
 |--------|----------|-------------|:-----------------------------:|
-| GET | `/me/tenants/search?q={query}` | Busca tenants del usuario por similitud de nombre o código (máx 10, pg_trgm) | ✅ |
-| GET | `/me/tenants/list?limit=20&offset=0` | Lista tenants del usuario con paginación | ✅ |
+| GET | `/me/tenants?page=1&perPage=10&q={query}` | Lista tenants del usuario con paginación y búsqueda opcional | ✅ |
 | GET | `/me/roles` | Obtiene los roles del usuario actual (ver detalles abajo) | ✅ |
 | POST | `/me/access` | Registra acceso a un tenant o workspace para historial rápido | ✅ |
 
-### Endpoint `/me/tenants/search` - Detalle
+### Endpoint `/me/tenants` - Detalle
 
-Busca tenants donde el usuario es miembro activo por similitud de nombre o código usando pg_trgm.
-
-**Parámetros:**
-| Param | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| `q` | string | ✅ | Texto de búsqueda (mínimo 1 caracter) |
-
-**Comportamiento:**
-- Retorna máximo **10 tenants** ordenados por similitud
-- Solo busca en tenants donde el usuario tiene membresía ACTIVE
-- Usa índice trigram de PostgreSQL para búsqueda fuzzy
-- Busca tanto por nombre como por código del tenant
-
-**Ejemplo de respuesta:**
-```json
-{
-  "count": 2,
-  "data": [
-    {
-      "id": "uuid-tenant-1",
-      "name": "Chile Operations",
-      "code": "CL",
-      "role": "TENANT_OWNER",
-      "createdAt": "2024-01-15T10:00:00Z"
-    }
-  ]
-}
-```
-
----
-
-### Endpoint `/me/tenants/list` - Detalle
-
-Lista tenants donde el usuario es miembro activo con soporte de paginación.
+Lista tenants donde el usuario es miembro activo con paginación y búsqueda opcional.
 
 **Parámetros:**
 | Param | Tipo | Default | Descripción |
 |-------|------|---------|-------------|
-| `limit` | int | 20 | Cantidad de items por página |
-| `offset` | int | 0 | Posición inicial |
+| `page` | int | 1 | Número de página |
+| `perPage` | int | 10 | Cantidad de items por página |
+| `q` | string | (opcional) | Texto de búsqueda por nombre o código |
 
 **Comportamiento:**
 - Solo retorna tenants donde el usuario tiene membresía ACTIVE
-- Ordenados alfabéticamente por nombre
+- **Sin parámetro `q`**: Ordenados por historial de acceso (más recientes), luego por nombre
+- **Con parámetro `q`**: Ordenados por similitud (pg_trgm), búsqueda fuzzy por nombre y código
 - Incluye metadata de paginación
 
 **Ejemplo de respuesta:**
@@ -393,7 +347,7 @@ Lista tenants donde el usuario es miembro activo con soporte de paginación.
   ],
   "pagination": {
     "page": 1,
-    "perPage": 20,
+    "perPage": 10,
     "total": 5,
     "totalPages": 1
   }

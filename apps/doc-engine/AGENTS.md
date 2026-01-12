@@ -149,6 +149,38 @@ Key variables:
 - **Testcontainers** for integration tests (PostgreSQL + Liquibase)
 - **golangci-lint** with errcheck, gosimple, govet, staticcheck, gosec, revive, errorlint
 
+## Database Schema
+
+Database schema is managed with **Liquibase** in the `../../db/` directory (relative to doc-engine).
+
+**Documentation:** See `../../db/DATABASE.md` for complete database model documentation.
+
+> **IMPORTANT:** Agents must NEVER modify database schema files directly. Only READ for context and SUGGEST changes to the user.
+
+### Directory Structure (Read-Only Reference)
+
+```
+../../db/
+├── changelog.master.xml          # Master changelog (includes all changesets)
+├── liquibase-*.properties        # Environment configurations
+├── src/                          # Changesets organized by domain
+│   ├── schemas/                  # Schema definitions
+│   ├── types/                    # Enum types
+│   ├── tables/                   # Table definitions
+│   ├── indexes/                  # Index definitions
+│   ├── constraints/              # FK and check constraints
+│   ├── triggers/                 # Trigger functions
+│   └── content/                  # Seed data
+└── DATABASE.md                   # Model documentation
+```
+
+### Agent Guidelines
+
+- **READ** `DATABASE.md` to understand the data model
+- **READ** changeset files to understand existing schema
+- **SUGGEST** schema changes when needed (never apply directly)
+- **REFERENCE** table/column names accurately in Go code
+
 ## Extensibility System
 
 The project includes an extensibility system for custom injectors, mappers, and initialization logic.
@@ -166,3 +198,33 @@ The project includes an extensibility system for custom injectors, mappers, and 
 - `internal/extensions/mappers/` - Request mapper
 - `internal/extensions/init.go` - Init function
 - `settings/injectors.i18n.yaml` - Injector translations for frontend
+
+## Mandatory Documentation Updates
+
+### Authorization Matrix (`docs/authorization-matrix.md`)
+
+**MUST update** this file when ANY of the following changes occur:
+
+1. **New endpoint** - Adding any new HTTP endpoint
+2. **Permission change** - Modifying required roles for an existing endpoint
+3. **New role** - Adding new system/tenant/workspace roles
+4. **Header requirements** - Changing required headers for endpoints
+5. **New controller** - Creating a new controller file
+6. **Authorization middleware** - Modifying authorization logic in middlewares
+
+The authorization matrix documents all API endpoints with their permission requirements per role. Keeping it synchronized ensures accurate security documentation.
+
+### Extensibility Guide (`docs/extensibility-guide.md`)
+
+**MUST update** this file when ANY of the following changes occur:
+
+1. **Injector interface** - Changes to `port.Injector` (new methods, signatures)
+2. **RequestMapper interface** - Changes to `port.RequestMapper`
+3. **InitFunc interface** - Changes to init function or `InitDeps`
+4. **InjectorContext** - New methods available in the context
+5. **Formatters** - Adding/modifying presets in `internal/core/formatter`
+6. **Code markers** - New `//docengine:*` markers
+7. **Directory structure** - Changes to `internal/extensions/` layout
+8. **Code generation** - Changes to `docengine-gen` or its output
+
+The extensibility guide documents how to create custom injectors, mappers, and init functions. It must reflect the current interfaces and patterns.

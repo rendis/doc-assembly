@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -131,4 +132,34 @@ func (c *InjectorI18nConfig) Codes() []string {
 		codes = append(codes, code)
 	}
 	return codes
+}
+
+// GetAllNames retorna todas las traducciones del nombre para un code.
+// Si no existe el code, retorna un mapa con solo el code como fallback.
+func (c *InjectorI18nConfig) GetAllNames(code string) map[string]string {
+	if c == nil || c.entries == nil {
+		return map[string]string{"en": code}
+	}
+
+	entry, ok := c.entries[code]
+	if !ok || len(entry.Name) == 0 {
+		return map[string]string{"en": code}
+	}
+
+	return maps.Clone(entry.Name)
+}
+
+// GetAllDescriptions retorna todas las traducciones de la descripción para un code.
+// Si no existe el code, retorna un mapa vacío.
+func (c *InjectorI18nConfig) GetAllDescriptions(code string) map[string]string {
+	if c == nil || c.entries == nil {
+		return map[string]string{}
+	}
+
+	entry, ok := c.entries[code]
+	if !ok || len(entry.Description) == 0 {
+		return map[string]string{}
+	}
+
+	return maps.Clone(entry.Description)
 }

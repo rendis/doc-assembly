@@ -11,6 +11,7 @@ type WorkspaceFilters struct {
 	Limit  int
 	Offset int
 	UserID string // Used for access-based sorting
+	Query  string // Optional search filter for name
 }
 
 // WorkspaceRepository defines the interface for workspace data access.
@@ -21,11 +22,9 @@ type WorkspaceRepository interface {
 	// FindByID finds a workspace by ID.
 	FindByID(ctx context.Context, id string) (*entity.Workspace, error)
 
-	// FindByTenantPaginated lists workspaces for a tenant with pagination.
+	// FindByTenantPaginated lists workspaces for a tenant with pagination and optional search.
+	// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 	FindByTenantPaginated(ctx context.Context, tenantID string, filters WorkspaceFilters) ([]*entity.Workspace, int64, error)
-
-	// SearchByNameInTenant searches workspaces by name similarity within a tenant.
-	SearchByNameInTenant(ctx context.Context, tenantID, query string, limit int) ([]*entity.Workspace, error)
 
 	// FindByUser lists all workspaces a user has access to.
 	FindByUser(ctx context.Context, userID string) ([]*entity.WorkspaceWithRole, error)

@@ -57,15 +57,11 @@ func (r *UpdateWorkspaceRequest) Validate() error {
 	return nil
 }
 
-// WorkspaceSearchRequest represents a request to search workspaces by name.
-type WorkspaceSearchRequest struct {
-	Query string `form:"q" binding:"required,min=1"`
-}
-
-// WorkspaceListRequest represents a request to list workspaces with pagination.
+// WorkspaceListRequest represents a request to list workspaces with pagination and optional search.
 type WorkspaceListRequest struct {
-	Page    int `form:"page,default=1"`
-	PerPage int `form:"perPage,default=10"`
+	Page    int    `form:"page,default=1"`
+	PerPage int    `form:"perPage,default=10"`
+	Query   string `form:"q"` // Optional search filter for name
 }
 
 // PaginatedWorkspacesResponse represents a paginated list of workspaces.

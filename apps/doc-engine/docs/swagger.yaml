@@ -44,6 +44,34 @@ definitions:
     required:
     - role
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkOperationError:
+    properties:
+      error:
+        type: string
+      key:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest:
+    properties:
+      keys:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - keys
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse:
+    properties:
+      failed:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkOperationError'
+        type: array
+      succeeded:
+        items:
+          type: string
+        type: array
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CloneTemplateRequest:
     properties:
       newTitle:
@@ -57,6 +85,21 @@ definitions:
     required:
     - newTitle
     - versionId
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateAssignmentRequest:
+    properties:
+      scopeType:
+        enum:
+        - PUBLIC
+        - TENANT
+        - WORKSPACE
+        type: string
+      tenantId:
+        type: string
+      workspaceId:
+        type: string
+    required:
+    - scopeType
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentRequest:
     properties:
@@ -362,6 +405,13 @@ definitions:
     - email
     - role
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListAssignmentsResponse:
+    properties:
+      assignments:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse'
+        type: array
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListInjectablesResponse:
     properties:
       items:
@@ -416,31 +466,11 @@ definitions:
           $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberResponse'
         type: array
     type: object
-  ? github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TenantResponse
-  : properties:
-      count:
-        type: integer
-      data:
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListSystemInjectablesResponse:
+    properties:
+      injectables:
         items:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse'
-        type: array
-    type: object
-  ? github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TenantWithRoleResponse
-  : properties:
-      count:
-        type: integer
-      data:
-        items:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantWithRoleResponse'
-        type: array
-    type: object
-  ? github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_WorkspaceResponse
-  : properties:
-      count:
-        type: integer
-      data:
-        items:
-          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse'
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableResponse'
         type: array
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplateVersionsResponse:
@@ -666,6 +696,46 @@ definitions:
         type: string
       signingUrl:
         type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      injectableKey:
+        type: string
+      isActive:
+        type: boolean
+      scopeType:
+        type: string
+      tenantId:
+        type: string
+      tenantName:
+        type: string
+      workspaceId:
+        type: string
+      workspaceName:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableResponse:
+    properties:
+      dataType:
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      isActive:
+        type: boolean
+      isPublic:
+        type: boolean
+      key:
+        type: string
+      label:
+        additionalProperties:
+          type: string
+        type: object
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemRoleResponse:
     properties:
@@ -2654,11 +2724,12 @@ paths:
       summary: Get my roles
       tags:
       - Me
-  /api/v1/me/tenants/list:
+  /api/v1/me/tenants:
     get:
       consumes:
       - application/json
-      description: Lists tenants where the user is an active member. Supports pagination.
+      description: Lists tenants where the user is an active member. Supports pagination
+        and optional search by name/code.
       parameters:
       - default: 1
         description: Page number
@@ -2670,6 +2741,10 @@ paths:
         in: query
         name: perPage
         type: integer
+      - description: Search query for tenant name or code
+        in: query
+        name: q
+        type: string
       produces:
       - application/json
       responses:
@@ -2683,19 +2758,73 @@ paths:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List my tenants with pagination
+      summary: List my tenants with pagination and optional search
       tags:
       - Me
-  /api/v1/me/tenants/search:
+  /api/v1/system/injectables:
     get:
       consumes:
       - application/json
-      description: Searches tenants by name or code similarity. Only returns tenants
-        where the user is an active member.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListSystemInjectablesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List system injectables
+      tags:
+      - System - Injectables
+  /api/v1/system/injectables/{key}/activate:
+    patch:
+      consumes:
+      - application/json
       parameters:
-      - description: Search query for tenant name or code
-        in: query
-        name: q
+      - description: Injectable key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate system injectable
+      tags:
+      - System - Injectables
+  /api/v1/system/injectables/{key}/assignments:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Injectable key
+        in: path
+        name: key
         required: true
         type: string
       produces:
@@ -2704,7 +2833,46 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TenantWithRoleResponse'
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListAssignmentsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List injectable assignments
+      tags:
+      - System - Injectables
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Injectable key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Assignment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateAssignmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse'
         "400":
           description: Bad Request
           schema:
@@ -2713,12 +2881,270 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Search my tenants
+      summary: Create injectable assignment
       tags:
-      - Me
+      - System - Injectables
+  /api/v1/system/injectables/{key}/assignments/{assignmentId}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Injectable key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Assignment ID
+        in: path
+        name: assignmentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete injectable assignment
+      tags:
+      - System - Injectables
+  /api/v1/system/injectables/{key}/assignments/{assignmentId}/exclude:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Injectable key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Assignment ID
+        in: path
+        name: assignmentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Exclude injectable assignment
+      tags:
+      - System - Injectables
+  /api/v1/system/injectables/{key}/assignments/{assignmentId}/include:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Injectable key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Assignment ID
+        in: path
+        name: assignmentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Include injectable assignment
+      tags:
+      - System - Injectables
+  /api/v1/system/injectables/{key}/deactivate:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Injectable key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deactivate system injectable
+      tags:
+      - System - Injectables
+  /api/v1/system/injectables/bulk/public:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Keys to remove from public
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk delete PUBLIC assignments
+      tags:
+      - System - Injectables
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Keys to make public
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk create PUBLIC assignments
+      tags:
+      - System - Injectables
   /api/v1/system/tenants:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - description: Search query (name or code)
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List tenants with pagination
+      tags:
+      - System - Tenants
     post:
       consumes:
       - application/json
@@ -2865,11 +3291,16 @@ paths:
       summary: Update tenant
       tags:
       - System - Tenants
-  /api/v1/system/tenants/list:
+  /api/v1/system/tenants/{tenantId}/workspaces:
     get:
       consumes:
       - application/json
       parameters:
+      - description: Tenant ID
+        in: path
+        name: tenantId
+        required: true
+        type: string
       - default: 1
         description: Page number
         in: query
@@ -2880,35 +3311,9 @@ paths:
         in: query
         name: perPage
         type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List tenants with pagination
-      tags:
-      - System - Tenants
-  /api/v1/system/tenants/search:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Search query (name or code)
+      - description: Search query (name)
         in: query
         name: q
-        required: true
         type: string
       produces:
       - application/json
@@ -2916,11 +3321,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TenantResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse'
         "401":
           description: Unauthorized
           schema:
@@ -2929,9 +3330,13 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Search tenants by name or code
+      summary: List tenant workspaces
       tags:
       - System - Tenants
   /api/v1/system/users:
@@ -3311,6 +3716,49 @@ paths:
       tags:
       - Tenant - Members
   /api/v1/tenant/workspaces:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - description: Search query for workspace name
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List workspaces with pagination and optional search
+      tags:
+      - Tenant - Workspaces
     post:
       consumes:
       - application/json
@@ -3385,85 +3833,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete workspace from tenant
-      tags:
-      - Tenant - Workspaces
-  /api/v1/tenant/workspaces/list:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tenant ID
-        in: header
-        name: X-Tenant-ID
-        required: true
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Items per page
-        in: query
-        name: perPage
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List workspaces with pagination
-      tags:
-      - Tenant - Workspaces
-  /api/v1/tenant/workspaces/search:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Tenant ID
-        in: header
-        name: X-Tenant-ID
-        required: true
-        type: string
-      - description: Search query (name)
-        in: query
-        name: q
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_WorkspaceResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Search workspaces by name
       tags:
       - Tenant - Workspaces
   /api/v1/workspace:

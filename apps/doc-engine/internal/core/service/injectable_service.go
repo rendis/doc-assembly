@@ -13,19 +13,22 @@ import (
 // NewInjectableService creates a new injectable service.
 func NewInjectableService(
 	injectableRepo port.InjectableRepository,
+	systemInjectableRepo port.SystemInjectableRepository,
 	injectorRegistry port.InjectorRegistry,
 ) usecase.InjectableUseCase {
 	return &InjectableService{
-		injectableRepo:   injectableRepo,
-		injectorRegistry: injectorRegistry,
+		injectableRepo:       injectableRepo,
+		systemInjectableRepo: systemInjectableRepo,
+		injectorRegistry:     injectorRegistry,
 	}
 }
 
 // InjectableService implements injectable definition business logic.
 // Note: Injectables are read-only - they are managed via database migrations/seeds.
 type InjectableService struct {
-	injectableRepo   port.InjectableRepository
-	injectorRegistry port.InjectorRegistry
+	injectableRepo       port.InjectableRepository
+	systemInjectableRepo port.SystemInjectableRepository
+	injectorRegistry     port.InjectorRegistry
 }
 
 // GetInjectable retrieves an injectable definition by ID.
@@ -37,50 +40,46 @@ func (s *InjectableService) GetInjectable(ctx context.Context, id string) (*enti
 	return injectable, nil
 }
 
-// ListInjectables lists all injectable definitions for a workspace (including global + extensions).
+// ListInjectables lists all injectable definitions for a workspace (including global and system).
 func (s *InjectableService) ListInjectables(ctx context.Context, workspaceID string) ([]*entity.InjectableDefinition, error) {
 	dbInjectables, err := s.injectableRepo.FindByWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("listing injectables: %w", err)
 	}
 
-	extInjectables := s.getExtensionInjectables()
-	return s.mergeInjectables(dbInjectables, extInjectables), nil
-}
-
-// ListGlobalInjectables lists all global injectable definitions (including extensions).
-func (s *InjectableService) ListGlobalInjectables(ctx context.Context) ([]*entity.InjectableDefinition, error) {
-	dbInjectables, err := s.injectableRepo.FindGlobal(ctx)
+	systemInjectables, err := s.getSystemInjectables(ctx, workspaceID)
 	if err != nil {
-		return nil, fmt.Errorf("listing global injectables: %w", err)
+		return nil, fmt.Errorf("listing system injectables: %w", err)
 	}
 
-	extInjectables := s.getExtensionInjectables()
-	return s.mergeInjectables(dbInjectables, extInjectables), nil
+	return s.mergeInjectables(dbInjectables, systemInjectables), nil
 }
 
-// FindByKey finds an injectable by key.
-func (s *InjectableService) FindByKey(ctx context.Context, workspaceID *string, key string) (*entity.InjectableDefinition, error) {
-	injectable, err := s.injectableRepo.FindByKey(ctx, workspaceID, key)
-	if err != nil {
-		return nil, fmt.Errorf("finding injectable by key: %w", err)
+// getSystemInjectables returns system injectables filtered by active assignments for the workspace.
+func (s *InjectableService) getSystemInjectables(ctx context.Context, workspaceID string) ([]*entity.InjectableDefinition, error) {
+	if s.injectorRegistry == nil || s.systemInjectableRepo == nil {
+		return nil, nil
 	}
-	return injectable, nil
-}
 
-// getExtensionInjectables converts all registered injectors to InjectableDefinition.
-func (s *InjectableService) getExtensionInjectables() []*entity.InjectableDefinition {
-	if s.injectorRegistry == nil {
-		return nil
+	activeKeys, err := s.systemInjectableRepo.FindActiveKeysForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	activeKeySet := make(map[string]bool, len(activeKeys))
+	for _, key := range activeKeys {
+		activeKeySet[key] = true
 	}
 
 	injectors := s.injectorRegistry.GetAll()
-	result := make([]*entity.InjectableDefinition, 0, len(injectors))
-
+	result := make([]*entity.InjectableDefinition, 0, len(activeKeys))
 	for _, inj := range injectors {
-		result = append(result, s.injectorToDefinition(inj))
+		if activeKeySet[inj.Code()] {
+			result = append(result, s.injectorToDefinition(inj))
+		}
 	}
-	return result
+
+	return result, nil
 }
 
 // injectorToDefinition converts a port.Injector to entity.InjectableDefinition.
@@ -92,7 +91,7 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 	description := s.injectorRegistry.GetDescription(code, "es")
 
 	// Convert DataType
-	dataType := s.convertDataType(inj.DataType())
+	dataType := convertValueTypeToDataType(inj.DataType())
 
 	// Convert FormatConfig
 	var formatConfig *entity.FormatConfig
@@ -129,8 +128,8 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 	}
 }
 
-// convertDataType converts entity.ValueType to entity.InjectableDataType.
-func (s *InjectableService) convertDataType(vt entity.ValueType) entity.InjectableDataType {
+// convertValueTypeToDataType converts entity.ValueType to entity.InjectableDataType.
+func convertValueTypeToDataType(vt entity.ValueType) entity.InjectableDataType {
 	switch vt {
 	case entity.ValueTypeString:
 		return entity.InjectableDataTypeText

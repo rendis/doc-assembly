@@ -91,6 +91,22 @@ func (r *injectorRegistry) GetDescription(code, locale string) string {
 	return r.i18n.GetDescription(code, locale)
 }
 
+// GetAllNames returns all translations for the injector name.
+func (r *injectorRegistry) GetAllNames(code string) map[string]string {
+	if r.i18n == nil {
+		return map[string]string{"en": code}
+	}
+	return r.i18n.GetAllNames(code)
+}
+
+// GetAllDescriptions returns all translations for the injector description.
+func (r *injectorRegistry) GetAllDescriptions(code string) map[string]string {
+	if r.i18n == nil {
+		return map[string]string{}
+	}
+	return r.i18n.GetAllDescriptions(code)
+}
+
 // SetInitFunc registers the GLOBAL initialization function.
 func (r *injectorRegistry) SetInitFunc(fn port.InitFunc) {
 	r.mu.Lock()

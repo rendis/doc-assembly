@@ -15,6 +15,7 @@ import (
 	documentrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
 	folderrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
+	systeminjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	systemrolerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/tag_repo"
 	templaterepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/template_repo"
@@ -64,6 +65,7 @@ var ProviderSet = wire.NewSet(
 
 	// Repositories - Content
 	injectablerepo.New,
+	systeminjectablerepo.New,
 	workspaceinjectablerepo.New,
 	templaterepo.New,
 	templatetagrepo.New,
@@ -89,6 +91,7 @@ var ProviderSet = wire.NewSet(
 	service.NewTenantMemberService,
 	service.NewSystemRoleService,
 	service.NewUserAccessHistoryService,
+	service.NewSystemInjectableService,
 
 	// Services - Content
 	service.NewInjectableService,

@@ -15,8 +15,8 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/testing/testhelper"
 )
 
-// TestMeController_ListMyTenantsPaginated tests the /me/tenants/list endpoint.
-func TestMeController_ListMyTenantsPaginated(t *testing.T) {
+// TestMeController_ListMyTenants tests the /me/tenants endpoint with pagination and optional search.
+func TestMeController_ListMyTenants(t *testing.T) {
 	pool := testhelper.GetTestPool(t)
 	ts := testhelper.NewTestServer(t, pool)
 	client := testhelper.NewHTTPClient(t, ts.URL())
@@ -39,7 +39,7 @@ func TestMeController_ListMyTenantsPaginated(t *testing.T) {
 		testhelper.CreateTestTenantMember(t, pool, tenant2ID, user.ID,
 			entity.TenantRoleAdmin, nil)
 
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/list")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -73,7 +73,7 @@ func TestMeController_ListMyTenantsPaginated(t *testing.T) {
 		testhelper.CreateTestTenantMember(t, pool, tenant3ID, user.ID, entity.TenantRoleAdmin, nil)
 
 		// Request with limit=2, offset=1
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/list?limit=2&offset=1")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants?limit=2&offset=1")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -107,7 +107,7 @@ func TestMeController_ListMyTenantsPaginated(t *testing.T) {
 		testhelper.CreateTestTenantMemberWithStatus(t, pool, pendingTenantID, user.ID,
 			entity.TenantRoleAdmin, entity.MembershipStatusPending, nil)
 
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/list")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -126,7 +126,7 @@ func TestMeController_ListMyTenantsPaginated(t *testing.T) {
 		user := testhelper.CreateTestUser(t, pool, "list-no-tenants@test.com", "List No Tenant User", nil)
 		defer testhelper.CleanupUser(t, pool, user.ID)
 
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/list")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -139,19 +139,12 @@ func TestMeController_ListMyTenantsPaginated(t *testing.T) {
 	})
 
 	t.Run("unauthorized without token", func(t *testing.T) {
-		resp, _ := client.GET("/api/v1/me/tenants/list")
+		resp, _ := client.GET("/api/v1/me/tenants")
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
-}
 
-// TestMeController_SearchMyTenants tests the /me/tenants/search endpoint.
-func TestMeController_SearchMyTenants(t *testing.T) {
-	pool := testhelper.GetTestPool(t)
-	ts := testhelper.NewTestServer(t, pool)
-	client := testhelper.NewHTTPClient(t, ts.URL())
-
-	t.Run("success search by name", func(t *testing.T) {
+	t.Run("success with search filter by name", func(t *testing.T) {
 		// Create user
 		user := testhelper.CreateTestUser(t, pool, "search-name@test.com", "Search Name User", nil)
 		defer testhelper.CleanupUser(t, pool, user.ID)
@@ -170,22 +163,22 @@ func TestMeController_SearchMyTenants(t *testing.T) {
 		testhelper.CreateTestTenantMember(t, pool, tenant2ID, user.ID, entity.TenantRoleAdmin, nil)
 		testhelper.CreateTestTenantMember(t, pool, tenant3ID, user.ID, entity.TenantRoleAdmin, nil)
 
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/search?q=Acme")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants?q=Acme")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var listResp dto.ListResponse[dto.TenantWithRoleResponse]
-		err := json.Unmarshal(body, &listResp)
+		var paginatedResp dto.PaginatedTenantsWithRoleResponse
+		err := json.Unmarshal(body, &paginatedResp)
 		require.NoError(t, err)
 
 		// Should return tenants matching "Acme"
-		assert.GreaterOrEqual(t, listResp.Count, 1)
-		for _, tenant := range listResp.Data {
+		assert.GreaterOrEqual(t, len(paginatedResp.Data), 1)
+		for _, tenant := range paginatedResp.Data {
 			assert.Contains(t, tenant.Name, "Acme")
 		}
 	})
 
-	t.Run("success search by code", func(t *testing.T) {
+	t.Run("success with search filter by code", func(t *testing.T) {
 		// Create user
 		user := testhelper.CreateTestUser(t, pool, "search-code@test.com", "Search Code User", nil)
 		defer testhelper.CleanupUser(t, pool, user.ID)
@@ -196,47 +189,18 @@ func TestMeController_SearchMyTenants(t *testing.T) {
 
 		testhelper.CreateTestTenantMember(t, pool, tenantID, user.ID, entity.TenantRoleOwner, nil)
 
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/search?q=SCODE")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants?q=SCODE")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var listResp dto.ListResponse[dto.TenantWithRoleResponse]
-		err := json.Unmarshal(body, &listResp)
+		var paginatedResp dto.PaginatedTenantsWithRoleResponse
+		err := json.Unmarshal(body, &paginatedResp)
 		require.NoError(t, err)
 
-		assert.GreaterOrEqual(t, listResp.Count, 1)
+		assert.GreaterOrEqual(t, len(paginatedResp.Data), 1)
 	})
 
-	t.Run("only returns user tenants", func(t *testing.T) {
-		// Create user
-		user := testhelper.CreateTestUser(t, pool, "search-own@test.com", "Search Own User", nil)
-		defer testhelper.CleanupUser(t, pool, user.ID)
-
-		// Create tenant where user IS a member
-		memberTenantID := testhelper.CreateTestTenant(t, pool, "Member Tenant Search", "SMTS01")
-		defer testhelper.CleanupTenant(t, pool, memberTenantID)
-
-		// Create tenant where user is NOT a member
-		otherTenantID := testhelper.CreateTestTenant(t, pool, "Other Tenant Search", "SOTS01")
-		defer testhelper.CleanupTenant(t, pool, otherTenantID)
-
-		testhelper.CreateTestTenantMember(t, pool, memberTenantID, user.ID, entity.TenantRoleOwner, nil)
-
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/search?q=Tenant Search")
-
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-		var listResp dto.ListResponse[dto.TenantWithRoleResponse]
-		err := json.Unmarshal(body, &listResp)
-		require.NoError(t, err)
-
-		// Should only return the tenant where user is a member
-		for _, tenant := range listResp.Data {
-			assert.NotEqual(t, otherTenantID, tenant.ID, "should not return tenant where user is not a member")
-		}
-	})
-
-	t.Run("empty results", func(t *testing.T) {
+	t.Run("search with empty results", func(t *testing.T) {
 		// Create user
 		user := testhelper.CreateTestUser(t, pool, "search-empty@test.com", "Search Empty User", nil)
 		defer testhelper.CleanupUser(t, pool, user.ID)
@@ -247,31 +211,15 @@ func TestMeController_SearchMyTenants(t *testing.T) {
 
 		testhelper.CreateTestTenantMember(t, pool, tenantID, user.ID, entity.TenantRoleOwner, nil)
 
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/search?q=ZZZZNONEXISTENT")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants?q=ZZZZNONEXISTENT")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var listResp dto.ListResponse[dto.TenantWithRoleResponse]
-		err := json.Unmarshal(body, &listResp)
+		var paginatedResp dto.PaginatedTenantsWithRoleResponse
+		err := json.Unmarshal(body, &paginatedResp)
 		require.NoError(t, err)
 
-		assert.Equal(t, 0, listResp.Count)
-		assert.Empty(t, listResp.Data)
-	})
-
-	t.Run("validation query required", func(t *testing.T) {
-		// Create user
-		user := testhelper.CreateTestUser(t, pool, "search-required@test.com", "Search Required User", nil)
-		defer testhelper.CleanupUser(t, pool, user.ID)
-
-		resp, _ := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants/search")
-
-		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	})
-
-	t.Run("unauthorized without token", func(t *testing.T) {
-		resp, _ := client.GET("/api/v1/me/tenants/search?q=test")
-
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+		assert.Equal(t, int64(0), paginatedResp.Pagination.Total)
+		assert.Empty(t, paginatedResp.Data)
 	})
 }

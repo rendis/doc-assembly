@@ -37,19 +37,39 @@ const (
 	queryExistsByCode = `
 		SELECT EXISTS(SELECT 1 FROM tenancy.tenants WHERE code = $1)`
 
-	// queryFindAllPaginated lists tenants with pagination.
-	// Orders by most recent access first, then by name for those without access history.
-	queryFindAllPaginated = `
+	// queryFindAllPaginatedUnified lists tenants with pagination, optional search, and user access ordering.
+	// When query ($2) is provided: orders by similarity (relevance).
+	// When query is empty: orders by access history (most recent), then by name.
+	queryFindAllPaginatedUnified = `
 		SELECT t.id, t.code, t.name, t.description, t.is_system, COALESCE(t.settings, '{}'), t.created_at, t.updated_at
 		FROM tenancy.tenants t
 		LEFT JOIN identity.user_access_history h
 			ON t.id = h.entity_id
 			AND h.entity_type = 'TENANT'
 			AND h.user_id = $1
-		ORDER BY h.accessed_at DESC NULLS LAST, t.name ASC
+		WHERE ($2 = '' OR t.name ILIKE '%' || $2 || '%' OR t.code ILIKE '%' || $2 || '%')
+		ORDER BY
+			CASE WHEN $2 != '' THEN GREATEST(similarity(t.name, $2), similarity(t.code, $2)) ELSE 0 END DESC,
+			CASE WHEN $2 = '' THEN h.accessed_at END DESC NULLS LAST,
+			t.name ASC
+		LIMIT $3 OFFSET $4`
+
+	queryCountAllUnified = `
+		SELECT COUNT(*) FROM tenancy.tenants
+		WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR code ILIKE '%' || $1 || '%')`
+
+	// queryFindAllPaginatedWithSearch lists tenants with pagination and optional search filter.
+	// Used for system endpoints with optional query parameter.
+	queryFindAllPaginatedWithSearch = `
+		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at
+		FROM tenancy.tenants
+		WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR code ILIKE '%' || $1 || '%')
+		ORDER BY is_system DESC, name ASC
 		LIMIT $2 OFFSET $3`
 
-	queryCountAll = `SELECT COUNT(*) FROM tenancy.tenants`
+	queryCountAllWithSearch = `
+		SELECT COUNT(*) FROM tenancy.tenants
+		WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR code ILIKE '%' || $1 || '%')`
 
 	querySearchByNameOrCode = `
 		SELECT id, code, name, description, is_system, COALESCE(settings, '{}'), created_at, updated_at

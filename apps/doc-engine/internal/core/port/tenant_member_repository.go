@@ -10,6 +10,7 @@ import (
 type TenantMemberFilters struct {
 	Limit  int
 	Offset int
+	Query  string // Optional search filter for name/code
 }
 
 // TenantMemberRepository defines the interface for tenant membership data access.
@@ -48,9 +49,7 @@ type TenantMemberRepository interface {
 	// Returns tenants in the same order as the provided IDs.
 	FindTenantsWithRoleByUserAndIDs(ctx context.Context, userID string, tenantIDs []string) ([]*entity.TenantWithRole, error)
 
-	// SearchTenantsWithRoleByUser searches tenants by name or code similarity for a user.
-	SearchTenantsWithRoleByUser(ctx context.Context, userID, query string, limit int) ([]*entity.TenantWithRole, error)
-
-	// FindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination.
+	// FindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination and optional search.
+	// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 	FindTenantsWithRoleByUserPaginated(ctx context.Context, userID string, filters TenantMemberFilters) ([]*entity.TenantWithRole, int64, error)
 }

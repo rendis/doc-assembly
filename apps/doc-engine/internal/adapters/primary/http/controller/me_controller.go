@@ -42,62 +42,26 @@ func NewMeController(
 func (c *MeController) RegisterRoutes(rg *gin.RouterGroup) {
 	me := rg.Group("/me")
 	{
-		me.GET("/tenants/search", c.SearchMyTenants)
-		me.GET("/tenants/list", c.ListMyTenantsPaginated)
+		me.GET("/tenants", c.ListMyTenants)
 		me.GET("/roles", c.GetMyRoles)
 		me.POST("/access", c.RecordAccess)
 	}
 }
 
-// SearchMyTenants searches tenants by name or code similarity for the current user.
-// Returns up to 10 tenants that the user is a member of, ordered by similarity.
-// @Summary Search my tenants
-// @Description Searches tenants by name or code similarity. Only returns tenants where the user is an active member.
-// @Tags Me
-// @Accept json
-// @Produce json
-// @Param q query string true "Search query for tenant name or code"
-// @Success 200 {object} dto.ListResponse[dto.TenantWithRoleResponse]
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Router /api/v1/me/tenants/search [get]
-// @Security BearerAuth
-func (c *MeController) SearchMyTenants(ctx *gin.Context) {
-	userID, ok := middleware.GetInternalUserID(ctx)
-	if !ok {
-		HandleError(ctx, entity.ErrUnauthorized)
-		return
-	}
-
-	var req dto.TenantSearchRequest
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
-		return
-	}
-
-	tenants, err := c.tenantUC.SearchUserTenants(ctx.Request.Context(), userID, req.Query)
-	if err != nil {
-		HandleError(ctx, err)
-		return
-	}
-
-	responses := mapper.TenantsWithRoleToResponses(tenants)
-	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
-}
-
-// ListMyTenantsPaginated lists tenants the current user is a member of with pagination.
-// @Summary List my tenants with pagination
-// @Description Lists tenants where the user is an active member. Supports pagination.
+// ListMyTenants lists tenants the current user is a member of with pagination and optional search.
+// @Summary List my tenants with pagination and optional search
+// @Description Lists tenants where the user is an active member. Supports pagination and optional search by name/code.
 // @Tags Me
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number" default(1)
 // @Param perPage query int false "Items per page" default(10)
+// @Param q query string false "Search query for tenant name or code"
 // @Success 200 {object} dto.PaginatedTenantsWithRoleResponse
 // @Failure 401 {object} dto.ErrorResponse
-// @Router /api/v1/me/tenants/list [get]
+// @Router /api/v1/me/tenants [get]
 // @Security BearerAuth
-func (c *MeController) ListMyTenantsPaginated(ctx *gin.Context) {
+func (c *MeController) ListMyTenants(ctx *gin.Context) {
 	userID, ok := middleware.GetInternalUserID(ctx)
 	if !ok {
 		HandleError(ctx, entity.ErrUnauthorized)

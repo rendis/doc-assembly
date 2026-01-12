@@ -115,6 +115,15 @@ func (s *TenantService) ListTenantsPaginated(ctx context.Context, filters port.T
 	return tenants, total, nil
 }
 
+// ListTenantWorkspaces lists workspaces for a tenant with optional search (system admin use).
+func (s *TenantService) ListTenantWorkspaces(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
+	// Verify tenant exists
+	if _, err := s.tenantRepo.FindByID(ctx, tenantID); err != nil {
+		return nil, 0, err
+	}
+	return s.workspaceRepo.FindByTenantPaginated(ctx, tenantID, filters)
+}
+
 // ListUserTenants lists all tenants a user belongs to with their roles.
 func (s *TenantService) ListUserTenants(ctx context.Context, userID string) ([]*entity.TenantWithRole, error) {
 	tenants, err := s.tenantMemberRepo.FindTenantsWithRoleByUser(ctx, userID)
@@ -124,44 +133,7 @@ func (s *TenantService) ListUserTenants(ctx context.Context, userID string) ([]*
 	return tenants, nil
 }
 
-// SearchUserTenants searches tenants by name or code similarity for a user.
-// If the user has a system role (SUPERADMIN or PLATFORM_ADMIN), returns all tenants.
-func (s *TenantService) SearchUserTenants(ctx context.Context, userID, query string) ([]*entity.TenantWithRole, error) {
-	const maxResults = 10
-
-	var tenants []*entity.TenantWithRole
-
-	// Check if user has a system role
-	systemRoleAssignment, err := s.systemRoleRepo.FindByUserID(ctx, userID)
-	if err == nil && systemRoleAssignment != nil {
-		virtualRole := s.getVirtualTenantRole(systemRoleAssignment.Role)
-		if virtualRole != "" {
-			allTenants, err := s.tenantRepo.SearchByNameOrCode(ctx, query, maxResults)
-			if err != nil {
-				return nil, fmt.Errorf("searching all tenants: %w", err)
-			}
-			tenants = s.mapTenantsWithRole(allTenants, virtualRole)
-		}
-	}
-
-	// Regular users: search only their tenants
-	if tenants == nil {
-		var err error
-		tenants, err = s.tenantMemberRepo.SearchTenantsWithRoleByUser(ctx, userID, query, maxResults)
-		if err != nil {
-			return nil, fmt.Errorf("searching user tenants: %w", err)
-		}
-	}
-
-	// Enrich with access history
-	if err := s.enrichTenantsWithAccessHistory(ctx, userID, tenants); err != nil {
-		slog.Warn("failed to enrich tenants with access history", slog.String("error", err.Error()))
-	}
-
-	return tenants, nil
-}
-
-// ListUserTenantsPaginated lists tenants a user belongs to with pagination.
+// ListUserTenantsPaginated lists tenants a user belongs to with pagination and optional search.
 // If the user has a system role (SUPERADMIN or PLATFORM_ADMIN), returns all tenants.
 func (s *TenantService) ListUserTenantsPaginated(ctx context.Context, userID string, filters port.TenantMemberFilters) ([]*entity.TenantWithRole, int64, error) {
 	var tenants []*entity.TenantWithRole
@@ -176,6 +148,7 @@ func (s *TenantService) ListUserTenantsPaginated(ctx context.Context, userID str
 				Limit:  filters.Limit,
 				Offset: filters.Offset,
 				UserID: userID,
+				Query:  filters.Query,
 			}
 			allTenants, t, err := s.tenantRepo.FindAllPaginated(ctx, tenantFilters)
 			if err != nil {

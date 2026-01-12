@@ -107,16 +107,7 @@ func (s *WorkspaceService) ListUserWorkspaces(ctx context.Context, userID string
 	return workspaces, nil
 }
 
-// SearchWorkspaces searches workspaces by name within a tenant.
-func (s *WorkspaceService) SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error) {
-	workspaces, err := s.workspaceRepo.SearchByNameInTenant(ctx, tenantID, query, 10)
-	if err != nil {
-		return nil, fmt.Errorf("searching workspaces: %w", err)
-	}
-	return workspaces, nil
-}
-
-// ListWorkspacesPaginated lists workspaces for a tenant with pagination.
+// ListWorkspacesPaginated lists workspaces for a tenant with pagination and optional search.
 func (s *WorkspaceService) ListWorkspacesPaginated(ctx context.Context, tenantID, userID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
 	filters.UserID = userID
 	workspaces, total, err := s.workspaceRepo.FindByTenantPaginated(ctx, tenantID, filters)

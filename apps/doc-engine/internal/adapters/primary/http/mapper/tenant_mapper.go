@@ -132,6 +132,7 @@ func TenantListRequestToFilters(req dto.TenantListRequest) port.TenantFilters {
 	return port.TenantFilters{
 		Limit:  req.PerPage,
 		Offset: offset,
+		Query:  req.Query,
 	}
 }
 
@@ -161,6 +162,7 @@ func TenantMemberListRequestToFilters(req dto.TenantListRequest) port.TenantMemb
 	return port.TenantMemberFilters{
 		Limit:  req.PerPage,
 		Offset: offset,
+		Query:  req.Query,
 	}
 }
 

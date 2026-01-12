@@ -34,11 +34,8 @@ type WorkspaceUseCase interface {
 	// ListUserWorkspaces lists all workspaces a user has access to.
 	ListUserWorkspaces(ctx context.Context, userID string) ([]*entity.WorkspaceWithRole, error)
 
-	// SearchWorkspaces searches workspaces by name within a tenant.
-	SearchWorkspaces(ctx context.Context, tenantID, query string) ([]*entity.Workspace, error)
-
-	// ListWorkspacesPaginated lists workspaces for a tenant with pagination.
-	// userID is used to enrich with access history.
+	// ListWorkspacesPaginated lists workspaces for a tenant with pagination and optional search.
+	// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 	ListWorkspacesPaginated(ctx context.Context, tenantID, userID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error)
 
 	// UpdateWorkspace updates a workspace's details.
@@ -86,13 +83,14 @@ type TenantUseCase interface {
 	// ListTenantsPaginated lists tenants with pagination.
 	ListTenantsPaginated(ctx context.Context, filters port.TenantFilters) ([]*entity.Tenant, int64, error)
 
+	// ListTenantWorkspaces lists workspaces for a tenant with optional search (system admin use).
+	ListTenantWorkspaces(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error)
+
 	// ListUserTenants lists all tenants a user belongs to with their roles.
 	ListUserTenants(ctx context.Context, userID string) ([]*entity.TenantWithRole, error)
 
-	// SearchUserTenants searches tenants by name or code similarity for a user.
-	SearchUserTenants(ctx context.Context, userID, query string) ([]*entity.TenantWithRole, error)
-
-	// ListUserTenantsPaginated lists tenants a user belongs to with pagination.
+	// ListUserTenantsPaginated lists tenants a user belongs to with pagination and optional search.
+	// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 	ListUserTenantsPaginated(ctx context.Context, userID string, filters port.TenantMemberFilters) ([]*entity.TenantWithRole, int64, error)
 
 	// UpdateTenant updates a tenant's details.
