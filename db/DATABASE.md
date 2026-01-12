@@ -841,19 +841,6 @@ Valid values:
 **Check Constraint** (`chk_format_config_structure`):
 - Validates that `format_config` is either NULL, empty object `{}`, or contains both `default` (string) and `options` (array)
 
-**System Injectables (Seed Data)**:
-
-The following global injectables are created by default (workspace_id = NULL):
-
-| Key | Label | data_type | source_type | Description |
-|-----|-------|-----------|-------------|-------------|
-| `date_time_now` | Fecha y Hora Actual | TEXT | INTERNAL | Full date and time at document generation |
-| `date_now` | Fecha Actual | DATE | INTERNAL | Date at document generation |
-| `time_now` | Hora Actual | TEXT | INTERNAL | Time at document generation |
-| `year_now` | Año Actual | NUMBER | INTERNAL | Current year |
-| `month_now` | Mes Actual | TEXT | INTERNAL | Current month (number, name, or short_name) |
-| `day_now` | Día Actual | NUMBER | INTERNAL | Current day of month |
-
 ---
 
 ### 5.9 `content.templates`

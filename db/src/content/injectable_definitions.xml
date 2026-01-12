@@ -115,32 +115,6 @@
         </rollback>
     </changeSet>
 
-    <!-- ========== SYSTEM INJECTABLES SEED ========== -->
-
-    <changeSet id="injectable_definitions:seed:system_injectables" author="doc-assembly">
-        <comment>Global system injectables for date/time - available to all workspaces</comment>
-        <sql splitStatements="false">
-            INSERT INTO content.injectable_definitions
-                (workspace_id, key, label, description, data_type, source_type, metadata)
-            VALUES
-                (NULL, 'date_time_now', 'Fecha y Hora Actual', 'Fecha y hora al momento de generar el documento', 'TEXT', 'INTERNAL',
-                 '{"options": {"formats": ["DD/MM/YYYY HH:mm", "YYYY-MM-DD HH:mm:ss", "long"], "default": "DD/MM/YYYY HH:mm"}}'),
-                (NULL, 'date_now', 'Fecha Actual', 'Fecha al momento de generar el documento', 'DATE', 'INTERNAL',
-                 '{"options": {"formats": ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "long"], "default": "DD/MM/YYYY"}}'),
-                (NULL, 'time_now', 'Hora Actual', 'Hora al momento de generar el documento', 'TEXT', 'INTERNAL',
-                 '{"options": {"formats": ["HH:mm", "HH:mm:ss", "hh:mm a"], "default": "HH:mm"}}'),
-                (NULL, 'year_now', 'Año Actual', 'Año al momento de generar el documento', 'NUMBER', 'INTERNAL', '{}'),
-                (NULL, 'month_now', 'Mes Actual', 'Mes al momento de generar el documento', 'TEXT', 'INTERNAL',
-                 '{"options": {"formats": ["number", "name", "short_name"], "default": "number"}}'),
-                (NULL, 'day_now', 'Día Actual', 'Día del mes al momento de generar el documento', 'NUMBER', 'INTERNAL', '{}');
-        </sql>
-        <rollback>
-            DELETE FROM content.injectable_definitions
-            WHERE workspace_id IS NULL
-              AND key IN ('date_time_now', 'date_now', 'time_now', 'year_now', 'month_now', 'day_now');
-        </rollback>
-    </changeSet>
-
     <!-- ========== FORMAT CONFIG COLUMN ========== -->
 
     <changeSet id="injectable_definitions:add_column:format_config" author="doc-assembly">
@@ -176,6 +150,26 @@
         <rollback>
             ALTER TABLE content.injectable_definitions DROP CONSTRAINT chk_format_config_structure;
         </rollback>
+    </changeSet>
+
+    <!-- ========== DROP SOURCE_TYPE COLUMN ========== -->
+
+    <changeSet id="injectable_definitions:drop_column:source_type" author="doc-assembly">
+        <comment>Remove source_type column - no longer needed</comment>
+        <dropColumn tableName="injectable_definitions" schemaName="content" columnName="source_type"/>
+        <rollback>
+            <addColumn tableName="injectable_definitions" schemaName="content">
+                <column name="source_type" type="injectable_source_type" defaultValue="EXTERNAL">
+                    <constraints nullable="false"/>
+                </column>
+            </addColumn>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="enum:injectable_source_type:drop" author="doc-assembly">
+        <comment>Remove injectable_source_type enum - no longer used after column removal</comment>
+        <sql>DROP TYPE IF EXISTS injectable_source_type;</sql>
+        <rollback>CREATE TYPE injectable_source_type AS ENUM ('INTERNAL', 'EXTERNAL');</rollback>
     </changeSet>
 
 </databaseChangeLog>
