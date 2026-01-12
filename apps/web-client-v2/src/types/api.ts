@@ -1,6 +1,6 @@
 /**
  * API Response Types
- * Based on swagger.json definitions
+ * Based on ../doc-engine/docs/swagger.yaml definitions
  */
 
 // ============================================

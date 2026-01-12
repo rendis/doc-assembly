@@ -214,7 +214,13 @@
       "versionsTotal": "{{count}} version(s)",
       "noVersions": "No versions yet",
       "createVersion": "Create New Version",
-      "createFirstVersion": "Create first version"
+      "createFirstVersion": "Create first version",
+      "filters": {
+        "published": "Published",
+        "scheduled": "Scheduled",
+        "draft": "Drafts",
+        "archived": "Archived"
+      }
     },
     "editTagsDialog": {
       "title": "Edit Tags",
@@ -225,6 +231,7 @@
       "createdAt": "Created",
       "publishedAt": "Published",
       "archivedAt": "Archived",
+      "scheduledAt": "Scheduled",
       "openEditor": "Open in Editor"
     },
     "createVersionDialog": {
@@ -264,7 +271,8 @@
         "publishNow": "Publish Now",
         "schedule": "Schedule",
         "archive": "Archive",
-        "clone": "Clone version"
+        "clone": "Clone version",
+        "cancelSchedule": "Cancel Schedule"
       }
     },
     "promoteDialog": {

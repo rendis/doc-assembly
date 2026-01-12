@@ -160,7 +160,7 @@ export function TemplateDetailPage() {
         ARCHIVED: 0,
       } as Record<VersionStatus, number>
     )
-  }, [template.versions])
+  }, [template?.versions])
 
   // User's filter toggle preferences (true = show, false = hide)
   const [userFilterToggles, setUserFilterToggles] = useState<Record<VersionStatus, boolean>>({

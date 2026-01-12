@@ -16,7 +16,7 @@ pnpm preview      # Preview production build
 
 This is a React 19 + TypeScript SPA for a multi-tenant document assembly platform. It uses Vite (rolldown-vite) for bundling.
 
-- **Guía completa de arquitectura**: `docs/ARCHITECTURE.md` (stack, estructura de carpetas, patrones de código, configuración)
+- **Guía completa de arquitectura**: `docs/architecture.md` (stack, estructura de carpetas, patrones de código, configuración)
 
 ### Routing
 
@@ -39,6 +39,9 @@ This is a React 19 + TypeScript SPA for a multi-tenant document assembly platfor
   - Three role levels: System (SUPERADMIN), Tenant (OWNER/ADMIN), Workspace (OWNER/ADMIN/EDITOR/OPERATOR/VIEWER)
   - `usePermission()` hook checks permissions against current context
   - `<PermissionGuard>` component for declarative UI permission control
+- **Matriz de Permisos**: Documentación detallada en `../doc-engine/docs/authorization-matrix.md`
+
+> **IMPORTANTE**: Antes de implementar validaciones de permisos, controles de acceso, uso de `<PermissionGuard>` o `usePermission()`, **SIEMPRE** consulta la matriz de autorización (`../doc-engine/docs/authorization-matrix.md`) para conocer los permisos exactos por endpoint y los roles mínimos requeridos para cada operación.
 
 ### API Layer
 
@@ -46,9 +49,9 @@ This is a React 19 + TypeScript SPA for a multi-tenant document assembly platfor
   - `Authorization` header (Bearer token)
   - `X-Tenant-ID` and `X-Workspace-ID` headers from context
 - Backend expected at `VITE_API_URL` (default: `http://localhost:8080/api/v1`)
-- **Swagger/OpenAPI**: La especificación de las APIs está en `../doc-engine/docs/swagger.json`
+- **Swagger/OpenAPI**: Especificación de APIs en `../doc-engine/docs/swagger.yaml`
 
-> **IMPORTANTE**: Antes de implementar o interactuar con cualquier componente de la API, **SIEMPRE** consulta el archivo Swagger (`../doc-engine/docs/swagger.json`) para obtener contexto actualizado sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
+> **IMPORTANTE**: Antes de implementar o interactuar con cualquier componente de la API, **SIEMPRE** consulta el archivo Swagger (`../doc-engine/docs/swagger.yaml`) para obtener contexto actualizado sobre endpoints, parámetros, tipos de respuesta y modelos de datos.
 
 ### Feature Structure
 
@@ -65,9 +68,9 @@ Current features: `auth`, `tenants`, `workspaces`, `documents`, `editor`
 - **Tailwind CSS** with shadcn/ui-style CSS variables
 - Dark mode via `class` strategy
 - Colors defined as HSL CSS variables in `index.css`
-- **Design System**: Documentación completa en `docs/DESIGN_SYSTEM.md`
+- **Design System**: Documentación completa en `docs/design_system.md`
 
-> **IMPORTANTE**: Antes de crear o modificar componentes UI, **SIEMPRE** consulta el Design System (`docs/DESIGN_SYSTEM.md`) para mantener consistencia visual. Incluye filosofía de diseño, paleta de colores, tipografía, border radius, espaciado y patrones de componentes.
+> **IMPORTANTE**: Antes de crear o modificar componentes UI, **SIEMPRE** consulta el Design System (`docs/design_system.md`) para mantener consistencia visual. Incluye filosofía de diseño, paleta de colores, tipografía, border radius, espaciado y patrones de componentes.
 
 ### Rich Text Editor
 
