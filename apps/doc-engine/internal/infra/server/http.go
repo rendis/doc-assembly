@@ -73,9 +73,9 @@ func NewHTTPServer(
 		internalV1 := engine.Group("/api/v1")
 		internalV1.Use(middleware.Operation())
 		internalDocController.RegisterRoutes(internalV1, cfg.InternalAPI.APIKey)
-		slog.Info("internal API routes registered")
+		slog.InfoContext(context.Background(), "internal API routes registered")
 	} else {
-		slog.Warn("internal API routes disabled (no API key configured)")
+		slog.WarnContext(context.Background(), "internal API routes disabled (no API key configured)")
 	}
 
 	// API v1 routes with authentication
@@ -143,7 +143,7 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 
 	// Start server in goroutine
 	go func() {
-		slog.Info("starting HTTP server", slog.String("addr", addr))
+		slog.InfoContext(ctx, "starting HTTP server", slog.String("addr", addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		}
@@ -152,14 +152,14 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 	// Wait for context cancellation or server error
 	select {
 	case <-ctx.Done():
-		slog.Info("shutting down HTTP server")
+		slog.InfoContext(ctx, "shutting down HTTP server")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.config.ShutdownTimeoutDuration())
 		defer cancel()
 
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("server shutdown: %w", err)
 		}
-		slog.Info("HTTP server stopped gracefully")
+		slog.InfoContext(shutdownCtx, "HTTP server stopped gracefully")
 		return nil
 
 	case err := <-errChan:

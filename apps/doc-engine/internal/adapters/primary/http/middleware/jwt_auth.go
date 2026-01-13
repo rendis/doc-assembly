@@ -37,7 +37,7 @@ func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
 
 		jwks, jwksErr = keyfunc.NewDefaultCtx(ctx, []string{authCfg.JWKSURL})
 		if jwksErr != nil {
-			slog.Error("failed to initialize JWKS", slog.String("error", jwksErr.Error()))
+			slog.ErrorContext(ctx, "failed to initialize JWKS", slog.String("error", jwksErr.Error()))
 		}
 	}
 
@@ -66,7 +66,7 @@ func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
 		// Parse and validate token
 		claims, err := validateToken(tokenString, jwks, authCfg)
 		if err != nil {
-			slog.Warn("token validation failed",
+			slog.WarnContext(c.Request.Context(), "token validation failed",
 				slog.String("error", err.Error()),
 				slog.String("operation_id", GetOperationID(c)),
 			)

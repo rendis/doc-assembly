@@ -39,13 +39,13 @@ func SystemRoleContext(systemRoleRepo port.SystemRoleRepository) gin.HandlerFunc
 		assignment, err := systemRoleRepo.FindByUserID(c.Request.Context(), internalUserID)
 		if err == nil {
 			c.Set(systemRoleKey, assignment.Role)
-			slog.Debug("loaded system role",
+			slog.DebugContext(c.Request.Context(), "loaded system role",
 				slog.String("user_id", internalUserID),
 				slog.String("role", string(assignment.Role)),
 				slog.String("operation_id", GetOperationID(c)),
 			)
 		} else if !errors.Is(err, entity.ErrSystemRoleNotFound) {
-			slog.Warn("failed to load system role",
+			slog.WarnContext(c.Request.Context(), "failed to load system role",
 				slog.String("user_id", internalUserID),
 				slog.String("error", err.Error()),
 				slog.String("operation_id", GetOperationID(c)),
@@ -86,7 +86,7 @@ func AuthorizeSystemRole(requiredRole entity.SystemRole) gin.HandlerFunc {
 		// Get user's system role from context
 		userRole, ok := GetSystemRole(c)
 		if !ok {
-			slog.Warn("authorization failed: no system role",
+			slog.WarnContext(c.Request.Context(), "authorization failed: no system role",
 				slog.String("required_role", string(requiredRole)),
 				slog.String("operation_id", GetOperationID(c)),
 			)
@@ -96,7 +96,7 @@ func AuthorizeSystemRole(requiredRole entity.SystemRole) gin.HandlerFunc {
 
 		// Check if user has sufficient permissions
 		if !userRole.HasPermission(requiredRole) {
-			slog.Warn("authorization failed: insufficient system permissions",
+			slog.WarnContext(c.Request.Context(), "authorization failed: insufficient system permissions",
 				slog.String("user_role", string(userRole)),
 				slog.String("required_role", string(requiredRole)),
 				slog.String("operation_id", GetOperationID(c)),

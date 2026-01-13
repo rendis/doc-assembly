@@ -2,7 +2,6 @@ package infra
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -240,7 +239,7 @@ func ProvideExtensionDeps() *extensions.InitDeps {
 
 // ProvideInjectableResolver creates the injectable resolver service.
 func ProvideInjectableResolver(reg port.InjectorRegistry) *injectablesvc.InjectableResolverService {
-	return injectablesvc.NewInjectableResolverService(reg, slog.Default())
+	return injectablesvc.NewInjectableResolverService(reg)
 }
 
 // ProvideDocumentGenerator creates the document generator service.
@@ -261,7 +260,6 @@ func ProvideDocumentGenerator(
 		injectableUC,
 		mapperRegistry,
 		resolver,
-		slog.Default(),
 	)
 }
 
@@ -269,5 +267,5 @@ func ProvideDocumentGenerator(
 func ProvideInternalDocumentService(
 	generator *documentsvc.DocumentGenerator,
 ) documentuc.InternalDocumentUseCase {
-	return documentsvc.NewInternalDocumentService(generator, slog.Default())
+	return documentsvc.NewInternalDocumentService(generator)
 }

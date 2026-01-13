@@ -59,7 +59,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 	// Get the appropriate webhook handler
 	handler, ok := c.webhookHandlers[provider]
 	if !ok {
-		slog.Warn("webhook received for unknown provider",
+		slog.WarnContext(ctx.Request.Context(), "webhook received for unknown provider",
 			slog.String("provider", provider),
 		)
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -71,7 +71,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 	// Read body
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		slog.Error("failed to read webhook body",
+		slog.ErrorContext(ctx.Request.Context(), "failed to read webhook body",
 			slog.String("provider", provider),
 			slog.String("error", err.Error()),
 		)
@@ -90,7 +90,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 		signature = ctx.GetHeader("X-Signature")
 	}
 
-	slog.Info("processing signing webhook",
+	slog.InfoContext(ctx.Request.Context(), "processing signing webhook",
 		slog.String("provider", provider),
 		slog.Int("body_length", len(body)),
 		slog.Bool("has_signature", signature != ""),
@@ -100,7 +100,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 	event, err := handler.ParseWebhook(ctx.Request.Context(), body, signature)
 	if err != nil {
 		if err == entity.ErrInvalidWebhookSignature {
-			slog.Warn("invalid webhook signature",
+			slog.WarnContext(ctx.Request.Context(), "invalid webhook signature",
 				slog.String("provider", provider),
 			)
 			ctx.JSON(http.StatusUnauthorized, gin.H{
@@ -109,7 +109,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 			return
 		}
 
-		slog.Error("failed to parse webhook",
+		slog.ErrorContext(ctx.Request.Context(), "failed to parse webhook",
 			slog.String("provider", provider),
 			slog.String("error", err.Error()),
 		)
@@ -121,7 +121,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 
 	// Process the event
 	if err := c.documentUC.HandleWebhookEvent(ctx.Request.Context(), event); err != nil {
-		slog.Error("failed to process webhook event",
+		slog.ErrorContext(ctx.Request.Context(), "failed to process webhook event",
 			slog.String("provider", provider),
 			slog.String("event_type", event.EventType),
 			slog.String("document_id", event.ProviderDocumentID),
@@ -136,7 +136,7 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 		return
 	}
 
-	slog.Info("webhook processed successfully",
+	slog.InfoContext(ctx.Request.Context(), "webhook processed successfully",
 		slog.String("provider", provider),
 		slog.String("event_type", event.EventType),
 		slog.String("document_id", event.ProviderDocumentID),

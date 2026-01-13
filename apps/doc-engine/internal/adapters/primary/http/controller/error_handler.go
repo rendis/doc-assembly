@@ -129,7 +129,7 @@ func HandleError(ctx *gin.Context, err error) {
 	// 500 Internal Server Error - Unhandled errors
 	default:
 		statusCode = http.StatusInternalServerError
-		slog.Error("unhandled error", slog.Any("error", err))
+		slog.ErrorContext(ctx.Request.Context(), "unhandled error", slog.Any("error", err))
 	}
 
 	respondError(ctx, statusCode, err)

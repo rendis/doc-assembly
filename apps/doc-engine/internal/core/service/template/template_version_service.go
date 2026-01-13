@@ -82,7 +82,7 @@ func (s *TemplateVersionService) CreateVersion(ctx context.Context, cmd template
 	}
 	version.ID = id
 
-	slog.Info("template version created",
+	slog.InfoContext(ctx, "template version created",
 		slog.String("version_id", version.ID),
 		slog.String("template_id", cmd.TemplateID),
 		slog.Int("version_number", versionNumber),
@@ -127,15 +127,15 @@ func (s *TemplateVersionService) CreateVersionFromExisting(ctx context.Context, 
 
 	// Copy injectables
 	if err := s.injectableRepo.CopyFromVersion(ctx, sourceVersionID, version.ID); err != nil {
-		slog.Warn("failed to copy injectables", slog.Any("error", err))
+		slog.WarnContext(ctx, "failed to copy injectables", slog.Any("error", err))
 	}
 
 	// Copy signer roles
 	if err := s.signerRoleRepo.CopyFromVersion(ctx, sourceVersionID, version.ID); err != nil {
-		slog.Warn("failed to copy signer roles", slog.Any("error", err))
+		slog.WarnContext(ctx, "failed to copy signer roles", slog.Any("error", err))
 	}
 
-	slog.Info("template version created from existing",
+	slog.InfoContext(ctx, "template version created from existing",
 		slog.String("version_id", version.ID),
 		slog.String("source_version_id", sourceVersionID),
 		slog.Int("version_number", versionNumber),
@@ -226,7 +226,7 @@ func (s *TemplateVersionService) UpdateVersion(ctx context.Context, cmd template
 		return nil, fmt.Errorf("updating version: %w", err)
 	}
 
-	slog.Info("template version updated", slog.String("version_id", version.ID))
+	slog.InfoContext(ctx, "template version updated", slog.String("version_id", version.ID))
 	return version, nil
 }
 
@@ -255,7 +255,7 @@ func (s *TemplateVersionService) PublishVersion(ctx context.Context, id string, 
 
 	// Delete existing signer roles for this version
 	if err := s.signerRoleRepo.DeleteByVersionID(ctx, version.ID); err != nil {
-		slog.Warn("failed to delete existing signer roles",
+		slog.WarnContext(ctx, "failed to delete existing signer roles",
 			slog.String("version_id", version.ID),
 			slog.Any("error", err),
 		)
@@ -269,7 +269,7 @@ func (s *TemplateVersionService) PublishVersion(ctx context.Context, id string, 
 		}
 	}
 
-	slog.Info("signer roles extracted from content",
+	slog.InfoContext(ctx, "signer roles extracted from content",
 		slog.String("version_id", version.ID),
 		slog.Int("count", len(result.ExtractedSignerRoles)),
 	)
@@ -281,7 +281,7 @@ func (s *TemplateVersionService) PublishVersion(ctx context.Context, id string, 
 		if err := s.versionRepo.Update(ctx, currentPublished); err != nil {
 			return fmt.Errorf("archiving current version: %w", err)
 		}
-		slog.Info("previous version archived",
+		slog.InfoContext(ctx, "previous version archived",
 			slog.String("archived_version_id", currentPublished.ID),
 			slog.String("new_version_id", id),
 		)
@@ -293,7 +293,7 @@ func (s *TemplateVersionService) PublishVersion(ctx context.Context, id string, 
 		return fmt.Errorf("publishing version: %w", err)
 	}
 
-	slog.Info("template version published",
+	slog.InfoContext(ctx, "template version published",
 		slog.String("version_id", id),
 		slog.String("template_id", version.TemplateID),
 	)
@@ -336,7 +336,7 @@ func (s *TemplateVersionService) SchedulePublish(ctx context.Context, cmd templa
 		return fmt.Errorf("scheduling publish: %w", err)
 	}
 
-	slog.Info("version scheduled for publication",
+	slog.InfoContext(ctx, "version scheduled for publication",
 		slog.String("version_id", cmd.VersionID),
 		slog.Time("publish_at", cmd.PublishAt),
 	)
@@ -367,7 +367,7 @@ func (s *TemplateVersionService) ScheduleArchive(ctx context.Context, cmd templa
 		return fmt.Errorf("scheduling archive: %w", err)
 	}
 
-	slog.Info("version scheduled for archival",
+	slog.InfoContext(ctx, "version scheduled for archival",
 		slog.String("version_id", cmd.VersionID),
 		slog.Time("archive_at", cmd.ArchiveAt),
 	)
@@ -389,7 +389,7 @@ func (s *TemplateVersionService) CancelSchedule(ctx context.Context, versionID s
 		return fmt.Errorf("canceling schedule: %w", err)
 	}
 
-	slog.Info("version schedule canceled", slog.String("version_id", versionID))
+	slog.InfoContext(ctx, "version schedule canceled", slog.String("version_id", versionID))
 	return nil
 }
 
@@ -409,7 +409,7 @@ func (s *TemplateVersionService) ArchiveVersion(ctx context.Context, id string, 
 		return fmt.Errorf("archiving version: %w", err)
 	}
 
-	slog.Info("template version archived", slog.String("version_id", id))
+	slog.InfoContext(ctx, "template version archived", slog.String("version_id", id))
 	return nil
 }
 
@@ -426,17 +426,17 @@ func (s *TemplateVersionService) DeleteVersion(ctx context.Context, id string) e
 
 	// Delete related data first
 	if err := s.injectableRepo.DeleteByVersionID(ctx, id); err != nil {
-		slog.Warn("failed to delete version injectables", slog.Any("error", err))
+		slog.WarnContext(ctx, "failed to delete version injectables", slog.Any("error", err))
 	}
 	if err := s.signerRoleRepo.DeleteByVersionID(ctx, id); err != nil {
-		slog.Warn("failed to delete version signer roles", slog.Any("error", err))
+		slog.WarnContext(ctx, "failed to delete version signer roles", slog.Any("error", err))
 	}
 
 	if err := s.versionRepo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("deleting version: %w", err)
 	}
 
-	slog.Info("template version deleted", slog.String("version_id", id))
+	slog.InfoContext(ctx, "template version deleted", slog.String("version_id", id))
 	return nil
 }
 
@@ -478,7 +478,7 @@ func (s *TemplateVersionService) AddInjectable(ctx context.Context, cmd template
 	}
 	injectable.ID = id
 
-	slog.Info("injectable added to version",
+	slog.InfoContext(ctx, "injectable added to version",
 		slog.String("version_id", cmd.VersionID),
 		slog.String("injectable_id", cmd.InjectableDefinitionID),
 	)
@@ -506,7 +506,7 @@ func (s *TemplateVersionService) RemoveInjectable(ctx context.Context, id string
 		return fmt.Errorf("removing injectable: %w", err)
 	}
 
-	slog.Info("injectable removed from version", slog.String("injectable_id", id))
+	slog.InfoContext(ctx, "injectable removed from version", slog.String("injectable_id", id))
 	return nil
 }
 
@@ -519,13 +519,13 @@ func (s *TemplateVersionService) ProcessScheduledPublications(ctx context.Contex
 
 	for _, version := range versions {
 		if err := s.PublishVersion(ctx, version.ID, "system"); err != nil {
-			slog.Error("failed to process scheduled publication",
+			slog.ErrorContext(ctx, "failed to process scheduled publication",
 				slog.String("version_id", version.ID),
 				slog.Any("error", err),
 			)
 			continue
 		}
-		slog.Info("scheduled publication processed", slog.String("version_id", version.ID))
+		slog.InfoContext(ctx, "scheduled publication processed", slog.String("version_id", version.ID))
 	}
 
 	return nil
@@ -540,13 +540,13 @@ func (s *TemplateVersionService) ProcessScheduledArchivals(ctx context.Context) 
 
 	for _, version := range versions {
 		if err := s.ArchiveVersion(ctx, version.ID, "system"); err != nil {
-			slog.Error("failed to process scheduled archival",
+			slog.ErrorContext(ctx, "failed to process scheduled archival",
 				slog.String("version_id", version.ID),
 				slog.Any("error", err),
 			)
 			continue
 		}
-		slog.Info("scheduled archival processed", slog.String("version_id", version.ID))
+		slog.InfoContext(ctx, "scheduled archival processed", slog.String("version_id", version.ID))
 	}
 
 	return nil
@@ -665,7 +665,7 @@ func (s *TemplateVersionService) promoteAsNewTemplate(ctx context.Context, sourc
 
 	// 5. Copy injectables
 	if err := s.injectableRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
-		slog.Warn("failed to copy injectables during promotion",
+		slog.WarnContext(ctx, "failed to copy injectables during promotion",
 			slog.String("source_version_id", sourceVersion.ID),
 			slog.String("target_version_id", newVersion.ID),
 			slog.Any("error", err),
@@ -674,7 +674,7 @@ func (s *TemplateVersionService) promoteAsNewTemplate(ctx context.Context, sourc
 
 	// 6. Copy signer roles
 	if err := s.signerRoleRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
-		slog.Warn("failed to copy signer roles during promotion",
+		slog.WarnContext(ctx, "failed to copy signer roles during promotion",
 			slog.String("source_version_id", sourceVersion.ID),
 			slog.String("target_version_id", newVersion.ID),
 			slog.Any("error", err),
@@ -684,7 +684,7 @@ func (s *TemplateVersionService) promoteAsNewTemplate(ctx context.Context, sourc
 	// 7. Copy tags
 	for _, tag := range sourceTemplate.Tags {
 		if err := s.tagRepo.AddTag(ctx, newTemplate.ID, tag.ID); err != nil {
-			slog.Warn("failed to copy tag during promotion",
+			slog.WarnContext(ctx, "failed to copy tag during promotion",
 				slog.String("tag_id", tag.ID),
 				slog.String("template_id", newTemplate.ID),
 				slog.Any("error", err),
@@ -692,7 +692,7 @@ func (s *TemplateVersionService) promoteAsNewTemplate(ctx context.Context, sourc
 		}
 	}
 
-	slog.Info("version promoted as new template",
+	slog.InfoContext(ctx, "version promoted as new template",
 		slog.String("source_version_id", sourceVersion.ID),
 		slog.String("source_template_id", sourceVersion.TemplateID),
 		slog.String("new_template_id", newTemplate.ID),
@@ -762,7 +762,7 @@ func (s *TemplateVersionService) promoteAsNewVersion(ctx context.Context, source
 
 	// 8. Copy injectables
 	if err := s.injectableRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
-		slog.Warn("failed to copy injectables during promotion",
+		slog.WarnContext(ctx, "failed to copy injectables during promotion",
 			slog.String("source_version_id", sourceVersion.ID),
 			slog.String("target_version_id", newVersion.ID),
 			slog.Any("error", err),
@@ -771,14 +771,14 @@ func (s *TemplateVersionService) promoteAsNewVersion(ctx context.Context, source
 
 	// 9. Copy signer roles
 	if err := s.signerRoleRepo.CopyFromVersion(ctx, sourceVersion.ID, newVersion.ID); err != nil {
-		slog.Warn("failed to copy signer roles during promotion",
+		slog.WarnContext(ctx, "failed to copy signer roles during promotion",
 			slog.String("source_version_id", sourceVersion.ID),
 			slog.String("target_version_id", newVersion.ID),
 			slog.Any("error", err),
 		)
 	}
 
-	slog.Info("version promoted as new version",
+	slog.InfoContext(ctx, "version promoted as new version",
 		slog.String("source_version_id", sourceVersion.ID),
 		slog.String("source_template_id", sourceVersion.TemplateID),
 		slog.String("target_template_id", *cmd.TargetTemplateID),

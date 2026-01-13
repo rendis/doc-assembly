@@ -41,12 +41,12 @@ func (s *UserAccessHistoryService) RecordTenantAccess(ctx context.Context, userI
 	// Cleanup old entries (keep only last 10)
 	if err := s.accessHistoryRepo.DeleteOldAccesses(ctx, userID, entity.AccessEntityTypeTenant, maxRecentAccesses); err != nil {
 		// Log but don't fail - cleanup is not critical
-		slog.Warn("failed to cleanup old tenant accesses",
+		slog.WarnContext(ctx, "failed to cleanup old tenant accesses",
 			slog.String("user_id", userID),
 			slog.String("error", err.Error()))
 	}
 
-	slog.Debug("recorded tenant access",
+	slog.DebugContext(ctx, "recorded tenant access",
 		slog.String("user_id", userID),
 		slog.String("tenant_id", tenantID))
 
@@ -64,12 +64,12 @@ func (s *UserAccessHistoryService) RecordWorkspaceAccess(ctx context.Context, us
 
 	// Cleanup old entries
 	if err := s.accessHistoryRepo.DeleteOldAccesses(ctx, userID, entity.AccessEntityTypeWorkspace, maxRecentAccesses); err != nil {
-		slog.Warn("failed to cleanup old workspace accesses",
+		slog.WarnContext(ctx, "failed to cleanup old workspace accesses",
 			slog.String("user_id", userID),
 			slog.String("error", err.Error()))
 	}
 
-	slog.Debug("recorded workspace access",
+	slog.DebugContext(ctx, "recorded workspace access",
 		slog.String("user_id", userID),
 		slog.String("workspace_id", workspaceID))
 

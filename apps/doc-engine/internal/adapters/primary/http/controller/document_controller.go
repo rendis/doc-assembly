@@ -191,7 +191,7 @@ func (c *DocumentController) CreateDocument(ctx *gin.Context) {
 
 	doc, err := c.documentUC.CreateAndSendDocument(ctx.Request.Context(), cmd)
 	if err != nil {
-		slog.Error("failed to create document",
+		slog.ErrorContext(ctx.Request.Context(), "failed to create document",
 			slog.String("workspace_id", workspaceID),
 			slog.String("error", err.Error()),
 		)

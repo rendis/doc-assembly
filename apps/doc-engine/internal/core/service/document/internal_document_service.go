@@ -14,20 +14,14 @@ import (
 // and adds operation-specific handling.
 type InternalDocumentService struct {
 	generator *DocumentGenerator
-	logger    *slog.Logger
 }
 
 // NewInternalDocumentService creates a new InternalDocumentService.
 func NewInternalDocumentService(
 	generator *DocumentGenerator,
-	logger *slog.Logger,
 ) documentuc.InternalDocumentUseCase {
-	if logger == nil {
-		logger = slog.Default()
-	}
 	return &InternalDocumentService{
 		generator: generator,
-		logger:    logger,
 	}
 }
 
@@ -37,7 +31,7 @@ func (s *InternalDocumentService) CreateDocument(
 	ctx context.Context,
 	cmd documentuc.InternalCreateCommand,
 ) (*entity.DocumentWithRecipients, error) {
-	s.logger.Info("creating document via internal API",
+	slog.InfoContext(ctx, "creating document via internal API",
 		"externalID", cmd.ExternalID,
 		"templateID", cmd.TemplateID,
 		"transactionalID", cmd.TransactionalID,
@@ -56,7 +50,7 @@ func (s *InternalDocumentService) CreateDocument(
 	// Call the centralized document generation method
 	result, err := s.generator.GenerateDocument(ctx, mapCtx)
 	if err != nil {
-		s.logger.Error("document generation failed",
+		slog.ErrorContext(ctx, "document generation failed",
 			"error", err,
 			"externalID", cmd.ExternalID,
 			"templateID", cmd.TemplateID,
@@ -67,7 +61,7 @@ func (s *InternalDocumentService) CreateDocument(
 	// CREATE operation has no additional logic after generation
 	// Future: RENEW/AMEND would add RelatedDocumentID here
 
-	s.logger.Info("document created successfully",
+	slog.InfoContext(ctx, "document created successfully",
 		"documentID", result.Document.ID,
 		"recipientCount", len(result.Recipients),
 	)

@@ -51,14 +51,14 @@ func SandboxContext(workspaceRepo port.WorkspaceRepository) gin.HandlerFunc {
 		sandbox, err := workspaceRepo.FindSandboxByParentID(c.Request.Context(), parentWorkspaceID)
 		if err != nil {
 			if errors.Is(err, entity.ErrSandboxNotFound) {
-				slog.Warn("sandbox mode requested but workspace does not support sandbox",
+				slog.WarnContext(c.Request.Context(), "sandbox mode requested but workspace does not support sandbox",
 					slog.String("parent_workspace_id", parentWorkspaceID),
 					slog.String("operation_id", GetOperationID(c)),
 				)
 				abortWithError(c, http.StatusBadRequest, entity.ErrSandboxNotSupported)
 				return
 			}
-			slog.Error("failed to find sandbox workspace",
+			slog.ErrorContext(c.Request.Context(), "failed to find sandbox workspace",
 				slog.String("error", err.Error()),
 				slog.String("parent_workspace_id", parentWorkspaceID),
 				slog.String("operation_id", GetOperationID(c)),
@@ -72,7 +72,7 @@ func SandboxContext(workspaceRepo port.WorkspaceRepository) gin.HandlerFunc {
 		c.Set(workspaceIDKey, sandbox.ID)
 		c.Set(sandboxModeKey, true)
 
-		slog.Debug("sandbox mode enabled",
+		slog.DebugContext(c.Request.Context(), "sandbox mode enabled",
 			slog.String("parent_workspace_id", parentWorkspaceID),
 			slog.String("sandbox_workspace_id", sandbox.ID),
 			slog.String("operation_id", GetOperationID(c)),

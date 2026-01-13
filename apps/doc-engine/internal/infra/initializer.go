@@ -51,10 +51,10 @@ func (i *Initializer) Run() error {
 	// Wait for shutdown signal or error
 	select {
 	case sig := <-sigChan:
-		slog.Info("received shutdown signal", slog.String("signal", sig.String()))
+		slog.InfoContext(ctx, "received shutdown signal", slog.String("signal", sig.String()))
 		cancel()
 	case err := <-errChan:
-		slog.Error("server error", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "server error", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -66,10 +66,11 @@ func (i *Initializer) Run() error {
 
 // cleanup performs graceful cleanup of all resources.
 func (i *Initializer) cleanup() {
-	slog.Info("cleaning up resources")
+	ctx := context.Background()
+	slog.InfoContext(ctx, "cleaning up resources")
 
 	// Close database pool
 	postgres.Close(i.dbPool)
 
-	slog.Info("cleanup complete")
+	slog.InfoContext(ctx, "cleanup complete")
 }

@@ -64,7 +64,7 @@ func (s *WorkspaceInjectableService) CreateInjectable(ctx context.Context, cmd i
 	}
 	injectable.ID = id
 
-	slog.Info("workspace injectable created",
+	slog.InfoContext(ctx, "workspace injectable created",
 		slog.String("injectable_id", injectable.ID),
 		slog.String("key", injectable.Key),
 		slog.String("workspace_id", cmd.WorkspaceID),
@@ -134,7 +134,7 @@ func (s *WorkspaceInjectableService) UpdateInjectable(ctx context.Context, cmd i
 		return nil, fmt.Errorf("updating injectable: %w", err)
 	}
 
-	slog.Info("workspace injectable updated",
+	slog.InfoContext(ctx, "workspace injectable updated",
 		slog.String("injectable_id", injectable.ID),
 		slog.String("key", injectable.Key),
 	)
@@ -148,7 +148,7 @@ func (s *WorkspaceInjectableService) DeleteInjectable(ctx context.Context, id, w
 		return fmt.Errorf("deleting injectable: %w", err)
 	}
 
-	slog.Info("workspace injectable deleted",
+	slog.InfoContext(ctx, "workspace injectable deleted",
 		slog.String("injectable_id", id),
 		slog.String("workspace_id", workspaceID),
 	)
@@ -179,7 +179,7 @@ func (s *WorkspaceInjectableService) setActiveStatus(ctx context.Context, id, wo
 	if active {
 		action = "activated"
 	}
-	slog.Info("workspace injectable "+action,
+	slog.InfoContext(ctx, "workspace injectable "+action,
 		slog.String("injectable_id", id),
 		slog.String("workspace_id", workspaceID),
 	)

@@ -57,7 +57,7 @@ func (s *TagService) CreateTag(ctx context.Context, cmd cataloguc.CreateTagComma
 	}
 	tag.ID = id
 
-	slog.Info("tag created",
+	slog.InfoContext(ctx, "tag created",
 		slog.String("tag_id", tag.ID),
 		slog.String("name", tag.Name),
 		slog.String("workspace_id", tag.WorkspaceID),
@@ -127,7 +127,7 @@ func (s *TagService) UpdateTag(ctx context.Context, cmd cataloguc.UpdateTagComma
 		return nil, fmt.Errorf("updating tag: %w", err)
 	}
 
-	slog.Info("tag updated",
+	slog.InfoContext(ctx, "tag updated",
 		slog.String("tag_id", tag.ID),
 		slog.String("name", tag.Name),
 	)
@@ -150,7 +150,7 @@ func (s *TagService) DeleteTag(ctx context.Context, id string) error {
 		return fmt.Errorf("deleting tag: %w", err)
 	}
 
-	slog.Info("tag deleted", slog.String("tag_id", id))
+	slog.InfoContext(ctx, "tag deleted", slog.String("tag_id", id))
 	return nil
 }
 

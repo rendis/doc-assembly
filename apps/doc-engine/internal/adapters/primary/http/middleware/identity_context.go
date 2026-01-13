@@ -87,7 +87,7 @@ func WorkspaceContext(
 			if sysRole.HasPermission(entity.SystemRoleSuperAdmin) {
 				c.Set(workspaceIDKey, workspaceID)
 				c.Set(workspaceRoleKey, entity.WorkspaceRoleOwner)
-				slog.Debug("superadmin workspace access granted",
+				slog.DebugContext(c.Request.Context(), "superadmin workspace access granted",
 					slog.String("user_id", internalUserID),
 					slog.String("workspace_id", workspaceID),
 					slog.String("operation_id", GetOperationID(c)),
@@ -106,7 +106,7 @@ func WorkspaceContext(
 				// TENANT_OWNER gets ADMIN access to workspaces in their tenant
 				c.Set(workspaceIDKey, workspaceID)
 				c.Set(workspaceRoleKey, entity.WorkspaceRoleAdmin)
-				slog.Debug("tenant owner workspace access granted",
+				slog.DebugContext(c.Request.Context(), "tenant owner workspace access granted",
 					slog.String("user_id", internalUserID),
 					slog.String("workspace_id", workspaceID),
 					slog.String("tenant_id", *workspace.TenantID),
@@ -120,7 +120,7 @@ func WorkspaceContext(
 		// Load user's role in this workspace
 		member, err := workspaceMemberRepo.FindActiveByUserAndWorkspace(ctx, internalUserID, workspaceID)
 		if err != nil {
-			slog.Warn("workspace access denied",
+			slog.WarnContext(c.Request.Context(), "workspace access denied",
 				slog.String("error", err.Error()),
 				slog.String("user_id", internalUserID),
 				slog.String("workspace_id", workspaceID),

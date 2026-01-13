@@ -76,7 +76,7 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, cmd templateuc.Cre
 	}
 	version.ID = versionID
 
-	slog.Info("template created with initial version",
+	slog.InfoContext(ctx, "template created with initial version",
 		slog.String("template_id", template.ID),
 		slog.String("version_id", version.ID),
 		slog.String("title", template.Title),
@@ -183,7 +183,7 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, cmd templateuc.Upd
 		return nil, fmt.Errorf("updating template: %w", err)
 	}
 
-	slog.Info("template updated",
+	slog.InfoContext(ctx, "template updated",
 		slog.String("template_id", template.ID),
 		slog.String("title", template.Title),
 	)
@@ -250,14 +250,14 @@ func (s *TemplateService) CloneTemplate(ctx context.Context, cmd templateuc.Clon
 	// Clone tags
 	for _, tag := range source.Tags {
 		if err := s.tagRepo.AddTag(ctx, newTemplate.ID, tag.ID); err != nil {
-			slog.Warn("failed to clone tag",
+			slog.WarnContext(ctx, "failed to clone tag",
 				slog.String("template_id", newTemplate.ID),
 				slog.Any("error", err),
 			)
 		}
 	}
 
-	slog.Info("template cloned",
+	slog.InfoContext(ctx, "template cloned",
 		slog.String("source_id", cmd.SourceTemplateID),
 		slog.String("source_version_id", cmd.VersionID),
 		slog.String("new_id", newTemplate.ID),
@@ -272,7 +272,7 @@ func (s *TemplateService) CloneTemplate(ctx context.Context, cmd templateuc.Clon
 func (s *TemplateService) DeleteTemplate(ctx context.Context, id string) error {
 	// Delete tag associations
 	if err := s.tagRepo.DeleteByTemplate(ctx, id); err != nil {
-		slog.Warn("failed to delete template tags", slog.Any("error", err))
+		slog.WarnContext(ctx, "failed to delete template tags", slog.Any("error", err))
 	}
 
 	// Template deletion will cascade to versions (FK constraint)
@@ -280,7 +280,7 @@ func (s *TemplateService) DeleteTemplate(ctx context.Context, id string) error {
 		return fmt.Errorf("deleting template: %w", err)
 	}
 
-	slog.Info("template deleted", slog.String("template_id", id))
+	slog.InfoContext(ctx, "template deleted", slog.String("template_id", id))
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (s *TemplateService) AddTag(ctx context.Context, templateID, tagID string) 
 		return fmt.Errorf("adding tag to template: %w", err)
 	}
 
-	slog.Info("tag added to template",
+	slog.InfoContext(ctx, "tag added to template",
 		slog.String("template_id", templateID),
 		slog.String("tag_id", tagID),
 	)
@@ -313,7 +313,7 @@ func (s *TemplateService) RemoveTag(ctx context.Context, templateID, tagID strin
 		return fmt.Errorf("removing tag from template: %w", err)
 	}
 
-	slog.Info("tag removed from template",
+	slog.InfoContext(ctx, "tag removed from template",
 		slog.String("template_id", templateID),
 		slog.String("tag_id", tagID),
 	)

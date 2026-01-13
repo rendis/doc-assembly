@@ -60,7 +60,7 @@ func (c *ContentInjectableController) ListInjectables(ctx *gin.Context) {
 
 	injectables, err := c.injectableUC.ListInjectables(ctx.Request.Context(), workspaceID)
 	if err != nil {
-		slog.Error("failed to list injectables",
+		slog.ErrorContext(ctx.Request.Context(), "failed to list injectables",
 			slog.String("workspace_id", workspaceID),
 			slog.Any("error", err),
 		)

@@ -80,7 +80,7 @@ func (s *WorkspaceMemberService) InviteMember(ctx context.Context, cmd organizat
 			return nil, fmt.Errorf("creating shadow user: %w", err)
 		}
 
-		slog.Info("shadow user created",
+		slog.InfoContext(ctx, "shadow user created",
 			slog.String("user_id", user.ID),
 			slog.String("email", user.Email),
 		)
@@ -117,7 +117,7 @@ func (s *WorkspaceMemberService) InviteMember(ctx context.Context, cmd organizat
 	}
 	member.ID = id
 
-	slog.Info("member invited",
+	slog.InfoContext(ctx, "member invited",
 		slog.String("member_id", member.ID),
 		slog.String("workspace_id", cmd.WorkspaceID),
 		slog.String("email", cmd.Email),
@@ -159,7 +159,7 @@ func (s *WorkspaceMemberService) UpdateMemberRole(ctx context.Context, cmd organ
 		return nil, fmt.Errorf("finding user: %w", err)
 	}
 
-	slog.Info("member role updated",
+	slog.InfoContext(ctx, "member role updated",
 		slog.String("member_id", cmd.MemberID),
 		slog.String("new_role", string(cmd.NewRole)),
 		slog.String("updated_by", cmd.UpdatedBy),
@@ -192,7 +192,7 @@ func (s *WorkspaceMemberService) RemoveMember(ctx context.Context, cmd organizat
 		return fmt.Errorf("removing member: %w", err)
 	}
 
-	slog.Info("member removed",
+	slog.InfoContext(ctx, "member removed",
 		slog.String("member_id", cmd.MemberID),
 		slog.String("workspace_id", cmd.WorkspaceID),
 		slog.String("removed_by", cmd.RemovedBy),

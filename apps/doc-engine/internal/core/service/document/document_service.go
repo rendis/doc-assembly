@@ -201,17 +201,17 @@ func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documen
 			if recipient.TemplateVersionRoleID == providerRecipient.RoleID {
 				recipient.SetSignerRecipientID(providerRecipient.ProviderRecipientID)
 				if err := recipient.MarkAsSent(); err != nil {
-					slog.Warn("failed to mark recipient as sent", slog.String("error", err.Error()))
+					slog.WarnContext(ctx, "failed to mark recipient as sent", slog.String("error", err.Error()))
 				}
 				if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-					slog.Warn("failed to update recipient", slog.String("error", err.Error()))
+					slog.WarnContext(ctx, "failed to update recipient", slog.String("error", err.Error()))
 				}
 				break
 			}
 		}
 	}
 
-	slog.Info("document created and sent for signing",
+	slog.InfoContext(ctx, "document created and sent for signing",
 		slog.String("document_id", document.ID),
 		slog.String("provider_document_id", uploadResult.ProviderDocumentID),
 		slog.String("provider", uploadResult.ProviderName),
@@ -297,7 +297,7 @@ func (s *DocumentService) RefreshDocumentStatus(ctx context.Context, documentID 
 
 	// Update document status
 	if err := doc.UpdateStatus(statusResult.Status); err != nil {
-		slog.Warn("failed to update document status", slog.String("error", err.Error()))
+		slog.WarnContext(ctx, "failed to update document status", slog.String("error", err.Error()))
 	}
 
 	if statusResult.CompletedPDFURL != nil {
@@ -318,13 +318,13 @@ func (s *DocumentService) RefreshDocumentStatus(ctx context.Context, documentID 
 		for _, recipient := range recipients {
 			if recipient.SignerRecipientID != nil && *recipient.SignerRecipientID == recipientStatus.ProviderRecipientID {
 				if err := recipient.UpdateStatus(recipientStatus.Status); err != nil {
-					slog.Warn("failed to update recipient status", slog.String("error", err.Error()))
+					slog.WarnContext(ctx, "failed to update recipient status", slog.String("error", err.Error()))
 				}
 				if recipientStatus.SignedAt != nil {
 					recipient.SignedAt = recipientStatus.SignedAt
 				}
 				if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-					slog.Warn("failed to update recipient", slog.String("error", err.Error()))
+					slog.WarnContext(ctx, "failed to update recipient", slog.String("error", err.Error()))
 				}
 				break
 			}
@@ -359,7 +359,7 @@ func (s *DocumentService) CancelDocument(ctx context.Context, documentID string)
 		return fmt.Errorf("updating document: %w", err)
 	}
 
-	slog.Info("document cancelled",
+	slog.InfoContext(ctx, "document cancelled",
 		slog.String("document_id", documentID),
 	)
 
@@ -374,7 +374,7 @@ func (s *DocumentService) HandleWebhookEvent(ctx context.Context, event *port.We
 		return fmt.Errorf("finding document by provider ID: %w", err)
 	}
 
-	slog.Info("processing webhook event",
+	slog.InfoContext(ctx, "processing webhook event",
 		slog.String("event_type", event.EventType),
 		slog.String("document_id", doc.ID),
 		slog.String("provider_document_id", event.ProviderDocumentID),
@@ -383,7 +383,7 @@ func (s *DocumentService) HandleWebhookEvent(ctx context.Context, event *port.We
 	// Update document status if provided
 	if event.DocumentStatus != nil {
 		if err := doc.UpdateStatus(*event.DocumentStatus); err != nil {
-			slog.Warn("failed to update document status from webhook",
+			slog.WarnContext(ctx, "failed to update document status from webhook",
 				slog.String("error", err.Error()),
 				slog.String("current_status", doc.Status.String()),
 				slog.String("new_status", event.DocumentStatus.String()),
@@ -399,17 +399,17 @@ func (s *DocumentService) HandleWebhookEvent(ctx context.Context, event *port.We
 	if event.ProviderRecipientID != "" && event.RecipientStatus != nil {
 		recipient, err := s.recipientRepo.FindBySignerRecipientID(ctx, event.ProviderRecipientID)
 		if err != nil {
-			slog.Warn("recipient not found for webhook event",
+			slog.WarnContext(ctx, "recipient not found for webhook event",
 				slog.String("provider_recipient_id", event.ProviderRecipientID),
 			)
 		} else {
 			if err := recipient.UpdateStatus(*event.RecipientStatus); err != nil {
-				slog.Warn("failed to update recipient status from webhook",
+				slog.WarnContext(ctx, "failed to update recipient status from webhook",
 					slog.String("error", err.Error()),
 				)
 			}
 			if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-				slog.Warn("failed to update recipient", slog.String("error", err.Error()))
+				slog.WarnContext(ctx, "failed to update recipient", slog.String("error", err.Error()))
 			}
 		}
 
@@ -440,7 +440,7 @@ func (s *DocumentService) ProcessPendingDocuments(ctx context.Context, limit int
 
 	for _, doc := range docs {
 		if _, err := s.RefreshDocumentStatus(ctx, doc.ID); err != nil {
-			slog.Warn("failed to refresh document status",
+			slog.WarnContext(ctx, "failed to refresh document status",
 				slog.String("document_id", doc.ID),
 				slog.String("error", err.Error()),
 			)

@@ -75,7 +75,7 @@ func (s *TenantMemberService) AddMember(ctx context.Context, cmd organizationuc.
 			return nil, fmt.Errorf("creating shadow user: %w", err)
 		}
 
-		slog.Info("shadow user created for tenant",
+		slog.InfoContext(ctx, "shadow user created for tenant",
 			slog.String("user_id", user.ID),
 			slog.String("email", user.Email),
 			slog.String("tenant_id", cmd.TenantID),
@@ -105,7 +105,7 @@ func (s *TenantMemberService) AddMember(ctx context.Context, cmd organizationuc.
 	}
 	member.ID = id
 
-	slog.Info("tenant member added",
+	slog.InfoContext(ctx, "tenant member added",
 		slog.String("member_id", member.ID),
 		slog.String("tenant_id", cmd.TenantID),
 		slog.String("email", cmd.Email),
@@ -153,7 +153,7 @@ func (s *TenantMemberService) UpdateMemberRole(ctx context.Context, cmd organiza
 		return nil, fmt.Errorf("finding user: %w", err)
 	}
 
-	slog.Info("tenant member role updated",
+	slog.InfoContext(ctx, "tenant member role updated",
 		slog.String("member_id", cmd.MemberID),
 		slog.String("new_role", string(cmd.NewRole)),
 		slog.String("updated_by", cmd.UpdatedBy),
@@ -192,7 +192,7 @@ func (s *TenantMemberService) RemoveMember(ctx context.Context, cmd organization
 		return fmt.Errorf("removing member: %w", err)
 	}
 
-	slog.Info("tenant member removed",
+	slog.InfoContext(ctx, "tenant member removed",
 		slog.String("member_id", cmd.MemberID),
 		slog.String("tenant_id", cmd.TenantID),
 		slog.String("removed_by", cmd.RemovedBy),

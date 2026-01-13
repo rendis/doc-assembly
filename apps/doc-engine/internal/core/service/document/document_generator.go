@@ -32,7 +32,6 @@ type DocumentGenerator struct {
 	injectableUC   injectableuc.InjectableUseCase
 	mapperRegistry port.MapperRegistry
 	resolver       *injectablesvc.InjectableResolverService
-	logger         *slog.Logger
 }
 
 // NewDocumentGenerator creates a new DocumentGenerator instance.
@@ -44,11 +43,7 @@ func NewDocumentGenerator(
 	injectableUC injectableuc.InjectableUseCase,
 	mapperRegistry port.MapperRegistry,
 	resolver *injectablesvc.InjectableResolverService,
-	logger *slog.Logger,
 ) *DocumentGenerator {
-	if logger == nil {
-		logger = slog.Default()
-	}
 	return &DocumentGenerator{
 		templateRepo:   templateRepo,
 		versionRepo:    versionRepo,
@@ -57,7 +52,6 @@ func NewDocumentGenerator(
 		injectableUC:   injectableUC,
 		mapperRegistry: mapperRegistry,
 		resolver:       resolver,
-		logger:         logger,
 	}
 }
 
@@ -81,7 +75,7 @@ func (g *DocumentGenerator) GenerateDocument(
 	ctx context.Context,
 	mapCtx *port.MapperContext,
 ) (*DocumentGenerationResult, error) {
-	g.logger.Debug("starting document generation",
+	slog.DebugContext(ctx, "starting document generation",
 		"templateID", mapCtx.TemplateID,
 		"externalID", mapCtx.ExternalID,
 		"operation", mapCtx.Operation,
@@ -94,7 +88,7 @@ func (g *DocumentGenerator) GenerateDocument(
 	}
 	workspaceID := template.WorkspaceID
 
-	g.logger.Debug("found template", "workspaceID", workspaceID)
+	slog.DebugContext(ctx, "found template", "workspaceID", workspaceID)
 
 	// 2. Get available injectables for the workspace
 	// REUSES: InjectableService.ListInjectables() - same flow as api/v1/content/injectables
@@ -104,7 +98,7 @@ func (g *DocumentGenerator) GenerateDocument(
 		return nil, fmt.Errorf("listing available injectables: %w", err)
 	}
 
-	g.logger.Debug("found available injectables", "count", len(availableInjectables))
+	slog.DebugContext(ctx, "found available injectables", "count", len(availableInjectables))
 
 	// 3. Find published version with details
 	version, err := g.versionRepo.FindPublishedByTemplateIDWithDetails(ctx, mapCtx.TemplateID)
@@ -112,7 +106,7 @@ func (g *DocumentGenerator) GenerateDocument(
 		return nil, entity.ErrNoPublishedVersion
 	}
 
-	g.logger.Debug("found published version",
+	slog.DebugContext(ctx, "found published version",
 		"versionID", version.ID,
 		"versionNumber", version.VersionNumber,
 	)
@@ -126,10 +120,10 @@ func (g *DocumentGenerator) GenerateDocument(
 	// 5. Collect referenced codes (version injectables + SignerRoles)
 	referencedCodes := g.collectReferencedCodes(version.Injectables, portableDoc.SignerRoles)
 
-	g.logger.Debug("collected referenced codes", "codes", referencedCodes)
+	slog.DebugContext(ctx, "collected referenced codes", "codes", referencedCodes)
 
 	// 6. Validate: all required codes must be available
-	if err := g.validateRequiredInjectables(referencedCodes, availableInjectables); err != nil {
+	if err := g.validateRequiredInjectables(ctx, referencedCodes, availableInjectables); err != nil {
 		return nil, err
 	}
 
@@ -144,7 +138,7 @@ func (g *DocumentGenerator) GenerateDocument(
 		return nil, fmt.Errorf("mapper failed: %w", err)
 	}
 
-	g.logger.Debug("mapper executed successfully")
+	slog.DebugContext(ctx, "mapper executed successfully")
 
 	// 8. Create InjectorContext and resolve injectors
 	injCtx := entity.NewInjectorContext(
@@ -161,7 +155,7 @@ func (g *DocumentGenerator) GenerateDocument(
 		return nil, fmt.Errorf("resolving injectors: %w", err)
 	}
 
-	g.logger.Debug("injectors resolved", "resolvedCount", len(resolveResult.Values))
+	slog.DebugContext(ctx, "injectors resolved", "resolvedCount", len(resolveResult.Values))
 
 	// 9. Convert resolved values to map[string]any
 	resolvedValues := make(map[string]any)
@@ -170,9 +164,9 @@ func (g *DocumentGenerator) GenerateDocument(
 	}
 
 	// 10. Build recipients from SignerRoles + resolved values
-	recipients := g.buildRecipientsFromSignerRoles(portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
+	recipients := g.buildRecipientsFromSignerRoles(ctx, portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
 
-	g.logger.Debug("built recipients", "count", len(recipients))
+	slog.DebugContext(ctx, "built recipients", "count", len(recipients))
 
 	// 11. Create document entity
 	doc := entity.NewDocument(workspaceID, version.ID)
@@ -190,7 +184,7 @@ func (g *DocumentGenerator) GenerateDocument(
 	}
 	doc.ID = docID
 
-	g.logger.Debug("document saved", "documentID", docID)
+	slog.DebugContext(ctx, "document saved", "documentID", docID)
 
 	// 13. Set document ID on recipients and save them
 	for _, r := range recipients {
@@ -201,7 +195,7 @@ func (g *DocumentGenerator) GenerateDocument(
 		if err := g.recipientRepo.CreateBatch(ctx, recipients); err != nil {
 			return nil, fmt.Errorf("saving recipients: %w", err)
 		}
-		g.logger.Debug("recipients saved", "count", len(recipients))
+		slog.DebugContext(ctx, "recipients saved", "count", len(recipients))
 	}
 
 	return &DocumentGenerationResult{
@@ -262,6 +256,7 @@ func (g *DocumentGenerator) collectReferencedCodes(
 // validateRequiredInjectables validates that all required injectable codes are available.
 // If any code is missing, returns MissingInjectablesError with the list of missing codes.
 func (g *DocumentGenerator) validateRequiredInjectables(
+	ctx context.Context,
 	requiredCodes []string,
 	availableInjectables []*entity.InjectableDefinition,
 ) error {
@@ -280,7 +275,7 @@ func (g *DocumentGenerator) validateRequiredInjectables(
 	}
 
 	if len(missingCodes) > 0 {
-		g.logger.Warn("missing required injectables",
+		slog.WarnContext(ctx, "missing required injectables",
 			"missingCodes", missingCodes,
 			"requiredCount", len(requiredCodes),
 			"availableCount", len(availableInjectables),
@@ -296,6 +291,7 @@ func (g *DocumentGenerator) validateRequiredInjectables(
 // buildRecipientsFromSignerRoles builds DocumentRecipient entities from portabledoc SignerRoles.
 // It resolves name and email values from the resolved injectable values.
 func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
+	ctx context.Context,
 	portableSignerRoles []portabledoc.SignerRole,
 	dbSignerRoles []*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
@@ -329,7 +325,7 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 				Status:                entity.RecipientStatusPending,
 			})
 		} else {
-			g.logger.Warn("skipping signer role - missing data",
+			slog.WarnContext(ctx, "skipping signer role - missing data",
 				"signerRoleID", sr.ID,
 				"hasName", name != "",
 				"hasEmail", email != "",

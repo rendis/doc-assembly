@@ -65,7 +65,7 @@ func (s *FolderService) CreateFolder(ctx context.Context, cmd cataloguc.CreateFo
 	}
 	folder.ID = id
 
-	slog.Info("folder created",
+	slog.InfoContext(ctx, "folder created",
 		slog.String("folder_id", folder.ID),
 		slog.String("name", folder.Name),
 		slog.String("workspace_id", folder.WorkspaceID),
@@ -167,7 +167,7 @@ func (s *FolderService) UpdateFolder(ctx context.Context, cmd cataloguc.UpdateFo
 		return nil, fmt.Errorf("updating folder: %w", err)
 	}
 
-	slog.Info("folder updated",
+	slog.InfoContext(ctx, "folder updated",
 		slog.String("folder_id", folder.ID),
 		slog.String("name", folder.Name),
 	)
@@ -220,7 +220,7 @@ func (s *FolderService) MoveFolder(ctx context.Context, cmd cataloguc.MoveFolder
 		return nil, fmt.Errorf("moving folder: %w", err)
 	}
 
-	slog.Info("folder moved",
+	slog.InfoContext(ctx, "folder moved",
 		slog.String("folder_id", folder.ID),
 		slog.Any("new_parent_id", cmd.NewParentID),
 	)
@@ -252,7 +252,7 @@ func (s *FolderService) DeleteFolder(ctx context.Context, id string) error {
 		return fmt.Errorf("deleting folder: %w", err)
 	}
 
-	slog.Info("folder deleted", slog.String("folder_id", id))
+	slog.InfoContext(ctx, "folder deleted", slog.String("folder_id", id))
 	return nil
 }
 

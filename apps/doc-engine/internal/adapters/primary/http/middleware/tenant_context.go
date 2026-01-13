@@ -58,7 +58,7 @@ func TenantContext(tenantMemberRepo port.TenantMemberRepository) gin.HandlerFunc
 				// SUPERADMIN gets full tenant access
 				c.Set(tenantIDKey, tenantID)
 				c.Set(tenantRoleKey, entity.TenantRoleOwner)
-				slog.Debug("superadmin tenant access granted",
+				slog.DebugContext(c.Request.Context(), "superadmin tenant access granted",
 					slog.String("user_id", internalUserID),
 					slog.String("tenant_id", tenantID),
 					slog.String("operation_id", GetOperationID(c)),
@@ -71,7 +71,7 @@ func TenantContext(tenantMemberRepo port.TenantMemberRepository) gin.HandlerFunc
 		// Load user's role in this tenant
 		member, err := tenantMemberRepo.FindActiveByUserAndTenant(c.Request.Context(), internalUserID, tenantID)
 		if err != nil {
-			slog.Warn("tenant access denied",
+			slog.WarnContext(c.Request.Context(), "tenant access denied",
 				slog.String("error", err.Error()),
 				slog.String("user_id", internalUserID),
 				slog.String("tenant_id", tenantID),
@@ -136,7 +136,7 @@ func AuthorizeTenantRole(requiredRole entity.TenantRole) gin.HandlerFunc {
 		// Get user's tenant role from context
 		userRole, ok := GetTenantRole(c)
 		if !ok {
-			slog.Warn("authorization failed: no tenant role in context",
+			slog.WarnContext(c.Request.Context(), "authorization failed: no tenant role in context",
 				slog.String("operation_id", GetOperationID(c)),
 			)
 			abortWithError(c, http.StatusForbidden, entity.ErrMissingTenantID)
@@ -145,7 +145,7 @@ func AuthorizeTenantRole(requiredRole entity.TenantRole) gin.HandlerFunc {
 
 		// Check if user has sufficient permissions
 		if !userRole.HasPermission(requiredRole) {
-			slog.Warn("authorization failed: insufficient tenant permissions",
+			slog.WarnContext(c.Request.Context(), "authorization failed: insufficient tenant permissions",
 				slog.String("user_role", string(userRole)),
 				slog.String("required_role", string(requiredRole)),
 				slog.String("operation_id", GetOperationID(c)),

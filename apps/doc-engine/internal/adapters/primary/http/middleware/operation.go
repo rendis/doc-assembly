@@ -3,6 +3,7 @@ package middleware
 import (
 	"log/slog"
 
+	"github.com/doc-assembly/doc-engine/internal/infra/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -24,25 +25,27 @@ func Operation() gin.HandlerFunc {
 			operationID = uuid.New().String()
 		}
 
-		// Store in context
+		// Store in Gin context
 		c.Set(operationIDKey, operationID)
 
 		// Add to response headers
 		c.Header(OperationIDHeader, operationID)
 
-		// Add to logger context
-		slog.Info("request started",
+		// Add log attributes to request context for automatic inclusion in all logs
+		ctx := logging.WithAttrs(c.Request.Context(),
 			slog.String("operation_id", operationID),
 			slog.String("method", c.Request.Method),
 			slog.String("path", c.Request.URL.Path),
 			slog.String("client_ip", c.ClientIP()),
 		)
+		c.Request = c.Request.WithContext(ctx)
+
+		slog.InfoContext(ctx, "request started")
 
 		c.Next()
 
 		// Log request completion
-		slog.Info("request completed",
-			slog.String("operation_id", operationID),
+		slog.InfoContext(c.Request.Context(), "request completed",
 			slog.Int("status", c.Writer.Status()),
 		)
 	}

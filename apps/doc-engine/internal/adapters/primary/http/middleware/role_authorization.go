@@ -22,7 +22,7 @@ func AuthorizeRole(requiredRole entity.WorkspaceRole) gin.HandlerFunc {
 		// Get user's role from context
 		userRole, ok := GetWorkspaceRole(c)
 		if !ok {
-			slog.Warn("authorization failed: no workspace role in context",
+			slog.WarnContext(c.Request.Context(), "authorization failed: no workspace role in context",
 				slog.String("operation_id", GetOperationID(c)),
 			)
 			abortWithError(c, http.StatusForbidden, entity.ErrMissingWorkspaceID)
@@ -31,7 +31,7 @@ func AuthorizeRole(requiredRole entity.WorkspaceRole) gin.HandlerFunc {
 
 		// Check if user has sufficient permissions
 		if !userRole.HasPermission(requiredRole) {
-			slog.Warn("authorization failed: insufficient permissions",
+			slog.WarnContext(c.Request.Context(), "authorization failed: insufficient permissions",
 				slog.String("user_role", string(userRole)),
 				slog.String("required_role", string(requiredRole)),
 				slog.String("operation_id", GetOperationID(c)),

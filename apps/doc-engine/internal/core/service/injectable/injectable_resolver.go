@@ -32,17 +32,12 @@ type ResolveResult struct {
 // InjectableResolverService resolves injector values.
 type InjectableResolverService struct {
 	registry port.InjectorRegistry
-	logger   *slog.Logger
 }
 
 // NewInjectableResolverService creates a new resolution service.
-func NewInjectableResolverService(registry port.InjectorRegistry, logger *slog.Logger) *InjectableResolverService {
-	if logger == nil {
-		logger = slog.Default()
-	}
+func NewInjectableResolverService(registry port.InjectorRegistry) *InjectableResolverService {
 	return &InjectableResolverService{
 		registry: registry,
-		logger:   logger,
 	}
 }
 
@@ -66,7 +61,7 @@ func (s *InjectableResolverService) Resolve(
 	// 1. Execute Init() GLOBAL if defined
 	initFunc := s.registry.GetInitFunc()
 	if initFunc != nil {
-		s.logger.Debug("executing global init function")
+		slog.DebugContext(ctx, "executing global init function")
 		initData, err := initFunc(ctx, injCtx)
 		if err != nil {
 			return nil, fmt.Errorf("global init failed: %w", err)
@@ -99,7 +94,7 @@ func (s *InjectableResolverService) Resolve(
 
 	// 4. Execute injectors by levels
 	for levelIdx, level := range levels {
-		s.logger.Debug("executing injector level",
+		slog.DebugContext(ctx, "executing injector level",
 			"level", levelIdx,
 			"injectors", level,
 		)
@@ -139,14 +134,14 @@ func (s *InjectableResolverService) executeInjector(
 ) error {
 	inj, ok := s.registry.Get(code)
 	if !ok {
-		s.logger.Warn("injector not found", "code", code)
+		slog.WarnContext(ctx, "injector not found", "code", code)
 		return nil
 	}
 
 	// Get the resolution function
 	resolveFunc, _ := inj.Resolve()
 	if resolveFunc == nil {
-		s.logger.Warn("injector has nil resolve function", "code", code)
+		slog.WarnContext(ctx, "injector has nil resolve function", "code", code)
 		return nil
 	}
 
@@ -161,11 +156,11 @@ func (s *InjectableResolverService) executeInjector(
 	defer cancel()
 
 	// Execute injector
-	s.logger.Debug("executing injector", "code", code, "timeout", timeout)
+	slog.DebugContext(ctx, "executing injector", "code", code, "timeout", timeout)
 
 	injResult, err := resolveFunc(timeoutCtx, injCtx)
 	if err != nil {
-		s.logger.Error("injector failed",
+		slog.ErrorContext(ctx, "injector failed",
 			"code", code,
 			"error", err,
 			"critical", inj.IsCritical(),
@@ -190,7 +185,7 @@ func (s *InjectableResolverService) executeInjector(
 		}
 	}
 
-	s.logger.Debug("injector completed", "code", code)
+	slog.DebugContext(ctx, "injector completed", "code", code)
 	return nil
 }
 

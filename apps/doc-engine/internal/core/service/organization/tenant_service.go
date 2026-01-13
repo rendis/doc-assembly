@@ -69,7 +69,7 @@ func (s *TenantService) CreateTenant(ctx context.Context, cmd organizationuc.Cre
 	}
 	tenant.ID = id
 
-	slog.Info("tenant created",
+	slog.InfoContext(ctx, "tenant created",
 		slog.String("tenant_id", tenant.ID),
 		slog.String("code", tenant.Code),
 		slog.String("name", tenant.Name),
@@ -170,7 +170,7 @@ func (s *TenantService) ListUserTenantsPaginated(ctx context.Context, userID str
 
 	// Enrich with access history
 	if err := s.enrichTenantsWithAccessHistory(ctx, userID, tenants); err != nil {
-		slog.Warn("failed to enrich tenants with access history", slog.String("error", err.Error()))
+		slog.WarnContext(ctx, "failed to enrich tenants with access history", slog.String("error", err.Error()))
 	}
 
 	return tenants, total, nil
@@ -213,7 +213,7 @@ func (s *TenantService) UpdateTenant(ctx context.Context, cmd organizationuc.Upd
 		return nil, fmt.Errorf("updating tenant: %w", err)
 	}
 
-	slog.Info("tenant updated",
+	slog.InfoContext(ctx, "tenant updated",
 		slog.String("tenant_id", tenant.ID),
 		slog.String("name", tenant.Name),
 	)
@@ -234,7 +234,7 @@ func (s *TenantService) DeleteTenant(ctx context.Context, id string) error {
 		return fmt.Errorf("deleting tenant: %w", err)
 	}
 
-	slog.Info("tenant deleted", slog.String("tenant_id", id))
+	slog.InfoContext(ctx, "tenant deleted", slog.String("tenant_id", id))
 	return nil
 }
 

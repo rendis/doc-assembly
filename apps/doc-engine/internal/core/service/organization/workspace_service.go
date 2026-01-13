@@ -73,14 +73,14 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, cmd organization
 	member := entity.NewActiveMember(workspace.ID, cmd.CreatedBy, entity.WorkspaceRoleOwner)
 	member.ID = uuid.NewString()
 	if _, err := s.memberRepo.Create(ctx, member); err != nil {
-		slog.Warn("failed to add creator as workspace owner",
+		slog.WarnContext(ctx, "failed to add creator as workspace owner",
 			slog.String("workspace_id", workspace.ID),
 			slog.String("user_id", cmd.CreatedBy),
 			slog.Any("error", err),
 		)
 	}
 
-	slog.Info("workspace created",
+	slog.InfoContext(ctx, "workspace created",
 		slog.String("workspace_id", workspace.ID),
 		slog.String("name", workspace.Name),
 		slog.String("type", string(workspace.Type)),
@@ -117,7 +117,7 @@ func (s *WorkspaceService) ListWorkspacesPaginated(ctx context.Context, tenantID
 
 	// Enrich with access history
 	if err := s.enrichWorkspacesWithAccessHistory(ctx, userID, workspaces); err != nil {
-		slog.Warn("failed to enrich workspaces with access history", slog.String("error", err.Error()))
+		slog.WarnContext(ctx, "failed to enrich workspaces with access history", slog.String("error", err.Error()))
 	}
 
 	return workspaces, total, nil
@@ -143,7 +143,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, cmd organization
 		return nil, fmt.Errorf("updating workspace: %w", err)
 	}
 
-	slog.Info("workspace updated",
+	slog.InfoContext(ctx, "workspace updated",
 		slog.String("workspace_id", workspace.ID),
 		slog.String("name", workspace.Name),
 	)
@@ -166,7 +166,7 @@ func (s *WorkspaceService) ArchiveWorkspace(ctx context.Context, id string) erro
 		return fmt.Errorf("archiving workspace: %w", err)
 	}
 
-	slog.Info("workspace archived", slog.String("workspace_id", id))
+	slog.InfoContext(ctx, "workspace archived", slog.String("workspace_id", id))
 	return nil
 }
 
@@ -176,7 +176,7 @@ func (s *WorkspaceService) ActivateWorkspace(ctx context.Context, id string) err
 		return fmt.Errorf("activating workspace: %w", err)
 	}
 
-	slog.Info("workspace activated", slog.String("workspace_id", id))
+	slog.InfoContext(ctx, "workspace activated", slog.String("workspace_id", id))
 	return nil
 }
 

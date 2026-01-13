@@ -77,7 +77,7 @@ func (c *RenderController) PreviewVersion(ctx *gin.Context) {
 	// Parse content structure into portable document
 	doc, err := portabledoc.Parse(details.ContentStructure)
 	if err != nil {
-		slog.Error("failed to parse content structure",
+		slog.ErrorContext(ctx.Request.Context(), "failed to parse content structure",
 			slog.String("version_id", versionID),
 			slog.Any("error", err),
 		)
@@ -100,7 +100,7 @@ func (c *RenderController) PreviewVersion(ctx *gin.Context) {
 		InjectableDefaults: injectableDefaults,
 	})
 	if err != nil {
-		slog.Error("failed to render PDF",
+		slog.ErrorContext(ctx.Request.Context(), "failed to render PDF",
 			slog.String("version_id", versionID),
 			slog.Any("error", err),
 		)

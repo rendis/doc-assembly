@@ -36,7 +36,7 @@ func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, er
 		return nil, fmt.Errorf("pinging database: %w", err)
 	}
 
-	slog.Info("database connection pool established",
+	slog.InfoContext(ctx, "database connection pool established",
 		slog.String("host", cfg.Host),
 		slog.Int("port", cfg.Port),
 		slog.String("database", cfg.Name),
@@ -64,6 +64,6 @@ func buildConnectionString(cfg *config.DatabaseConfig) string {
 func Close(pool *pgxpool.Pool) {
 	if pool != nil {
 		pool.Close()
-		slog.Info("database connection pool closed")
+		slog.InfoContext(context.Background(), "database connection pool closed")
 	}
 }

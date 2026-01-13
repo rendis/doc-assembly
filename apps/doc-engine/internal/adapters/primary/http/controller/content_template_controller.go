@@ -90,7 +90,7 @@ func (c *ContentTemplateController) ListTemplates(ctx *gin.Context) {
 	filters := c.templateMapper.ToFilters(&filtersReq)
 	templates, err := c.templateUC.ListTemplates(ctx.Request.Context(), workspaceID, filters)
 	if err != nil {
-		slog.Error("failed to list templates",
+		slog.ErrorContext(ctx.Request.Context(), "failed to list templates",
 			slog.String("workspace_id", workspaceID),
 			slog.Any("error", err),
 		)
