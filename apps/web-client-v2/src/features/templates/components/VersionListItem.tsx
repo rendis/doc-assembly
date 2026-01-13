@@ -143,14 +143,14 @@ export function VersionListItem({
             {t('templates.versionInfo.createdAt', 'Created')}: {formatDate(version.createdAt)}
           </span>
           {version.scheduledPublishAt && (
-            <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+            <span className="flex items-center gap-1 text-info">
               <CalendarClock size={12} />
               {t('templates.versionInfo.scheduledAt', 'Scheduled')}:{' '}
               {formatDate(version.scheduledPublishAt)}
             </span>
           )}
           {version.publishedAt && (
-            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+            <span className="flex items-center gap-1 text-success">
               <CalendarCheck size={12} />
               {t('templates.versionInfo.publishedAt', 'Published')}: {formatDate(version.publishedAt)}
             </span>

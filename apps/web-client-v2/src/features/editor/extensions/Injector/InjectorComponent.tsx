@@ -106,59 +106,100 @@ export const InjectorComponent = (props: NodeViewProps) => {
     setContextMenu({ x: e.clientX, y: e.clientY })
   }
 
+  const isInvalid = isRoleVariable && !roleExists
+
+  const chipContent = (
+    <span
+      contentEditable={false}
+      onContextMenu={handleContextMenu}
+      data-invalid={isInvalid ? 'true' : undefined}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium transition-all duration-200 ease-out select-none',
+        // Ring de selección - diferente para invalid vs normal
+        selected && isInvalid
+          ? 'ring-2 ring-destructive ring-offset-2 ring-offset-background'
+          : selected
+            ? 'ring-2 ring-ring'
+            : '',
+        // Estado de warning: rol eliminado - ESTILO PROMINENTE
+        isInvalid
+          ? [
+              // Fondo sólido más prominente
+              'bg-destructive/25 dark:bg-destructive/35',
+              // Texto destructivo de alto contraste
+              'text-destructive',
+              // Borde grueso punteado
+              'border-2 border-dashed border-destructive',
+              // Hover
+              'hover:bg-destructive/35 dark:hover:bg-destructive/45',
+            ]
+          : // Estilos diferenciados para role variables (teal)
+            isRoleVariable
+            ? [
+                'border',
+                // Light mode: semantic role colors
+                'bg-role-muted text-role-foreground hover:bg-role-muted/80 border-role-border/50',
+                // Dark mode: semantic role colors with dashed border
+                'dark:bg-role-muted dark:text-role-foreground dark:hover:bg-role-muted/80 dark:border-dashed dark:border-role-border',
+              ]
+            : [
+                'border',
+                // Light mode: gray (variables regulares - estilo diseño base)
+                'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 hover:border-gray-300',
+                // Dark mode: info (cyan) with dashed border
+                'dark:bg-info-muted dark:text-info-foreground dark:hover:bg-info-muted/80 dark:border-dashed dark:border-info-border',
+              ]
+      )}
+    >
+      <Icon
+        className={cn(
+          'h-3 w-3',
+          isInvalid && 'animate-error-pulse'
+        )}
+      />
+      {(() => {
+        const { text: truncatedLabel, isTruncated } = truncateLabel(displayLabel)
+        return isTruncated ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="cursor-default">{truncatedLabel}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {displayLabel}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          truncatedLabel
+        )
+      })()}
+      {format && (
+        <span className="text-[10px] opacity-70 bg-background/50 px-1 rounded font-mono">
+          {format}
+        </span>
+      )}
+    </span>
+  )
+
   return (
     <NodeViewWrapper as="span" className="mx-1">
-      <span
-        contentEditable={false}
-        onContextMenu={handleContextMenu}
-        title={!roleExists ? 'Este rol ha sido eliminado' : undefined}
-        className={cn(
-          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium transition-all duration-200 ease-out select-none border',
-          selected ? 'ring-2 ring-ring' : '',
-          // Estado de warning: rol eliminado
-          isRoleVariable && !roleExists
-            ? [
-                'bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/30',
-                'dark:bg-destructive/20 dark:text-destructive dark:border-destructive/40',
-              ]
-            : // Estilos diferenciados para role variables (teal)
-              isRoleVariable
-              ? [
-                  // Light mode: semantic role colors
-                  'bg-role-muted text-role-foreground hover:bg-role-muted/80 border-role-border/50',
-                  // Dark mode: semantic role colors with dashed border
-                  'dark:bg-role-muted dark:text-role-foreground dark:hover:bg-role-muted/80 dark:border-dashed dark:border-role-border',
-                ]
-              : [
-                  // Light mode: gray (variables regulares - estilo diseño base)
-                  'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 hover:border-gray-300',
-                  // Dark mode: info (cyan) with dashed border
-                  'dark:bg-info-muted dark:text-info-foreground dark:hover:bg-info-muted/80 dark:border-dashed dark:border-info-border',
-                ]
-        )}
-      >
-        <Icon className="h-3 w-3" />
-        {(() => {
-          const { text: truncatedLabel, isTruncated } = truncateLabel(displayLabel)
-          return isTruncated ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="cursor-default">{truncatedLabel}</span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                {displayLabel}
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            truncatedLabel
-          )
-        })()}
-        {format && (
-          <span className="text-[10px] opacity-70 bg-background/50 px-1 rounded font-mono">
-            {format}
-          </span>
-        )}
-      </span>
+      {isInvalid ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {chipContent}
+          </TooltipTrigger>
+          <TooltipContent
+            side="top"
+            className="bg-destructive text-destructive-foreground border-destructive"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span>{t('editor.injectable.errors.roleDeleted')}</span>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        chipContent
+      )}
 
       {contextMenu && (
         <EditorNodeContextMenu

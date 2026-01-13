@@ -11,18 +11,18 @@ const statusConfig: Record<
 > = {
   DRAFT: {
     label: 'Draft',
-    badgeClass: 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    dotClass: 'bg-amber-500',
+    badgeClass: 'border-warning-border/50 bg-warning-muted text-warning-foreground',
+    dotClass: 'bg-warning',
   },
   SCHEDULED: {
     label: 'Scheduled',
-    badgeClass: 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    dotClass: 'bg-blue-500',
+    badgeClass: 'border-info-border/50 bg-info-muted text-info-foreground',
+    dotClass: 'bg-info',
   },
   PUBLISHED: {
     label: 'Published',
-    badgeClass: 'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400',
-    dotClass: 'bg-green-500',
+    badgeClass: 'border-success-border/50 bg-success-muted text-success-foreground',
+    dotClass: 'bg-success',
   },
   ARCHIVED: {
     label: 'Archived',

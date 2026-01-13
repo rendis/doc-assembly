@@ -128,7 +128,7 @@ export function TemplateListRow({
           {template.hasPublishedVersion && template.publishedVersionNumber && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 border border-green-500/50 bg-green-500/10 px-1.5 py-0.5 text-green-600 dark:text-green-400">
+                <span className="inline-flex items-center gap-1 border border-success-border/50 bg-success-muted px-1.5 py-0.5 text-success">
                   <Check size={12} />
                   <span className="font-mono text-[10px]">v{template.publishedVersionNumber}</span>
                 </span>
@@ -145,7 +145,7 @@ export function TemplateListRow({
           {template.scheduledVersionCount > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 border border-blue-500/50 bg-blue-500/10 px-1.5 py-0.5 text-blue-600 dark:text-blue-400">
+                <span className="inline-flex items-center gap-1 border border-info-border/50 bg-info-muted px-1.5 py-0.5 text-info">
                   <Clock size={12} />
                   <span className="font-mono text-[10px]">{template.scheduledVersionCount}</span>
                 </span>
@@ -162,12 +162,12 @@ export function TemplateListRow({
       <td className="border-b border-border py-6 pt-7 align-top">
         <span
           className={`inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider ${
-            status === 'PUBLISHED' ? 'text-green-600' : 'text-amber-600'
+            status === 'PUBLISHED' ? 'text-success-foreground' : 'text-warning-foreground'
           }`}
         >
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              status === 'PUBLISHED' ? 'bg-green-500' : 'bg-amber-500'
+              status === 'PUBLISHED' ? 'bg-success' : 'bg-warning'
             }`}
           />
           {status === 'PUBLISHED'

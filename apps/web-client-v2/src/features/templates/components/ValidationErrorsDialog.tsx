@@ -92,7 +92,7 @@ export function ValidationErrorsDialog({
           {/* Warnings Section */}
           {hasWarnings && (
             <div>
-              <div className="mb-3 flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <div className="mb-3 flex items-center gap-2 text-warning">
                 <AlertTriangle size={16} />
                 <span className="font-mono text-xs font-medium uppercase tracking-widest">
                   {t('templates.validationDialog.warnings', 'Warnings')} ({validation.warnings.length})
@@ -102,7 +102,7 @@ export function ValidationErrorsDialog({
                 {validation.warnings.map((warning, index) => (
                   <div
                     key={index}
-                    className="border-l-2 border-amber-500 bg-amber-500/5 py-2 pl-3 pr-2"
+                    className="border-l-2 border-warning-border bg-warning-muted/50 py-2 pl-3 pr-2"
                   >
                     <p className="text-sm text-foreground">{warning.message}</p>
                     <p className="mt-1 font-mono text-[10px] text-muted-foreground">

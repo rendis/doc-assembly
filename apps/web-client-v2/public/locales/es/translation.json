@@ -319,6 +319,13 @@
     "tooltips": {
       "publishedVersion": "Versión publicada: v{{version}}",
       "scheduledVersions": "{{count}} versión(es) programada(s) para publicar"
+    },
+    "validationDialog": {
+      "title": "Errores de Validación",
+      "description": "No se puede publicar la versión debido a errores en el contenido",
+      "errors": "Errores",
+      "warnings": "Advertencias",
+      "openEditor": "Abrir en Editor"
     }
   },
   "documents": {
@@ -816,6 +823,19 @@
         "blocks": "Bloques",
         "media": "Media",
         "documents": "Documentos"
+      }
+    },
+    "inconsistencies": {
+      "count": "{{count}} INCONSISTENCIAS",
+      "count_one": "{{count}} INCONSISTENCIA",
+      "position": "{{current}} DE {{total}}",
+      "clickToNavigate": "Clic para navegar a inconsistencias",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "injectable": {
+      "errors": {
+        "roleDeleted": "El rol asociado fue eliminado"
       }
     }
   },

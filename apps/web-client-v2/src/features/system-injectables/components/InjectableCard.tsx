@@ -132,14 +132,14 @@ export function InjectableCard({
             {injectable.isPublic ? (
               <Badge
                 variant="secondary"
-                className="bg-emerald-500/10 font-mono text-[10px] uppercase text-emerald-600"
+                className="bg-success-muted font-mono text-[10px] uppercase text-success-foreground"
               >
                 {t('systemInjectables.visibility.public', 'Public')}
               </Badge>
             ) : (
               <Badge
                 variant="secondary"
-                className="bg-amber-500/10 font-mono text-[10px] uppercase text-amber-600"
+                className="bg-warning-muted font-mono text-[10px] uppercase text-warning-foreground"
               >
                 {t('systemInjectables.visibility.scoped', 'Scoped')}
               </Badge>

@@ -27,6 +27,7 @@ import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { VariableFormatDialog } from './VariableFormatDialog'
 import { VariablesPanel } from './VariablesPanel'
 import { VariableDragOverlay } from './VariableDragOverlay'
+import { InconsistencyNavigator } from './InconsistencyNavigator'
 import { hasConfigurableOptions } from '../types/injectable'
 import { type Variable } from '../types'
 import { usePaginationStore } from '../stores'
@@ -469,7 +470,16 @@ export function DocumentEditor({
             </div>
 
             {/* Editor Content */}
-            <div className="flex-1 overflow-auto bg-background p-8">
+            <div className="flex-1 overflow-auto bg-background p-8 relative">
+              {/* Inconsistency Navigator - floating top-right */}
+              {editable && (
+                <div className="sticky top-0 z-40 flex justify-end mb-2 pointer-events-none">
+                  <div className="pointer-events-auto">
+                    <InconsistencyNavigator editor={editor} />
+                  </div>
+                </div>
+              )}
+
               <div
                 className="mx-auto bg-muted shadow-lg"
                 style={{

@@ -73,10 +73,10 @@
   --info-border: 199 85% 55%;
 
   /* Success (verde) */
-  --success: 142 76% 36%;
-  --success-foreground: 143 80% 15%;
-  --success-muted: 142 76% 90%;
-  --success-border: 142 70% 45%;
+  --success: 142 50% 38%;
+  --success-foreground: 143 55% 18%;
+  --success-muted: 142 45% 92%;
+  --success-border: 142 45% 48%;
 
   /* Admin (púrpura) */
   --admin: 262 83% 58%;
@@ -476,6 +476,59 @@ body {
 
 .animate-pulse-highlight {
   animation: highlight-fade 3s ease-out forwards;
+}
+
+/* Error pulse animation for invalid injectables */
+@keyframes error-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+.animate-error-pulse {
+  animation: error-pulse 2s ease-in-out infinite;
+}
+
+/* Slide in from bottom for inconsistency navigator */
+@keyframes slide-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.3s ease-out forwards;
+}
+
+/* Highlight pulse animation for navigation targeting */
+@keyframes highlight-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 6px hsl(var(--destructive) / 0.5))
+      drop-shadow(0 0 3px hsl(var(--destructive) / 0.3));
+    transform: scale(1.04);
+  }
+}
+
+.animate-highlight-pulse {
+  animation: highlight-pulse 0.6s ease-in-out 3;
+  transform-origin: center;
+  position: relative;
+  z-index: 10;
 }
 
 /* ============================================

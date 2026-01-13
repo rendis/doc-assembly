@@ -5,6 +5,7 @@ import { DocumentPreparationOverlay } from '@/features/editor/components/Documen
 import { SaveStatusIndicator } from '@/features/editor/components/SaveStatusIndicator'
 import { useInjectables } from '@/features/editor/hooks/useInjectables'
 import { useAutoSave } from '@/features/editor/hooks/useAutoSave'
+import { useNavigationGuard } from '@/features/editor/hooks/useNavigationGuard'
 import { importDocument } from '@/features/editor/services/document-import'
 import { usePaginationStore, useSignerRolesStore } from '@/features/editor/stores'
 import { versionsApi, isVersionEditable } from '@/features/templates'
@@ -151,6 +152,14 @@ function EditorPage() {
       title: version?.name || t('editor.document'),
       language: 'es',
     },
+  })
+
+  // Navigation guard - ensures changes are saved on exit
+  useNavigationGuard({
+    isDirty: autoSave.isDirty,
+    status: autoSave.status,
+    save: autoSave.save,
+    enabled: isEditable,
   })
 
   // Force save handler (manual save button)

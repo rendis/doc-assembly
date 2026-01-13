@@ -620,7 +620,7 @@ export function TemplateDetailPage() {
                           versionCounts.PUBLISHED === 0
                             ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
                             : versionFilters.PUBLISHED
-                              ? 'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400'
+                              ? 'border-success-border/50 bg-success-muted text-success'
                               : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
                         )}
                       >
@@ -649,7 +649,7 @@ export function TemplateDetailPage() {
                           versionCounts.SCHEDULED === 0
                             ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
                             : versionFilters.SCHEDULED
-                              ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                              ? 'border-info-border/50 bg-info-muted text-info'
                               : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
                         )}
                       >
@@ -678,7 +678,7 @@ export function TemplateDetailPage() {
                           versionCounts.DRAFT === 0
                             ? 'cursor-not-allowed border-border bg-background text-muted-foreground opacity-30'
                             : versionFilters.DRAFT
-                              ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              ? 'border-warning-border/50 bg-warning-muted text-warning-foreground'
                               : 'border-border bg-background text-muted-foreground opacity-50 hover:opacity-75'
                         )}
                       >

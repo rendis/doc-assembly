@@ -125,9 +125,9 @@ export function SchedulePublishDialog({
           </div>
 
           {/* Info message */}
-          <div className="flex gap-3 border border-blue-500/50 bg-blue-500/10 p-4">
-            <Info className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="flex gap-3 rounded-md border border-info-border bg-info-muted p-4">
+            <Info className="h-5 w-5 shrink-0 text-info" />
+            <p className="text-sm text-info-foreground">
               {t(
                 'templates.scheduleDialog.info',
                 'The version will be published automatically at the scheduled time. You can cancel anytime before then.'

@@ -51,13 +51,13 @@ export function PublishVersionDialog({
 
         {/* Content */}
         <div className="p-6">
-          <div className="flex gap-3 border border-amber-500/50 bg-amber-500/10 p-4">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-            <div className="text-sm text-amber-700 dark:text-amber-300">
+          <div className="flex gap-3 rounded-md border border-warning-border bg-warning-muted p-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />
+            <div className="text-sm text-warning-foreground">
               <p className="font-medium">
                 {t('templates.publishDialog.warningTitle', 'This action will:')}
               </p>
-              <ul className="mt-2 list-inside list-disc space-y-1 text-amber-600 dark:text-amber-400">
+              <ul className="mt-2 list-inside list-disc space-y-1 opacity-80">
                 <li>
                   {t(
                     'templates.publishDialog.warning1',

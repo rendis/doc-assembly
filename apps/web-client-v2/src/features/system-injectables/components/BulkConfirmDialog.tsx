@@ -73,15 +73,15 @@ export function BulkConfirmDialog({
           className={cn(
             'flex items-start gap-2 rounded-sm border p-3',
             action === 'make-public'
-              ? 'border-amber-500/30 bg-amber-500/10'
-              : 'border-rose-500/30 bg-rose-500/10'
+              ? 'border-warning-border bg-warning-muted'
+              : 'border-destructive/30 bg-destructive/10'
           )}
         >
           <AlertTriangle
             size={16}
             className={cn(
               'mt-0.5 shrink-0',
-              action === 'make-public' ? 'text-amber-500' : 'text-rose-500'
+              action === 'make-public' ? 'text-warning' : 'text-destructive'
             )}
           />
           <p className="text-xs text-muted-foreground">
