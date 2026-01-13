@@ -177,4 +177,80 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== TRANSACTIONAL COLUMNS ========== -->
+
+    <changeSet id="documents:add_column:transactional_id" author="doc-assembly">
+        <comment>Add transactional_id to group documents from the same business transaction</comment>
+        <addColumn schemaName="execution" tableName="documents">
+            <column name="transactional_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="documents:add_column:operation_type" author="doc-assembly">
+        <comment>Add operation_type to identify the type of operation (CREATION, RENEWAL, ADDENDUM, etc.)</comment>
+        <addColumn schemaName="execution" tableName="documents">
+            <column name="operation_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="documents:add_column:related_document_id" author="doc-assembly">
+        <comment>Add related_document_id to link related documents (renewals, addendums, etc.)</comment>
+        <addColumn schemaName="execution" tableName="documents">
+            <column name="related_document_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="documents:add_fk_constraint:related_document_id" author="doc-assembly">
+        <comment>FK to self - documents can reference related documents</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="execution"
+            baseTableName="documents"
+            baseColumnNames="related_document_id"
+            constraintName="fk_documents_related_document_id"
+            referencedTableSchemaName="execution"
+            referencedTableName="documents"
+            referencedColumnNames="id"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+    <changeSet id="documents:check_constraint:related_document_not_self" author="doc-assembly">
+        <comment>Prevent document from referencing itself</comment>
+        <sql>
+            ALTER TABLE execution.documents
+            ADD CONSTRAINT chk_related_document_not_self CHECK (
+                related_document_id IS NULL OR related_document_id != id
+            );
+        </sql>
+        <rollback>
+            ALTER TABLE execution.documents DROP CONSTRAINT chk_related_document_not_self;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:transactional_id" author="doc-assembly">
+        <comment>Index for transactional_id lookups</comment>
+        <createIndex indexName="idx_documents_transactional_id" tableName="documents" schemaName="execution">
+            <column name="transactional_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:operation_type" author="doc-assembly">
+        <comment>Index for operation_type filtering</comment>
+        <createIndex indexName="idx_documents_operation_type" tableName="documents" schemaName="execution">
+            <column name="operation_type"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="documents:index_creation:related_document_id" author="doc-assembly">
+        <comment>Index for related_document_id lookups</comment>
+        <createIndex indexName="idx_documents_related_document_id" tableName="documents" schemaName="execution">
+            <column name="related_document_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

@@ -315,10 +315,14 @@ erDiagram
         uuid id PK "gen_random_uuid()"
         uuid workspace_id FK "NOT NULL"
         uuid template_version_id FK "NOT NULL"
+        varchar_255 title "Display name"
+        varchar_100 transactional_id "NOT NULL - Groups related docs"
+        varchar_50 operation_type "NOT NULL - CREATION, RENEWAL, etc"
+        uuid related_document_id FK "Self-ref, nullable"
         varchar_255 client_external_reference_id "CRM ID"
         varchar_255 signer_document_id "Provider ID"
         varchar_255 signer_provider "DOCUMENSO, etc."
-        varchar_50 signer_status
+        document_status status "DEFAULT DRAFT"
         jsonb injected_values_snapshot "Data snapshot"
         varchar_500 pdf_storage_path "Pre-sign S3"
         varchar_500 completed_pdf_url "Post-sign URL"
@@ -340,6 +344,7 @@ erDiagram
 
     workspaces ||--o{ documents : "generates"
     template_versions ||--o{ documents : "instantiates"
+    documents ||--o| documents : "related_to"
     documents ||--o{ document_recipients : "involves"
     template_version_signer_roles ||--o{ document_recipients : "role_mapping"
 ```
@@ -1138,10 +1143,14 @@ WHERE sid.is_active = TRUE
 | `id` | UUID | PK, NOT NULL | Unique identifier |
 | `workspace_id` | UUID | FK → workspaces, NOT NULL | Owning workspace |
 | `template_version_id` | UUID | FK → template_versions, NOT NULL | Source template version |
+| `title` | VARCHAR(255) | - | Document display name |
+| `transactional_id` | VARCHAR(100) | NOT NULL | Groups documents from same business transaction |
+| `operation_type` | VARCHAR(50) | NOT NULL | Type of operation (CREATION, RENEWAL, ADDENDUM, etc.) |
+| `related_document_id` | UUID | FK → documents (self), NULLABLE | Reference to related document |
 | `client_external_reference_id` | VARCHAR(255) | - | External reference (CRM ID) |
 | `signer_document_id` | VARCHAR(255) | - | ID from signature provider |
 | `signer_provider` | VARCHAR(255) | - | `DOCUMENSO`, `DOCUSIGN`, `MOCK` |
-| `signer_status` | VARCHAR(50) | - | `DRAFT`, `PENDING`, `COMPLETED`, etc. |
+| `status` | document_status | DEFAULT 'DRAFT' | Document lifecycle status |
 | `injected_values_snapshot` | JSONB | - | Frozen copy of all injected data |
 | `pdf_storage_path` | VARCHAR(500) | - | S3 path for pre-signature PDF |
 | `completed_pdf_url` | VARCHAR(500) | - | URL for signed final document |
@@ -1151,10 +1160,42 @@ WHERE sid.is_active = TRUE
 **Indexes**:
 - `idx_documents_workspace_id` - List documents in workspace
 - `idx_documents_template_version_id` - Documents created from version
+- `idx_documents_transactional_id` - Group documents by transaction
+- `idx_documents_operation_type` - Filter by operation type
+- `idx_documents_related_document_id` - Find related documents
 - `idx_documents_client_external_reference_id` - Lookup by CRM ID
 - `idx_documents_signer_document_id` - Lookup by provider ID
-- `idx_documents_signer_status` - Filter by status
+- `idx_documents_status` - Filter by status
 - `idx_documents_created_at` - Date-based queries
+
+**Foreign Keys**:
+- `fk_documents_workspace_id` → `workspaces(id)` RESTRICT
+- `fk_documents_template_version_id` → `template_versions(id)` RESTRICT
+- `fk_documents_related_document_id` → `documents(id)` SET NULL (self-referencing)
+
+**Check Constraints**:
+- `chk_related_document_not_self` - Prevents a document from referencing itself:
+  ```sql
+  related_document_id IS NULL OR related_document_id != id
+  ```
+
+**Transactional Grouping**:
+
+The `transactional_id` groups documents that belong to the same business operation. For example, when a customer signs multiple contracts in a single session, all documents share the same `transactional_id`.
+
+| Column | Purpose |
+|--------|---------|
+| `transactional_id` | Groups documents from same business transaction (e.g., "TXN-2025-001") |
+| `operation_type` | Classifies the operation: `CREATION`, `RENEWAL`, `ADDENDUM`, `AMENDMENT`, etc. |
+| `related_document_id` | Links to a parent/previous document (e.g., addendum → original contract) |
+
+**Document Relationships Example**:
+```
+Original Contract (TXN-001, CREATION)
+├── Addendum 1 (TXN-002, ADDENDUM) → related_document_id = Original
+├── Addendum 2 (TXN-003, ADDENDUM) → related_document_id = Original
+└── Renewal (TXN-004, RENEWAL) → related_document_id = Original
+```
 
 **Why Snapshot?**:
 The `injected_values_snapshot` freezes all data at generation time. Even if source data changes later, the document reflects what was true when it was created.
@@ -1465,6 +1506,9 @@ PENDING → SENT → DELIVERED → SIGNED
 | `tags` | `chk_tags_color_format` | Color must match `^#[0-9A-Fa-f]{6}$` |
 | `user_access_history` | `chk_user_access_history_entity_type` | entity_type must be `TENANT` or `WORKSPACE` |
 | `injectable_definitions` | `chk_format_config_structure` | format_config must be NULL, `{}`, or `{"default": string, "options": array}` |
+| `system_injectable_assignments` | `chk_scope_target_consistency` | Scope type must match presence of tenant_id/workspace_id |
+| `template_version_injectables` | `chk_injectable_source_xor` | Exactly one of injectable_definition_id or system_injectable_key must be set |
+| `documents` | `chk_related_document_not_self` | related_document_id cannot equal id (no self-reference) |
 
 ### Auto-Update Triggers
 
@@ -1845,6 +1889,84 @@ WHERE id IN (
     ) ranked
     WHERE rn > 10
 );
+```
+
+---
+
+### 9.13 Transactional Document Queries
+
+```sql
+-- Create a document with transactional context
+INSERT INTO execution.documents (
+    workspace_id, template_version_id, title,
+    transactional_id, operation_type,
+    injected_values_snapshot
+)
+VALUES (
+    'workspace-uuid', 'version-uuid', 'Employment Contract - John Doe',
+    'TXN-2025-001', 'CREATION',
+    '{"employee_name": "John Doe", "start_date": "2025-02-01"}'
+)
+RETURNING id;
+
+-- Create an addendum linked to the original document
+INSERT INTO execution.documents (
+    workspace_id, template_version_id, title,
+    transactional_id, operation_type, related_document_id,
+    injected_values_snapshot
+)
+VALUES (
+    'workspace-uuid', 'addendum-version-uuid', 'Salary Adjustment Addendum',
+    'TXN-2025-002', 'ADDENDUM', 'original-document-uuid',
+    '{"new_salary": "75000", "effective_date": "2025-06-01"}'
+);
+
+-- Find all documents in a transaction
+SELECT id, title, operation_type, status, created_at
+FROM execution.documents
+WHERE transactional_id = 'TXN-2025-001'
+ORDER BY created_at;
+
+-- Find all related documents (addendums, renewals) for a document
+SELECT d.id, d.title, d.operation_type, d.status
+FROM execution.documents d
+WHERE d.related_document_id = 'original-document-uuid'
+ORDER BY d.created_at;
+
+-- Get document with its related parent document
+SELECT
+    d.id,
+    d.title,
+    d.operation_type,
+    p.id AS parent_id,
+    p.title AS parent_title,
+    p.operation_type AS parent_operation
+FROM execution.documents d
+LEFT JOIN execution.documents p ON d.related_document_id = p.id
+WHERE d.id = 'document-uuid';
+
+-- Find all documents in a chain (original + all descendants)
+WITH RECURSIVE document_chain AS (
+    -- Start with the original document
+    SELECT id, title, operation_type, related_document_id, 0 AS depth
+    FROM execution.documents
+    WHERE id = 'original-document-uuid'
+
+    UNION ALL
+
+    -- Add all documents that reference documents in the chain
+    SELECT d.id, d.title, d.operation_type, d.related_document_id, dc.depth + 1
+    FROM execution.documents d
+    JOIN document_chain dc ON d.related_document_id = dc.id
+)
+SELECT * FROM document_chain ORDER BY depth, id;
+
+-- Count documents by operation type in a workspace
+SELECT operation_type, COUNT(*) as document_count
+FROM execution.documents
+WHERE workspace_id = 'workspace-uuid'
+GROUP BY operation_type
+ORDER BY document_count DESC;
 ```
 
 ---
