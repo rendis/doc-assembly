@@ -188,18 +188,7 @@ func (s *TenantService) UpdateTenant(ctx context.Context, cmd organizationuc.Upd
 
 	// Update settings if provided
 	if cmd.Settings != nil {
-		if currency, ok := cmd.Settings["currency"].(string); ok {
-			tenant.Settings.Currency = currency
-		}
-		if timezone, ok := cmd.Settings["timezone"].(string); ok {
-			tenant.Settings.Timezone = timezone
-		}
-		if dateFormat, ok := cmd.Settings["dateFormat"].(string); ok {
-			tenant.Settings.DateFormat = dateFormat
-		}
-		if locale, ok := cmd.Settings["locale"].(string); ok {
-			tenant.Settings.Locale = locale
-		}
+		applySettingsUpdates(cmd.Settings, &tenant.Settings)
 	}
 
 	now := time.Now().UTC()
@@ -288,4 +277,20 @@ func (s *TenantService) enrichTenantsWithAccessHistory(ctx context.Context, user
 	}
 
 	return nil
+}
+
+// applySettingsUpdates updates tenant settings from a map of values.
+func applySettingsUpdates(settings map[string]any, tenantSettings *entity.TenantSettings) {
+	if currency, ok := settings["currency"].(string); ok {
+		tenantSettings.Currency = currency
+	}
+	if timezone, ok := settings["timezone"].(string); ok {
+		tenantSettings.Timezone = timezone
+	}
+	if dateFormat, ok := settings["dateFormat"].(string); ok {
+		tenantSettings.DateFormat = dateFormat
+	}
+	if locale, ok := settings["locale"].(string); ok {
+		tenantSettings.Locale = locale
+	}
 }

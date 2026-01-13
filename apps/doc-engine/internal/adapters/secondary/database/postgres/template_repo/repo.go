@@ -68,129 +68,20 @@ func (r *Repository) FindByIDWithDetails(ctx context.Context, id string) (*entit
 		return nil, err
 	}
 
-	details := &entity.TemplateWithDetails{
-		Template: *template,
-	}
+	details := &entity.TemplateWithDetails{Template: *template}
 
-	// Get published version with details (if exists)
-	version := &entity.TemplateVersion{}
-	err = r.pool.QueryRow(ctx, queryPublishedVersion, id).Scan(
-		&version.ID,
-		&version.TemplateID,
-		&version.VersionNumber,
-		&version.Name,
-		&version.Description,
-		&version.ContentStructure,
-		&version.Status,
-		&version.ScheduledPublishAt,
-		&version.ScheduledArchiveAt,
-		&version.PublishedAt,
-		&version.ArchivedAt,
-		&version.PublishedBy,
-		&version.ArchivedBy,
-		&version.CreatedBy,
-		&version.CreatedAt,
-		&version.UpdatedAt,
-	)
-	if err == nil {
-		versionDetails := &entity.TemplateVersionWithDetails{
-			TemplateVersion: *version,
-		}
-
-		// Get version injectables
-		injectableRows, err := r.pool.Query(ctx, queryVersionInjectables, version.ID)
-		if err != nil {
-			return nil, fmt.Errorf("querying version injectables: %w", err)
-		}
-		defer injectableRows.Close()
-
-		for injectableRows.Next() {
-			iwd := &entity.VersionInjectableWithDefinition{
-				Definition: &entity.InjectableDefinition{},
-			}
-			if err := injectableRows.Scan(
-				&iwd.TemplateVersionInjectable.ID,
-				&iwd.TemplateVersionInjectable.TemplateVersionID,
-				&iwd.TemplateVersionInjectable.InjectableDefinitionID,
-				&iwd.TemplateVersionInjectable.IsRequired,
-				&iwd.TemplateVersionInjectable.DefaultValue,
-				&iwd.TemplateVersionInjectable.CreatedAt,
-				&iwd.Definition.ID,
-				&iwd.Definition.WorkspaceID,
-				&iwd.Definition.Key,
-				&iwd.Definition.Label,
-				&iwd.Definition.Description,
-				&iwd.Definition.DataType,
-				&iwd.Definition.CreatedAt,
-				&iwd.Definition.UpdatedAt,
-			); err != nil {
-				return nil, fmt.Errorf("scanning version injectable: %w", err)
-			}
-			versionDetails.Injectables = append(versionDetails.Injectables, iwd)
-		}
-
-		// Get version signer roles
-		roleRows, err := r.pool.Query(ctx, queryVersionSignerRoles, version.ID)
-		if err != nil {
-			return nil, fmt.Errorf("querying version signer roles: %w", err)
-		}
-		defer roleRows.Close()
-
-		for roleRows.Next() {
-			role := &entity.TemplateVersionSignerRole{}
-			if err := roleRows.Scan(
-				&role.ID,
-				&role.TemplateVersionID,
-				&role.RoleName,
-				&role.AnchorString,
-				&role.SignerOrder,
-				&role.CreatedAt,
-				&role.UpdatedAt,
-			); err != nil {
-				return nil, fmt.Errorf("scanning version signer role: %w", err)
-			}
-			versionDetails.SignerRoles = append(versionDetails.SignerRoles, role)
-		}
-
+	// Load published version with details
+	version, err := r.loadPublishedVersion(ctx, id)
+	if err == nil && version != nil {
+		versionDetails := &entity.TemplateVersionWithDetails{TemplateVersion: *version}
+		versionDetails.Injectables, _ = r.loadVersionInjectables(ctx, version.ID)
+		versionDetails.SignerRoles, _ = r.loadVersionSignerRoles(ctx, version.ID)
 		details.PublishedVersion = versionDetails
 	}
 
-	// Get tags
-	tagRows, err := r.pool.Query(ctx, queryTemplateTags, id)
-	if err != nil {
-		return nil, fmt.Errorf("querying template tags: %w", err)
-	}
-	defer tagRows.Close()
-
-	for tagRows.Next() {
-		tag := &entity.Tag{}
-		if err := tagRows.Scan(
-			&tag.ID,
-			&tag.WorkspaceID,
-			&tag.Name,
-			&tag.Color,
-			&tag.CreatedAt,
-			&tag.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template tag: %w", err)
-		}
-		details.Tags = append(details.Tags, tag)
-	}
-
-	// Get folder if exists
+	details.Tags, _ = r.loadTemplateTags(ctx, id)
 	if template.FolderID != nil {
-		folder := &entity.Folder{}
-		err := r.pool.QueryRow(ctx, queryFolder, *template.FolderID).Scan(
-			&folder.ID,
-			&folder.WorkspaceID,
-			&folder.ParentID,
-			&folder.Name,
-			&folder.CreatedAt,
-			&folder.UpdatedAt,
-		)
-		if err == nil {
-			details.Folder = folder
-		}
+		details.Folder = r.loadFolder(ctx, *template.FolderID)
 	}
 
 	return details, nil
@@ -203,82 +94,17 @@ func (r *Repository) FindByIDWithAllVersions(ctx context.Context, id string) (*e
 		return nil, err
 	}
 
-	result := &entity.TemplateWithAllVersions{
-		Template: *template,
-	}
+	result := &entity.TemplateWithAllVersions{Template: *template}
 
-	// Get all versions
-	versionRows, err := r.pool.Query(ctx, queryAllVersions, id)
+	// Load all versions
+	result.Versions, err = r.loadAllVersions(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("querying template versions: %w", err)
-	}
-	defer versionRows.Close()
-
-	for versionRows.Next() {
-		v := &entity.TemplateVersion{}
-		if err := versionRows.Scan(
-			&v.ID,
-			&v.TemplateID,
-			&v.VersionNumber,
-			&v.Name,
-			&v.Description,
-			&v.ContentStructure,
-			&v.Status,
-			&v.ScheduledPublishAt,
-			&v.ScheduledArchiveAt,
-			&v.PublishedAt,
-			&v.ArchivedAt,
-			&v.PublishedBy,
-			&v.ArchivedBy,
-			&v.CreatedBy,
-			&v.CreatedAt,
-			&v.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template version: %w", err)
-		}
-
-		versionDetails := &entity.TemplateVersionWithDetails{
-			TemplateVersion: *v,
-		}
-		result.Versions = append(result.Versions, versionDetails)
+		return nil, err
 	}
 
-	// Get tags
-	tagRows, err := r.pool.Query(ctx, queryTemplateTags, id)
-	if err != nil {
-		return nil, fmt.Errorf("querying template tags: %w", err)
-	}
-	defer tagRows.Close()
-
-	for tagRows.Next() {
-		tag := &entity.Tag{}
-		if err := tagRows.Scan(
-			&tag.ID,
-			&tag.WorkspaceID,
-			&tag.Name,
-			&tag.Color,
-			&tag.CreatedAt,
-			&tag.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template tag: %w", err)
-		}
-		result.Tags = append(result.Tags, tag)
-	}
-
-	// Get folder if exists
+	result.Tags, _ = r.loadTemplateTags(ctx, id)
 	if template.FolderID != nil {
-		folder := &entity.Folder{}
-		err := r.pool.QueryRow(ctx, queryFolder, *template.FolderID).Scan(
-			&folder.ID,
-			&folder.WorkspaceID,
-			&folder.ParentID,
-			&folder.Name,
-			&folder.CreatedAt,
-			&folder.UpdatedAt,
-		)
-		if err == nil {
-			result.Folder = folder
-		}
+		result.Folder = r.loadFolder(ctx, *template.FolderID)
 	}
 
 	return result, nil
@@ -286,57 +112,9 @@ func (r *Repository) FindByIDWithAllVersions(ctx context.Context, id string) (*e
 
 // FindByWorkspace lists all templates in a workspace with filters.
 func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, filters port.TemplateFilters) ([]*entity.TemplateListItem, error) {
-	query := queryFindByWorkspaceBase
-	args := []any{workspaceID}
-	argPos := 2
-
-	// Apply filters
-	if filters.RootOnly {
-		// Filter for root folder only (templates with no folder)
-		query += " AND t.folder_id IS NULL"
-	} else if filters.FolderID != nil {
-		// Direct search: find templates only in the specified folder
-		query += fmt.Sprintf(` AND t.folder_id = $%d`, argPos)
-		args = append(args, *filters.FolderID)
-		argPos++
-	}
-	// If neither RootOnly nor FolderID is set, no filter is applied (returns all templates)
-
-	if filters.HasPublishedVersion != nil {
-		if *filters.HasPublishedVersion {
-			query += " AND EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED')"
-		} else {
-			query += " AND NOT EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED')"
-		}
-	}
-
-	if filters.Search != "" {
-		query += fmt.Sprintf(" AND t.title ILIKE $%d", argPos)
-		args = append(args, "%"+filters.Search+"%")
-		argPos++
-	}
-
-	if len(filters.TagIDs) > 0 {
-		query += fmt.Sprintf(` AND t.id IN (
-			SELECT template_id FROM content.template_tags WHERE tag_id = ANY($%d)
-			GROUP BY template_id HAVING COUNT(DISTINCT tag_id) = $%d
-		)`, argPos, argPos+1)
-		args = append(args, filters.TagIDs, len(filters.TagIDs))
-		argPos += 2
-	}
-
-	query += " ORDER BY COALESCE(f.path, '') ASC, t.title ASC"
-
-	if filters.Limit > 0 {
-		query += fmt.Sprintf(" LIMIT $%d", argPos)
-		args = append(args, filters.Limit)
-		argPos++
-	}
-
-	if filters.Offset > 0 {
-		query += fmt.Sprintf(" OFFSET $%d", argPos)
-		args = append(args, filters.Offset)
-	}
+	filterQuery, filterArgs := buildTemplateFilters(filters, 2)
+	query := queryFindByWorkspaceBase + filterQuery
+	args := append([]any{workspaceID}, filterArgs...)
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -344,32 +122,11 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 	}
 	defer rows.Close()
 
-	var templates []*entity.TemplateListItem
-	for rows.Next() {
-		item := &entity.TemplateListItem{}
-		if err := rows.Scan(
-			&item.ID,
-			&item.WorkspaceID,
-			&item.FolderID,
-			&item.Title,
-			&item.IsPublicLibrary,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.HasPublishedVersion,
-			&item.VersionCount,
-			&item.ScheduledVersionCount,
-			&item.PublishedVersionNumber,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template: %w", err)
-		}
-		templates = append(templates, item)
+	templates, err := scanTemplateListItems(rows)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating templates: %w", err)
-	}
-
-	// Load tags in batch for all templates
 	if err := r.loadTagsForTemplates(ctx, templates); err != nil {
 		return nil, err
 	}
@@ -456,6 +213,216 @@ func (r *Repository) FindPublicLibrary(ctx context.Context, workspaceID string) 
 		return nil, err
 	}
 
+	return templates, nil
+}
+
+// loadPublishedVersion loads the published version for a template.
+func (r *Repository) loadPublishedVersion(ctx context.Context, templateID string) (*entity.TemplateVersion, error) {
+	version := &entity.TemplateVersion{}
+	err := r.pool.QueryRow(ctx, queryPublishedVersion, templateID).Scan(
+		&version.ID,
+		&version.TemplateID,
+		&version.VersionNumber,
+		&version.Name,
+		&version.Description,
+		&version.ContentStructure,
+		&version.Status,
+		&version.ScheduledPublishAt,
+		&version.ScheduledArchiveAt,
+		&version.PublishedAt,
+		&version.ArchivedAt,
+		&version.PublishedBy,
+		&version.ArchivedBy,
+		&version.CreatedBy,
+		&version.CreatedAt,
+		&version.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return version, nil
+}
+
+// loadVersionInjectables loads injectables for a version.
+func (r *Repository) loadVersionInjectables(ctx context.Context, versionID string) ([]*entity.VersionInjectableWithDefinition, error) {
+	rows, err := r.pool.Query(ctx, queryVersionInjectables, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("querying version injectables: %w", err)
+	}
+	defer rows.Close()
+
+	var injectables []*entity.VersionInjectableWithDefinition
+	for rows.Next() {
+		iwd := &entity.VersionInjectableWithDefinition{
+			Definition: &entity.InjectableDefinition{},
+		}
+		if err := rows.Scan(
+			&iwd.ID, &iwd.TemplateVersionID, &iwd.InjectableDefinitionID,
+			&iwd.IsRequired, &iwd.DefaultValue, &iwd.CreatedAt,
+			&iwd.Definition.ID, &iwd.Definition.WorkspaceID, &iwd.Definition.Key,
+			&iwd.Definition.Label, &iwd.Definition.Description, &iwd.Definition.DataType,
+			&iwd.Definition.CreatedAt, &iwd.Definition.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning version injectable: %w", err)
+		}
+		injectables = append(injectables, iwd)
+	}
+	return injectables, rows.Err()
+}
+
+// loadVersionSignerRoles loads signer roles for a version.
+func (r *Repository) loadVersionSignerRoles(ctx context.Context, versionID string) ([]*entity.TemplateVersionSignerRole, error) {
+	rows, err := r.pool.Query(ctx, queryVersionSignerRoles, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("querying version signer roles: %w", err)
+	}
+	defer rows.Close()
+
+	var roles []*entity.TemplateVersionSignerRole
+	for rows.Next() {
+		role := &entity.TemplateVersionSignerRole{}
+		if err := rows.Scan(
+			&role.ID, &role.TemplateVersionID, &role.RoleName,
+			&role.AnchorString, &role.SignerOrder,
+			&role.CreatedAt, &role.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning version signer role: %w", err)
+		}
+		roles = append(roles, role)
+	}
+	return roles, rows.Err()
+}
+
+// loadTemplateTags loads tags for a template.
+func (r *Repository) loadTemplateTags(ctx context.Context, templateID string) ([]*entity.Tag, error) {
+	rows, err := r.pool.Query(ctx, queryTemplateTags, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("querying template tags: %w", err)
+	}
+	defer rows.Close()
+
+	var tags []*entity.Tag
+	for rows.Next() {
+		tag := &entity.Tag{}
+		if err := rows.Scan(
+			&tag.ID, &tag.WorkspaceID, &tag.Name,
+			&tag.Color, &tag.CreatedAt, &tag.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning template tag: %w", err)
+		}
+		tags = append(tags, tag)
+	}
+	return tags, rows.Err()
+}
+
+// loadFolder loads a folder by ID.
+func (r *Repository) loadFolder(ctx context.Context, folderID string) *entity.Folder {
+	folder := &entity.Folder{}
+	err := r.pool.QueryRow(ctx, queryFolder, folderID).Scan(
+		&folder.ID, &folder.WorkspaceID, &folder.ParentID,
+		&folder.Name, &folder.CreatedAt, &folder.UpdatedAt,
+	)
+	if err != nil {
+		return nil
+	}
+	return folder
+}
+
+// loadAllVersions loads all versions for a template.
+func (r *Repository) loadAllVersions(ctx context.Context, templateID string) ([]*entity.TemplateVersionWithDetails, error) {
+	rows, err := r.pool.Query(ctx, queryAllVersions, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("querying template versions: %w", err)
+	}
+	defer rows.Close()
+
+	var versions []*entity.TemplateVersionWithDetails
+	for rows.Next() {
+		v := &entity.TemplateVersion{}
+		if err := rows.Scan(
+			&v.ID, &v.TemplateID, &v.VersionNumber, &v.Name, &v.Description,
+			&v.ContentStructure, &v.Status, &v.ScheduledPublishAt, &v.ScheduledArchiveAt,
+			&v.PublishedAt, &v.ArchivedAt, &v.PublishedBy, &v.ArchivedBy,
+			&v.CreatedBy, &v.CreatedAt, &v.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning template version: %w", err)
+		}
+		versions = append(versions, &entity.TemplateVersionWithDetails{TemplateVersion: *v})
+	}
+	return versions, rows.Err()
+}
+
+// buildTemplateFilters builds filter query and args for template listing.
+func buildTemplateFilters(filters port.TemplateFilters, startArgPos int) (string, []any) {
+	var query string
+	var args []any
+	argPos := startArgPos
+
+	if filters.RootOnly {
+		query += " AND t.folder_id IS NULL"
+	} else if filters.FolderID != nil {
+		query += fmt.Sprintf(` AND t.folder_id = $%d`, argPos)
+		args = append(args, *filters.FolderID)
+		argPos++
+	}
+
+	if filters.HasPublishedVersion != nil {
+		if *filters.HasPublishedVersion {
+			query += " AND EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED')"
+		} else {
+			query += " AND NOT EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED')"
+		}
+	}
+
+	if filters.Search != "" {
+		query += fmt.Sprintf(" AND t.title ILIKE $%d", argPos)
+		args = append(args, "%"+filters.Search+"%")
+		argPos++
+	}
+
+	if len(filters.TagIDs) > 0 {
+		query += fmt.Sprintf(` AND t.id IN (
+			SELECT template_id FROM content.template_tags WHERE tag_id = ANY($%d)
+			GROUP BY template_id HAVING COUNT(DISTINCT tag_id) = $%d
+		)`, argPos, argPos+1)
+		args = append(args, filters.TagIDs, len(filters.TagIDs))
+		argPos += 2
+	}
+
+	query += " ORDER BY COALESCE(f.path, '') ASC, t.title ASC"
+
+	if filters.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argPos)
+		args = append(args, filters.Limit)
+		argPos++
+	}
+
+	if filters.Offset > 0 {
+		query += fmt.Sprintf(" OFFSET $%d", argPos)
+		args = append(args, filters.Offset)
+	}
+
+	return query, args
+}
+
+// scanTemplateListItems scans template list items from rows.
+func scanTemplateListItems(rows pgx.Rows) ([]*entity.TemplateListItem, error) {
+	var templates []*entity.TemplateListItem
+	for rows.Next() {
+		item := &entity.TemplateListItem{}
+		if err := rows.Scan(
+			&item.ID, &item.WorkspaceID, &item.FolderID, &item.Title,
+			&item.IsPublicLibrary, &item.CreatedAt, &item.UpdatedAt,
+			&item.HasPublishedVersion, &item.VersionCount,
+			&item.ScheduledVersionCount, &item.PublishedVersionNumber,
+		); err != nil {
+			return nil, fmt.Errorf("scanning template: %w", err)
+		}
+		templates = append(templates, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating templates: %w", err)
+	}
 	return templates, nil
 }
 

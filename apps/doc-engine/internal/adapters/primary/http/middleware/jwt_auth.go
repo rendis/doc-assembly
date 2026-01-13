@@ -27,19 +27,7 @@ const (
 
 // JWTAuth creates a middleware that validates JWT tokens using JWKS from Keycloak.
 func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
-	// Initialize JWKS keyfunc
-	var jwks keyfunc.Keyfunc
-	var jwksErr error
-
-	if authCfg.JWKSURL != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		jwks, jwksErr = keyfunc.NewDefaultCtx(ctx, []string{authCfg.JWKSURL})
-		if jwksErr != nil {
-			slog.ErrorContext(ctx, "failed to initialize JWKS", slog.String("error", jwksErr.Error()))
-		}
-	}
+	jwks := initializeJWKS(authCfg)
 
 	return func(c *gin.Context) {
 		// Skip auth for OPTIONS requests (CORS preflight)
@@ -48,22 +36,12 @@ func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
 			return
 		}
 
-		// Get Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			abortWithError(c, http.StatusUnauthorized, entity.ErrMissingToken)
+		tokenString, err := extractBearerToken(c)
+		if err != nil {
+			abortWithError(c, http.StatusUnauthorized, err)
 			return
 		}
 
-		// Extract Bearer token
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			abortWithError(c, http.StatusUnauthorized, entity.ErrInvalidToken)
-			return
-		}
-		tokenString := parts[1]
-
-		// Parse and validate token
 		claims, err := validateToken(tokenString, jwks, authCfg)
 		if err != nil {
 			slog.WarnContext(c.Request.Context(), "token validation failed",
@@ -74,16 +52,50 @@ func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
 			return
 		}
 
-		// Store user info in context
-		c.Set(userIDKey, claims.Subject)
-		if claims.Email != "" {
-			c.Set(userEmailKey, claims.Email)
-		}
-		if claims.Name != "" {
-			c.Set(userNameKey, claims.Name)
-		}
-
+		storeClaims(c, claims)
 		c.Next()
+	}
+}
+
+// initializeJWKS initializes the JWKS keyfunc from the configured URL.
+func initializeJWKS(authCfg *config.AuthConfig) keyfunc.Keyfunc {
+	if authCfg.JWKSURL == "" {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	jwks, err := keyfunc.NewDefaultCtx(ctx, []string{authCfg.JWKSURL})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to initialize JWKS", slog.String("error", err.Error()))
+		return nil
+	}
+	return jwks
+}
+
+// extractBearerToken extracts the Bearer token from the Authorization header.
+func extractBearerToken(c *gin.Context) (string, error) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return "", entity.ErrMissingToken
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return "", entity.ErrInvalidToken
+	}
+	return parts[1], nil
+}
+
+// storeClaims stores user claims in the gin context.
+func storeClaims(c *gin.Context, claims *KeycloakClaims) {
+	c.Set(userIDKey, claims.Subject)
+	if claims.Email != "" {
+		c.Set(userEmailKey, claims.Email)
+	}
+	if claims.Name != "" {
+		c.Set(userNameKey, claims.Name)
 	}
 }
 
@@ -100,60 +112,80 @@ type KeycloakClaims struct {
 func validateToken(tokenString string, jwks keyfunc.Keyfunc, authCfg *config.AuthConfig) (*KeycloakClaims, error) {
 	var claims KeycloakClaims
 
-	// If JWKS is not configured, parse without validation (development mode)
+	// Dev mode: parse without validation
 	if jwks == nil {
 		_, _, err := jwt.NewParser().ParseUnverified(tokenString, &claims)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", entity.ErrInvalidToken, err)
 		}
-		// Note: ParseUnverified doesn't set token.Valid since no signature verification occurs.
-		// In dev mode, we trust the token structure is valid if parsing succeeded.
 		return &claims, nil
 	}
 
-	// Parse and validate with JWKS
-	token, err := jwt.ParseWithClaims(tokenString, &claims, jwks.Keyfunc,
+	// Production: parse and validate with JWKS
+	if err := parseTokenWithJWKS(tokenString, &claims, jwks); err != nil {
+		return nil, err
+	}
+
+	// Validate custom claims
+	if err := validateIssuer(&claims, authCfg.Issuer); err != nil {
+		return nil, err
+	}
+	if err := validateAudience(&claims, authCfg.Audience); err != nil {
+		return nil, err
+	}
+
+	return &claims, nil
+}
+
+// parseTokenWithJWKS parses and validates the token with JWKS.
+func parseTokenWithJWKS(tokenString string, claims *KeycloakClaims, jwks keyfunc.Keyfunc) error {
+	token, err := jwt.ParseWithClaims(tokenString, claims, jwks.Keyfunc,
 		jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}),
 		jwt.WithExpirationRequired(),
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "expired") {
-			return nil, entity.ErrTokenExpired
+			return entity.ErrTokenExpired
 		}
-		return nil, fmt.Errorf("%w: %v", entity.ErrInvalidToken, err)
+		return fmt.Errorf("%w: %v", entity.ErrInvalidToken, err)
 	}
 
 	if !token.Valid {
-		return nil, entity.ErrInvalidToken
+		return entity.ErrInvalidToken
+	}
+	return nil
+}
+
+// validateIssuer checks if the token issuer matches the expected value.
+func validateIssuer(claims *KeycloakClaims, expectedIssuer string) error {
+	if expectedIssuer == "" {
+		return nil
 	}
 
-	// Validate issuer if configured
-	if authCfg.Issuer != "" {
-		issuer, err := claims.GetIssuer()
-		if err != nil || issuer != authCfg.Issuer {
-			return nil, entity.ErrInvalidToken
-		}
+	issuer, err := claims.GetIssuer()
+	if err != nil || issuer != expectedIssuer {
+		return entity.ErrInvalidToken
+	}
+	return nil
+}
+
+// validateAudience checks if the token audience contains the expected value.
+func validateAudience(claims *KeycloakClaims, expectedAudience string) error {
+	if expectedAudience == "" {
+		return nil
 	}
 
-	// Validate audience if configured
-	if authCfg.Audience != "" {
-		audience, err := claims.GetAudience()
-		if err != nil {
-			return nil, entity.ErrInvalidToken
-		}
-		found := false
-		for _, aud := range audience {
-			if aud == authCfg.Audience {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, entity.ErrInvalidToken
-		}
+	audience, err := claims.GetAudience()
+	if err != nil {
+		return entity.ErrInvalidToken
 	}
 
-	return &claims, nil
+	for _, aud := range audience {
+		if aud == expectedAudience {
+			return nil
+		}
+	}
+	return entity.ErrInvalidToken
 }
 
 // GetUserID retrieves the authenticated user ID from the Gin context.

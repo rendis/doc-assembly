@@ -56,52 +56,99 @@ func NewDocumentGenerator(
 }
 
 // GenerateDocument is the centralized method for document generation.
-// It handles the complete flow:
-// 1. Find template → get workspaceID
-// 2. Get available injectables for workspace (reuses InjectableService.ListInjectables)
-// 3. Find published version with details
-// 4. Parse ContentStructure → get SignerRoles
-// 5. Collect referenced codes (version injectables + SignerRoles)
-// 6. Validate: required codes must be subset of available → error if missing
-// 7. Execute Mapper → get payload
-// 8. Execute Init + Injectors → resolved values
-// 9. Build recipients from SignerRoles + resolved values
-// 10. Create and save Document + Recipients
-// 11. Return result
-//
+// It handles the complete flow from template lookup through document creation.
 // Note: PDF rendering and signing provider upload are NOT handled here.
 // The caller (InternalDocumentService) handles those steps after generation.
 func (g *DocumentGenerator) GenerateDocument(
 	ctx context.Context,
 	mapCtx *port.MapperContext,
 ) (*DocumentGenerationResult, error) {
-	slog.DebugContext(ctx, "starting document generation",
-		"templateID", mapCtx.TemplateID,
-		"externalID", mapCtx.ExternalID,
-		"operation", mapCtx.Operation,
-	)
-
-	// 1. Find template and derive workspaceID
-	template, err := g.templateRepo.FindByID(ctx, mapCtx.TemplateID)
+	workspaceID, err := g.findWorkspaceID(ctx, mapCtx.TemplateID)
 	if err != nil {
-		return nil, fmt.Errorf("finding template: %w", err)
+		return nil, err
 	}
-	workspaceID := template.WorkspaceID
 
-	slog.DebugContext(ctx, "found template", "workspaceID", workspaceID)
+	availableInjectables, err := g.fetchAvailableInjectables(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
 
-	// 2. Get available injectables for the workspace
-	// REUSES: InjectableService.ListInjectables() - same flow as api/v1/content/injectables
-	// Includes: DB injectables + system injectables active for the workspace
-	availableInjectables, err := g.injectableUC.ListInjectables(ctx, workspaceID)
+	version, err := g.findPublishedVersion(ctx, mapCtx.TemplateID)
+	if err != nil {
+		return nil, err
+	}
+
+	portableDoc, err := g.parseContentStructure(version.ContentStructure)
+	if err != nil {
+		return nil, fmt.Errorf("parsing content structure: %w", err)
+	}
+
+	referencedCodes := g.collectReferencedCodes(version.Injectables, portableDoc.SignerRoles)
+	slog.DebugContext(ctx, "collected referenced codes", "codes", referencedCodes)
+
+	if err := g.validateRequiredInjectables(ctx, referencedCodes, availableInjectables); err != nil {
+		return nil, err
+	}
+
+	payload, err := g.executeMapper(ctx, mapCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	resolvedValues, err := g.resolveInjectables(ctx, mapCtx, payload, referencedCodes)
+	if err != nil {
+		return nil, err
+	}
+
+	recipients := g.buildRecipientsFromSignerRoles(ctx, portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
+	slog.DebugContext(ctx, "built recipients", "count", len(recipients))
+
+	doc, err := g.createDocument(ctx, workspaceID, version.ID, mapCtx, resolvedValues)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := g.saveRecipients(ctx, doc.ID, recipients); err != nil {
+		return nil, err
+	}
+
+	return &DocumentGenerationResult{
+		Document:   doc,
+		Recipients: recipients,
+	}, nil
+}
+
+// findWorkspaceID retrieves the workspace ID from the template.
+func (g *DocumentGenerator) findWorkspaceID(ctx context.Context, templateID string) (string, error) {
+	template, err := g.templateRepo.FindByID(ctx, templateID)
+	if err != nil {
+		return "", fmt.Errorf("finding template: %w", err)
+	}
+
+	slog.DebugContext(ctx, "found template", "workspaceID", template.WorkspaceID)
+	return template.WorkspaceID, nil
+}
+
+// fetchAvailableInjectables retrieves all injectables available for the workspace.
+func (g *DocumentGenerator) fetchAvailableInjectables(
+	ctx context.Context,
+	workspaceID string,
+) ([]*entity.InjectableDefinition, error) {
+	injectables, err := g.injectableUC.ListInjectables(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("listing available injectables: %w", err)
 	}
 
-	slog.DebugContext(ctx, "found available injectables", "count", len(availableInjectables))
+	slog.DebugContext(ctx, "found available injectables", "count", len(injectables))
+	return injectables, nil
+}
 
-	// 3. Find published version with details
-	version, err := g.versionRepo.FindPublishedByTemplateIDWithDetails(ctx, mapCtx.TemplateID)
+// findPublishedVersion retrieves the published version for the template.
+func (g *DocumentGenerator) findPublishedVersion(
+	ctx context.Context,
+	templateID string,
+) (*entity.TemplateVersionWithDetails, error) {
+	version, err := g.versionRepo.FindPublishedByTemplateIDWithDetails(ctx, templateID)
 	if err != nil {
 		return nil, entity.ErrNoPublishedVersion
 	}
@@ -110,98 +157,7 @@ func (g *DocumentGenerator) GenerateDocument(
 		"versionID", version.ID,
 		"versionNumber", version.VersionNumber,
 	)
-
-	// 4. Parse ContentStructure to get SignerRoles
-	portableDoc, err := g.parseContentStructure(version.ContentStructure)
-	if err != nil {
-		return nil, fmt.Errorf("parsing content structure: %w", err)
-	}
-
-	// 5. Collect referenced codes (version injectables + SignerRoles)
-	referencedCodes := g.collectReferencedCodes(version.Injectables, portableDoc.SignerRoles)
-
-	slog.DebugContext(ctx, "collected referenced codes", "codes", referencedCodes)
-
-	// 6. Validate: all required codes must be available
-	if err := g.validateRequiredInjectables(ctx, referencedCodes, availableInjectables); err != nil {
-		return nil, err
-	}
-
-	// 7. Execute Mapper
-	mapper, ok := g.mapperRegistry.Get()
-	if !ok {
-		return nil, entity.ErrNoMapperRegistered
-	}
-
-	payload, err := mapper.Map(ctx, mapCtx)
-	if err != nil {
-		return nil, fmt.Errorf("mapper failed: %w", err)
-	}
-
-	slog.DebugContext(ctx, "mapper executed successfully")
-
-	// 8. Create InjectorContext and resolve injectors
-	injCtx := entity.NewInjectorContext(
-		mapCtx.ExternalID,
-		mapCtx.TemplateID,
-		mapCtx.TransactionalID,
-		mapCtx.Operation,
-		mapCtx.Headers,
-		payload,
-	)
-
-	resolveResult, err := g.resolver.Resolve(ctx, injCtx, referencedCodes)
-	if err != nil {
-		return nil, fmt.Errorf("resolving injectors: %w", err)
-	}
-
-	slog.DebugContext(ctx, "injectors resolved", "resolvedCount", len(resolveResult.Values))
-
-	// 9. Convert resolved values to map[string]any
-	resolvedValues := make(map[string]any)
-	for code, val := range resolveResult.Values {
-		resolvedValues[code] = val.AsAny()
-	}
-
-	// 10. Build recipients from SignerRoles + resolved values
-	recipients := g.buildRecipientsFromSignerRoles(ctx, portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
-
-	slog.DebugContext(ctx, "built recipients", "count", len(recipients))
-
-	// 11. Create document entity
-	doc := entity.NewDocument(workspaceID, version.ID)
-	doc.SetOperationType(mapCtx.Operation)
-	doc.SetExternalReference(mapCtx.ExternalID)
-	doc.SetTransactionalID(mapCtx.TransactionalID)
-	if err := doc.SetInjectedValuesSnapshot(resolvedValues); err != nil {
-		return nil, fmt.Errorf("setting injected values snapshot: %w", err)
-	}
-
-	// 12. Save document
-	docID, err := g.documentRepo.Create(ctx, doc)
-	if err != nil {
-		return nil, fmt.Errorf("saving document: %w", err)
-	}
-	doc.ID = docID
-
-	slog.DebugContext(ctx, "document saved", "documentID", docID)
-
-	// 13. Set document ID on recipients and save them
-	for _, r := range recipients {
-		r.DocumentID = docID
-	}
-
-	if len(recipients) > 0 {
-		if err := g.recipientRepo.CreateBatch(ctx, recipients); err != nil {
-			return nil, fmt.Errorf("saving recipients: %w", err)
-		}
-		slog.DebugContext(ctx, "recipients saved", "count", len(recipients))
-	}
-
-	return &DocumentGenerationResult{
-		Document:   doc,
-		Recipients: recipients,
-	}, nil
+	return version, nil
 }
 
 // parseContentStructure parses the JSON ContentStructure into portabledoc.Document.
@@ -219,23 +175,19 @@ func (g *DocumentGenerator) parseContentStructure(content json.RawMessage) (*por
 }
 
 // collectReferencedCodes collects all injectable codes referenced by the version.
-// This includes:
-// - Codes from version injectables
-// - Codes referenced in SignerRoles (Name.Value and Email.Value when type is "injectable")
+// This includes codes from version injectables and codes referenced in SignerRoles.
 func (g *DocumentGenerator) collectReferencedCodes(
 	versionInjectables []*entity.VersionInjectableWithDefinition,
 	signerRoles []portabledoc.SignerRole,
 ) []string {
 	codeSet := make(map[string]bool)
 
-	// Codes from version injectables
 	for _, vi := range versionInjectables {
 		if vi.Definition != nil {
 			codeSet[vi.Definition.Key] = true
 		}
 	}
 
-	// Codes referenced in SignerRoles
 	for _, sr := range signerRoles {
 		if sr.Name.IsInjectable() && sr.Name.Value != "" {
 			codeSet[sr.Name.Value] = true
@@ -254,19 +206,16 @@ func (g *DocumentGenerator) collectReferencedCodes(
 }
 
 // validateRequiredInjectables validates that all required injectable codes are available.
-// If any code is missing, returns MissingInjectablesError with the list of missing codes.
 func (g *DocumentGenerator) validateRequiredInjectables(
 	ctx context.Context,
 	requiredCodes []string,
 	availableInjectables []*entity.InjectableDefinition,
 ) error {
-	// Build set of available keys
 	availableKeys := make(map[string]bool, len(availableInjectables))
 	for _, inj := range availableInjectables {
 		availableKeys[inj.Key] = true
 	}
 
-	// Check each required code
 	var missingCodes []string
 	for _, code := range requiredCodes {
 		if !availableKeys[code] {
@@ -274,30 +223,76 @@ func (g *DocumentGenerator) validateRequiredInjectables(
 		}
 	}
 
-	if len(missingCodes) > 0 {
-		slog.WarnContext(ctx, "missing required injectables",
-			"missingCodes", missingCodes,
-			"requiredCount", len(requiredCodes),
-			"availableCount", len(availableInjectables),
-		)
-		return &entity.MissingInjectablesError{
-			MissingCodes: missingCodes,
-		}
+	if len(missingCodes) == 0 {
+		return nil
 	}
 
-	return nil
+	slog.WarnContext(ctx, "missing required injectables",
+		"missingCodes", missingCodes,
+		"requiredCount", len(requiredCodes),
+		"availableCount", len(availableInjectables),
+	)
+	return &entity.MissingInjectablesError{MissingCodes: missingCodes}
+}
+
+// executeMapper runs the registered mapper to transform the request.
+func (g *DocumentGenerator) executeMapper(
+	ctx context.Context,
+	mapCtx *port.MapperContext,
+) (any, error) {
+	mapper, ok := g.mapperRegistry.Get()
+	if !ok {
+		return nil, entity.ErrNoMapperRegistered
+	}
+
+	payload, err := mapper.Map(ctx, mapCtx)
+	if err != nil {
+		return nil, fmt.Errorf("mapper failed: %w", err)
+	}
+
+	slog.DebugContext(ctx, "mapper executed successfully")
+	return payload, nil
+}
+
+// resolveInjectables executes injectors and returns resolved values.
+func (g *DocumentGenerator) resolveInjectables(
+	ctx context.Context,
+	mapCtx *port.MapperContext,
+	payload any,
+	referencedCodes []string,
+) (map[string]any, error) {
+	injCtx := entity.NewInjectorContext(
+		mapCtx.ExternalID,
+		mapCtx.TemplateID,
+		mapCtx.TransactionalID,
+		mapCtx.Operation,
+		mapCtx.Headers,
+		payload,
+	)
+
+	resolveResult, err := g.resolver.Resolve(ctx, injCtx, referencedCodes)
+	if err != nil {
+		return nil, fmt.Errorf("resolving injectors: %w", err)
+	}
+
+	slog.DebugContext(ctx, "injectors resolved", "resolvedCount", len(resolveResult.Values))
+
+	resolvedValues := make(map[string]any, len(resolveResult.Values))
+	for code, val := range resolveResult.Values {
+		resolvedValues[code] = val.AsAny()
+	}
+
+	return resolvedValues, nil
 }
 
 // buildRecipientsFromSignerRoles builds DocumentRecipient entities from portabledoc SignerRoles.
-// It resolves name and email values from the resolved injectable values.
 func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	ctx context.Context,
 	portableSignerRoles []portabledoc.SignerRole,
 	dbSignerRoles []*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
 ) []*entity.DocumentRecipient {
-	// Map DB signer roles by their ID (anchor format: __sig_{id}__)
-	roleByAnchor := make(map[string]*entity.TemplateVersionSignerRole)
+	roleByAnchor := make(map[string]*entity.TemplateVersionSignerRole, len(dbSignerRoles))
 	for _, r := range dbSignerRoles {
 		roleByAnchor[r.AnchorString] = r
 	}
@@ -305,41 +300,47 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	recipients := make([]*entity.DocumentRecipient, 0, len(portableSignerRoles))
 
 	for _, sr := range portableSignerRoles {
-		// Resolve name
-		name := g.resolveFieldValue(sr.Name, resolvedValues)
-
-		// Resolve email
-		email := g.resolveFieldValue(sr.Email, resolvedValues)
-
-		// Find the corresponding DB signer role
-		// The anchor format in DB is __sig_{id}__ where id matches sr.ID
-		anchor := fmt.Sprintf("__sig_%s__", sr.ID)
-		dbRole, found := roleByAnchor[anchor]
-
-		if name != "" && email != "" && found {
-			recipients = append(recipients, &entity.DocumentRecipient{
-				ID:                    uuid.NewString(),
-				TemplateVersionRoleID: dbRole.ID,
-				Name:                  name,
-				Email:                 email,
-				Status:                entity.RecipientStatusPending,
-			})
-		} else {
-			slog.WarnContext(ctx, "skipping signer role - missing data",
-				"signerRoleID", sr.ID,
-				"hasName", name != "",
-				"hasEmail", email != "",
-				"foundInDB", found,
-			)
+		recipient := g.buildRecipient(ctx, sr, roleByAnchor, resolvedValues)
+		if recipient != nil {
+			recipients = append(recipients, recipient)
 		}
 	}
 
 	return recipients
 }
 
+// buildRecipient creates a single DocumentRecipient from a SignerRole.
+func (g *DocumentGenerator) buildRecipient(
+	ctx context.Context,
+	sr portabledoc.SignerRole,
+	roleByAnchor map[string]*entity.TemplateVersionSignerRole,
+	resolvedValues map[string]any,
+) *entity.DocumentRecipient {
+	name := g.resolveFieldValue(sr.Name, resolvedValues)
+	email := g.resolveFieldValue(sr.Email, resolvedValues)
+	anchor := fmt.Sprintf("__sig_%s__", sr.ID)
+	dbRole, found := roleByAnchor[anchor]
+
+	if name == "" || email == "" || !found {
+		slog.WarnContext(ctx, "skipping signer role - missing data",
+			"signerRoleID", sr.ID,
+			"hasName", name != "",
+			"hasEmail", email != "",
+			"foundInDB", found,
+		)
+		return nil
+	}
+
+	return &entity.DocumentRecipient{
+		ID:                    uuid.NewString(),
+		TemplateVersionRoleID: dbRole.ID,
+		Name:                  name,
+		Email:                 email,
+		Status:                entity.RecipientStatusPending,
+	}
+}
+
 // resolveFieldValue resolves a FieldValue to its actual string value.
-// For "text" type, returns the literal value.
-// For "injectable" type, looks up the value in resolvedValues.
 func (g *DocumentGenerator) resolveFieldValue(
 	field portabledoc.FieldValue,
 	resolvedValues map[string]any,
@@ -348,15 +349,68 @@ func (g *DocumentGenerator) resolveFieldValue(
 		return field.Value
 	}
 
-	if field.IsInjectable() {
-		if val, ok := resolvedValues[field.Value]; ok {
-			if strVal, ok := val.(string); ok {
-				return strVal
-			}
-			// Try to convert to string
-			return fmt.Sprintf("%v", val)
-		}
+	if !field.IsInjectable() {
+		return ""
 	}
 
-	return ""
+	val, ok := resolvedValues[field.Value]
+	if !ok {
+		return ""
+	}
+
+	if strVal, ok := val.(string); ok {
+		return strVal
+	}
+
+	return fmt.Sprintf("%v", val)
+}
+
+// createDocument creates and persists the document entity.
+func (g *DocumentGenerator) createDocument(
+	ctx context.Context,
+	workspaceID string,
+	versionID string,
+	mapCtx *port.MapperContext,
+	resolvedValues map[string]any,
+) (*entity.Document, error) {
+	doc := entity.NewDocument(workspaceID, versionID)
+	doc.SetOperationType(mapCtx.Operation)
+	doc.SetExternalReference(mapCtx.ExternalID)
+	doc.SetTransactionalID(mapCtx.TransactionalID)
+
+	if err := doc.SetInjectedValuesSnapshot(resolvedValues); err != nil {
+		return nil, fmt.Errorf("setting injected values snapshot: %w", err)
+	}
+
+	docID, err := g.documentRepo.Create(ctx, doc)
+	if err != nil {
+		return nil, fmt.Errorf("saving document: %w", err)
+	}
+
+	doc.ID = docID
+	slog.DebugContext(ctx, "document saved", "documentID", docID)
+
+	return doc, nil
+}
+
+// saveRecipients persists the document recipients.
+func (g *DocumentGenerator) saveRecipients(
+	ctx context.Context,
+	documentID string,
+	recipients []*entity.DocumentRecipient,
+) error {
+	if len(recipients) == 0 {
+		return nil
+	}
+
+	for _, r := range recipients {
+		r.DocumentID = documentID
+	}
+
+	if err := g.recipientRepo.CreateBatch(ctx, recipients); err != nil {
+		return fmt.Errorf("saving recipients: %w", err)
+	}
+
+	slog.DebugContext(ctx, "recipients saved", "count", len(recipients))
+	return nil
 }

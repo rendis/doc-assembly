@@ -392,23 +392,35 @@ func (d DocumentStatus) IsTerminal() bool {
 	return false
 }
 
+// validStatusTransitions defines allowed document status transitions.
+var validStatusTransitions = map[DocumentStatus]map[DocumentStatus]bool{
+	DocumentStatusDraft: {
+		DocumentStatusPending: true,
+		DocumentStatusError:   true,
+	},
+	DocumentStatusPending: {
+		DocumentStatusInProgress: true,
+		DocumentStatusCompleted:  true,
+		DocumentStatusDeclined:   true,
+		DocumentStatusVoided:     true,
+		DocumentStatusExpired:    true,
+		DocumentStatusError:      true,
+	},
+	DocumentStatusInProgress: {
+		DocumentStatusCompleted: true,
+		DocumentStatusDeclined:  true,
+		DocumentStatusVoided:    true,
+		DocumentStatusExpired:   true,
+		DocumentStatusError:     true,
+	},
+	// Terminal states: Completed, Declined, Voided, Expired - no transitions allowed
+	DocumentStatusError: {
+		DocumentStatusDraft: true, // Can retry from error
+	},
+}
+
 // CanTransitionTo checks if transition to target status is allowed.
 func (d DocumentStatus) CanTransitionTo(target DocumentStatus) bool {
-	switch d {
-	case DocumentStatusDraft:
-		return target == DocumentStatusPending || target == DocumentStatusError
-	case DocumentStatusPending:
-		return target == DocumentStatusInProgress || target == DocumentStatusCompleted ||
-			target == DocumentStatusDeclined || target == DocumentStatusVoided ||
-			target == DocumentStatusExpired || target == DocumentStatusError
-	case DocumentStatusInProgress:
-		return target == DocumentStatusCompleted || target == DocumentStatusDeclined ||
-			target == DocumentStatusVoided || target == DocumentStatusExpired ||
-			target == DocumentStatusError
-	case DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusVoided, DocumentStatusExpired:
-		return false // Terminal states
-	case DocumentStatusError:
-		return target == DocumentStatusDraft // Can retry from error
-	}
-	return false
+	transitions, ok := validStatusTransitions[d]
+	return ok && transitions[target]
 }

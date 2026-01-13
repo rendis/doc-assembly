@@ -193,49 +193,16 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, cmd templateuc.Upd
 
 // CloneTemplate creates a copy of an existing template from a specific version.
 func (s *TemplateService) CloneTemplate(ctx context.Context, cmd templateuc.CloneTemplateCommand) (*entity.Template, *entity.TemplateVersion, error) {
-	// Get source version to clone
-	sourceVersion, err := s.versionRepo.FindByID(ctx, cmd.VersionID)
+	source, sourceVersion, err := s.validateCloneSource(ctx, cmd.SourceTemplateID, cmd.VersionID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("finding source version: %w", err)
+		return nil, nil, err
 	}
 
-	// Verify version belongs to the specified template
-	if sourceVersion.TemplateID != cmd.SourceTemplateID {
-		return nil, nil, entity.ErrVersionDoesNotBelongToTemplate
-	}
-
-	// Get source template metadata
-	source, err := s.templateRepo.FindByIDWithDetails(ctx, cmd.SourceTemplateID)
+	newTemplate, err := s.createClonedTemplate(ctx, source, cmd.NewTitle, cmd.TargetFolderID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("finding source template: %w", err)
+		return nil, nil, err
 	}
 
-	// Check for duplicate title
-	exists, err := s.templateRepo.ExistsByTitle(ctx, source.WorkspaceID, cmd.NewTitle)
-	if err != nil {
-		return nil, nil, fmt.Errorf("checking template title: %w", err)
-	}
-	if exists {
-		return nil, nil, entity.ErrTemplateAlreadyExists
-	}
-
-	// Create new template
-	newTemplate := &entity.Template{
-		ID:              uuid.NewString(),
-		WorkspaceID:     source.WorkspaceID,
-		FolderID:        cmd.TargetFolderID,
-		Title:           cmd.NewTitle,
-		IsPublicLibrary: false,
-		CreatedAt:       time.Now().UTC(),
-	}
-
-	id, err := s.templateRepo.Create(ctx, newTemplate)
-	if err != nil {
-		return nil, nil, fmt.Errorf("creating cloned template: %w", err)
-	}
-	newTemplate.ID = id
-
-	// Create initial version with content from specified version
 	version := entity.NewTemplateVersion(newTemplate.ID, 1, "Initial Version", &cmd.ClonedBy)
 	version.ID = uuid.NewString()
 	version.ContentStructure = sourceVersion.ContentStructure
@@ -247,15 +214,7 @@ func (s *TemplateService) CloneTemplate(ctx context.Context, cmd templateuc.Clon
 	}
 	version.ID = versionID
 
-	// Clone tags
-	for _, tag := range source.Tags {
-		if err := s.tagRepo.AddTag(ctx, newTemplate.ID, tag.ID); err != nil {
-			slog.WarnContext(ctx, "failed to clone tag",
-				slog.String("template_id", newTemplate.ID),
-				slog.Any("error", err),
-			)
-		}
-	}
+	s.cloneTags(ctx, newTemplate.ID, source.Tags)
 
 	slog.InfoContext(ctx, "template cloned",
 		slog.String("source_id", cmd.SourceTemplateID),
@@ -266,6 +225,61 @@ func (s *TemplateService) CloneTemplate(ctx context.Context, cmd templateuc.Clon
 	)
 
 	return newTemplate, version, nil
+}
+
+func (s *TemplateService) validateCloneSource(ctx context.Context, templateID, versionID string) (*entity.TemplateWithDetails, *entity.TemplateVersion, error) {
+	sourceVersion, err := s.versionRepo.FindByID(ctx, versionID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("finding source version: %w", err)
+	}
+	if sourceVersion.TemplateID != templateID {
+		return nil, nil, entity.ErrVersionDoesNotBelongToTemplate
+	}
+
+	source, err := s.templateRepo.FindByIDWithDetails(ctx, templateID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("finding source template: %w", err)
+	}
+
+	return source, sourceVersion, nil
+}
+
+func (s *TemplateService) createClonedTemplate(ctx context.Context, source *entity.TemplateWithDetails, newTitle string, targetFolderID *string) (*entity.Template, error) {
+	exists, err := s.templateRepo.ExistsByTitle(ctx, source.WorkspaceID, newTitle)
+	if err != nil {
+		return nil, fmt.Errorf("checking template title: %w", err)
+	}
+	if exists {
+		return nil, entity.ErrTemplateAlreadyExists
+	}
+
+	newTemplate := &entity.Template{
+		ID:              uuid.NewString(),
+		WorkspaceID:     source.WorkspaceID,
+		FolderID:        targetFolderID,
+		Title:           newTitle,
+		IsPublicLibrary: false,
+		CreatedAt:       time.Now().UTC(),
+	}
+
+	id, err := s.templateRepo.Create(ctx, newTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("creating cloned template: %w", err)
+	}
+	newTemplate.ID = id
+
+	return newTemplate, nil
+}
+
+func (s *TemplateService) cloneTags(ctx context.Context, newTemplateID string, tags []*entity.Tag) {
+	for _, tag := range tags {
+		if err := s.tagRepo.AddTag(ctx, newTemplateID, tag.ID); err != nil {
+			slog.WarnContext(ctx, "failed to clone tag",
+				slog.String("template_id", newTemplateID),
+				slog.Any("error", err),
+			)
+		}
+	}
 }
 
 // DeleteTemplate deletes a template and all its versions.

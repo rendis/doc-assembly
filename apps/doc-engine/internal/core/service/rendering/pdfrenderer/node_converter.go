@@ -59,7 +59,7 @@ func (c *NodeConverter) ConvertNode(node portabledoc.Node) string {
 	case portabledoc.NodeTypeCodeBlock:
 		return c.codeBlock(node)
 	case portabledoc.NodeTypeHR:
-		return c.horizontalRule()
+		return c.horizontalRule(node)
 	case portabledoc.NodeTypeBulletList:
 		return c.bulletList(node)
 	case portabledoc.NodeTypeOrderedList:
@@ -77,23 +77,25 @@ func (c *NodeConverter) ConvertNode(node portabledoc.Node) string {
 	case portabledoc.NodeTypeSignature:
 		return c.signature(node)
 	case portabledoc.NodeTypePageBreak:
-		return c.pageBreak()
+		return c.pageBreak(node)
 	case portabledoc.NodeTypeImage, portabledoc.NodeTypeCustomImage:
 		return c.image(node)
 	case portabledoc.NodeTypeText:
 		return c.text(node)
 	default:
-		// Unknown node type, render children if any
-		if len(node.Content) > 0 {
-			return c.ConvertNodes(node.Content)
-		}
-		return ""
+		return c.handleUnknownNode(node)
 	}
+}
+
+func (c *NodeConverter) handleUnknownNode(node portabledoc.Node) string {
+	if len(node.Content) > 0 {
+		return c.ConvertNodes(node.Content)
+	}
+	return ""
 }
 
 func (c *NodeConverter) paragraph(node portabledoc.Node) string {
 	content := c.ConvertNodes(node.Content)
-	// Empty paragraphs need a non-breaking space to maintain height in PDF
 	if content == "" {
 		content = "&nbsp;"
 	}
@@ -101,18 +103,17 @@ func (c *NodeConverter) paragraph(node portabledoc.Node) string {
 }
 
 func (c *NodeConverter) heading(node portabledoc.Node) string {
-	level := 1
-	if l, ok := node.Attrs["level"].(float64); ok {
-		level = int(l)
-	}
-	if level < 1 {
-		level = 1
-	}
-	if level > 6 {
-		level = 6
-	}
+	level := c.parseHeadingLevel(node.Attrs)
 	content := c.ConvertNodes(node.Content)
 	return fmt.Sprintf("<h%d>%s</h%d>\n", level, content, level)
+}
+
+func (c *NodeConverter) parseHeadingLevel(attrs map[string]any) int {
+	level := 1
+	if l, ok := attrs["level"].(float64); ok {
+		level = int(l)
+	}
+	return clamp(level, 1, 6)
 }
 
 func (c *NodeConverter) blockquote(node portabledoc.Node) string {
@@ -121,19 +122,16 @@ func (c *NodeConverter) blockquote(node portabledoc.Node) string {
 }
 
 func (c *NodeConverter) codeBlock(node portabledoc.Node) string {
-	language := ""
-	if l, ok := node.Attrs["language"].(string); ok {
-		language = l
-	}
-
+	language, _ := node.Attrs["language"].(string)
 	content := c.ConvertNodes(node.Content)
+
 	if language != "" {
 		return fmt.Sprintf("<pre><code class=\"language-%s\">%s</code></pre>\n", html.EscapeString(language), content)
 	}
 	return fmt.Sprintf("<pre><code>%s</code></pre>\n", content)
 }
 
-func (c *NodeConverter) horizontalRule() string {
+func (c *NodeConverter) horizontalRule(_ portabledoc.Node) string {
 	return "<hr>\n"
 }
 
@@ -147,6 +145,7 @@ func (c *NodeConverter) orderedList(node portabledoc.Node) string {
 	if s, ok := node.Attrs["start"].(float64); ok {
 		start = int(s)
 	}
+
 	content := c.ConvertNodes(node.Content)
 	if start != 1 {
 		return fmt.Sprintf("<ol start=\"%d\">%s</ol>\n", start, content)
@@ -165,11 +164,7 @@ func (c *NodeConverter) listItem(node portabledoc.Node) string {
 }
 
 func (c *NodeConverter) taskItem(node portabledoc.Node) string {
-	checked := false
-	if c, ok := node.Attrs["checked"].(bool); ok {
-		checked = c
-	}
-
+	checked, _ := node.Attrs["checked"].(bool)
 	checkedAttr := ""
 	if checked {
 		checkedAttr = " checked"
@@ -184,51 +179,65 @@ func (c *NodeConverter) injector(node portabledoc.Node) string {
 	label, _ := node.Attrs["label"].(string)
 	isRoleVar, _ := node.Attrs["isRoleVariable"].(bool)
 
-	var value string
-
-	if isRoleVar {
-		// Role variable - resolve from signer role values
-		roleID, _ := node.Attrs["roleId"].(string)
-		propertyKey, _ := node.Attrs["propertyKey"].(string)
-
-		if roleValue, ok := c.signerRoleValues[roleID]; ok {
-			switch propertyKey {
-			case portabledoc.RolePropertyName:
-				value = roleValue.Name
-			case portabledoc.RolePropertyEmail:
-				value = roleValue.Email
-			}
-		}
-
-		// Fallback: if no value from signerRoleValues, try injectables directly
-		// This handles cases where role variables are passed directly in injectables
-		// (e.g., ROLE.Rol_1.email) instead of through SignerRole.Email.Type="injectable"
-		if value == "" {
-			if v, ok := c.injectables[variableID]; ok {
-				value = c.formatInjectableValue(v, node.Attrs)
-			}
-		}
-	} else {
-		// Regular injectable - get from injectables map
-		if v, ok := c.injectables[variableID]; ok {
-			value = c.formatInjectableValue(v, node.Attrs)
-		}
-	}
-
-	// Fallback to default value if no value provided
+	value := c.resolveInjectorValue(variableID, isRoleVar, node.Attrs)
 	if value == "" {
-		if defaultVal, ok := c.injectableDefaults[variableID]; ok && defaultVal != "" {
-			value = defaultVal
-		}
+		value = c.getDefaultValue(variableID)
 	}
 
-	// If still no value, show placeholder with label
 	if value == "" {
-		value = fmt.Sprintf("[%s]", label)
-		return fmt.Sprintf("<span class=\"injectable injectable-empty\">%s</span>", html.EscapeString(value))
+		placeholder := fmt.Sprintf("[%s]", label)
+		return fmt.Sprintf("<span class=\"injectable injectable-empty\">%s</span>", html.EscapeString(placeholder))
 	}
-
 	return fmt.Sprintf("<span class=\"injectable\">%s</span>", html.EscapeString(value))
+}
+
+func (c *NodeConverter) resolveInjectorValue(variableID string, isRoleVar bool, attrs map[string]any) string {
+	if !isRoleVar {
+		return c.resolveRegularInjectable(variableID, attrs)
+	}
+	return c.resolveRoleVariable(variableID, attrs)
+}
+
+func (c *NodeConverter) resolveRegularInjectable(variableID string, attrs map[string]any) string {
+	if v, ok := c.injectables[variableID]; ok {
+		return c.formatInjectableValue(v, attrs)
+	}
+	return ""
+}
+
+func (c *NodeConverter) resolveRoleVariable(variableID string, attrs map[string]any) string {
+	roleID, _ := attrs["roleId"].(string)
+	propertyKey, _ := attrs["propertyKey"].(string)
+
+	if roleValue, ok := c.signerRoleValues[roleID]; ok {
+		if value := c.getRolePropertyValue(roleValue, propertyKey); value != "" {
+			return value
+		}
+	}
+
+	// Fallback: try injectables directly for cases like ROLE.Rol_1.email
+	if v, ok := c.injectables[variableID]; ok {
+		return c.formatInjectableValue(v, attrs)
+	}
+	return ""
+}
+
+func (c *NodeConverter) getRolePropertyValue(roleValue port.SignerRoleValue, propertyKey string) string {
+	switch propertyKey {
+	case portabledoc.RolePropertyName:
+		return roleValue.Name
+	case portabledoc.RolePropertyEmail:
+		return roleValue.Email
+	default:
+		return ""
+	}
+}
+
+func (c *NodeConverter) getDefaultValue(variableID string) string {
+	if defaultVal, ok := c.injectableDefaults[variableID]; ok && defaultVal != "" {
+		return defaultVal
+	}
+	return ""
 }
 
 func (c *NodeConverter) formatInjectableValue(value any, attrs map[string]any) string {
@@ -239,53 +248,56 @@ func (c *NodeConverter) formatInjectableValue(value any, attrs map[string]any) s
 	case string:
 		return v
 	case float64:
-		if injectorType == portabledoc.InjectorTypeCurrency {
-			// Format as currency
-			if format != "" {
-				return fmt.Sprintf("%s %.2f", format, v)
-			}
-			return fmt.Sprintf("%.2f", v)
-		}
-		// Check if it's a whole number
-		if v == float64(int64(v)) {
-			return strconv.FormatInt(int64(v), 10)
-		}
-		return strconv.FormatFloat(v, 'f', -1, 64)
+		return c.formatFloat64(v, injectorType, format)
 	case int:
 		return strconv.Itoa(v)
 	case int64:
 		return strconv.FormatInt(v, 10)
 	case bool:
-		if v {
-			return "Sí"
-		}
-		return "No"
+		return formatBool(v)
 	default:
 		return fmt.Sprintf("%v", v)
 	}
 }
 
+func (c *NodeConverter) formatFloat64(v float64, injectorType, format string) string {
+	if injectorType == portabledoc.InjectorTypeCurrency {
+		if format != "" {
+			return fmt.Sprintf("%s %.2f", format, v)
+		}
+		return fmt.Sprintf("%.2f", v)
+	}
+
+	if v == float64(int64(v)) {
+		return strconv.FormatInt(int64(v), 10)
+	}
+	return strconv.FormatFloat(v, 'f', -1, 64)
+}
+
+func formatBool(v bool) string {
+	if v {
+		return "Sí"
+	}
+	return "No"
+}
+
 func (c *NodeConverter) conditional(node portabledoc.Node) string {
-	// Evaluate the condition
 	if c.evaluateCondition(node.Attrs) {
-		// Condition is true, render content
 		return c.ConvertNodes(node.Content)
 	}
-	// Condition is false, don't render
 	return ""
 }
 
 func (c *NodeConverter) evaluateCondition(attrs map[string]any) bool {
 	conditionsRaw, ok := attrs["conditions"]
 	if !ok {
-		return true // No conditions = always show
+		return true
 	}
 
 	conditionsMap, ok := conditionsRaw.(map[string]any)
 	if !ok {
 		return true
 	}
-
 	return c.evaluateLogicGroup(conditionsMap)
 }
 
@@ -303,18 +315,8 @@ func (c *NodeConverter) evaluateLogicGroup(group map[string]any) bool {
 			continue
 		}
 
-		childType, _ := child["type"].(string)
-		var result bool
+		result := c.evaluateChild(child)
 
-		if childType == portabledoc.LogicTypeGroup {
-			result = c.evaluateLogicGroup(child)
-		} else if childType == portabledoc.LogicTypeRule {
-			result = c.evaluateRule(child)
-		} else {
-			continue
-		}
-
-		// Short-circuit evaluation
 		if logic == portabledoc.LogicAND && !result {
 			return false
 		}
@@ -323,10 +325,19 @@ func (c *NodeConverter) evaluateLogicGroup(group map[string]any) bool {
 		}
 	}
 
-	// If we get here:
-	// - AND: all were true
-	// - OR: none were true
 	return logic == portabledoc.LogicAND
+}
+
+func (c *NodeConverter) evaluateChild(child map[string]any) bool {
+	childType, _ := child["type"].(string)
+	switch childType {
+	case portabledoc.LogicTypeGroup:
+		return c.evaluateLogicGroup(child)
+	case portabledoc.LogicTypeRule:
+		return c.evaluateRule(child)
+	default:
+		return false
+	}
 }
 
 func (c *NodeConverter) evaluateRule(rule map[string]any) bool {
@@ -334,24 +345,24 @@ func (c *NodeConverter) evaluateRule(rule map[string]any) bool {
 	operator, _ := rule["operator"].(string)
 	valueObj, _ := rule["value"].(map[string]any)
 
-	// Get the actual value from injectables
 	actualValue := c.injectables[variableID]
-
-	// Get the comparison value
-	valueMode, _ := valueObj["mode"].(string)
-	compareValue := valueObj["value"]
-
-	if valueMode == portabledoc.RuleModeVariable {
-		// Compare against another variable's value
-		compareVarID, _ := compareValue.(string)
-		compareValue = c.injectables[compareVarID]
-	}
+	compareValue := c.resolveCompareValue(valueObj)
 
 	return c.compareValues(actualValue, compareValue, operator)
 }
 
+func (c *NodeConverter) resolveCompareValue(valueObj map[string]any) any {
+	valueMode, _ := valueObj["mode"].(string)
+	compareValue := valueObj["value"]
+
+	if valueMode == portabledoc.RuleModeVariable {
+		compareVarID, _ := compareValue.(string)
+		return c.injectables[compareVarID]
+	}
+	return compareValue
+}
+
 func (c *NodeConverter) compareValues(actual, compare any, operator string) bool {
-	// Convert to strings for comparison
 	actualStr := fmt.Sprintf("%v", actual)
 	compareStr := fmt.Sprintf("%v", compare)
 
@@ -388,8 +399,8 @@ func (c *NodeConverter) compareValues(actual, compare any, operator string) bool
 }
 
 func (c *NodeConverter) compareNumeric(a, b any) int {
-	aNum := c.toFloat64(a)
-	bNum := c.toFloat64(b)
+	aNum := toFloat64(a)
+	bNum := toFloat64(b)
 
 	if aNum < bNum {
 		return -1
@@ -400,7 +411,7 @@ func (c *NodeConverter) compareNumeric(a, b any) int {
 	return 0
 }
 
-func (c *NodeConverter) toFloat64(v any) float64 {
+func toFloat64(v any) float64 {
 	switch val := v.(type) {
 	case float64:
 		return val
@@ -427,202 +438,177 @@ func (c *NodeConverter) signature(node portabledoc.Node) string {
 
 func (c *NodeConverter) parseSignatureAttrs(attrs map[string]any) portabledoc.SignatureAttrs {
 	result := portabledoc.SignatureAttrs{
-		Count:     1,
-		Layout:    portabledoc.LayoutSingleCenter,
-		LineWidth: portabledoc.LineWidthMedium,
-	}
-
-	if count, ok := attrs["count"].(float64); ok {
-		result.Count = int(count)
-	}
-	if layout, ok := attrs["layout"].(string); ok {
-		result.Layout = layout
-	}
-	if lineWidth, ok := attrs["lineWidth"].(string); ok {
-		result.LineWidth = lineWidth
+		Count:     getIntAttr(attrs, "count", 1),
+		Layout:    getStringAttr(attrs, "layout", portabledoc.LayoutSingleCenter),
+		LineWidth: getStringAttr(attrs, "lineWidth", portabledoc.LineWidthMedium),
 	}
 
 	if sigsRaw, ok := attrs["signatures"].([]any); ok {
-		for _, sigRaw := range sigsRaw {
-			sigMap, ok := sigRaw.(map[string]any)
-			if !ok {
-				continue
-			}
-			item := portabledoc.SignatureItem{}
-			if id, ok := sigMap["id"].(string); ok {
-				item.ID = id
-			}
-			if roleID, ok := sigMap["roleId"].(string); ok {
-				item.RoleID = &roleID
-			}
-			if label, ok := sigMap["label"].(string); ok {
-				item.Label = label
-			}
-			if subtitle, ok := sigMap["subtitle"].(string); ok {
-				item.Subtitle = &subtitle
-			}
-			// Image fields
-			if imageData, ok := sigMap["imageData"].(string); ok {
-				item.ImageData = &imageData
-			}
-			if imageOriginal, ok := sigMap["imageOriginal"].(string); ok {
-				item.ImageOriginal = &imageOriginal
-			}
-			if imageOpacity, ok := sigMap["imageOpacity"].(float64); ok {
-				item.ImageOpacity = &imageOpacity
-			}
-			if imageRotation, ok := sigMap["imageRotation"].(float64); ok {
-				rotation := int(imageRotation)
-				item.ImageRotation = &rotation
-			}
-			if imageScale, ok := sigMap["imageScale"].(float64); ok {
-				item.ImageScale = &imageScale
-			}
-			if imageX, ok := sigMap["imageX"].(float64); ok {
-				item.ImageX = &imageX
-			}
-			if imageY, ok := sigMap["imageY"].(float64); ok {
-				item.ImageY = &imageY
-			}
-			result.Signatures = append(result.Signatures, item)
+		result.Signatures = c.parseSignatureItems(sigsRaw)
+	}
+	return result
+}
+
+func (c *NodeConverter) parseSignatureItems(sigsRaw []any) []portabledoc.SignatureItem {
+	items := make([]portabledoc.SignatureItem, 0, len(sigsRaw))
+	for _, sigRaw := range sigsRaw {
+		sigMap, ok := sigRaw.(map[string]any)
+		if !ok {
+			continue
 		}
+		items = append(items, c.parseSignatureItem(sigMap))
+	}
+	return items
+}
+
+func (c *NodeConverter) parseSignatureItem(sigMap map[string]any) portabledoc.SignatureItem {
+	item := portabledoc.SignatureItem{
+		ID:    getStringAttr(sigMap, "id", ""),
+		Label: getStringAttr(sigMap, "label", ""),
 	}
 
-	return result
+	item.RoleID = getStringPtrAttr(sigMap, "roleId")
+	item.Subtitle = getStringPtrAttr(sigMap, "subtitle")
+	item.ImageData = getStringPtrAttr(sigMap, "imageData")
+	item.ImageOriginal = getStringPtrAttr(sigMap, "imageOriginal")
+	item.ImageOpacity = getFloat64PtrAttr(sigMap, "imageOpacity")
+	item.ImageRotation = getIntPtrAttr(sigMap, "imageRotation")
+	item.ImageScale = getFloat64PtrAttr(sigMap, "imageScale")
+	item.ImageX = getFloat64PtrAttr(sigMap, "imageX")
+	item.ImageY = getFloat64PtrAttr(sigMap, "imageY")
+
+	return item
 }
 
 func (c *NodeConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) string {
 	var sb strings.Builder
-
 	sb.WriteString("<div class=\"signature-block\">\n")
 	sb.WriteString(fmt.Sprintf("  <div class=\"signature-container layout-%s\">\n", attrs.Layout))
 
 	for i := range attrs.Signatures {
-		sig := &attrs.Signatures[i]
-		sb.WriteString("    <div class=\"signature-item\">\n")
-
-		// Signature line with anchor string
-		anchorString := c.getAnchorString(sig)
-		sb.WriteString(fmt.Sprintf("      <div class=\"signature-line line-%s\">\n", attrs.LineWidth))
-
-		// Render signature image if present
-		if sig.IsSigned() {
-			sb.WriteString(c.renderSignatureImage(sig))
-		}
-
-		sb.WriteString(fmt.Sprintf("        <span class=\"anchor-string\">%s</span>\n", html.EscapeString(anchorString)))
-		sb.WriteString("      </div>\n")
-
-		// Label
-		sb.WriteString(fmt.Sprintf("      <div class=\"signature-label\">%s</div>\n", html.EscapeString(sig.Label)))
-
-		// Subtitle if present
-		if sig.Subtitle != nil && *sig.Subtitle != "" {
-			sb.WriteString(fmt.Sprintf("      <div class=\"signature-subtitle\">%s</div>\n", html.EscapeString(*sig.Subtitle)))
-		}
-
-		sb.WriteString("    </div>\n")
+		sb.WriteString(c.renderSignatureItem(&attrs.Signatures[i], attrs.LineWidth))
 	}
 
 	sb.WriteString("  </div>\n")
 	sb.WriteString("</div>\n")
-
 	return sb.String()
 }
 
-// renderSignatureImage generates HTML for a signature image with transformations.
-// Uses a wrapper div for centering to avoid interfering with user-defined transforms.
+func (c *NodeConverter) renderSignatureItem(sig *portabledoc.SignatureItem, lineWidth string) string {
+	var sb strings.Builder
+	sb.WriteString("    <div class=\"signature-item\">\n")
+
+	anchorString := c.getAnchorString(sig)
+	sb.WriteString(fmt.Sprintf("      <div class=\"signature-line line-%s\">\n", lineWidth))
+
+	if sig.IsSigned() {
+		sb.WriteString(c.renderSignatureImage(sig))
+	}
+
+	sb.WriteString(fmt.Sprintf("        <span class=\"anchor-string\">%s</span>\n", html.EscapeString(anchorString)))
+	sb.WriteString("      </div>\n")
+	sb.WriteString(fmt.Sprintf("      <div class=\"signature-label\">%s</div>\n", html.EscapeString(sig.Label)))
+
+	if sig.Subtitle != nil && *sig.Subtitle != "" {
+		sb.WriteString(fmt.Sprintf("      <div class=\"signature-subtitle\">%s</div>\n", html.EscapeString(*sig.Subtitle)))
+	}
+
+	sb.WriteString("    </div>\n")
+	return sb.String()
+}
+
 func (c *NodeConverter) renderSignatureImage(sig *portabledoc.SignatureItem) string {
 	if sig.ImageData == nil || *sig.ImageData == "" {
 		return ""
 	}
 
+	style := c.buildSignatureImageStyle(sig)
+	return fmt.Sprintf("        <div class=\"signature-image-wrapper\"><img class=\"signature-image\" src=\"%s\" style=\"%s\" alt=\"Signature\"></div>\n",
+		html.EscapeString(*sig.ImageData),
+		style)
+}
+
+func (c *NodeConverter) buildSignatureImageStyle(sig *portabledoc.SignatureItem) string {
 	var styleBuilder strings.Builder
-	var transforms []string
 
-	// Build transform property in the same order as frontend:
-	// translate(X, Y) → rotate(N) → scale(N)
-
-	// Position offsets first (same as frontend)
-	if sig.ImageX != nil || sig.ImageY != nil {
-		x := 0.0
-		y := 0.0
-		if sig.ImageX != nil {
-			x = *sig.ImageX
-		}
-		if sig.ImageY != nil {
-			y = *sig.ImageY
-		}
-		transforms = append(transforms, fmt.Sprintf("translate(%.0fpx, %.0fpx)", x, y))
-	}
-
-	// Rotation
-	if sig.ImageRotation != nil && *sig.ImageRotation != 0 {
-		transforms = append(transforms, fmt.Sprintf("rotate(%ddeg)", *sig.ImageRotation))
-	}
-
-	// Scale
-	if sig.ImageScale != nil && *sig.ImageScale != 1.0 {
-		transforms = append(transforms, fmt.Sprintf("scale(%.2f)", *sig.ImageScale))
-	}
-
+	transforms := c.buildTransforms(sig)
 	if len(transforms) > 0 {
 		styleBuilder.WriteString(fmt.Sprintf("transform: %s; ", strings.Join(transforms, " ")))
 	}
 
-	// Opacity - always apply when defined (to support transparency)
 	if sig.ImageOpacity != nil {
 		styleBuilder.WriteString(fmt.Sprintf("opacity: %.2f; ", *sig.ImageOpacity))
 	}
 
-	// Use wrapper div for centering - this allows user transforms to work correctly
-	return fmt.Sprintf("        <div class=\"signature-image-wrapper\"><img class=\"signature-image\" src=\"%s\" style=\"%s\" alt=\"Signature\"></div>\n",
-		html.EscapeString(*sig.ImageData),
-		styleBuilder.String())
+	return styleBuilder.String()
+}
+
+func (c *NodeConverter) buildTransforms(sig *portabledoc.SignatureItem) []string {
+	var transforms []string
+
+	if sig.ImageX != nil || sig.ImageY != nil {
+		x := getOrDefault(sig.ImageX, 0.0)
+		y := getOrDefault(sig.ImageY, 0.0)
+		transforms = append(transforms, fmt.Sprintf("translate(%.0fpx, %.0fpx)", x, y))
+	}
+
+	if sig.ImageRotation != nil && *sig.ImageRotation != 0 {
+		transforms = append(transforms, fmt.Sprintf("rotate(%ddeg)", *sig.ImageRotation))
+	}
+
+	if sig.ImageScale != nil && *sig.ImageScale != 1.0 {
+		transforms = append(transforms, fmt.Sprintf("scale(%.2f)", *sig.ImageScale))
+	}
+
+	return transforms
 }
 
 func (c *NodeConverter) getAnchorString(sig *portabledoc.SignatureItem) string {
-	// Generate anchor string for external signing platforms
-	// Format: __sig_{roleLabel}__ or __sig_{id}__
 	if sig.RoleID != nil && *sig.RoleID != "" {
 		if role, ok := c.signerRoles[*sig.RoleID]; ok {
-			// Use a sanitized version of the role label
 			sanitized := strings.ToLower(role.Label)
 			sanitized = strings.ReplaceAll(sanitized, " ", "_")
 			return fmt.Sprintf("__sig_%s__", sanitized)
 		}
 	}
-	// Fallback to signature ID
 	return fmt.Sprintf("__sig_%s__", sig.ID)
 }
 
-func (c *NodeConverter) pageBreak() string {
+func (c *NodeConverter) pageBreak(_ portabledoc.Node) string {
 	return "<div class=\"page-break\"></div>\n"
 }
 
 func (c *NodeConverter) image(node portabledoc.Node) string {
 	src, _ := node.Attrs["src"].(string)
+	if src == "" {
+		return ""
+	}
+
 	alt, _ := node.Attrs["alt"].(string)
 	width, _ := node.Attrs["width"].(float64)
 	height, _ := node.Attrs["height"].(float64)
 	displayMode, _ := node.Attrs["displayMode"].(string)
 	align, _ := node.Attrs["align"].(string)
 
-	if src == "" {
-		return ""
-	}
+	style := c.buildImageStyle(width, height)
+	classes := c.buildImageClasses(displayMode, align)
+	imgTag := c.buildImgTag(src, alt, style)
 
+	return fmt.Sprintf("<div class=\"%s\">%s</div>\n", strings.Join(classes, " "), imgTag)
+}
+
+func (c *NodeConverter) buildImageStyle(width, height float64) string {
 	var styleBuilder strings.Builder
-
 	if width > 0 {
 		styleBuilder.WriteString(fmt.Sprintf("width: %.0fpx; ", width))
 	}
 	if height > 0 {
 		styleBuilder.WriteString(fmt.Sprintf("height: %.0fpx; ", height))
 	}
+	return styleBuilder.String()
+}
 
-	style := styleBuilder.String()
-
+func (c *NodeConverter) buildImageClasses(displayMode, align string) []string {
 	classes := []string{"document-image"}
 	if displayMode != "" {
 		classes = append(classes, fmt.Sprintf("display-%s", displayMode))
@@ -630,7 +616,10 @@ func (c *NodeConverter) image(node portabledoc.Node) string {
 	if align != "" {
 		classes = append(classes, fmt.Sprintf("align-%s", align))
 	}
+	return classes
+}
 
+func (c *NodeConverter) buildImgTag(src, alt, style string) string {
 	imgTag := fmt.Sprintf("<img src=\"%s\" alt=\"%s\"",
 		html.EscapeString(src),
 		html.EscapeString(alt))
@@ -639,8 +628,7 @@ func (c *NodeConverter) image(node portabledoc.Node) string {
 		imgTag += fmt.Sprintf(" style=\"%s\"", style)
 	}
 	imgTag += ">"
-
-	return fmt.Sprintf("<div class=\"%s\">%s</div>\n", strings.Join(classes, " "), imgTag)
+	return imgTag
 }
 
 func (c *NodeConverter) text(node portabledoc.Node) string {
@@ -649,12 +637,9 @@ func (c *NodeConverter) text(node portabledoc.Node) string {
 	}
 
 	text := html.EscapeString(*node.Text)
-
-	// Apply marks (formatting)
 	for _, mark := range node.Marks {
 		text = c.applyMark(text, mark)
 	}
-
 	return text
 }
 
@@ -671,22 +656,86 @@ func (c *NodeConverter) applyMark(text string, mark portabledoc.Mark) string {
 	case portabledoc.MarkTypeUnderline:
 		return fmt.Sprintf("<u>%s</u>", text)
 	case portabledoc.MarkTypeHighlight:
-		color := "#ffeb3b" // Default yellow
-		if c, ok := mark.Attrs["color"].(string); ok && c != "" {
-			color = c
-		}
-		return fmt.Sprintf("<mark style=\"background-color: %s\">%s</mark>", html.EscapeString(color), text)
+		return c.applyHighlightMark(text, mark)
 	case portabledoc.MarkTypeLink:
-		href, _ := mark.Attrs["href"].(string)
-		target, _ := mark.Attrs["target"].(string)
-		if href == "" {
-			return text
-		}
-		if target != "" {
-			return fmt.Sprintf("<a href=\"%s\" target=\"%s\">%s</a>", html.EscapeString(href), html.EscapeString(target), text)
-		}
-		return fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(href), text)
+		return c.applyLinkMark(text, mark)
 	default:
 		return text
 	}
+}
+
+func (c *NodeConverter) applyHighlightMark(text string, mark portabledoc.Mark) string {
+	color := "#ffeb3b"
+	if c, ok := mark.Attrs["color"].(string); ok && c != "" {
+		color = c
+	}
+	return fmt.Sprintf("<mark style=\"background-color: %s\">%s</mark>", html.EscapeString(color), text)
+}
+
+func (c *NodeConverter) applyLinkMark(text string, mark portabledoc.Mark) string {
+	href, _ := mark.Attrs["href"].(string)
+	if href == "" {
+		return text
+	}
+
+	target, _ := mark.Attrs["target"].(string)
+	if target != "" {
+		return fmt.Sprintf("<a href=\"%s\" target=\"%s\">%s</a>", html.EscapeString(href), html.EscapeString(target), text)
+	}
+	return fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(href), text)
+}
+
+// Helper functions for attribute parsing
+
+func clamp(value, min, max int) int {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
+func getStringAttr(attrs map[string]any, key, defaultVal string) string {
+	if v, ok := attrs[key].(string); ok {
+		return v
+	}
+	return defaultVal
+}
+
+func getIntAttr(attrs map[string]any, key string, defaultVal int) int {
+	if v, ok := attrs[key].(float64); ok {
+		return int(v)
+	}
+	return defaultVal
+}
+
+func getStringPtrAttr(attrs map[string]any, key string) *string {
+	if v, ok := attrs[key].(string); ok {
+		return &v
+	}
+	return nil
+}
+
+func getFloat64PtrAttr(attrs map[string]any, key string) *float64 {
+	if v, ok := attrs[key].(float64); ok {
+		return &v
+	}
+	return nil
+}
+
+func getIntPtrAttr(attrs map[string]any, key string) *int {
+	if v, ok := attrs[key].(float64); ok {
+		i := int(v)
+		return &i
+	}
+	return nil
+}
+
+func getOrDefault[T any](ptr *T, defaultVal T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return defaultVal
 }

@@ -83,27 +83,27 @@ func validateSignatureItem(
 	path string,
 	assignedRoleIDs portabledoc.Set[string],
 ) {
-	// If roleId is set, validate it
-	if sig.HasRole() {
-		roleID := sig.GetRoleID()
-
-		// Check if role exists in document
-		if !vctx.roleIDSet.Contains(roleID) {
-			vctx.addErrorf(ErrCodeInvalidSignatureRoleRef, path+".roleId",
-				"Signature references unknown role: %s", roleID)
-			return
-		}
-
-		// Check for duplicate role assignment
-		if assignedRoleIDs.Contains(roleID) {
-			vctx.addErrorf(ErrCodeDuplicateSignatureRole, path+".roleId",
-				"Role '%s' is already assigned to another signature", roleID)
-		} else {
-			assignedRoleIDs.Add(roleID)
-		}
-	} else {
-		// Warn if no role assigned
+	if !sig.HasRole() {
 		vctx.addWarningf(WarnCodeNoSignerRoles, path+".roleId",
 			"Signature '%s' has no role assigned", sig.Label)
+		return
 	}
+
+	roleID := sig.GetRoleID()
+
+	// Check if role exists in document
+	if !vctx.roleIDSet.Contains(roleID) {
+		vctx.addErrorf(ErrCodeInvalidSignatureRoleRef, path+".roleId",
+			"Signature references unknown role: %s", roleID)
+		return
+	}
+
+	// Check for duplicate role assignment
+	if assignedRoleIDs.Contains(roleID) {
+		vctx.addErrorf(ErrCodeDuplicateSignatureRole, path+".roleId",
+			"Role '%s' is already assigned to another signature", roleID)
+		return
+	}
+
+	assignedRoleIDs.Add(roleID)
 }

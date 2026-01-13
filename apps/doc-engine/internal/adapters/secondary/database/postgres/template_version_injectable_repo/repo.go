@@ -74,12 +74,12 @@ func (r *Repository) FindByVersionID(ctx context.Context, versionID string) ([]*
 			Definition: &entity.InjectableDefinition{},
 		}
 		if err := rows.Scan(
-			&iwd.TemplateVersionInjectable.ID,
-			&iwd.TemplateVersionInjectable.TemplateVersionID,
-			&iwd.TemplateVersionInjectable.InjectableDefinitionID,
-			&iwd.TemplateVersionInjectable.IsRequired,
-			&iwd.TemplateVersionInjectable.DefaultValue,
-			&iwd.TemplateVersionInjectable.CreatedAt,
+			&iwd.ID,
+			&iwd.TemplateVersionID,
+			&iwd.InjectableDefinitionID,
+			&iwd.IsRequired,
+			&iwd.DefaultValue,
+			&iwd.CreatedAt,
 			&iwd.Definition.ID,
 			&iwd.Definition.WorkspaceID,
 			&iwd.Definition.Key,

@@ -9,6 +9,7 @@ import (
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
 
@@ -18,6 +19,13 @@ const (
 	HeaderTemplateID      = "X-Template-ID"
 	HeaderTransactionalID = "X-Transactional-ID"
 )
+
+// internalDocHeaders holds the required headers for internal document operations.
+type internalDocHeaders struct {
+	ExternalID      string
+	TemplateID      string
+	TransactionalID string
+}
 
 // InternalDocumentController handles internal API document requests.
 // These endpoints are used for service-to-service communication.
@@ -66,23 +74,8 @@ func (c *InternalDocumentController) RegisterRoutes(api *gin.RouterGroup, apiKey
 // @Failure 500 {object} dto.InternalErrorResponse
 // @Router /api/v1/internal/documents/create [post]
 func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
-	// Extract required headers
-	externalID := ctx.GetHeader(HeaderExternalID)
-	templateID := ctx.GetHeader(HeaderTemplateID)
-	transactionalID := ctx.GetHeader(HeaderTransactionalID)
-
-	// Validate required headers
-	if externalID == "" || templateID == "" || transactionalID == "" {
-		var missing []string
-		if externalID == "" {
-			missing = append(missing, HeaderExternalID)
-		}
-		if templateID == "" {
-			missing = append(missing, HeaderTemplateID)
-		}
-		if transactionalID == "" {
-			missing = append(missing, HeaderTransactionalID)
-		}
+	h, missing := validateAndExtractHeaders(ctx)
+	if len(missing) > 0 {
 		ctx.JSON(http.StatusBadRequest, dto.InternalErrorResponse{
 			Error:   "missing required headers",
 			Code:    "MISSING_HEADERS",
@@ -91,7 +84,6 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 		return
 	}
 
-	// Read raw body
 	rawBody, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, dto.InternalErrorResponse{
@@ -101,37 +93,64 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 		return
 	}
 
-	// Extract all headers
 	headers := make(map[string]string)
 	for key := range ctx.Request.Header {
 		headers[key] = ctx.GetHeader(key)
 	}
 
-	// Build command
 	cmd := documentuc.InternalCreateCommand{
-		ExternalID:      externalID,
-		TemplateID:      templateID,
-		TransactionalID: transactionalID,
+		ExternalID:      h.ExternalID,
+		TemplateID:      h.TemplateID,
+		TransactionalID: h.TransactionalID,
 		Headers:         headers,
 		RawBody:         rawBody,
 	}
 
-	// Execute use case
 	doc, err := c.internalDocUC.CreateDocument(ctx.Request.Context(), cmd)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
-	// Build response
+	ctx.JSON(http.StatusCreated, buildCreateDocumentResponse(doc, h))
+}
+
+// validateAndExtractHeaders validates and extracts required headers from the request.
+// Returns the headers struct and a list of missing header names (empty if all present).
+func validateAndExtractHeaders(ctx *gin.Context) (*internalDocHeaders, []string) {
+	h := &internalDocHeaders{
+		ExternalID:      ctx.GetHeader(HeaderExternalID),
+		TemplateID:      ctx.GetHeader(HeaderTemplateID),
+		TransactionalID: ctx.GetHeader(HeaderTransactionalID),
+	}
+
+	var missing []string
+	if h.ExternalID == "" {
+		missing = append(missing, HeaderExternalID)
+	}
+	if h.TemplateID == "" {
+		missing = append(missing, HeaderTemplateID)
+	}
+	if h.TransactionalID == "" {
+		missing = append(missing, HeaderTransactionalID)
+	}
+
+	return h, missing
+}
+
+// buildCreateDocumentResponse builds the response DTO from the document and headers.
+func buildCreateDocumentResponse(
+	doc *entity.DocumentWithRecipients,
+	h *internalDocHeaders,
+) dto.InternalCreateDocumentWithRecipientsResponse {
 	response := dto.InternalCreateDocumentWithRecipientsResponse{
 		InternalCreateDocumentResponse: dto.InternalCreateDocumentResponse{
 			ID:                doc.ID,
 			WorkspaceID:       doc.WorkspaceID,
-			TemplateID:        templateID,
+			TemplateID:        h.TemplateID,
 			TemplateVersionID: doc.TemplateVersionID,
-			ExternalID:        externalID,
-			TransactionalID:   transactionalID,
+			ExternalID:        h.ExternalID,
+			TransactionalID:   h.TransactionalID,
 			OperationType:     string(doc.OperationType),
 			Status:            string(doc.Status),
 			SignerProvider:    doc.SignerProvider,
@@ -139,7 +158,6 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 		},
 	}
 
-	// Add recipients
 	for _, r := range doc.Recipients {
 		response.Recipients = append(response.Recipients, dto.InternalDocumentRecipientResponse{
 			ID:    r.ID,
@@ -148,5 +166,5 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusCreated, response)
+	return response
 }

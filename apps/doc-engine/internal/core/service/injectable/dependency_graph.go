@@ -126,6 +126,23 @@ func (g *DependencyGraph) TopologicalSort() ([][]string, error) {
 	return reversed, nil
 }
 
+// buildCyclePath constructs the cycle path from cycleStart to currentNode using the parent map.
+// Returns the path with cycleStart at both start and end (representing the cycle).
+func buildCyclePath(currentNode, cycleStart string, parent map[string]string) []string {
+	path := []string{cycleStart}
+	for curr := currentNode; curr != cycleStart; curr = parent[curr] {
+		path = append(path, curr)
+	}
+	path = append(path, cycleStart)
+
+	// Reverse the path
+	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
+		path[i], path[j] = path[j], path[i]
+	}
+
+	return path
+}
+
 // findCycle searches for a cycle in the graph using DFS.
 func (g *DependencyGraph) findCycle() []string {
 	visited := make(map[string]bool)
@@ -146,12 +163,7 @@ func (g *DependencyGraph) findCycle() []string {
 					return true
 				}
 			} else if recStack[dep] {
-				// Found a cycle
-				cyclePath = append(cyclePath, dep)
-				for curr := node; curr != dep; curr = parent[curr] {
-					cyclePath = append(cyclePath, curr)
-				}
-				cyclePath = append(cyclePath, dep)
+				cyclePath = buildCyclePath(node, dep, parent)
 				return true
 			}
 		}
@@ -161,14 +173,8 @@ func (g *DependencyGraph) findCycle() []string {
 	}
 
 	for node := range g.nodes {
-		if !visited[node] {
-			if dfs(node) {
-				// Reverse the path
-				for i, j := 0, len(cyclePath)-1; i < j; i, j = i+1, j-1 {
-					cyclePath[i], cyclePath[j] = cyclePath[j], cyclePath[i]
-				}
-				return cyclePath
-			}
+		if !visited[node] && dfs(node) {
+			return cyclePath
 		}
 	}
 

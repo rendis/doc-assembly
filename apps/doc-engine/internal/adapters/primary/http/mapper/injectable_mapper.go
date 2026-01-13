@@ -75,12 +75,12 @@ func (m *InjectableMapper) VersionInjectableToResponse(iwd *entity.VersionInject
 	}
 
 	return &dto.TemplateVersionInjectableResponse{
-		ID:                iwd.TemplateVersionInjectable.ID,
-		TemplateVersionID: iwd.TemplateVersionInjectable.TemplateVersionID,
-		IsRequired:        iwd.TemplateVersionInjectable.IsRequired,
-		DefaultValue:      iwd.TemplateVersionInjectable.DefaultValue,
+		ID:                iwd.ID,
+		TemplateVersionID: iwd.TemplateVersionID,
+		IsRequired:        iwd.IsRequired,
+		DefaultValue:      iwd.DefaultValue,
 		Definition:        m.ToResponse(iwd.Definition),
-		CreatedAt:         iwd.TemplateVersionInjectable.CreatedAt,
+		CreatedAt:         iwd.CreatedAt,
 	}
 }
 

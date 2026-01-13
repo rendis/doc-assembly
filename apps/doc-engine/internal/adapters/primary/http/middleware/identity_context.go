@@ -62,80 +62,117 @@ func WorkspaceContext(
 	tenantMemberRepo port.TenantMemberRepository,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip for OPTIONS requests
 		if c.Request.Method == http.MethodOptions {
 			c.Next()
 			return
 		}
 
-		// Get workspace ID from header (required)
 		workspaceID := c.GetHeader(WorkspaceIDHeader)
 		if workspaceID == "" {
 			abortWithError(c, http.StatusBadRequest, entity.ErrMissingWorkspaceID)
 			return
 		}
 
-		// Get internal user ID
 		internalUserID, ok := GetInternalUserID(c)
 		if !ok {
 			abortWithError(c, http.StatusUnauthorized, entity.ErrUnauthorized)
 			return
 		}
 
-		// Check if user has system role (SUPERADMIN can access any workspace as OWNER)
-		if sysRole, hasSysRole := GetSystemRole(c); hasSysRole {
-			if sysRole.HasPermission(entity.SystemRoleSuperAdmin) {
-				c.Set(workspaceIDKey, workspaceID)
-				c.Set(workspaceRoleKey, entity.WorkspaceRoleOwner)
-				slog.DebugContext(c.Request.Context(), "superadmin workspace access granted",
-					slog.String("user_id", internalUserID),
-					slog.String("workspace_id", workspaceID),
-					slog.String("operation_id", GetOperationID(c)),
-				)
-				c.Next()
-				return
-			}
+		// Check superadmin access
+		if checkSuperAdminAccess(c, workspaceID, internalUserID) {
+			c.Next()
+			return
 		}
 
-		// Check if user has tenant role for this workspace's tenant
-		ctx := c.Request.Context()
-		workspace, err := workspaceRepo.FindByID(ctx, workspaceID)
-		if err == nil && workspace.TenantID != nil && *workspace.TenantID != "" {
-			tenantMember, err := tenantMemberRepo.FindActiveByUserAndTenant(ctx, internalUserID, *workspace.TenantID)
-			if err == nil && tenantMember.Role.HasPermission(entity.TenantRoleOwner) {
-				// TENANT_OWNER gets ADMIN access to workspaces in their tenant
-				c.Set(workspaceIDKey, workspaceID)
-				c.Set(workspaceRoleKey, entity.WorkspaceRoleAdmin)
-				slog.DebugContext(c.Request.Context(), "tenant owner workspace access granted",
-					slog.String("user_id", internalUserID),
-					slog.String("workspace_id", workspaceID),
-					slog.String("tenant_id", *workspace.TenantID),
-					slog.String("operation_id", GetOperationID(c)),
-				)
-				c.Next()
-				return
-			}
+		// Check tenant owner access
+		workspace, _ := workspaceRepo.FindByID(c.Request.Context(), workspaceID)
+		if checkTenantOwnerAccess(c, workspace, workspaceID, internalUserID, tenantMemberRepo) {
+			c.Next()
+			return
 		}
 
-		// Load user's role in this workspace
-		member, err := workspaceMemberRepo.FindActiveByUserAndWorkspace(ctx, internalUserID, workspaceID)
-		if err != nil {
-			slog.WarnContext(c.Request.Context(), "workspace access denied",
-				slog.String("error", err.Error()),
-				slog.String("user_id", internalUserID),
-				slog.String("workspace_id", workspaceID),
-				slog.String("operation_id", GetOperationID(c)),
-			)
+		// Check workspace member access
+		member := checkWorkspaceMemberAccess(c, workspaceID, internalUserID, workspaceMemberRepo)
+		if member == nil {
 			abortWithError(c, http.StatusForbidden, entity.ErrWorkspaceAccessDenied)
 			return
 		}
 
-		// Store workspace context
 		c.Set(workspaceIDKey, workspaceID)
 		c.Set(workspaceRoleKey, member.Role)
-
 		c.Next()
 	}
+}
+
+// checkSuperAdminAccess checks if user has superadmin access and grants OWNER role.
+// Returns true if access was granted and processing should stop.
+func checkSuperAdminAccess(c *gin.Context, workspaceID, internalUserID string) bool {
+	sysRole, hasSysRole := GetSystemRole(c)
+	if !hasSysRole || !sysRole.HasPermission(entity.SystemRoleSuperAdmin) {
+		return false
+	}
+
+	c.Set(workspaceIDKey, workspaceID)
+	c.Set(workspaceRoleKey, entity.WorkspaceRoleOwner)
+	slog.DebugContext(c.Request.Context(), "superadmin workspace access granted",
+		slog.String("user_id", internalUserID),
+		slog.String("workspace_id", workspaceID),
+		slog.String("operation_id", GetOperationID(c)),
+	)
+	return true
+}
+
+// checkTenantOwnerAccess checks if user is tenant owner for the workspace's tenant.
+// Returns true if access was granted and processing should stop.
+func checkTenantOwnerAccess(
+	c *gin.Context,
+	workspace *entity.Workspace,
+	workspaceID, internalUserID string,
+	tenantMemberRepo port.TenantMemberRepository,
+) bool {
+	if workspace == nil || workspace.TenantID == nil || *workspace.TenantID == "" {
+		return false
+	}
+
+	tenantMember, err := tenantMemberRepo.FindActiveByUserAndTenant(
+		c.Request.Context(), internalUserID, *workspace.TenantID,
+	)
+	if err != nil || !tenantMember.Role.HasPermission(entity.TenantRoleOwner) {
+		return false
+	}
+
+	c.Set(workspaceIDKey, workspaceID)
+	c.Set(workspaceRoleKey, entity.WorkspaceRoleAdmin)
+	slog.DebugContext(c.Request.Context(), "tenant owner workspace access granted",
+		slog.String("user_id", internalUserID),
+		slog.String("workspace_id", workspaceID),
+		slog.String("tenant_id", *workspace.TenantID),
+		slog.String("operation_id", GetOperationID(c)),
+	)
+	return true
+}
+
+// checkWorkspaceMemberAccess verifies user has direct workspace membership.
+// Returns the member if found, nil otherwise.
+func checkWorkspaceMemberAccess(
+	c *gin.Context,
+	workspaceID, internalUserID string,
+	workspaceMemberRepo port.WorkspaceMemberRepository,
+) *entity.WorkspaceMember {
+	member, err := workspaceMemberRepo.FindActiveByUserAndWorkspace(
+		c.Request.Context(), internalUserID, workspaceID,
+	)
+	if err != nil {
+		slog.WarnContext(c.Request.Context(), "workspace access denied",
+			slog.String("error", err.Error()),
+			slog.String("user_id", internalUserID),
+			slog.String("workspace_id", workspaceID),
+			slog.String("operation_id", GetOperationID(c)),
+		)
+		return nil
+	}
+	return member
 }
 
 // GetInternalUserID retrieves the internal user ID from the Gin context.

@@ -148,6 +148,41 @@ func (s *SystemInjectableService) validateKeyExists(key string) error {
 	return nil
 }
 
+// validateKeys validates keys exist in registry, returns valid keys and failed entries.
+func (s *SystemInjectableService) validateKeys(keys []string) ([]string, []injectableuc.BulkAssignmentError) {
+	validKeys := make([]string, 0, len(keys))
+	failed := make([]injectableuc.BulkAssignmentError, 0)
+
+	for _, key := range keys {
+		if err := s.validateKeyExists(key); err != nil {
+			failed = append(failed, injectableuc.BulkAssignmentError{Key: key, Error: err})
+		} else {
+			validKeys = append(validKeys, key)
+		}
+	}
+
+	return validKeys, failed
+}
+
+// filterExistingAssignments filters keys, marking existing as succeeded, returns keys to create.
+func filterExistingAssignments(
+	validKeys []string,
+	existing map[string]string,
+	result *injectableuc.BulkAssignmentResult,
+) []string {
+	keysToCreate := make([]string, 0, len(validKeys))
+
+	for _, key := range validKeys {
+		if _, exists := existing[key]; exists {
+			result.Succeeded = append(result.Succeeded, key)
+		} else {
+			keysToCreate = append(keysToCreate, key)
+		}
+	}
+
+	return keysToCreate
+}
+
 // BulkCreatePublicAssignments creates PUBLIC assignments for multiple injectable keys.
 // Keys that already have PUBLIC assignments are considered successful (idempotent).
 func (s *SystemInjectableService) BulkCreatePublicAssignments(ctx context.Context, keys []string) (*injectableuc.BulkAssignmentResult, error) {
@@ -161,14 +196,8 @@ func (s *SystemInjectableService) BulkCreatePublicAssignments(ctx context.Contex
 	}
 
 	// 1. Validate all keys exist in registry
-	validKeys := make([]string, 0, len(keys))
-	for _, key := range keys {
-		if err := s.validateKeyExists(key); err != nil {
-			result.Failed = append(result.Failed, injectableuc.BulkAssignmentError{Key: key, Error: err})
-		} else {
-			validKeys = append(validKeys, key)
-		}
-	}
+	validKeys, failed := s.validateKeys(keys)
+	result.Failed = failed
 
 	if len(validKeys) == 0 {
 		return result, nil
@@ -181,15 +210,7 @@ func (s *SystemInjectableService) BulkCreatePublicAssignments(ctx context.Contex
 	}
 
 	// 3. Filter keys - already existing are considered successful (idempotent)
-	keysToCreate := make([]string, 0, len(validKeys))
-	for _, key := range validKeys {
-		if _, exists := existing[key]; exists {
-			// Already has PUBLIC - consider successful (idempotent)
-			result.Succeeded = append(result.Succeeded, key)
-		} else {
-			keysToCreate = append(keysToCreate, key)
-		}
-	}
+	keysToCreate := filterExistingAssignments(validKeys, existing, result)
 
 	if len(keysToCreate) == 0 {
 		return result, nil
@@ -212,6 +233,25 @@ func (s *SystemInjectableService) BulkCreatePublicAssignments(ctx context.Contex
 	return result, nil
 }
 
+// filterMissingAssignments filters keys, marking missing as succeeded, returns keys to delete.
+func filterMissingAssignments(
+	validKeys []string,
+	existing map[string]string,
+	result *injectableuc.BulkAssignmentResult,
+) []string {
+	keysToDelete := make([]string, 0, len(validKeys))
+
+	for _, key := range validKeys {
+		if _, exists := existing[key]; !exists {
+			result.Succeeded = append(result.Succeeded, key)
+		} else {
+			keysToDelete = append(keysToDelete, key)
+		}
+	}
+
+	return keysToDelete
+}
+
 // BulkDeletePublicAssignments deletes PUBLIC assignments for multiple injectable keys.
 // Keys that don't have PUBLIC assignments are considered successful (idempotent).
 func (s *SystemInjectableService) BulkDeletePublicAssignments(ctx context.Context, keys []string) (*injectableuc.BulkAssignmentResult, error) {
@@ -225,14 +265,8 @@ func (s *SystemInjectableService) BulkDeletePublicAssignments(ctx context.Contex
 	}
 
 	// 1. Validate all keys exist in registry
-	validKeys := make([]string, 0, len(keys))
-	for _, key := range keys {
-		if err := s.validateKeyExists(key); err != nil {
-			result.Failed = append(result.Failed, injectableuc.BulkAssignmentError{Key: key, Error: err})
-		} else {
-			validKeys = append(validKeys, key)
-		}
-	}
+	validKeys, failed := s.validateKeys(keys)
+	result.Failed = failed
 
 	if len(validKeys) == 0 {
 		return result, nil
@@ -245,15 +279,7 @@ func (s *SystemInjectableService) BulkDeletePublicAssignments(ctx context.Contex
 	}
 
 	// 3. Filter keys - non-existing are considered successful (idempotent)
-	keysToDelete := make([]string, 0, len(validKeys))
-	for _, key := range validKeys {
-		if _, exists := existing[key]; !exists {
-			// No PUBLIC assignment - consider successful (idempotent)
-			result.Succeeded = append(result.Succeeded, key)
-		} else {
-			keysToDelete = append(keysToDelete, key)
-		}
-	}
+	keysToDelete := filterMissingAssignments(validKeys, existing, result)
 
 	if len(keysToDelete) == 0 {
 		return result, nil

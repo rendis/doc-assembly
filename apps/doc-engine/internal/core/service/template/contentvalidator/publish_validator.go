@@ -57,6 +57,36 @@ func (vc *validationContext) checkCancelled() bool {
 	}
 }
 
+// parseDocument parses content and adds error to result if parsing fails.
+// Returns the parsed document and true if successful, nil and false otherwise.
+func parseDocument(content []byte, result *port.ContentValidationResult) (*portabledoc.Document, bool) {
+	doc, err := portabledoc.Parse(content)
+	if err != nil {
+		result.AddError(ErrCodeInvalidJSON, "", sanitizeJSONError(err))
+		return nil, false
+	}
+	if doc == nil {
+		result.AddError(ErrCodeEmptyContent, "", "Content structure is required for publishing")
+		return nil, false
+	}
+	return doc, true
+}
+
+// finalizeValidation extracts signer roles on success and logs the outcome.
+func finalizeValidation(vctx *validationContext) {
+	if vctx.result.Valid {
+		vctx.result.ExtractedSignerRoles = extractSignerRoles(vctx.versionID, vctx.doc)
+		slog.DebugContext(vctx.ctx, "content validation successful",
+			slog.Int("signer_roles", len(vctx.result.ExtractedSignerRoles)),
+		)
+		return
+	}
+	slog.WarnContext(vctx.ctx, "content validation failed",
+		slog.Int("error_count", vctx.result.ErrorCount()),
+		slog.Int("warning_count", vctx.result.WarningCount()),
+	)
+}
+
 // validatePublish orchestrates all publish-time validations.
 func (s *Service) validatePublish(
 	ctx context.Context,
@@ -64,25 +94,16 @@ func (s *Service) validatePublish(
 	content []byte,
 ) *port.ContentValidationResult {
 	result := port.NewValidationResult()
-
 	slog.DebugContext(ctx, "starting content validation",
 		slog.String("workspace_id", workspaceID),
 		slog.String("version_id", versionID),
 	)
 
-	// 1. Parse document
-	doc, err := portabledoc.Parse(content)
-	if err != nil {
-		result.AddError(ErrCodeInvalidJSON, "", sanitizeJSONError(err))
+	doc, ok := parseDocument(content, result)
+	if !ok {
 		return result
 	}
 
-	if doc == nil {
-		result.AddError(ErrCodeEmptyContent, "", "Content structure is required for publishing")
-		return result
-	}
-
-	// 2. Build validation context
 	vctx := &validationContext{
 		ctx:         ctx,
 		workspaceID: workspaceID,
@@ -94,15 +115,10 @@ func (s *Service) validatePublish(
 		variableSet: buildVariableSet(doc.VariableIDs, doc.SignerRoles),
 	}
 
-	// 3. Load accessible injectables from database
 	if err := s.loadAccessibleInjectables(vctx); err != nil {
-		slog.WarnContext(ctx, "failed to load accessible injectables",
-			slog.String("error", err.Error()),
-		)
-		// Continue validation without DB check - will be caught by other validators
+		slog.WarnContext(ctx, "failed to load accessible injectables", slog.String("error", err.Error()))
 	}
 
-	// 4. Run validators in sequence
 	validators := []func(*validationContext){
 		s.validateStructure,
 		s.validatePageConfig,
@@ -112,7 +128,6 @@ func (s *Service) validatePublish(
 		s.validateConditionals,
 		s.validateWorkflow,
 	}
-
 	for _, validate := range validators {
 		if vctx.checkCancelled() {
 			break
@@ -120,19 +135,7 @@ func (s *Service) validatePublish(
 		validate(vctx)
 	}
 
-	// 5. Extract signer roles only if valid
-	if result.Valid {
-		result.ExtractedSignerRoles = extractSignerRoles(versionID, doc)
-		slog.DebugContext(ctx, "content validation successful",
-			slog.Int("signer_roles", len(result.ExtractedSignerRoles)),
-		)
-	} else {
-		slog.WarnContext(ctx, "content validation failed",
-			slog.Int("error_count", result.ErrorCount()),
-			slog.Int("warning_count", result.WarningCount()),
-		)
-	}
-
+	finalizeValidation(vctx)
 	return result
 }
 

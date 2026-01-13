@@ -87,24 +87,39 @@ func (r *Repository) FindByIDWithDetails(ctx context.Context, id string) (*entit
 		TemplateVersion: *version,
 	}
 
-	// Get injectables with definitions
-	injectableRows, err := r.pool.Query(ctx, queryInjectablesWithDefinitions, id)
+	details.Injectables, err = r.loadInjectablesWithDefinitions(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	details.SignerRoles, err = r.loadSignerRoles(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return details, nil
+}
+
+// loadInjectablesWithDefinitions loads version injectables with their definitions.
+func (r *Repository) loadInjectablesWithDefinitions(ctx context.Context, versionID string) ([]*entity.VersionInjectableWithDefinition, error) {
+	rows, err := r.pool.Query(ctx, queryInjectablesWithDefinitions, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("querying version injectables: %w", err)
 	}
-	defer injectableRows.Close()
+	defer rows.Close()
 
-	for injectableRows.Next() {
+	var injectables []*entity.VersionInjectableWithDefinition
+	for rows.Next() {
 		iwd := &entity.VersionInjectableWithDefinition{
 			Definition: &entity.InjectableDefinition{},
 		}
-		if err := injectableRows.Scan(
-			&iwd.TemplateVersionInjectable.ID,
-			&iwd.TemplateVersionInjectable.TemplateVersionID,
-			&iwd.TemplateVersionInjectable.InjectableDefinitionID,
-			&iwd.TemplateVersionInjectable.IsRequired,
-			&iwd.TemplateVersionInjectable.DefaultValue,
-			&iwd.TemplateVersionInjectable.CreatedAt,
+		if err := rows.Scan(
+			&iwd.ID,
+			&iwd.TemplateVersionID,
+			&iwd.InjectableDefinitionID,
+			&iwd.IsRequired,
+			&iwd.DefaultValue,
+			&iwd.CreatedAt,
 			&iwd.Definition.ID,
 			&iwd.Definition.WorkspaceID,
 			&iwd.Definition.Key,
@@ -116,23 +131,28 @@ func (r *Repository) FindByIDWithDetails(ctx context.Context, id string) (*entit
 		); err != nil {
 			return nil, fmt.Errorf("scanning version injectable: %w", err)
 		}
-		details.Injectables = append(details.Injectables, iwd)
+		injectables = append(injectables, iwd)
 	}
 
-	if err := injectableRows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating version injectables: %w", err)
 	}
 
-	// Get signer roles
-	roleRows, err := r.pool.Query(ctx, querySignerRoles, id)
+	return injectables, nil
+}
+
+// loadSignerRoles loads signer roles for a version.
+func (r *Repository) loadSignerRoles(ctx context.Context, versionID string) ([]*entity.TemplateVersionSignerRole, error) {
+	rows, err := r.pool.Query(ctx, querySignerRoles, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("querying version signer roles: %w", err)
 	}
-	defer roleRows.Close()
+	defer rows.Close()
 
-	for roleRows.Next() {
+	var roles []*entity.TemplateVersionSignerRole
+	for rows.Next() {
 		role := &entity.TemplateVersionSignerRole{}
-		if err := roleRows.Scan(
+		if err := rows.Scan(
 			&role.ID,
 			&role.TemplateVersionID,
 			&role.RoleName,
@@ -143,14 +163,14 @@ func (r *Repository) FindByIDWithDetails(ctx context.Context, id string) (*entit
 		); err != nil {
 			return nil, fmt.Errorf("scanning version signer role: %w", err)
 		}
-		details.SignerRoles = append(details.SignerRoles, role)
+		roles = append(roles, role)
 	}
 
-	if err := roleRows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating version signer roles: %w", err)
 	}
 
-	return details, nil
+	return roles, nil
 }
 
 // FindByTemplateID lists all versions for a template.

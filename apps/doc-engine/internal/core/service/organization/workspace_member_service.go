@@ -60,30 +60,13 @@ func (s *WorkspaceMemberService) GetMember(ctx context.Context, memberID string)
 // InviteMember invites a user to join a workspace.
 // Creates a shadow user if the email doesn't exist.
 func (s *WorkspaceMemberService) InviteMember(ctx context.Context, cmd organizationuc.InviteMemberCommand) (*entity.MemberWithUser, error) {
-	// Validate role - cannot invite as OWNER
 	if cmd.Role == entity.WorkspaceRoleOwner {
 		return nil, entity.ErrInvalidRole
 	}
 
-	// Find or create user by email
-	user, err := s.userRepo.FindByEmail(ctx, cmd.Email)
+	user, err := s.findOrCreateUser(ctx, cmd.Email, cmd.FullName)
 	if err != nil {
-		if !errors.Is(err, entity.ErrUserNotFound) {
-			return nil, fmt.Errorf("finding user by email: %w", err)
-		}
-
-		// Create shadow user
-		user = entity.NewUser(cmd.Email, cmd.FullName)
-		user.ID = uuid.NewString()
-		_, err = s.userRepo.Create(ctx, user)
-		if err != nil {
-			return nil, fmt.Errorf("creating shadow user: %w", err)
-		}
-
-		slog.InfoContext(ctx, "shadow user created",
-			slog.String("user_id", user.ID),
-			slog.String("email", user.Email),
-		)
+		return nil, err
 	}
 
 	// Check if user is already a member
@@ -128,6 +111,32 @@ func (s *WorkspaceMemberService) InviteMember(ctx context.Context, cmd organizat
 		WorkspaceMember: *member,
 		User:            user,
 	}, nil
+}
+
+// findOrCreateUser finds a user by email or creates a shadow user if not found.
+func (s *WorkspaceMemberService) findOrCreateUser(ctx context.Context, email, fullName string) (*entity.User, error) {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err == nil {
+		return user, nil
+	}
+
+	if !errors.Is(err, entity.ErrUserNotFound) {
+		return nil, fmt.Errorf("finding user by email: %w", err)
+	}
+
+	user = entity.NewUser(email, fullName)
+	user.ID = uuid.NewString()
+
+	if _, err = s.userRepo.Create(ctx, user); err != nil {
+		return nil, fmt.Errorf("creating shadow user: %w", err)
+	}
+
+	slog.InfoContext(ctx, "shadow user created",
+		slog.String("user_id", user.ID),
+		slog.String("email", user.Email),
+	)
+
+	return user, nil
 }
 
 // UpdateMemberRole updates a member's role within the workspace.

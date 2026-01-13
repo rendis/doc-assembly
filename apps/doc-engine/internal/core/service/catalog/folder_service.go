@@ -182,23 +182,8 @@ func (s *FolderService) MoveFolder(ctx context.Context, cmd cataloguc.MoveFolder
 		return nil, fmt.Errorf("finding folder: %w", err)
 	}
 
-	// Validate new parent if specified
 	if cmd.NewParentID != nil {
-		// Check it's not moving to itself
-		if *cmd.NewParentID == folder.ID {
-			return nil, entity.ErrCircularReference
-		}
-
-		parent, err := s.folderRepo.FindByID(ctx, *cmd.NewParentID)
-		if err != nil {
-			return nil, fmt.Errorf("finding new parent folder: %w", err)
-		}
-		if parent.WorkspaceID != folder.WorkspaceID {
-			return nil, entity.ErrInvalidParentFolder
-		}
-
-		// Check for circular reference (can't move to a descendant)
-		if err := s.checkCircularReference(ctx, folder.ID, *cmd.NewParentID); err != nil {
+		if err := s.validateNewParent(ctx, folder, *cmd.NewParentID); err != nil {
 			return nil, err
 		}
 	}
@@ -274,6 +259,24 @@ func (s *FolderService) GetFolderPath(ctx context.Context, id string) ([]*entity
 	}
 
 	return path, nil
+}
+
+// validateNewParent validates that a folder can be moved to a new parent.
+func (s *FolderService) validateNewParent(ctx context.Context, folder *entity.Folder, newParentID string) error {
+	if newParentID == folder.ID {
+		return entity.ErrCircularReference
+	}
+
+	parent, err := s.folderRepo.FindByID(ctx, newParentID)
+	if err != nil {
+		return fmt.Errorf("finding new parent folder: %w", err)
+	}
+
+	if parent.WorkspaceID != folder.WorkspaceID {
+		return entity.ErrInvalidParentFolder
+	}
+
+	return s.checkCircularReference(ctx, folder.ID, newParentID)
 }
 
 // checkCircularReference checks if moving a folder to a new parent would create a cycle.

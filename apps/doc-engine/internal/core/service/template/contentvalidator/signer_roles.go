@@ -91,32 +91,47 @@ func validateFieldValue(
 
 	// Validate based on type
 	if field.IsText() {
-		// Text value must not be empty
-		if field.IsEmpty() {
-			vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
-				"%s text value is required", fieldName)
-		}
+		validateTextField(vctx, field, path, fieldName)
 	} else if field.IsInjectable() {
-		// Injectable reference must not be empty
-		if field.IsEmpty() {
-			vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
-				"%s injectable reference is required", fieldName)
-			return
-		}
+		validateInjectableField(vctx, field, path, fieldName, variableIDs, accessibleInjectables)
+	}
+}
 
-		// Injectable must exist in variableIds
-		variableSet := portabledoc.NewSet(variableIDs)
-		if !variableSet.Contains(field.Value) {
-			vctx.addErrorf(ErrCodeRoleInjectableNotFound, path+".value",
-				"%s references variable '%s' which is not in variableIds", fieldName, field.Value)
-			return
-		}
+// validateTextField validates a text-type field value.
+func validateTextField(vctx *validationContext, field portabledoc.FieldValue, path, fieldName string) {
+	if field.IsEmpty() {
+		vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
+			"%s text value is required", fieldName)
+	}
+}
 
-		// Injectable must be accessible to workspace
-		if accessibleInjectables.Len() > 0 && !accessibleInjectables.Contains(field.Value) {
-			vctx.addErrorf(ErrCodeInaccessibleInjectable, path+".value",
-				"%s references injectable '%s' which is not accessible to this workspace", fieldName, field.Value)
-		}
+// validateInjectableField validates an injectable-type field value.
+func validateInjectableField(
+	vctx *validationContext,
+	field portabledoc.FieldValue,
+	path, fieldName string,
+	variableIDs []string,
+	accessibleInjectables portabledoc.Set[string],
+) {
+	// Injectable reference must not be empty
+	if field.IsEmpty() {
+		vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
+			"%s injectable reference is required", fieldName)
+		return
+	}
+
+	// Injectable must exist in variableIds
+	variableSet := portabledoc.NewSet(variableIDs)
+	if !variableSet.Contains(field.Value) {
+		vctx.addErrorf(ErrCodeRoleInjectableNotFound, path+".value",
+			"%s references variable '%s' which is not in variableIds", fieldName, field.Value)
+		return
+	}
+
+	// Injectable must be accessible to workspace
+	if accessibleInjectables.Len() > 0 && !accessibleInjectables.Contains(field.Value) {
+		vctx.addErrorf(ErrCodeInaccessibleInjectable, path+".value",
+			"%s references injectable '%s' which is not accessible to this workspace", fieldName, field.Value)
 	}
 }
 

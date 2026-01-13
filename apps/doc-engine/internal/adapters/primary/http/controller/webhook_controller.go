@@ -56,83 +56,33 @@ func (c *WebhookController) RegisterRoutes(router *gin.Engine) {
 func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 	provider := ctx.Param("provider")
 
-	// Get the appropriate webhook handler
 	handler, ok := c.webhookHandlers[provider]
 	if !ok {
-		slog.WarnContext(ctx.Request.Context(), "webhook received for unknown provider",
-			slog.String("provider", provider),
-		)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "unknown provider",
-		})
+		slog.WarnContext(ctx.Request.Context(), "webhook received for unknown provider", slog.String("provider", provider))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "unknown provider"})
 		return
 	}
 
-	// Read body
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		slog.ErrorContext(ctx.Request.Context(), "failed to read webhook body",
-			slog.String("provider", provider),
-			slog.String("error", err.Error()),
-		)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed to read request body",
-		})
+		slog.ErrorContext(ctx.Request.Context(), "failed to read webhook body", slog.String("provider", provider), slog.String("error", err.Error()))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 		return
 	}
 
-	// Get signature header (different providers use different header names)
-	signature := ctx.GetHeader("X-Documenso-Secret")
-	if signature == "" {
-		signature = ctx.GetHeader("X-Webhook-Signature")
-	}
-	if signature == "" {
-		signature = ctx.GetHeader("X-Signature")
-	}
-
+	signature := extractWebhookSignature(ctx)
 	slog.InfoContext(ctx.Request.Context(), "processing signing webhook",
 		slog.String("provider", provider),
 		slog.Int("body_length", len(body)),
 		slog.Bool("has_signature", signature != ""),
 	)
 
-	// Parse and validate webhook
-	event, err := handler.ParseWebhook(ctx.Request.Context(), body, signature)
-	if err != nil {
-		if err == entity.ErrInvalidWebhookSignature {
-			slog.WarnContext(ctx.Request.Context(), "invalid webhook signature",
-				slog.String("provider", provider),
-			)
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": "invalid signature",
-			})
-			return
-		}
-
-		slog.ErrorContext(ctx.Request.Context(), "failed to parse webhook",
-			slog.String("provider", provider),
-			slog.String("error", err.Error()),
-		)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed to parse webhook",
-		})
+	event, ok := c.parseWebhook(ctx, handler, body, signature, provider)
+	if !ok {
 		return
 	}
 
-	// Process the event
-	if err := c.documentUC.HandleWebhookEvent(ctx.Request.Context(), event); err != nil {
-		slog.ErrorContext(ctx.Request.Context(), "failed to process webhook event",
-			slog.String("provider", provider),
-			slog.String("event_type", event.EventType),
-			slog.String("document_id", event.ProviderDocumentID),
-			slog.String("error", err.Error()),
-		)
-		// Return 200 anyway to prevent retries for business logic errors
-		// Only return error status for signature/parsing failures
-		ctx.JSON(http.StatusOK, gin.H{
-			"status":  "error",
-			"message": "event processing failed",
-		})
+	if !c.processWebhookEvent(ctx, event, provider) {
 		return
 	}
 
@@ -141,8 +91,60 @@ func (c *WebhookController) HandleSigningWebhook(ctx *gin.Context) {
 		slog.String("event_type", event.EventType),
 		slog.String("document_id", event.ProviderDocumentID),
 	)
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-	})
+// extractWebhookSignature extracts the webhook signature from request headers.
+// Different providers use different header names.
+func extractWebhookSignature(ctx *gin.Context) string {
+	if sig := ctx.GetHeader("X-Documenso-Secret"); sig != "" {
+		return sig
+	}
+	if sig := ctx.GetHeader("X-Webhook-Signature"); sig != "" {
+		return sig
+	}
+	return ctx.GetHeader("X-Signature")
+}
+
+// parseWebhook parses and validates the webhook payload.
+// Returns the parsed event and true on success, or false if an error response was sent.
+func (c *WebhookController) parseWebhook(ctx *gin.Context, handler port.WebhookHandler, body []byte, signature, provider string) (*port.WebhookEvent, bool) {
+	event, err := handler.ParseWebhook(ctx.Request.Context(), body, signature)
+	if err != nil {
+		if err == entity.ErrInvalidWebhookSignature {
+			slog.WarnContext(ctx.Request.Context(), "invalid webhook signature",
+				slog.String("provider", provider),
+			)
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid signature"})
+			return nil, false
+		}
+
+		slog.ErrorContext(ctx.Request.Context(), "failed to parse webhook",
+			slog.String("provider", provider),
+			slog.String("error", err.Error()),
+		)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse webhook"})
+		return nil, false
+	}
+	return event, true
+}
+
+// processWebhookEvent processes the webhook event through the document use case.
+// Returns true on success, or false if an error response was sent.
+func (c *WebhookController) processWebhookEvent(ctx *gin.Context, event *port.WebhookEvent, provider string) bool {
+	if err := c.documentUC.HandleWebhookEvent(ctx.Request.Context(), event); err != nil {
+		slog.ErrorContext(ctx.Request.Context(), "failed to process webhook event",
+			slog.String("provider", provider),
+			slog.String("event_type", event.EventType),
+			slog.String("document_id", event.ProviderDocumentID),
+			slog.String("error", err.Error()),
+		)
+		// Return 200 anyway to prevent retries for business logic errors
+		ctx.JSON(http.StatusOK, gin.H{
+			"status":  "error",
+			"message": "event processing failed",
+		})
+		return false
+	}
+	return true
 }

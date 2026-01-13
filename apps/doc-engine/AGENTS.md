@@ -205,6 +205,12 @@ ctx = logging.WithAttrs(ctx, slog.String("tenant_id", tenantID))
 - Use `slog.Info()` without context
 - Log sensitive data (passwords, tokens, PII)
 
+## Go Best Practices
+
+**Documentation:** See `docs/go-best-practices.md` for complete guide.
+
+**Reference when:** Writing functions, designing APIs, handling errors, working with concurrency, or reviewing code.
+
 ## Database Schema
 
 Database schema is managed with **Liquibase** in the `../../db/` directory (relative to doc-engine).
@@ -284,6 +290,17 @@ The authorization matrix documents all API endpoints with their permission requi
 8. **Code generation** - Changes to `docengine-gen` or its output
 
 The extensibility guide documents how to create custom injectors, mappers, and init functions. It must reflect the current interfaces and patterns.
+
+### Go Best Practices (`docs/go-best-practices.md`)
+
+**SHOULD update** this file when:
+
+1. **New patterns** - Discovering new Go best practices or patterns
+2. **Project conventions** - Establishing project-specific coding standards
+3. **Modern Go features** - Documenting usage of new Go version features
+4. **Anti-patterns found** - Adding anti-patterns discovered during code review
+
+This guide serves as the team's reference for Go coding standards. Keep it updated with relevant patterns used in the project.
 
 ## Mandatory Verification Checklist
 

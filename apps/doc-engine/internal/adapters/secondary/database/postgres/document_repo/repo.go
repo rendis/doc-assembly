@@ -129,11 +129,12 @@ func (r *Repository) FindByIDWithRecipients(ctx context.Context, id string) (*en
 	return result, nil
 }
 
-// FindByWorkspace lists all documents in a workspace with optional filters.
-func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, filters port.DocumentFilters) ([]*entity.DocumentListItem, error) {
-	query := queryFindByWorkspaceBase
-	args := []any{workspaceID}
-	argPos := 2
+// buildDocumentFilters builds the WHERE clause and args for document filters.
+// Returns the query suffix and args to append.
+func buildDocumentFilters(filters port.DocumentFilters, startArgPos int) (string, []any) {
+	var query string
+	var args []any
+	argPos := startArgPos
 
 	if filters.Status != nil {
 		query += fmt.Sprintf(" AND status = $%d", argPos)
@@ -177,6 +178,15 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 		query += fmt.Sprintf(" OFFSET $%d", argPos)
 		args = append(args, filters.Offset)
 	}
+
+	return query, args
+}
+
+// FindByWorkspace lists all documents in a workspace with optional filters.
+func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, filters port.DocumentFilters) ([]*entity.DocumentListItem, error) {
+	querySuffix, filterArgs := buildDocumentFilters(filters, 2)
+	query := queryFindByWorkspaceBase + querySuffix
+	args := append([]any{workspaceID}, filterArgs...)
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
