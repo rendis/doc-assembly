@@ -4,7 +4,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // TenantMapper handles mapping between tenant entities and DTOs.
@@ -108,8 +108,8 @@ func TenantsWithRoleToResponses(tenants []*entity.TenantWithRole) []*dto.TenantW
 }
 
 // CreateTenantRequestToCommand converts a create request to a usecase command.
-func CreateTenantRequestToCommand(req dto.CreateTenantRequest) usecase.CreateTenantCommand {
-	return usecase.CreateTenantCommand{
+func CreateTenantRequestToCommand(req dto.CreateTenantRequest) organizationuc.CreateTenantCommand {
+	return organizationuc.CreateTenantCommand{
 		Name:        req.Name,
 		Code:        req.Code,
 		Description: req.Description,
@@ -117,8 +117,8 @@ func CreateTenantRequestToCommand(req dto.CreateTenantRequest) usecase.CreateTen
 }
 
 // UpdateTenantRequestToCommand converts an update request to a usecase command.
-func UpdateTenantRequestToCommand(id string, req dto.UpdateTenantRequest) usecase.UpdateTenantCommand {
-	return usecase.UpdateTenantCommand{
+func UpdateTenantRequestToCommand(id string, req dto.UpdateTenantRequest) organizationuc.UpdateTenantCommand {
+	return organizationuc.UpdateTenantCommand{
 		ID:          id,
 		Name:        req.Name,
 		Description: req.Description,

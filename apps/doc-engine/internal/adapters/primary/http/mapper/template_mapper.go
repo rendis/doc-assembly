@@ -4,7 +4,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	templateuc "github.com/doc-assembly/doc-engine/internal/core/usecase/template"
 )
 
 // TemplateMapper handles mapping between template entities and DTOs.
@@ -162,8 +162,8 @@ func (m *TemplateMapper) ToCreateResponse(template *entity.Template, version *en
 }
 
 // ToCreateCommand converts a create request to a command.
-func (m *TemplateMapper) ToCreateCommand(req *dto.CreateTemplateRequest, workspaceID string, userID string) usecase.CreateTemplateCommand {
-	return usecase.CreateTemplateCommand{
+func (m *TemplateMapper) ToCreateCommand(req *dto.CreateTemplateRequest, workspaceID string, userID string) templateuc.CreateTemplateCommand {
+	return templateuc.CreateTemplateCommand{
 		WorkspaceID:      workspaceID,
 		FolderID:         req.FolderID,
 		Title:            req.Title,
@@ -174,8 +174,8 @@ func (m *TemplateMapper) ToCreateCommand(req *dto.CreateTemplateRequest, workspa
 }
 
 // ToUpdateCommand converts an update request to a command.
-func (m *TemplateMapper) ToUpdateCommand(id string, req *dto.UpdateTemplateRequest) usecase.UpdateTemplateCommand {
-	return usecase.UpdateTemplateCommand{
+func (m *TemplateMapper) ToUpdateCommand(id string, req *dto.UpdateTemplateRequest) templateuc.UpdateTemplateCommand {
+	return templateuc.UpdateTemplateCommand{
 		ID:              id,
 		Title:           req.Title,
 		FolderID:        req.FolderID,
@@ -184,8 +184,8 @@ func (m *TemplateMapper) ToUpdateCommand(id string, req *dto.UpdateTemplateReque
 }
 
 // ToCloneCommand converts a clone request to a command.
-func (m *TemplateMapper) ToCloneCommand(sourceID string, req *dto.CloneTemplateRequest, userID string) usecase.CloneTemplateCommand {
-	return usecase.CloneTemplateCommand{
+func (m *TemplateMapper) ToCloneCommand(sourceID string, req *dto.CloneTemplateRequest, userID string) templateuc.CloneTemplateCommand {
+	return templateuc.CloneTemplateCommand{
 		SourceTemplateID: sourceID,
 		VersionID:        req.VersionID,
 		NewTitle:         req.NewTitle,

@@ -12,18 +12,18 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	templateuc "github.com/doc-assembly/doc-engine/internal/core/usecase/template"
 )
 
 // RenderController handles document rendering HTTP requests.
 type RenderController struct {
-	versionUC   usecase.TemplateVersionUseCase
+	versionUC   templateuc.TemplateVersionUseCase
 	pdfRenderer port.PDFRenderer
 }
 
 // NewRenderController creates a new render controller.
 func NewRenderController(
-	versionUC usecase.TemplateVersionUseCase,
+	versionUC templateuc.TemplateVersionUseCase,
 	pdfRenderer port.PDFRenderer,
 ) *RenderController {
 	return &RenderController{

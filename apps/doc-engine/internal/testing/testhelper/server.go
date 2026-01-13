@@ -29,8 +29,12 @@ import (
 	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
-	"github.com/doc-assembly/doc-engine/internal/core/service"
-	contentvalidator "github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
+	accesssvc "github.com/doc-assembly/doc-engine/internal/core/service/access"
+	catalogsvc "github.com/doc-assembly/doc-engine/internal/core/service/catalog"
+	injectablesvc "github.com/doc-assembly/doc-engine/internal/core/service/injectable"
+	organizationsvc "github.com/doc-assembly/doc-engine/internal/core/service/organization"
+	templatesvc "github.com/doc-assembly/doc-engine/internal/core/service/template"
+	contentvalidator "github.com/doc-assembly/doc-engine/internal/core/service/template/contentvalidator"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 )
 
@@ -70,24 +74,24 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	workspaceInjectableRepo := workspaceinjectablerepo.New(pool)
 
 	// Create services - Identity & Tenancy
-	tenantService := service.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
-	workspaceService := service.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo, userAccessHistoryRepo)
-	systemRoleService := service.NewSystemRoleService(systemRoleRepo, userRepo)
-	tenantMemberService := service.NewTenantMemberService(tenantMemberRepo, userRepo)
-	folderService := service.NewFolderService(folderRepo)
-	tagService := service.NewTagService(tagRepo)
-	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
-	userAccessHistoryService := service.NewUserAccessHistoryService(userAccessHistoryRepo)
-	workspaceInjectableService := service.NewWorkspaceInjectableService(workspaceInjectableRepo)
-	systemInjectableService := service.NewSystemInjectableService(systemInjectableRepo, nil)
+	tenantService := organizationsvc.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
+	workspaceService := organizationsvc.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo, userAccessHistoryRepo)
+	systemRoleService := accesssvc.NewSystemRoleService(systemRoleRepo, userRepo)
+	tenantMemberService := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
+	folderService := catalogsvc.NewFolderService(folderRepo)
+	tagService := catalogsvc.NewTagService(tagRepo)
+	workspaceMemberService := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
+	userAccessHistoryService := accesssvc.NewUserAccessHistoryService(userAccessHistoryRepo)
+	workspaceInjectableService := injectablesvc.NewWorkspaceInjectableService(workspaceInjectableRepo)
+	systemInjectableService := injectablesvc.NewSystemInjectableService(systemInjectableRepo, nil)
 
 	// Create content validator
 	contentValidator := contentvalidator.New(injectableRepo)
 
 	// Create services - Content
-	injectableService := service.NewInjectableService(injectableRepo, systemInjectableRepo, nil)
-	templateService := service.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
-	templateVersionService := service.NewTemplateVersionService(
+	injectableService := injectablesvc.NewInjectableService(injectableRepo, systemInjectableRepo, nil)
+	templateService := templatesvc.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
+	templateVersionService := templatesvc.NewTemplateVersionService(
 		templateVersionRepo,
 		templateVersionInjectableRepo,
 		templateVersionSignerRoleRepo,

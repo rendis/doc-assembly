@@ -9,7 +9,7 @@ import (
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
 
 // Internal API header constants.
@@ -22,12 +22,12 @@ const (
 // InternalDocumentController handles internal API document requests.
 // These endpoints are used for service-to-service communication.
 type InternalDocumentController struct {
-	internalDocUC usecase.InternalDocumentUseCase
+	internalDocUC documentuc.InternalDocumentUseCase
 }
 
 // NewInternalDocumentController creates a new internal document controller.
 func NewInternalDocumentController(
-	internalDocUC usecase.InternalDocumentUseCase,
+	internalDocUC documentuc.InternalDocumentUseCase,
 ) *InternalDocumentController {
 	return &InternalDocumentController{
 		internalDocUC: internalDocUC,
@@ -108,7 +108,7 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 	}
 
 	// Build command
-	cmd := usecase.InternalCreateCommand{
+	cmd := documentuc.InternalCreateCommand{
 		ExternalID:      externalID,
 		TemplateID:      templateID,
 		TransactionalID: transactionalID,

@@ -8,26 +8,28 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	cataloguc "github.com/doc-assembly/doc-engine/internal/core/usecase/catalog"
+	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // WorkspaceController handles workspace-related HTTP requests.
 type WorkspaceController struct {
-	workspaceUC           usecase.WorkspaceUseCase
-	folderUC              usecase.FolderUseCase
-	tagUC                 usecase.TagUseCase
-	memberUC              usecase.WorkspaceMemberUseCase
-	workspaceInjectableUC usecase.WorkspaceInjectableUseCase
+	workspaceUC           organizationuc.WorkspaceUseCase
+	folderUC              cataloguc.FolderUseCase
+	tagUC                 cataloguc.TagUseCase
+	memberUC              organizationuc.WorkspaceMemberUseCase
+	workspaceInjectableUC injectableuc.WorkspaceInjectableUseCase
 	injectableMapper      *mapper.InjectableMapper
 }
 
 // NewWorkspaceController creates a new workspace controller.
 func NewWorkspaceController(
-	workspaceUC usecase.WorkspaceUseCase,
-	folderUC usecase.FolderUseCase,
-	tagUC usecase.TagUseCase,
-	memberUC usecase.WorkspaceMemberUseCase,
-	workspaceInjectableUC usecase.WorkspaceInjectableUseCase,
+	workspaceUC organizationuc.WorkspaceUseCase,
+	folderUC cataloguc.FolderUseCase,
+	tagUC cataloguc.TagUseCase,
+	memberUC organizationuc.WorkspaceMemberUseCase,
+	workspaceInjectableUC injectableuc.WorkspaceInjectableUseCase,
 	injectableMapper *mapper.InjectableMapper,
 ) *WorkspaceController {
 	return &WorkspaceController{
@@ -704,7 +706,7 @@ func (c *WorkspaceController) CreateWorkspaceInjectable(ctx *gin.Context) {
 		return
 	}
 
-	cmd := usecase.CreateWorkspaceInjectableCommand{
+	cmd := injectableuc.CreateWorkspaceInjectableCommand{
 		WorkspaceID:  workspaceID,
 		Key:          req.Key,
 		Label:        req.Label,
@@ -768,7 +770,7 @@ func (c *WorkspaceController) UpdateWorkspaceInjectable(ctx *gin.Context) {
 		return
 	}
 
-	cmd := usecase.UpdateWorkspaceInjectableCommand{
+	cmd := injectableuc.UpdateWorkspaceInjectableCommand{
 		ID:           injectableID,
 		WorkspaceID:  workspaceID,
 		Key:          req.Key,

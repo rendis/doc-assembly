@@ -3,7 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	accessuc "github.com/doc-assembly/doc-engine/internal/core/usecase/access"
 )
 
 // SystemRoleToResponse converts a SystemRoleAssignment entity to a response DTO.
@@ -54,8 +54,8 @@ func SystemRolesWithUserToResponses(roles []*entity.SystemRoleWithUser) []*dto.S
 }
 
 // AssignSystemRoleRequestToCommand converts a request to a command.
-func AssignSystemRoleRequestToCommand(userID string, req dto.AssignSystemRoleRequest, grantedBy string) usecase.AssignSystemRoleCommand {
-	return usecase.AssignSystemRoleCommand{
+func AssignSystemRoleRequestToCommand(userID string, req dto.AssignSystemRoleRequest, grantedBy string) accessuc.AssignSystemRoleCommand {
+	return accessuc.AssignSystemRoleCommand{
 		UserID:    userID,
 		Role:      entity.SystemRole(req.Role),
 		GrantedBy: grantedBy,
@@ -63,8 +63,8 @@ func AssignSystemRoleRequestToCommand(userID string, req dto.AssignSystemRoleReq
 }
 
 // RevokeSystemRoleToCommand creates a revoke command.
-func RevokeSystemRoleToCommand(userID, revokedBy string) usecase.RevokeSystemRoleCommand {
-	return usecase.RevokeSystemRoleCommand{
+func RevokeSystemRoleToCommand(userID, revokedBy string) accessuc.RevokeSystemRoleCommand {
+	return accessuc.RevokeSystemRoleCommand{
 		UserID:    userID,
 		RevokedBy: revokedBy,
 	}

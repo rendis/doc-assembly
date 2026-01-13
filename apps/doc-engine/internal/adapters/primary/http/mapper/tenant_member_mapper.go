@@ -3,7 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // TenantMemberMapper handles mapping between tenant member entities and DTOs.
@@ -62,8 +62,8 @@ func TenantMembersToResponses(members []*entity.TenantMemberWithUser) []*dto.Ten
 }
 
 // AddTenantMemberRequestToCommand converts an add member request to a usecase command.
-func AddTenantMemberRequestToCommand(tenantID string, req dto.AddTenantMemberRequest, grantedBy string) usecase.AddTenantMemberCommand {
-	return usecase.AddTenantMemberCommand{
+func AddTenantMemberRequestToCommand(tenantID string, req dto.AddTenantMemberRequest, grantedBy string) organizationuc.AddTenantMemberCommand {
+	return organizationuc.AddTenantMemberCommand{
 		TenantID:  tenantID,
 		Email:     req.Email,
 		FullName:  req.FullName,
@@ -73,8 +73,8 @@ func AddTenantMemberRequestToCommand(tenantID string, req dto.AddTenantMemberReq
 }
 
 // UpdateTenantMemberRoleRequestToCommand converts an update role request to a usecase command.
-func UpdateTenantMemberRoleRequestToCommand(memberID, tenantID string, req dto.UpdateTenantMemberRoleRequest, updatedBy string) usecase.UpdateTenantMemberRoleCommand {
-	return usecase.UpdateTenantMemberRoleCommand{
+func UpdateTenantMemberRoleRequestToCommand(memberID, tenantID string, req dto.UpdateTenantMemberRoleRequest, updatedBy string) organizationuc.UpdateTenantMemberRoleCommand {
+	return organizationuc.UpdateTenantMemberRoleCommand{
 		MemberID:  memberID,
 		TenantID:  tenantID,
 		NewRole:   entity.TenantRole(req.Role),
@@ -83,8 +83,8 @@ func UpdateTenantMemberRoleRequestToCommand(memberID, tenantID string, req dto.U
 }
 
 // RemoveTenantMemberToCommand creates a remove tenant member command.
-func RemoveTenantMemberToCommand(memberID, tenantID, removedBy string) usecase.RemoveTenantMemberCommand {
-	return usecase.RemoveTenantMemberCommand{
+func RemoveTenantMemberToCommand(memberID, tenantID, removedBy string) organizationuc.RemoveTenantMemberCommand {
+	return organizationuc.RemoveTenantMemberCommand{
 		MemberID:  memberID,
 		TenantID:  tenantID,
 		RemovedBy: removedBy,

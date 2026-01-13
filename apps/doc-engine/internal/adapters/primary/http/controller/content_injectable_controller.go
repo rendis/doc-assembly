@@ -9,18 +9,18 @@ import (
 	_ "github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto" // for swagger
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
 )
 
 // ContentInjectableController handles injectable-related HTTP requests.
 type ContentInjectableController struct {
-	injectableUC     usecase.InjectableUseCase
+	injectableUC     injectableuc.InjectableUseCase
 	injectableMapper *mapper.InjectableMapper
 }
 
 // NewContentInjectableController creates a new injectable controller.
 func NewContentInjectableController(
-	injectableUC usecase.InjectableUseCase,
+	injectableUC injectableuc.InjectableUseCase,
 	injectableMapper *mapper.InjectableMapper,
 ) *ContentInjectableController {
 	return &ContentInjectableController{

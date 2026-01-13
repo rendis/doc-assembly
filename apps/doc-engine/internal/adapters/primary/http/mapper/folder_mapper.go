@@ -3,7 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	cataloguc "github.com/doc-assembly/doc-engine/internal/core/usecase/catalog"
 )
 
 // FolderMapper handles mapping between folder entities and DTOs.
@@ -120,8 +120,8 @@ func FolderPathToResponse(folders []*entity.Folder) dto.FolderPathResponse {
 }
 
 // CreateFolderRequestToCommand converts a create request to a usecase command.
-func CreateFolderRequestToCommand(workspaceID string, req dto.CreateFolderRequest, createdBy string) usecase.CreateFolderCommand {
-	return usecase.CreateFolderCommand{
+func CreateFolderRequestToCommand(workspaceID string, req dto.CreateFolderRequest, createdBy string) cataloguc.CreateFolderCommand {
+	return cataloguc.CreateFolderCommand{
 		WorkspaceID: workspaceID,
 		ParentID:    req.ParentID,
 		Name:        req.Name,
@@ -130,16 +130,16 @@ func CreateFolderRequestToCommand(workspaceID string, req dto.CreateFolderReques
 }
 
 // UpdateFolderRequestToCommand converts an update request to a usecase command.
-func UpdateFolderRequestToCommand(id string, req dto.UpdateFolderRequest) usecase.UpdateFolderCommand {
-	return usecase.UpdateFolderCommand{
+func UpdateFolderRequestToCommand(id string, req dto.UpdateFolderRequest) cataloguc.UpdateFolderCommand {
+	return cataloguc.UpdateFolderCommand{
 		ID:   id,
 		Name: req.Name,
 	}
 }
 
 // MoveFolderRequestToCommand converts a move request to a usecase command.
-func MoveFolderRequestToCommand(id string, req dto.MoveFolderRequest) usecase.MoveFolderCommand {
-	return usecase.MoveFolderCommand{
+func MoveFolderRequestToCommand(id string, req dto.MoveFolderRequest) cataloguc.MoveFolderCommand {
+	return cataloguc.MoveFolderCommand{
 		ID:          id,
 		NewParentID: req.NewParentID,
 	}

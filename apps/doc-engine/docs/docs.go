@@ -1736,7 +1736,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_core_usecase.DocumentStatistics"
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_core_usecase_document.DocumentStatistics"
                         }
                     },
                     "500": {
@@ -7362,7 +7362,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_core_usecase.DocumentStatistics": {
+        "github_com_doc-assembly_doc-engine_internal_core_usecase_document.DocumentStatistics": {
             "type": "object",
             "properties": {
                 "byStatus": {

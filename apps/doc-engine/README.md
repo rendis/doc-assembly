@@ -2,6 +2,55 @@
 
 Document Assembly System API - A microservice for template management and document generation.
 
+## Table of Contents
+
+- [Doc Engine](#doc-engine)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+    - [Domain Organization](#domain-organization)
+  - [Tech Stack](#tech-stack)
+  - [Prerequisites](#prerequisites)
+    - [Install Tools](#install-tools)
+  - [Getting Started](#getting-started)
+    - [1. Clone and Setup](#1-clone-and-setup)
+    - [2. Configuration](#2-configuration)
+    - [3. Build and Run](#3-build-and-run)
+  - [Configuration](#configuration)
+  - [API Endpoints](#api-endpoints)
+  - [Sandbox \& Promotion Flow](#sandbox--promotion-flow)
+    - [Sandbox Concept](#sandbox-concept)
+    - [Accessing Sandbox Mode](#accessing-sandbox-mode)
+    - [Endpoints with Sandbox Support](#endpoints-with-sandbox-support)
+    - [Version Promotion Flow](#version-promotion-flow)
+      - [Promotion Modes](#promotion-modes)
+      - [Request Body](#request-body)
+      - [Promotion Requirements](#promotion-requirements)
+      - [What Gets Copied](#what-gets-copied)
+      - [Example: Promote as New Template](#example-promote-as-new-template)
+      - [Example: Promote as New Version](#example-promote-as-new-version)
+    - [Typical Workflow](#typical-workflow)
+  - [Development](#development)
+    - [Make Commands](#make-commands)
+    - [Adding a New Feature](#adding-a-new-feature)
+    - [Code Style](#code-style)
+  - [Extensibility System](#extensibility-system)
+    - [Quick Overview](#quick-overview)
+    - [Flow](#flow)
+    - [Creating an Injector](#creating-an-injector)
+    - [Adding i18n](#adding-i18n)
+    - [Generating Registry](#generating-registry)
+  - [Integration Tests](#integration-tests)
+    - [Prerequisites](#prerequisites-1)
+    - [Test Architecture](#test-architecture)
+    - [Running Integration Tests](#running-integration-tests)
+    - [Test Coverage](#test-coverage)
+    - [Test Timing](#test-timing)
+    - [Testcontainers Stack](#testcontainers-stack)
+    - [Writing New Integration Tests](#writing-new-integration-tests)
+    - [Troubleshooting](#troubleshooting)
+  - [Role-Based Access Control](#role-based-access-control)
+
 ## Overview
 
 Doc Engine is a Go-based microservice that provides:
@@ -15,15 +64,31 @@ Doc Engine is a Go-based microservice that provides:
 
 ## Architecture
 
-The project follows **Hexagonal Architecture** (Ports and Adapters):
+The project follows **Hexagonal Architecture** (Ports and Adapters) with **domain-based organization**:
 
 ```
 internal/
 ├── core/                      # Domain Layer (business logic)
-│   ├── entity/               # Domain entities and value objects
+│   ├── entity/               # Domain entities and value objects (flat structure)
+│   │   └── portabledoc/      # PDF document format types
 │   ├── port/                 # Output ports (repository interfaces)
-│   ├── service/              # Business logic implementation
-│   └── usecase/              # Input ports (use case interfaces + commands)
+│   │
+│   ├── usecase/              # Input ports organized by domain
+│   │   ├── document/         # Document lifecycle and signing
+│   │   ├── template/         # Template and version management
+│   │   ├── organization/     # Tenant, workspace, member management
+│   │   ├── injectable/       # Injectable definitions and assignments
+│   │   ├── catalog/          # Folder and tag organization
+│   │   └── access/           # System roles and access history
+│   │
+│   └── service/              # Business logic organized by domain
+│       ├── document/         # Document services
+│       ├── template/         # Template services + contentvalidator/
+│       ├── organization/     # Organization services
+│       ├── injectable/       # Injectable services + dependency resolution
+│       ├── catalog/          # Catalog services
+│       ├── access/           # Access control services
+│       └── rendering/        # PDF rendering (pdfrenderer/)
 │
 ├── adapters/
 │   ├── primary/http/         # Driving adapters (HTTP API)
@@ -42,6 +107,33 @@ internal/
     ├── di.go                 # Wire dependency injection
     └── initializer.go        # Application bootstrap
 ```
+
+### Domain Organization
+
+| Domain | Description |
+|--------|-------------|
+| `document` | Document creation, signing, webhooks |
+| `template` | Template CRUD, versioning, content validation |
+| `organization` | Tenants, workspaces, members |
+| `injectable` | Injectable definitions and assignments |
+| `catalog` | Folders and tags |
+| `access` | System roles, access history |
+| `rendering` | PDF generation |
+
+### Entity Files by Domain
+
+The `entity/` package uses a flat structure for simplicity. Files are logically grouped by domain:
+
+| Domain | Entity Files |
+|--------|-------------|
+| **document** | `document.go`, `document_recipient.go` |
+| **template** | `template.go`, `template_version.go` |
+| **organization** | `tenant.go`, `workspace.go`, `user.go` |
+| **injectable** | `injectable.go`, `system_injectable.go` |
+| **catalog** | `folder.go`, `tag.go` |
+| **access** | `user_access_history.go` |
+| **shared** | `enum.go`, `errors.go`, `format.go`, `injector_context.go` |
+| **rendering** | `portabledoc/` (subdirectory) |
 
 ## Tech Stack
 
@@ -340,14 +432,31 @@ make dev              # Run with hot reload (requires air)
 
 1. **Define entities** in `internal/core/entity/`
 2. **Create port interfaces** in `internal/core/port/`
-3. **Define use case interface** in `internal/core/usecase/`
-4. **Implement service** in `internal/core/service/`
-5. **Create repository** in `internal/adapters/secondary/database/postgres/`
+3. **Define use case interface** in `internal/core/usecase/<domain>/` (choose appropriate domain)
+4. **Implement service** in `internal/core/service/<domain>/` (matching domain)
+5. **Create repository** in `internal/adapters/secondary/database/postgres/<name>repo/`
 6. **Add DTOs** in `internal/adapters/primary/http/dto/`
 7. **Create mapper** in `internal/adapters/primary/http/mapper/`
 8. **Add controller handlers** in `internal/adapters/primary/http/controller/`
 9. **Register in Wire** in `internal/infra/di.go`
-10. **Run `make wire`** to regenerate DI
+10. **Run verification checklist** (see below)
+
+**Domain selection:** Place usecases/services in the appropriate domain folder:
+- `document` - Document creation, signing, webhooks
+- `template` - Template CRUD, versioning, content validation
+- `organization` - Tenants, workspaces, members
+- `injectable` - Injectable definitions and assignments
+- `catalog` - Folders and tags
+- `access` - System roles, access history
+
+**Mandatory verification before completion:**
+```bash
+make wire              # Regenerate DI
+make build             # Build (includes lint)
+make test              # Unit tests
+go build -tags=integration ./...  # Verify integration tests compile
+make test-integration  # E2E tests (requires Docker)
+```
 
 ### Code Style
 
@@ -551,7 +660,3 @@ Workspace roles hierarchy (highest to lowest):
 | VIEWER | 10 | Read-only access |
 
 For a complete authorization matrix with all endpoints, roles (System, Tenant, Workspace), and required headers, see **[authorization-matrix.md](docs/authorization-matrix.md)**.
-
-## License
-
-MIT

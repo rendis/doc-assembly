@@ -3,7 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	cataloguc "github.com/doc-assembly/doc-engine/internal/core/usecase/catalog"
 )
 
 // TagMapper handles mapping between tag entities and DTOs.
@@ -82,8 +82,8 @@ func TagsWithCountToResponses(tags []*entity.TagWithCount) []dto.TagWithCountRes
 }
 
 // CreateTagRequestToCommand converts a create request to a usecase command.
-func CreateTagRequestToCommand(workspaceID string, req dto.CreateTagRequest, createdBy string) usecase.CreateTagCommand {
-	return usecase.CreateTagCommand{
+func CreateTagRequestToCommand(workspaceID string, req dto.CreateTagRequest, createdBy string) cataloguc.CreateTagCommand {
+	return cataloguc.CreateTagCommand{
 		WorkspaceID: workspaceID,
 		Name:        req.Name,
 		Color:       req.Color,
@@ -92,8 +92,8 @@ func CreateTagRequestToCommand(workspaceID string, req dto.CreateTagRequest, cre
 }
 
 // UpdateTagRequestToCommand converts an update request to a usecase command.
-func UpdateTagRequestToCommand(id string, req dto.UpdateTagRequest) usecase.UpdateTagCommand {
-	return usecase.UpdateTagCommand{
+func UpdateTagRequestToCommand(id string, req dto.UpdateTagRequest) cataloguc.UpdateTagCommand {
+	return cataloguc.UpdateTagCommand{
 		ID:    id,
 		Name:  req.Name,
 		Color: req.Color,

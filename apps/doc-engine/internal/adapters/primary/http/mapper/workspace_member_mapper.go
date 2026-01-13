@@ -3,7 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // WorkspaceMemberMapper handles mapping between member entities and DTOs.
@@ -89,8 +89,8 @@ func MembersToResponses(members []*entity.MemberWithUser) []*dto.MemberResponse 
 }
 
 // InviteMemberRequestToCommand converts an invite request to a usecase command.
-func InviteMemberRequestToCommand(workspaceID string, req dto.InviteMemberRequest, invitedBy string) usecase.InviteMemberCommand {
-	return usecase.InviteMemberCommand{
+func InviteMemberRequestToCommand(workspaceID string, req dto.InviteMemberRequest, invitedBy string) organizationuc.InviteMemberCommand {
+	return organizationuc.InviteMemberCommand{
 		WorkspaceID: workspaceID,
 		Email:       req.Email,
 		FullName:    req.FullName,
@@ -100,8 +100,8 @@ func InviteMemberRequestToCommand(workspaceID string, req dto.InviteMemberReques
 }
 
 // UpdateMemberRoleRequestToCommand converts an update role request to a usecase command.
-func UpdateMemberRoleRequestToCommand(memberID, workspaceID string, req dto.UpdateMemberRoleRequest, updatedBy string) usecase.UpdateMemberRoleCommand {
-	return usecase.UpdateMemberRoleCommand{
+func UpdateMemberRoleRequestToCommand(memberID, workspaceID string, req dto.UpdateMemberRoleRequest, updatedBy string) organizationuc.UpdateMemberRoleCommand {
+	return organizationuc.UpdateMemberRoleCommand{
 		MemberID:    memberID,
 		WorkspaceID: workspaceID,
 		NewRole:     entity.WorkspaceRole(req.Role),
@@ -110,8 +110,8 @@ func UpdateMemberRoleRequestToCommand(memberID, workspaceID string, req dto.Upda
 }
 
 // RemoveMemberToCommand creates a remove member command.
-func RemoveMemberToCommand(memberID, workspaceID, removedBy string) usecase.RemoveMemberCommand {
-	return usecase.RemoveMemberCommand{
+func RemoveMemberToCommand(memberID, workspaceID, removedBy string) organizationuc.RemoveMemberCommand {
+	return organizationuc.RemoveMemberCommand{
 		MemberID:    memberID,
 		WorkspaceID: workspaceID,
 		RemovedBy:   removedBy,

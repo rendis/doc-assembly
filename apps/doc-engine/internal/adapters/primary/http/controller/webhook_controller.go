@@ -10,18 +10,18 @@ import (
 	_ "github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
 
 // WebhookController handles incoming webhooks from signing providers.
 type WebhookController struct {
-	documentUC      usecase.DocumentUseCase
+	documentUC      documentuc.DocumentUseCase
 	webhookHandlers map[string]port.WebhookHandler
 }
 
 // NewWebhookController creates a new webhook controller.
 func NewWebhookController(
-	documentUC usecase.DocumentUseCase,
+	documentUC documentuc.DocumentUseCase,
 	webhookHandlers map[string]port.WebhookHandler,
 ) *WebhookController {
 	return &WebhookController{

@@ -3,7 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	templateuc "github.com/doc-assembly/doc-engine/internal/core/usecase/template"
 )
 
 // TemplateVersionMapper handles mapping between template version entities and DTOs.
@@ -165,8 +165,8 @@ func (m *TemplateVersionMapper) SignerRolesToResponse(roles []*entity.TemplateVe
 }
 
 // ToCreateCommand converts a create version request to a command.
-func (m *TemplateVersionMapper) ToCreateCommand(templateID string, req *dto.CreateVersionRequest, userID string) usecase.CreateVersionCommand {
-	return usecase.CreateVersionCommand{
+func (m *TemplateVersionMapper) ToCreateCommand(templateID string, req *dto.CreateVersionRequest, userID string) templateuc.CreateVersionCommand {
+	return templateuc.CreateVersionCommand{
 		TemplateID:  templateID,
 		Name:        req.Name,
 		Description: req.Description,
@@ -175,8 +175,8 @@ func (m *TemplateVersionMapper) ToCreateCommand(templateID string, req *dto.Crea
 }
 
 // ToUpdateCommand converts an update version request to a command.
-func (m *TemplateVersionMapper) ToUpdateCommand(versionID string, req *dto.UpdateVersionRequest) usecase.UpdateVersionCommand {
-	return usecase.UpdateVersionCommand{
+func (m *TemplateVersionMapper) ToUpdateCommand(versionID string, req *dto.UpdateVersionRequest) templateuc.UpdateVersionCommand {
+	return templateuc.UpdateVersionCommand{
 		ID:               versionID,
 		Name:             req.Name,
 		Description:      req.Description,
@@ -185,8 +185,8 @@ func (m *TemplateVersionMapper) ToUpdateCommand(versionID string, req *dto.Updat
 }
 
 // ToAddInjectableCommand converts an add injectable request to a command.
-func (m *TemplateVersionMapper) ToAddInjectableCommand(versionID string, req *dto.AddVersionInjectableRequest) usecase.AddVersionInjectableCommand {
-	return usecase.AddVersionInjectableCommand{
+func (m *TemplateVersionMapper) ToAddInjectableCommand(versionID string, req *dto.AddVersionInjectableRequest) templateuc.AddVersionInjectableCommand {
+	return templateuc.AddVersionInjectableCommand{
 		VersionID:              versionID,
 		InjectableDefinitionID: req.InjectableDefinitionID,
 		IsRequired:             req.IsRequired,
@@ -195,16 +195,16 @@ func (m *TemplateVersionMapper) ToAddInjectableCommand(versionID string, req *dt
 }
 
 // ToSchedulePublishCommand converts a schedule publish request to a command.
-func (m *TemplateVersionMapper) ToSchedulePublishCommand(versionID string, req *dto.SchedulePublishRequest) usecase.SchedulePublishCommand {
-	return usecase.SchedulePublishCommand{
+func (m *TemplateVersionMapper) ToSchedulePublishCommand(versionID string, req *dto.SchedulePublishRequest) templateuc.SchedulePublishCommand {
+	return templateuc.SchedulePublishCommand{
 		VersionID: versionID,
 		PublishAt: req.PublishAt,
 	}
 }
 
 // ToScheduleArchiveCommand converts a schedule archive request to a command.
-func (m *TemplateVersionMapper) ToScheduleArchiveCommand(versionID string, req *dto.ScheduleArchiveRequest) usecase.ScheduleArchiveCommand {
-	return usecase.ScheduleArchiveCommand{
+func (m *TemplateVersionMapper) ToScheduleArchiveCommand(versionID string, req *dto.ScheduleArchiveRequest) templateuc.ScheduleArchiveCommand {
+	return templateuc.ScheduleArchiveCommand{
 		VersionID: versionID,
 		ArchiveAt: req.ArchiveAt,
 	}
@@ -215,8 +215,8 @@ func (m *TemplateVersionMapper) ToPromoteCommand(
 	templateID, versionID string,
 	req *dto.PromoteVersionRequest,
 	targetWorkspaceID, userID string,
-) usecase.PromoteVersionCommand {
-	return usecase.PromoteVersionCommand{
+) templateuc.PromoteVersionCommand {
+	return templateuc.PromoteVersionCommand{
 		SourceVersionID:   versionID,
 		SourceTemplateID:  templateID,
 		TargetWorkspaceID: targetWorkspaceID,

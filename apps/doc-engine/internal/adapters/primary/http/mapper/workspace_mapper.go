@@ -4,7 +4,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // WorkspaceToResponse converts a Workspace entity to a response DTO.
@@ -37,7 +37,7 @@ func WorkspacesToResponses(workspaces []*entity.Workspace) []dto.WorkspaceRespon
 }
 
 // CreateWorkspaceRequestToCommand converts a create request to a usecase command.
-func CreateWorkspaceRequestToCommand(req dto.CreateWorkspaceRequest, createdBy string) usecase.CreateWorkspaceCommand {
+func CreateWorkspaceRequestToCommand(req dto.CreateWorkspaceRequest, createdBy string) organizationuc.CreateWorkspaceCommand {
 	settings := entity.WorkspaceSettings{}
 	if req.Settings != nil {
 		if theme, ok := req.Settings["theme"].(string); ok {
@@ -50,7 +50,7 @@ func CreateWorkspaceRequestToCommand(req dto.CreateWorkspaceRequest, createdBy s
 			settings.PrimaryColor = primaryColor
 		}
 	}
-	return usecase.CreateWorkspaceCommand{
+	return organizationuc.CreateWorkspaceCommand{
 		TenantID:  req.TenantID,
 		Name:      req.Name,
 		Type:      entity.WorkspaceType(req.Type),
@@ -60,7 +60,7 @@ func CreateWorkspaceRequestToCommand(req dto.CreateWorkspaceRequest, createdBy s
 }
 
 // UpdateWorkspaceRequestToCommand converts an update request to a usecase command.
-func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) usecase.UpdateWorkspaceCommand {
+func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) organizationuc.UpdateWorkspaceCommand {
 	settings := entity.WorkspaceSettings{}
 	if req.Settings != nil {
 		if theme, ok := req.Settings["theme"].(string); ok {
@@ -73,7 +73,7 @@ func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) 
 			settings.PrimaryColor = primaryColor
 		}
 	}
-	return usecase.UpdateWorkspaceCommand{
+	return organizationuc.UpdateWorkspaceCommand{
 		ID:       id,
 		Name:     req.Name,
 		Settings: settings,

@@ -14,6 +14,9 @@ make run
 # Run unit tests with coverage
 make test
 
+# Run integration tests
+make test-integration
+
 # Run linter (golangci-lint)
 make lint
 
@@ -51,10 +54,32 @@ Go microservice following **Hexagonal Architecture** (Ports and Adapters).
 
 ### Layer Structure
 
-- **`internal/core/entity/`** - Domain entities and value objects
+- **`internal/core/entity/`** - Domain entities and value objects (flat structure)
+  - `portabledoc/` - PDF document format types
+  - Entity files by domain:
+    - **document**: `document.go`, `document_recipient.go`
+    - **template**: `template.go`, `template_version.go`
+    - **organization**: `tenant.go`, `workspace.go`, `user.go`
+    - **injectable**: `injectable.go`, `system_injectable.go`
+    - **catalog**: `folder.go`, `tag.go`
+    - **access**: `user_access_history.go`
+    - **shared**: `enum.go`, `errors.go`, `format.go`, `injector_context.go`
 - **`internal/core/port/`** - Output port interfaces (repository contracts)
-- **`internal/core/usecase/`** - Input port interfaces (use case contracts with command structs)
-- **`internal/core/service/`** - Business logic implementing use case interfaces
+- **`internal/core/usecase/`** - Input port interfaces organized by domain:
+  - `document/` - Document lifecycle and signing
+  - `template/` - Template and version management
+  - `organization/` - Tenant, workspace, and member management
+  - `injectable/` - Injectable definitions and assignments
+  - `catalog/` - Folder and tag organization
+  - `access/` - System roles and access history
+- **`internal/core/service/`** - Business logic organized by domain:
+  - `document/` - Document services
+  - `template/` - Template services + `contentvalidator/`
+  - `organization/` - Organization services
+  - `injectable/` - Injectable services + dependency resolution
+  - `catalog/` - Catalog services
+  - `access/` - Access control services
+  - `rendering/` - PDF rendering (`pdfrenderer/`)
 - **`internal/adapters/primary/http/`** - Driving adapter (Gin HTTP handlers)
   - `controller/` - HTTP handlers
   - `dto/` - Request/Response DTOs
@@ -97,14 +122,22 @@ Wire handles DI in `internal/infra/di.go`. After adding new services/repositorie
 
 1. Define entity in `internal/core/entity/`
 2. Create repository interface in `internal/core/port/`
-3. Define use case interface with command structs in `internal/core/usecase/`
-4. Implement service in `internal/core/service/`
+3. Define use case interface with command structs in `internal/core/usecase/<domain>/` (choose appropriate domain folder)
+4. Implement service in `internal/core/service/<domain>/` (matching domain folder)
 5. Create PostgreSQL repository in `internal/adapters/secondary/database/postgres/<name>repo/`
 6. Add DTOs in `internal/adapters/primary/http/dto/`
 7. Create mapper in `internal/adapters/primary/http/mapper/`
 8. Add controller in `internal/adapters/primary/http/controller/`
 9. Register all in `internal/infra/di.go` with Wire bindings
 10. Run `make wire` to regenerate DI
+
+**Domain folders:** When adding usecases/services, place them in the appropriate domain:
+- `document` - Document creation, signing, webhooks
+- `template` - Template CRUD, versioning, content validation
+- `organization` - Tenants, workspaces, members
+- `injectable` - Injectable definitions and assignments
+- `catalog` - Folders and tags
+- `access` - System roles, access history
 
 ## Integration Tests
 
@@ -228,3 +261,40 @@ The authorization matrix documents all API endpoints with their permission requi
 8. **Code generation** - Changes to `docengine-gen` or its output
 
 The extensibility guide documents how to create custom injectors, mappers, and init functions. It must reflect the current interfaces and patterns.
+
+## Mandatory Verification Checklist
+
+**BEFORE considering any complex development work as complete**, agents MUST run and verify ALL of the following commands pass:
+
+```bash
+# 1. Regenerate Wire DI
+make wire
+
+# 2. Build (includes swagger generation and lint)
+make build
+
+# 3. Run unit tests
+make test
+
+# 4. Run linter explicitly
+make lint
+
+# 5. Verify integration tests compile
+go build -tags=integration ./...
+
+# 6. (If Docker available) Run integration/E2E tests
+make test-integration
+```
+
+### Verification Criteria
+
+| Command | Expected Result |
+|---------|-----------------|
+| `make wire` | Regenerated successfully, no errors |
+| `make build` | Compiled without errors |
+| `make test` | All unit tests passed |
+| `make lint` | No lint errors |
+| `go build -tags=integration ./...` | Integration tests compile |
+| `make test-integration` | All E2E tests passed (requires Docker) |
+
+> **IMPORTANT:** Do NOT claim work is complete until ALL verifications pass. Files with `//go:build integration` tag are NOT compiled by `make test` - they require `-tags=integration` flag. Always verify integration tests compile even if not running them.

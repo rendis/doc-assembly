@@ -8,12 +8,12 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	templateuc "github.com/doc-assembly/doc-engine/internal/core/usecase/template"
 )
 
 // TemplateVersionController handles template version HTTP requests.
 type TemplateVersionController struct {
-	versionUC        usecase.TemplateVersionUseCase
+	versionUC        templateuc.TemplateVersionUseCase
 	versionMapper    *mapper.TemplateVersionMapper
 	templateMapper   *mapper.TemplateMapper
 	renderController *RenderController
@@ -21,7 +21,7 @@ type TemplateVersionController struct {
 
 // NewTemplateVersionController creates a new template version controller.
 func NewTemplateVersionController(
-	versionUC usecase.TemplateVersionUseCase,
+	versionUC templateuc.TemplateVersionUseCase,
 	versionMapper *mapper.TemplateVersionMapper,
 	templateMapper *mapper.TemplateMapper,
 	renderController *RenderController,

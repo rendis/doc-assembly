@@ -10,24 +10,25 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	accessuc "github.com/doc-assembly/doc-engine/internal/core/usecase/access"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // MeController handles user-specific HTTP requests.
 // These routes don't require X-Tenant-ID or X-Workspace-ID headers.
 type MeController struct {
-	tenantUC            usecase.TenantUseCase
+	tenantUC            organizationuc.TenantUseCase
 	tenantMemberRepo    port.TenantMemberRepository
 	workspaceMemberRepo port.WorkspaceMemberRepository
-	accessHistoryUC     usecase.UserAccessHistoryUseCase
+	accessHistoryUC     accessuc.UserAccessHistoryUseCase
 }
 
 // NewMeController creates a new me controller.
 func NewMeController(
-	tenantUC usecase.TenantUseCase,
+	tenantUC organizationuc.TenantUseCase,
 	tenantMemberRepo port.TenantMemberRepository,
 	workspaceMemberRepo port.WorkspaceMemberRepository,
-	accessHistoryUC usecase.UserAccessHistoryUseCase,
+	accessHistoryUC accessuc.UserAccessHistoryUseCase,
 ) *MeController {
 	return &MeController{
 		tenantUC:            tenantUC,

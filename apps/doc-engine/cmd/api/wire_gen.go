@@ -29,7 +29,11 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
-	"github.com/doc-assembly/doc-engine/internal/core/service"
+	"github.com/doc-assembly/doc-engine/internal/core/service/access"
+	"github.com/doc-assembly/doc-engine/internal/core/service/catalog"
+	"github.com/doc-assembly/doc-engine/internal/core/service/injectable"
+	"github.com/doc-assembly/doc-engine/internal/core/service/organization"
+	"github.com/doc-assembly/doc-engine/internal/core/service/template"
 	"github.com/doc-assembly/doc-engine/internal/infra"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
@@ -56,14 +60,14 @@ func InitializeApp() (*infra.Initializer, error) {
 	provider := middleware.NewProvider(userRepository, systemRoleRepository, workspaceRepository, workspaceMemberRepository, tenantMemberRepository)
 	tenantRepository := tenantrepo.New(pool)
 	userAccessHistoryRepository := useraccesshistoryrepo.New(pool)
-	workspaceUseCase := service.NewWorkspaceService(workspaceRepository, tenantRepository, workspaceMemberRepository, userAccessHistoryRepository)
+	workspaceUseCase := organization.NewWorkspaceService(workspaceRepository, tenantRepository, workspaceMemberRepository, userAccessHistoryRepository)
 	folderRepository := folderrepo.New(pool)
-	folderUseCase := service.NewFolderService(folderRepository)
+	folderUseCase := catalog.NewFolderService(folderRepository)
 	tagRepository := tagrepo.New(pool)
-	tagUseCase := service.NewTagService(tagRepository)
-	workspaceMemberUseCase := service.NewWorkspaceMemberService(workspaceMemberRepository, userRepository)
+	tagUseCase := catalog.NewTagService(tagRepository)
+	workspaceMemberUseCase := organization.NewWorkspaceMemberService(workspaceMemberRepository, userRepository)
 	workspaceInjectableRepository := workspaceinjectablerepo.New(pool)
-	workspaceInjectableUseCase := service.NewWorkspaceInjectableService(workspaceInjectableRepository)
+	workspaceInjectableUseCase := injectable.NewWorkspaceInjectableService(workspaceInjectableRepository)
 	injectableMapper := mapper.NewInjectableMapper()
 	workspaceController := controller.NewWorkspaceController(workspaceUseCase, folderUseCase, tagUseCase, workspaceMemberUseCase, workspaceInjectableUseCase, injectableMapper)
 	injectableRepository := injectablerepo.New(pool)
@@ -75,12 +79,12 @@ func InitializeApp() (*infra.Initializer, error) {
 	mapperRegistry := infra.ProvideMapperRegistry()
 	initDeps := infra.ProvideExtensionDeps()
 	injectorRegistry := infra.ProvideInjectorRegistry(injectorI18nConfig, mapperRegistry, initDeps)
-	injectableUseCase := service.NewInjectableService(injectableRepository, systemInjectableRepository, injectorRegistry)
+	injectableUseCase := injectable.NewInjectableService(injectableRepository, systemInjectableRepository, injectorRegistry)
 	contentInjectableController := controller.NewContentInjectableController(injectableUseCase, injectableMapper)
 	templateRepository := templaterepo.New(pool)
 	templateVersionRepository := templateversionrepo.New(pool)
 	templateTagRepository := templatetagrepo.New(pool)
-	templateUseCase := service.NewTemplateService(templateRepository, templateVersionRepository, templateTagRepository)
+	templateUseCase := template.NewTemplateService(templateRepository, templateVersionRepository, templateTagRepository)
 	templateVersionMapper := mapper.NewTemplateVersionMapper(injectableMapper)
 	tagMapper := mapper.NewTagMapper()
 	folderMapper := mapper.NewFolderMapper()
@@ -88,7 +92,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	templateVersionInjectableRepository := templateversioninjectablerepo.New(pool)
 	templateVersionSignerRoleRepository := templateversionsignerrolerepo.New(pool)
 	contentValidator := infra.ProvideContentValidator(injectableRepository)
-	templateVersionUseCase := service.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, templateTagRepository, contentValidator, workspaceRepository)
+	templateVersionUseCase := template.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, templateTagRepository, contentValidator, workspaceRepository)
 	pdfRenderer, err := infra.ProvidePDFRenderer()
 	if err != nil {
 		return nil, err
@@ -96,13 +100,13 @@ func InitializeApp() (*infra.Initializer, error) {
 	renderController := controller.NewRenderController(templateVersionUseCase, pdfRenderer)
 	templateVersionController := controller.NewTemplateVersionController(templateVersionUseCase, templateVersionMapper, templateMapper, renderController)
 	contentTemplateController := controller.NewContentTemplateController(templateUseCase, templateMapper, templateVersionController)
-	tenantUseCase := service.NewTenantService(tenantRepository, workspaceRepository, tenantMemberRepository, systemRoleRepository, userAccessHistoryRepository)
-	systemRoleUseCase := service.NewSystemRoleService(systemRoleRepository, userRepository)
-	systemInjectableUseCase := service.NewSystemInjectableService(systemInjectableRepository, injectorRegistry)
+	tenantUseCase := organization.NewTenantService(tenantRepository, workspaceRepository, tenantMemberRepository, systemRoleRepository, userAccessHistoryRepository)
+	systemRoleUseCase := access.NewSystemRoleService(systemRoleRepository, userRepository)
+	systemInjectableUseCase := injectable.NewSystemInjectableService(systemInjectableRepository, injectorRegistry)
 	adminController := controller.NewAdminController(tenantUseCase, systemRoleUseCase, systemInjectableUseCase)
-	userAccessHistoryUseCase := service.NewUserAccessHistoryService(userAccessHistoryRepository)
+	userAccessHistoryUseCase := access.NewUserAccessHistoryService(userAccessHistoryRepository)
 	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository, userAccessHistoryUseCase)
-	tenantMemberUseCase := service.NewTenantMemberService(tenantMemberRepository, userRepository)
+	tenantMemberUseCase := organization.NewTenantMemberService(tenantMemberRepository, userRepository)
 	tenantController := controller.NewTenantController(tenantUseCase, workspaceUseCase, tenantMemberUseCase)
 	documentRepository := documentrepo.New(pool)
 	documentRecipientRepository := documentrecipientrepo.New(pool)

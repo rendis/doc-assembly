@@ -9,14 +9,16 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	accessuc "github.com/doc-assembly/doc-engine/internal/core/usecase/access"
+	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // NewAdminController creates a new admin controller.
 func NewAdminController(
-	tenantUC usecase.TenantUseCase,
-	systemRoleUC usecase.SystemRoleUseCase,
-	systemInjectableUC usecase.SystemInjectableUseCase,
+	tenantUC organizationuc.TenantUseCase,
+	systemRoleUC accessuc.SystemRoleUseCase,
+	systemInjectableUC injectableuc.SystemInjectableUseCase,
 ) *AdminController {
 	return &AdminController{
 		tenantUC:           tenantUC,
@@ -28,9 +30,9 @@ func NewAdminController(
 // AdminController handles admin-related HTTP requests.
 // All routes require system-level roles (SUPERADMIN or PLATFORM_ADMIN).
 type AdminController struct {
-	tenantUC           usecase.TenantUseCase
-	systemRoleUC       usecase.SystemRoleUseCase
-	systemInjectableUC usecase.SystemInjectableUseCase
+	tenantUC           organizationuc.TenantUseCase
+	systemRoleUC       accessuc.SystemRoleUseCase
+	systemInjectableUC injectableuc.SystemInjectableUseCase
 }
 
 // RegisterRoutes registers all admin routes.
@@ -477,7 +479,7 @@ func (c *AdminController) CreateAssignment(ctx *gin.Context) {
 		return
 	}
 
-	cmd := usecase.CreateAssignmentCommand{
+	cmd := injectableuc.CreateAssignmentCommand{
 		InjectableKey: key,
 		ScopeType:     entity.InjectableScopeType(req.ScopeType),
 		TenantID:      req.TenantID,
@@ -625,7 +627,7 @@ func (c *AdminController) BulkDeletePublicAssignments(ctx *gin.Context) {
 }
 
 // toBulkResponse converts a BulkAssignmentResult to a BulkPublicAssignmentsResponse.
-func toBulkResponse(result *usecase.BulkAssignmentResult) dto.BulkPublicAssignmentsResponse {
+func toBulkResponse(result *injectableuc.BulkAssignmentResult) dto.BulkPublicAssignmentsResponse {
 	failed := make([]dto.BulkOperationError, len(result.Failed))
 	for i, f := range result.Failed {
 		failed[i] = dto.BulkOperationError{

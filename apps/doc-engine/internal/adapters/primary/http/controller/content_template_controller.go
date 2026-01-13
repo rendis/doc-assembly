@@ -9,19 +9,19 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	templateuc "github.com/doc-assembly/doc-engine/internal/core/usecase/template"
 )
 
 // ContentTemplateController handles template-related HTTP requests.
 type ContentTemplateController struct {
-	templateUC        usecase.TemplateUseCase
+	templateUC        templateuc.TemplateUseCase
 	templateMapper    *mapper.TemplateMapper
 	versionController *TemplateVersionController
 }
 
 // NewContentTemplateController creates a new template controller.
 func NewContentTemplateController(
-	templateUC usecase.TemplateUseCase,
+	templateUC templateuc.TemplateUseCase,
 	templateMapper *mapper.TemplateMapper,
 	versionController *TemplateVersionController,
 ) *ContentTemplateController {

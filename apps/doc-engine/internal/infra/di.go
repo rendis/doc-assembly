@@ -32,10 +32,16 @@ import (
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/service"
-	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
-	"github.com/doc-assembly/doc-engine/internal/core/service/pdfrenderer"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	accesssvc "github.com/doc-assembly/doc-engine/internal/core/service/access"
+	catalogsvc "github.com/doc-assembly/doc-engine/internal/core/service/catalog"
+	documentsvc "github.com/doc-assembly/doc-engine/internal/core/service/document"
+	injectablesvc "github.com/doc-assembly/doc-engine/internal/core/service/injectable"
+	organizationsvc "github.com/doc-assembly/doc-engine/internal/core/service/organization"
+	"github.com/doc-assembly/doc-engine/internal/core/service/rendering/pdfrenderer"
+	templatesvc "github.com/doc-assembly/doc-engine/internal/core/service/template"
+	"github.com/doc-assembly/doc-engine/internal/core/service/template/contentvalidator"
+	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
+	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
 	"github.com/doc-assembly/doc-engine/internal/extensions"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/registry"
@@ -83,25 +89,31 @@ var ProviderSet = wire.NewSet(
 	ProvideSigningProvider,
 	ProvideWebhookHandlers,
 
-	// Services - Organizational
-	service.NewWorkspaceService,
-	service.NewFolderService,
-	service.NewTagService,
-	service.NewWorkspaceMemberService,
-	service.NewTenantService,
-	service.NewTenantMemberService,
-	service.NewSystemRoleService,
-	service.NewUserAccessHistoryService,
-	service.NewSystemInjectableService,
+	// Services - Organization
+	organizationsvc.NewWorkspaceService,
+	organizationsvc.NewWorkspaceMemberService,
+	organizationsvc.NewTenantService,
+	organizationsvc.NewTenantMemberService,
 
-	// Services - Content
-	service.NewInjectableService,
-	service.NewWorkspaceInjectableService,
-	service.NewTemplateService,
-	service.NewTemplateVersionService,
+	// Services - Catalog
+	catalogsvc.NewFolderService,
+	catalogsvc.NewTagService,
 
-	// Services - Execution
-	service.NewDocumentService,
+	// Services - Access
+	accesssvc.NewSystemRoleService,
+	accesssvc.NewUserAccessHistoryService,
+
+	// Services - Injectable
+	injectablesvc.NewInjectableService,
+	injectablesvc.NewWorkspaceInjectableService,
+	injectablesvc.NewSystemInjectableService,
+
+	// Services - Template
+	templatesvc.NewTemplateService,
+	templatesvc.NewTemplateVersionService,
+
+	// Services - Document
+	documentsvc.NewDocumentService,
 	ProvideDocumentGenerator,
 	ProvideInternalDocumentService,
 
@@ -227,8 +239,8 @@ func ProvideExtensionDeps() *extensions.InitDeps {
 }
 
 // ProvideInjectableResolver creates the injectable resolver service.
-func ProvideInjectableResolver(reg port.InjectorRegistry) *service.InjectableResolverService {
-	return service.NewInjectableResolverService(reg, slog.Default())
+func ProvideInjectableResolver(reg port.InjectorRegistry) *injectablesvc.InjectableResolverService {
+	return injectablesvc.NewInjectableResolverService(reg, slog.Default())
 }
 
 // ProvideDocumentGenerator creates the document generator service.
@@ -237,11 +249,11 @@ func ProvideDocumentGenerator(
 	versionRepo port.TemplateVersionRepository,
 	documentRepo port.DocumentRepository,
 	recipientRepo port.DocumentRecipientRepository,
-	injectableUC usecase.InjectableUseCase,
+	injectableUC injectableuc.InjectableUseCase,
 	mapperRegistry port.MapperRegistry,
-	resolver *service.InjectableResolverService,
-) *service.DocumentGenerator {
-	return service.NewDocumentGenerator(
+	resolver *injectablesvc.InjectableResolverService,
+) *documentsvc.DocumentGenerator {
+	return documentsvc.NewDocumentGenerator(
 		templateRepo,
 		versionRepo,
 		documentRepo,
@@ -255,7 +267,7 @@ func ProvideDocumentGenerator(
 
 // ProvideInternalDocumentService creates the internal document service.
 func ProvideInternalDocumentService(
-	generator *service.DocumentGenerator,
-) usecase.InternalDocumentUseCase {
-	return service.NewInternalDocumentService(generator, slog.Default())
+	generator *documentsvc.DocumentGenerator,
+) documentuc.InternalDocumentUseCase {
+	return documentsvc.NewInternalDocumentService(generator, slog.Default())
 }

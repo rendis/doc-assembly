@@ -9,22 +9,22 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	organizationuc "github.com/doc-assembly/doc-engine/internal/core/usecase/organization"
 )
 
 // TenantController handles tenant-scoped HTTP requests.
 // All routes require X-Tenant-ID header and appropriate tenant role.
 type TenantController struct {
-	tenantUC       usecase.TenantUseCase
-	workspaceUC    usecase.WorkspaceUseCase
-	tenantMemberUC usecase.TenantMemberUseCase
+	tenantUC       organizationuc.TenantUseCase
+	workspaceUC    organizationuc.WorkspaceUseCase
+	tenantMemberUC organizationuc.TenantMemberUseCase
 }
 
 // NewTenantController creates a new tenant controller.
 func NewTenantController(
-	tenantUC usecase.TenantUseCase,
-	workspaceUC usecase.WorkspaceUseCase,
-	tenantMemberUC usecase.TenantMemberUseCase,
+	tenantUC organizationuc.TenantUseCase,
+	workspaceUC organizationuc.WorkspaceUseCase,
+	tenantMemberUC organizationuc.TenantMemberUseCase,
 ) *TenantController {
 	return &TenantController{
 		tenantUC:       tenantUC,

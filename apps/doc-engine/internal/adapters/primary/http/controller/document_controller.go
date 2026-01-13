@@ -11,17 +11,17 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	"github.com/doc-assembly/doc-engine/internal/core/usecase"
+	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
 
 // DocumentController handles document HTTP requests.
 type DocumentController struct {
-	documentUC usecase.DocumentUseCase
+	documentUC documentuc.DocumentUseCase
 }
 
 // NewDocumentController creates a new document controller.
 func NewDocumentController(
-	documentUC usecase.DocumentUseCase,
+	documentUC documentuc.DocumentUseCase,
 ) *DocumentController {
 	return &DocumentController{
 		documentUC: documentUC,
@@ -172,17 +172,17 @@ func (c *DocumentController) CreateDocument(ctx *gin.Context) {
 	}
 
 	// Build command
-	cmd := usecase.CreateDocumentCommand{
+	cmd := documentuc.CreateDocumentCommand{
 		WorkspaceID:               workspaceID,
 		TemplateVersionID:         req.TemplateVersionID,
 		Title:                     req.Title,
 		ClientExternalReferenceID: req.ClientExternalReferenceID,
 		InjectedValues:            req.InjectedValues,
-		Recipients:                make([]usecase.DocumentRecipientCommand, len(req.Recipients)),
+		Recipients:                make([]documentuc.DocumentRecipientCommand, len(req.Recipients)),
 	}
 
 	for i, r := range req.Recipients {
-		cmd.Recipients[i] = usecase.DocumentRecipientCommand{
+		cmd.Recipients[i] = documentuc.DocumentRecipientCommand{
 			RoleID: r.RoleID,
 			Name:   r.Name,
 			Email:  r.Email,
@@ -283,7 +283,7 @@ func (c *DocumentController) CancelDocument(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
-// @Success 200 {object} usecase.DocumentStatistics
+// @Success 200 {object} documentuc.DocumentStatistics
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/documents/statistics [get]
 func (c *DocumentController) GetStatistics(ctx *gin.Context) {
