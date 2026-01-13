@@ -186,56 +186,24 @@ Key variables:
 
 This project uses `log/slog` with a **ContextHandler** that automatically extracts attributes from `context.Context`.
 
-### Context-Based Logging
+**Documentation:** See `docs/logging-guide.md` for complete logging practices.
 
-**ALWAYS** use context-aware logging functions:
+**Quick reference:**
 
 ```go
-// CORRECT - uses context
+// ALWAYS use context-aware functions
 slog.InfoContext(ctx, "user created", "user_id", user.ID)
 slog.ErrorContext(ctx, "operation failed", "error", err)
-slog.WarnContext(ctx, "deprecated feature used")
-slog.DebugContext(ctx, "processing item", "item_id", itemID)
 
-// INCORRECT - do not use without context
-slog.Info("user created", "user_id", user.ID)  // NO
+// Add contextual attributes
+ctx = logging.WithAttrs(ctx, slog.String("tenant_id", tenantID))
 ```
 
-### Adding Contextual Attributes
-
-Use `logging.WithAttrs()` to add attributes that will be included in all subsequent logs:
-
-```go
-import "github.com/doc-assembly/doc-engine/internal/infra/logging"
-
-ctx = logging.WithAttrs(ctx,
-    slog.String("tenant_id", tenantID),
-    slog.String("workspace_id", workspaceID),
-)
-```
-
-### Log Levels
-
-| Level | Usage |
-|-------|-------|
-| `Debug` | Detailed information for debugging (disabled in production) |
-| `Info` | Normal business events (user created, document generated) |
-| `Warn` | Unexpected situations that were handled (deprecated usage, fallback used) |
-| `Error` | Errors that require attention (failed operations, external service errors) |
-
-### What NOT to Do
-
-- **Do NOT** inject `*slog.Logger` as a dependency in structs
-- **Do NOT** call `slog.Default()` directly in services/controllers
-- **Do NOT** use `slog.Info()` without context - always use `slog.InfoContext(ctx, ...)`
-- **Do NOT** log sensitive data (passwords, tokens, PII)
-
-### Handler Location
-
-The ContextHandler is configured in:
-- `internal/infra/logging/handler.go` - Handler implementation
-- `cmd/api/main.go` - Handler initialization with `slog.SetDefault()`
-- `internal/adapters/primary/http/middleware/operation.go` - Adds request attributes to context
+**Do NOT:**
+- Inject `*slog.Logger` as a dependency
+- Call `slog.Default()` in services/controllers
+- Use `slog.Info()` without context
+- Log sensitive data (passwords, tokens, PII)
 
 ## Database Schema
 

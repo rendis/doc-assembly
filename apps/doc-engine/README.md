@@ -472,35 +472,7 @@ Run `make lint` before committing.
 
 The project uses Go's standard `log/slog` package with a **context-based handler** that automatically includes contextual attributes (operation_id, method, path, etc.) in all log entries.
 
-#### Usage
-
-```go
-// In any function that receives a context
-slog.InfoContext(ctx, "user created", "user_id", user.ID)
-slog.ErrorContext(ctx, "operation failed", "error", err)
-slog.WarnContext(ctx, "deprecated feature used")
-slog.DebugContext(ctx, "processing item", "item_id", itemID)
-```
-
-#### Adding Contextual Attributes
-
-```go
-import "github.com/doc-assembly/doc-engine/internal/infra/logging"
-
-// Add attributes that will be included in all subsequent logs
-ctx = logging.WithAttrs(ctx,
-    slog.String("tenant_id", tenantID),
-    slog.String("user_id", userID),
-)
-```
-
-#### Automatic Attributes
-
-The Operation middleware automatically adds these attributes to the context:
-- `operation_id` - Unique ID per request
-- `method` - HTTP method
-- `path` - Request path
-- `client_ip` - Client IP address
+For complete documentation on logging practices, patterns, and best practices, see **[docs/logging-guide.md](docs/logging-guide.md)**.
 
 ## Extensibility System
 
