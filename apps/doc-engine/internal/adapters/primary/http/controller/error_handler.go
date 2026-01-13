@@ -27,6 +27,13 @@ func HandleError(ctx *gin.Context, err error) {
 		return
 	}
 
+	// Check for MissingInjectablesError (special handling)
+	var missingInjectablesErr *entity.MissingInjectablesError
+	if errors.As(err, &missingInjectablesErr) {
+		ctx.JSON(http.StatusBadRequest, dto.NewMissingInjectablesErrorResponse(missingInjectablesErr))
+		return
+	}
+
 	var statusCode int
 
 	switch {
@@ -110,7 +117,9 @@ func HandleError(ctx *gin.Context, err error) {
 		statusCode = http.StatusForbidden
 
 	// 401 Unauthorized - Authentication errors
-	case errors.Is(err, entity.ErrUnauthorized):
+	case errors.Is(err, entity.ErrUnauthorized),
+		errors.Is(err, entity.ErrMissingAPIKey),
+		errors.Is(err, entity.ErrInvalidAPIKey):
 		statusCode = http.StatusUnauthorized
 
 	// 503 Service Unavailable - External service errors

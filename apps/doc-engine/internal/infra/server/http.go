@@ -47,6 +47,7 @@ func NewHTTPServer(
 	adminController *controller.AdminController,
 	meController *controller.MeController,
 	tenantController *controller.TenantController,
+	internalDocController *controller.InternalDocumentController,
 ) *HTTPServer {
 	// Set Gin mode based on environment
 	if cfg.Environment == "production" {
@@ -63,6 +64,19 @@ func NewHTTPServer(
 	// Health check endpoint (no auth required)
 	engine.GET("/health", healthHandler)
 	engine.GET("/ready", readyHandler)
+
+	// =====================================================
+	// INTERNAL API ROUTES - Uses API Key authentication
+	// For service-to-service communication
+	// =====================================================
+	if cfg.InternalAPI.Enabled && cfg.InternalAPI.APIKey != "" {
+		internalV1 := engine.Group("/api/v1")
+		internalV1.Use(middleware.Operation())
+		internalDocController.RegisterRoutes(internalV1, cfg.InternalAPI.APIKey)
+		slog.Info("internal API routes registered")
+	} else {
+		slog.Warn("internal API routes disabled (no API key configured)")
+	}
 
 	// API v1 routes with authentication
 	v1 := engine.Group("/api/v1")
@@ -180,7 +194,7 @@ func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Workspace-ID, X-Tenant-ID, X-Sandbox-Mode")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Workspace-ID, X-Tenant-ID, X-Sandbox-Mode, X-API-Key, X-External-ID, X-Template-ID, X-Transactional-ID")
 		c.Header("Access-Control-Expose-Headers", "Content-Length")
 		c.Header("Access-Control-Allow-Credentials", "true")
 

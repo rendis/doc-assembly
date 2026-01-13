@@ -26,6 +26,11 @@ auth:
   issuer: ""     # DOC_ENGINE_AUTH_ISSUER - Expected token issuer
   audience: ""   # DOC_ENGINE_AUTH_AUDIENCE - Expected token audience
 
+# Internal API for service-to-service communication
+internal_api:
+  enabled: true
+  api_key: ""    # DOC_ENGINE_INTERNAL_API_API_KEY - API key for internal service authentication
+
 # External services (deferred - interfaces only for now)
 documenso:
   api_url: "https://app.documenso.com/api/v1"

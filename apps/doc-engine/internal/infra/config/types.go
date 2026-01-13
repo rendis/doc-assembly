@@ -4,13 +4,14 @@ import "time"
 
 // Config represents the complete application configuration.
 type Config struct {
-	Environment string          `mapstructure:"environment"`
-	Server      ServerConfig    `mapstructure:"server"`
-	Database    DatabaseConfig  `mapstructure:"database"`
-	Auth        AuthConfig      `mapstructure:"auth"`
-	Documenso   DocumensoConfig `mapstructure:"documenso"`
-	Storage     StorageConfig   `mapstructure:"storage"`
-	Logging     LoggingConfig   `mapstructure:"logging"`
+	Environment string            `mapstructure:"environment"`
+	Server      ServerConfig      `mapstructure:"server"`
+	Database    DatabaseConfig    `mapstructure:"database"`
+	Auth        AuthConfig        `mapstructure:"auth"`
+	InternalAPI InternalAPIConfig `mapstructure:"internal_api"`
+	Documenso   DocumensoConfig   `mapstructure:"documenso"`
+	Storage     StorageConfig     `mapstructure:"storage"`
+	Logging     LoggingConfig     `mapstructure:"logging"`
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -59,6 +60,12 @@ type AuthConfig struct {
 	JWKSURL  string `mapstructure:"jwks_url"`
 	Issuer   string `mapstructure:"issuer"`
 	Audience string `mapstructure:"audience"`
+}
+
+// InternalAPIConfig holds configuration for internal service-to-service API.
+type InternalAPIConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	APIKey  string `mapstructure:"api_key"`
 }
 
 // DocumensoConfig holds Documenso API configuration.

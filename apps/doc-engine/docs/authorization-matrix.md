@@ -418,6 +418,110 @@ Este endpoint retorna los roles del usuario autenticado de forma condicional:
 
 ---
 
+## Tabla 5: Internal API (API Key Auth)
+
+**Ruta base**: `/api/v1/internal`
+**Headers requeridos**:
+
+| Header | Descripción |
+|--------|-------------|
+| `X-API-Key` | API Key configurada en `internal_api.api_key` |
+| `X-External-ID` | ID externo del cliente/entidad (ej: CRM ID) |
+| `X-Template-ID` | ID del template a usar |
+| `X-Transactional-ID` | ID de trazabilidad de la transacción |
+
+**NO requiere**: `Authorization`, `X-Tenant-ID`, `X-Workspace-ID`
+
+> **Nota**: Esta API es para comunicación service-to-service. La autenticación se realiza mediante API Key en lugar de JWT.
+
+### Endpoints de Documentos (`/api/v1/internal/documents`)
+
+| Método | Endpoint | Descripción | Requiere API Key |
+|--------|----------|-------------|:----------------:|
+| POST | `/internal/documents/create` | Crea un documento usando el sistema de extensiones | ✅ |
+
+**Archivo fuente**: `internal/adapters/primary/http/controller/internal_document_controller.go`
+
+### Endpoint `/internal/documents/create` - Detalle
+
+Crea un documento utilizando el sistema de extensiones (Mapper, Init, Injectors).
+
+**Headers requeridos:**
+| Header | Descripción |
+|--------|-------------|
+| `X-API-Key` | API Key para autenticación service-to-service |
+| `X-External-ID` | ID externo del cliente/entidad (ej: CRM ID) |
+| `X-Template-ID` | ID del template a usar |
+| `X-Transactional-ID` | ID de trazabilidad de la transacción |
+
+**Body:**
+El body es definido por el Mapper del usuario. El sistema lo pasa como `RawBody` al Mapper.
+
+```json
+// Ejemplo (definido por el Mapper del usuario)
+{
+  "customerName": "Juan Pérez",
+  "productId": "PROD-001",
+  "amount": 50000,
+  "quantity": 1
+}
+```
+
+**Ejemplo de respuesta (201 Created):**
+```json
+{
+  "id": "doc-uuid",
+  "workspaceId": "workspace-uuid",
+  "templateId": "template-uuid",
+  "templateVersionId": "version-uuid",
+  "externalId": "CRM-123",
+  "transactionalId": "TXN-456",
+  "operationType": "CREATE",
+  "status": "DRAFT",
+  "signerProvider": null,
+  "createdAt": "2025-01-12T10:30:00Z",
+  "recipients": [
+    {
+      "id": "recipient-uuid",
+      "name": "Juan Pérez",
+      "email": "juan@example.com"
+    }
+  ]
+}
+```
+
+**Respuestas:**
+| Código | Descripción |
+|--------|-------------|
+| 201 | Documento creado exitosamente |
+| 400 | Headers faltantes o error en el Mapper |
+| 400 | Injectables requeridos no disponibles para el workspace (`MISSING_INJECTABLES`) |
+| 401 | API Key faltante o inválida |
+| 404 | Template no encontrado o sin versión publicada |
+| 500 | Error interno |
+
+**Flujo de ejecución:**
+1. Valida API Key
+2. Busca el template y obtiene el workspaceID
+3. Obtiene injectables disponibles para el workspace
+4. Busca la versión publicada del template
+5. Valida que todos los injectables requeridos estén disponibles
+6. Ejecuta el Mapper del usuario para parsear el body
+7. Ejecuta Init + Injectors para resolver valores
+8. Construye recipients desde SignerRoles + valores resueltos
+9. Crea el documento con status DRAFT
+10. Retorna el documento creado con recipients
+
+**Configuración:**
+```yaml
+# settings/app.yaml
+internal_api:
+  enabled: true
+  api_key: ""  # DOC_ENGINE_INTERNAL_API_API_KEY
+```
+
+---
+
 ## Endpoints Públicos (Sin Auth)
 
 | Método | Endpoint | Descripción |
@@ -437,3 +541,4 @@ Este endpoint retorna los roles del usuario autenticado de forma condicional:
 | `internal/adapters/primary/http/middleware/system_context.go` | Carga rol de sistema del usuario (opcional) |
 | `internal/adapters/primary/http/middleware/tenant_context.go` | Valida X-Tenant-ID y carga rol de tenant |
 | `internal/adapters/primary/http/middleware/role_authorization.go` | Autoriza acceso basado en roles de workspace |
+| `internal/adapters/primary/http/middleware/apikey_auth.go` | Valida API Key para internal API (service-to-service) |

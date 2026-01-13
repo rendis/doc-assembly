@@ -4,14 +4,16 @@ const (
 	queryCreate = `
 		INSERT INTO execution.documents (
 			workspace_id, template_version_id, title, client_external_reference_id,
+			transactional_id, operation_type, related_document_id,
 			signer_document_id, signer_provider, status, injected_values_snapshot,
 			pdf_storage_path, completed_pdf_url, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		RETURNING id
 	`
 
 	queryFindByID = `
 		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
 			   pdf_storage_path, completed_pdf_url, created_at, updated_at
 		FROM execution.documents
@@ -20,6 +22,7 @@ const (
 
 	queryFindBySignerDocumentID = `
 		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
 			   pdf_storage_path, completed_pdf_url, created_at, updated_at
 		FROM execution.documents
@@ -28,6 +31,7 @@ const (
 
 	queryFindByClientExternalRef = `
 		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
 			   pdf_storage_path, completed_pdf_url, created_at, updated_at
 		FROM execution.documents
@@ -45,6 +49,7 @@ const (
 
 	queryFindPendingForPolling = `
 		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
 			   pdf_storage_path, completed_pdf_url, created_at, updated_at
 		FROM execution.documents
@@ -63,9 +68,11 @@ const (
 
 	queryUpdate = `
 		UPDATE execution.documents
-		SET title = $2, client_external_reference_id = $3, signer_document_id = $4,
-			signer_provider = $5, status = $6, injected_values_snapshot = $7,
-			pdf_storage_path = $8, completed_pdf_url = $9, updated_at = $10
+		SET title = $2, client_external_reference_id = $3,
+			transactional_id = $4, operation_type = $5, related_document_id = $6,
+			signer_document_id = $7, signer_provider = $8, status = $9,
+			injected_values_snapshot = $10, pdf_storage_path = $11,
+			completed_pdf_url = $12, updated_at = $13
 		WHERE id = $1
 	`
 

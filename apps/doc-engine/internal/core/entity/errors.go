@@ -1,6 +1,9 @@
 package entity
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // Authentication and Authorization errors.
 var (
@@ -10,6 +13,12 @@ var (
 	ErrTokenExpired     = errors.New("token expired")
 	ErrMissingToken     = errors.New("missing authorization token")
 	ErrInsufficientRole = errors.New("insufficient role permissions")
+)
+
+// API Key errors (for internal service-to-service authentication).
+var (
+	ErrMissingAPIKey = errors.New("missing API key")
+	ErrInvalidAPIKey = errors.New("invalid API key")
 )
 
 // Context errors.
@@ -121,6 +130,21 @@ var (
 	ErrTenantIDRequired         = errors.New("tenant ID is required for TENANT scope")
 	ErrAssignmentNotFound       = errors.New("system injectable assignment not found")
 )
+
+// Document Generation errors.
+var (
+	ErrNoMapperRegistered = errors.New("no mapper registered in registry")
+)
+
+// MissingInjectablesError indicates that required injectables are not available.
+type MissingInjectablesError struct {
+	MissingCodes []string
+}
+
+// Error implements the error interface.
+func (e *MissingInjectablesError) Error() string {
+	return fmt.Sprintf("missing required injectables: %v", e.MissingCodes)
+}
 
 // Template errors.
 var (

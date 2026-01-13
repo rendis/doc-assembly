@@ -13,6 +13,9 @@ type Document struct {
 	TemplateVersionID         string          `json:"templateVersionId"`
 	Title                     *string         `json:"title,omitempty"`
 	ClientExternalReferenceID *string         `json:"clientExternalReferenceId,omitempty"`
+	TransactionalID           *string         `json:"transactionalId,omitempty"`
+	OperationType             OperationType   `json:"operationType"`
+	RelatedDocumentID         *string         `json:"relatedDocumentId,omitempty"`
 	SignerDocumentID          *string         `json:"signerDocumentId,omitempty"`
 	SignerProvider            *string         `json:"signerProvider,omitempty"`
 	Status                    DocumentStatus  `json:"status"`
@@ -23,11 +26,12 @@ type Document struct {
 	UpdatedAt                 *time.Time      `json:"updatedAt,omitempty"`
 }
 
-// NewDocument creates a new document in DRAFT status.
+// NewDocument creates a new document in DRAFT status with CREATE operation type.
 func NewDocument(workspaceID, templateVersionID string) *Document {
 	return &Document{
 		WorkspaceID:       workspaceID,
 		TemplateVersionID: templateVersionID,
+		OperationType:     OperationCreate,
 		Status:            DocumentStatusDraft,
 		CreatedAt:         time.Now().UTC(),
 	}
@@ -45,6 +49,24 @@ func (d *Document) SetExternalReference(refID string) {
 	d.touch()
 }
 
+// SetTransactionalID sets the transactional ID for tracing.
+func (d *Document) SetTransactionalID(txnID string) {
+	d.TransactionalID = &txnID
+	d.touch()
+}
+
+// SetOperationType sets the operation type (CREATE, RENEW, AMEND, etc.).
+func (d *Document) SetOperationType(opType OperationType) {
+	d.OperationType = opType
+	d.touch()
+}
+
+// SetRelatedDocumentID sets the related document ID for RENEW/AMEND operations.
+func (d *Document) SetRelatedDocumentID(docID string) {
+	d.RelatedDocumentID = &docID
+	d.touch()
+}
+
 // SetSignerInfo sets the signing provider information.
 func (d *Document) SetSignerInfo(provider, documentID string) {
 	d.SignerProvider = &provider
@@ -52,10 +74,33 @@ func (d *Document) SetSignerInfo(provider, documentID string) {
 	d.touch()
 }
 
+// SetSignerDocumentID sets the signer document ID.
+func (d *Document) SetSignerDocumentID(docID string) {
+	d.SignerDocumentID = &docID
+	d.touch()
+}
+
+// SetSignerProvider sets the signer provider name.
+func (d *Document) SetSignerProvider(provider string) {
+	d.SignerProvider = &provider
+	d.touch()
+}
+
 // SetInjectedValues sets the snapshot of injected values.
 func (d *Document) SetInjectedValues(values json.RawMessage) {
 	d.InjectedValuesSnapshot = values
 	d.touch()
+}
+
+// SetInjectedValuesSnapshot marshals and sets the snapshot of injected values from a map.
+func (d *Document) SetInjectedValuesSnapshot(values map[string]any) error {
+	data, err := json.Marshal(values)
+	if err != nil {
+		return err
+	}
+	d.InjectedValuesSnapshot = data
+	d.touch()
+	return nil
 }
 
 // SetPDFPath sets the PDF storage path.

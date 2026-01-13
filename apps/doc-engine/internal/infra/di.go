@@ -35,6 +35,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/service"
 	"github.com/doc-assembly/doc-engine/internal/core/service/contentvalidator"
 	"github.com/doc-assembly/doc-engine/internal/core/service/pdfrenderer"
+	"github.com/doc-assembly/doc-engine/internal/core/usecase"
 	"github.com/doc-assembly/doc-engine/internal/extensions"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/registry"
@@ -101,6 +102,8 @@ var ProviderSet = wire.NewSet(
 
 	// Services - Execution
 	service.NewDocumentService,
+	ProvideDocumentGenerator,
+	ProvideInternalDocumentService,
 
 	// Content Validator
 	ProvideContentValidator,
@@ -136,6 +139,7 @@ var ProviderSet = wire.NewSet(
 	controller.NewTenantController,
 	controller.NewDocumentController,
 	controller.NewWebhookController,
+	controller.NewInternalDocumentController,
 
 	// HTTP Server
 	server.NewHTTPServer,
@@ -225,4 +229,33 @@ func ProvideExtensionDeps() *extensions.InitDeps {
 // ProvideInjectableResolver creates the injectable resolver service.
 func ProvideInjectableResolver(reg port.InjectorRegistry) *service.InjectableResolverService {
 	return service.NewInjectableResolverService(reg, slog.Default())
+}
+
+// ProvideDocumentGenerator creates the document generator service.
+func ProvideDocumentGenerator(
+	templateRepo port.TemplateRepository,
+	versionRepo port.TemplateVersionRepository,
+	documentRepo port.DocumentRepository,
+	recipientRepo port.DocumentRecipientRepository,
+	injectableUC usecase.InjectableUseCase,
+	mapperRegistry port.MapperRegistry,
+	resolver *service.InjectableResolverService,
+) *service.DocumentGenerator {
+	return service.NewDocumentGenerator(
+		templateRepo,
+		versionRepo,
+		documentRepo,
+		recipientRepo,
+		injectableUC,
+		mapperRegistry,
+		resolver,
+		slog.Default(),
+	)
+}
+
+// ProvideInternalDocumentService creates the internal document service.
+func ProvideInternalDocumentService(
+	generator *service.DocumentGenerator,
+) usecase.InternalDocumentUseCase {
+	return service.NewInternalDocumentService(generator, slog.Default())
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/controller"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
@@ -102,7 +104,13 @@ func InitializeApp() (*infra.Initializer, error) {
 	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository, userAccessHistoryUseCase)
 	tenantMemberUseCase := service.NewTenantMemberService(tenantMemberRepository, userRepository)
 	tenantController := controller.NewTenantController(tenantUseCase, workspaceUseCase, tenantMemberUseCase)
-	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController)
+	documentRepository := documentrepo.New(pool)
+	documentRecipientRepository := documentrecipientrepo.New(pool)
+	injectableResolverService := infra.ProvideInjectableResolver(injectorRegistry)
+	documentGenerator := infra.ProvideDocumentGenerator(templateRepository, templateVersionRepository, documentRepository, documentRecipientRepository, injectableUseCase, mapperRegistry, injectableResolverService)
+	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator)
+	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
+	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, internalDocumentController)
 	initializer := infra.NewInitializer(httpServer, pool)
 	return initializer, nil
 }

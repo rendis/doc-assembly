@@ -2017,6 +2017,83 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/internal/documents/create": {
+            "post": {
+                "description": "Creates a new document using the extension system (Mapper, Init, Injectors)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Internal"
+                ],
+                "summary": "Create document via internal API",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "API Key for authentication",
+                        "name": "X-API-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "External ID (e.g., CRM entity ID)",
+                        "name": "X-External-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID to use",
+                        "name": "X-Template-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transactional ID for traceability",
+                        "name": "X-Transactional-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/me/access": {
             "post": {
                 "security": [
@@ -5842,6 +5919,78 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "workspaceId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "externalId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "operationType": {
+                    "type": "string"
+                },
+                "recipients": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalDocumentRecipientResponse"
+                    }
+                },
+                "signerProvider": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "templateId": {
+                    "type": "string"
+                },
+                "templateVersionId": {
+                    "type": "string"
+                },
+                "transactionalId": {
+                    "type": "string"
+                },
+                "workspaceId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalDocumentRecipientResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "error": {
                     "type": "string"
                 }
             }
