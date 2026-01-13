@@ -58,9 +58,6 @@ func (s *InternalDocumentService) CreateDocument(
 		return nil, err
 	}
 
-	// CREATE operation has no additional logic after generation
-	// Future: RENEW/AMEND would add RelatedDocumentID here
-
 	slog.InfoContext(ctx, "document created successfully",
 		"documentID", result.Document.ID,
 		"recipientCount", len(result.Recipients),
