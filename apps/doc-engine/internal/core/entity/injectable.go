@@ -84,32 +84,70 @@ func (i *InjectableDefinition) ValidateForWorkspace() error {
 }
 
 // TemplateVersionInjectable represents the configuration of a variable within a specific template version.
+// It can reference either a workspace injectable (via InjectableDefinitionID) or
+// a system injectable (via SystemInjectableKey), but not both.
 type TemplateVersionInjectable struct {
 	ID                     string    `json:"id"`
 	TemplateVersionID      string    `json:"templateVersionId"`
-	InjectableDefinitionID string    `json:"injectableDefinitionId"`
+	InjectableDefinitionID *string   `json:"injectableDefinitionId,omitempty"` // For workspace injectables
+	SystemInjectableKey    *string   `json:"systemInjectableKey,omitempty"`    // For system injectables (month_now, etc)
 	IsRequired             bool      `json:"isRequired"`
 	DefaultValue           *string   `json:"defaultValue,omitempty"`
 	CreatedAt              time.Time `json:"createdAt"`
 }
 
-// NewTemplateVersionInjectable creates a new template version injectable configuration.
+// NewTemplateVersionInjectable creates a new template version injectable configuration for workspace injectables.
 func NewTemplateVersionInjectable(templateVersionID, injectableDefID string, isRequired bool, defaultValue *string) *TemplateVersionInjectable {
 	return &TemplateVersionInjectable{
 		TemplateVersionID:      templateVersionID,
-		InjectableDefinitionID: injectableDefID,
+		InjectableDefinitionID: &injectableDefID,
 		IsRequired:             isRequired,
 		DefaultValue:           defaultValue,
 		CreatedAt:              time.Now().UTC(),
 	}
 }
 
+// NewTemplateVersionInjectableFromSystemKey creates a new template version injectable for system injectables.
+func NewTemplateVersionInjectableFromSystemKey(templateVersionID, systemKey string) *TemplateVersionInjectable {
+	return &TemplateVersionInjectable{
+		TemplateVersionID:   templateVersionID,
+		SystemInjectableKey: &systemKey,
+		IsRequired:          false,
+		CreatedAt:           time.Now().UTC(),
+	}
+}
+
 // Validate checks if the template version injectable data is valid.
+// Either InjectableDefinitionID or SystemInjectableKey must be set, but not both.
 func (tvi *TemplateVersionInjectable) Validate() error {
-	if tvi.TemplateVersionID == "" || tvi.InjectableDefinitionID == "" {
+	if tvi.TemplateVersionID == "" {
 		return ErrRequiredField
 	}
+
+	hasDefinitionID := tvi.InjectableDefinitionID != nil && *tvi.InjectableDefinitionID != ""
+	hasSystemKey := tvi.SystemInjectableKey != nil && *tvi.SystemInjectableKey != ""
+
+	if !hasDefinitionID && !hasSystemKey {
+		return ErrRequiredField
+	}
+	if hasDefinitionID && hasSystemKey {
+		return ErrInvalidInjectableSource
+	}
+
 	return nil
+}
+
+// IsSystemInjectable returns true if this references a system injectable.
+func (tvi *TemplateVersionInjectable) IsSystemInjectable() bool {
+	return tvi.SystemInjectableKey != nil && *tvi.SystemInjectableKey != ""
+}
+
+// GetKey returns the injectable key (either from definition or system key).
+func (tvi *TemplateVersionInjectable) GetKey() string {
+	if tvi.SystemInjectableKey != nil && *tvi.SystemInjectableKey != "" {
+		return *tvi.SystemInjectableKey
+	}
+	return ""
 }
 
 // VersionInjectableWithDefinition combines a template version injectable with its definition.

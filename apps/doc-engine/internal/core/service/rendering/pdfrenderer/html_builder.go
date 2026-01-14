@@ -132,3 +132,13 @@ func (b *HTMLBuilder) BuildPreviewHTML(doc *portabledoc.Document) string {
 	// In the future, preview could show placeholders differently
 	return b.Build(doc)
 }
+
+// GetSignatureFields returns the signature fields collected during HTML building.
+func (b *HTMLBuilder) GetSignatureFields() []port.SignatureField {
+	return b.converter.GetSignatureFields()
+}
+
+// GetPageCount returns the page count based on page breaks encountered.
+func (b *HTMLBuilder) GetPageCount() int {
+	return b.converter.GetCurrentPage()
+}

@@ -5975,6 +5975,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "signingUrl": {
+                    "type": "string"
                 }
             }
         },

@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/doc-assembly/doc-engine/internal/core/port"
+	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
 )
 
 // Service implements the ContentValidator interface.
 type Service struct {
-	injectableRepo  port.InjectableRepository
+	injectableUC    injectableuc.InjectableUseCase
 	maxNestingDepth int
 	strictMode      bool
 }
@@ -35,9 +36,9 @@ func WithMaxNestingDepth(depth int) Option {
 }
 
 // New creates a new content validator service.
-func New(injectableRepo port.InjectableRepository, opts ...Option) *Service {
+func New(injectableUC injectableuc.InjectableUseCase, opts ...Option) *Service {
 	s := &Service{
-		injectableRepo:  injectableRepo,
+		injectableUC:    injectableUC,
 		maxNestingDepth: 3, // default
 		strictMode:      false,
 	}

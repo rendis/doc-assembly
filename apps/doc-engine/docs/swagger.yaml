@@ -427,6 +427,8 @@ definitions:
         type: string
       name:
         type: string
+      signingUrl:
+        type: string
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse:
     properties:

@@ -41,6 +41,33 @@ type RenderPreviewResult struct {
 
 	// PageCount is the number of pages in the generated PDF.
 	PageCount int
+
+	// SignatureFields contains position information for each signature field.
+	SignatureFields []SignatureField
+}
+
+// SignatureField contains position information for a signature field in the PDF.
+type SignatureField struct {
+	// RoleID is the portable doc role ID associated with this signature.
+	RoleID string
+
+	// AnchorString is the anchor identifier (e.g., "__sig_rol_1__").
+	AnchorString string
+
+	// Page is the 1-indexed page number where the signature appears.
+	Page int
+
+	// PositionX is the X position as a percentage (0-100) from left edge.
+	PositionX float64
+
+	// PositionY is the Y position as a percentage (0-100) from top edge.
+	PositionY float64
+
+	// Width is the field width as a percentage (0-100) of page width.
+	Width float64
+
+	// Height is the field height as a percentage (0-100) of page height.
+	Height float64
 }
 
 // PDFRenderer defines the interface for PDF rendering operations.

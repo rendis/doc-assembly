@@ -3,6 +3,7 @@ package entity
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Authentication and Authorization errors.
@@ -117,6 +118,7 @@ var (
 	ErrInjectableInUse            = errors.New("injectable is in use by templates")
 	ErrInvalidInjectableKey       = errors.New("invalid injectable key")
 	ErrInvalidDataType            = errors.New("invalid injectable data type")
+	ErrInvalidInjectableSource    = errors.New("must specify either injectable definition ID or system key, not both")
 	ErrTemplateInjectableNotFound = errors.New("template injectable not found")
 	ErrOnlyTextTypeAllowed        = errors.New("only TEXT type injectables can be created by workspaces")
 	ErrWorkspaceIDRequired        = errors.New("workspace ID is required for this injectable")
@@ -144,6 +146,16 @@ type MissingInjectablesError struct {
 // Error implements the error interface.
 func (e *MissingInjectablesError) Error() string {
 	return fmt.Sprintf("missing required injectables: %v", e.MissingCodes)
+}
+
+// RecipientValidationError indicates that one or more recipients failed validation.
+type RecipientValidationError struct {
+	Errors []string
+}
+
+// Error implements the error interface.
+func (e *RecipientValidationError) Error() string {
+	return fmt.Sprintf("recipient validation failed: %s", strings.Join(e.Errors, "; "))
 }
 
 // Template errors.

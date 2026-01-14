@@ -29,6 +29,9 @@ type TemplateVersionInjectableRepository interface {
 	// Exists checks if an injectable definition is already linked to a version.
 	Exists(ctx context.Context, versionID, injectableDefID string) (bool, error)
 
+	// ExistsSystemKey checks if a system injectable key is already linked to a version.
+	ExistsSystemKey(ctx context.Context, versionID, systemKey string) (bool, error)
+
 	// CopyFromVersion copies all injectable configurations from one version to another.
 	CopyFromVersion(ctx context.Context, sourceVersionID, targetVersionID string) error
 }

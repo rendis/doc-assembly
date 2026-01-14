@@ -6,6 +6,7 @@ require (
 	github.com/MicahParks/keyfunc/v3 v3.7.0
 	github.com/chromedp/cdproto v0.0.0-20250803210736-d308e07a266d
 	github.com/chromedp/chromedp v0.14.2
+	github.com/dslipak/pdf v0.0.2
 	github.com/expr-lang/expr v1.17.7
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.3.0

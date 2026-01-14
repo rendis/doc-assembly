@@ -123,7 +123,15 @@ func buildInjectableDefaults(injectables []*entity.VersionInjectableWithDefiniti
 	defaults := make(map[string]string)
 
 	for _, injectable := range injectables {
-		variableID := injectable.InjectableDefinitionID
+		// Get the variable ID (either from definition key or system key)
+		var variableID string
+		if injectable.Definition != nil {
+			variableID = injectable.Definition.Key
+		} else if injectable.SystemInjectableKey != nil {
+			variableID = *injectable.SystemInjectableKey
+		} else {
+			continue
+		}
 
 		// First, try template version specific default
 		if injectable.DefaultValue != nil && *injectable.DefaultValue != "" {

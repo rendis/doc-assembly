@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
@@ -23,7 +24,8 @@ type validationContext struct {
 	variableSet portabledoc.Set[string] // includes role variables
 
 	// Accessible injectables cache (loaded from DB)
-	accessibleInjectables portabledoc.Set[string]
+	accessibleInjectables    portabledoc.Set[string]
+	accessibleInjectableList []*entity.InjectableDefinition // Full list for extraction
 }
 
 // addError adds a validation error.
@@ -72,12 +74,14 @@ func parseDocument(content []byte, result *port.ContentValidationResult) (*porta
 	return doc, true
 }
 
-// finalizeValidation extracts signer roles on success and logs the outcome.
+// finalizeValidation extracts signer roles and injectables on success and logs the outcome.
 func finalizeValidation(vctx *validationContext) {
 	if vctx.result.Valid {
 		vctx.result.ExtractedSignerRoles = extractSignerRoles(vctx.versionID, vctx.doc)
+		vctx.result.ExtractedInjectables = extractInjectables(vctx)
 		slog.DebugContext(vctx.ctx, "content validation successful",
 			slog.Int("signer_roles", len(vctx.result.ExtractedSignerRoles)),
+			slog.Int("injectables", len(vctx.result.ExtractedInjectables)),
 		)
 		return
 	}
@@ -167,13 +171,14 @@ func buildVariableSet(variableIDs []string, roles []portabledoc.SignerRole) port
 }
 
 // loadAccessibleInjectables loads the set of injectable keys accessible to the workspace.
+// This includes both DB injectables and system injectables.
 func (s *Service) loadAccessibleInjectables(vctx *validationContext) error {
-	if s.injectableRepo == nil {
+	if s.injectableUC == nil {
 		vctx.accessibleInjectables = make(portabledoc.Set[string])
 		return nil
 	}
 
-	injectables, err := s.injectableRepo.FindByWorkspace(vctx.ctx, vctx.workspaceID)
+	injectables, err := s.injectableUC.ListInjectables(vctx.ctx, vctx.workspaceID)
 	if err != nil {
 		return err
 	}
@@ -182,6 +187,9 @@ func (s *Service) loadAccessibleInjectables(vctx *validationContext) error {
 	for _, inj := range injectables {
 		vctx.accessibleInjectables.Add(inj.Key)
 	}
+
+	// Store full list for extraction phase
+	vctx.accessibleInjectableList = injectables
 
 	return nil
 }

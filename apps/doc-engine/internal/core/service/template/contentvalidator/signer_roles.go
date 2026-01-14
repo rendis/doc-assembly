@@ -2,15 +2,12 @@ package contentvalidator
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
+	"github.com/doc-assembly/doc-engine/internal/core/validation"
 )
-
-// anchorSanitizer removes non-alphanumeric characters for anchor string generation.
-var anchorSanitizer = regexp.MustCompile(`[^a-z0-9_]`)
 
 // validateSignerRoles validates all signer roles in the document.
 func (s *Service) validateSignerRoles(vctx *validationContext) {
@@ -67,10 +64,10 @@ func validateSignerRole(
 	}
 
 	// Validate name field
-	validateFieldValue(vctx, role.Name, path+".name", "Name", vctx.doc.VariableIDs, vctx.accessibleInjectables)
+	validateFieldValue(vctx, role.Name, path+".name", "name", role.Label, vctx.doc.VariableIDs, vctx.accessibleInjectables)
 
 	// Validate email field
-	validateFieldValue(vctx, role.Email, path+".email", "Email", vctx.doc.VariableIDs, vctx.accessibleInjectables)
+	validateFieldValue(vctx, role.Email, path+".email", "email", role.Label, vctx.doc.VariableIDs, vctx.accessibleInjectables)
 }
 
 // validateFieldValue validates a SignerRoleFieldValue.
@@ -79,29 +76,37 @@ func validateFieldValue(
 	field portabledoc.FieldValue,
 	path string,
 	fieldName string,
+	roleLabel string,
 	variableIDs []string,
 	accessibleInjectables portabledoc.Set[string],
 ) {
 	// Type must be valid
 	if !portabledoc.ValidFieldTypes.Contains(field.Type) {
 		vctx.addErrorf(ErrCodeInvalidRoleField, path+".type",
-			"Invalid %s field type: %s. Must be 'text' or 'injectable'", fieldName, field.Type)
+			"Role '%s': invalid %s field type '%s' (must be 'text' or 'injectable')", roleLabel, fieldName, field.Type)
 		return
 	}
 
 	// Validate based on type
 	if field.IsText() {
-		validateTextField(vctx, field, path, fieldName)
+		validateTextField(vctx, field, path, fieldName, roleLabel)
 	} else if field.IsInjectable() {
-		validateInjectableField(vctx, field, path, fieldName, variableIDs, accessibleInjectables)
+		validateInjectableField(vctx, field, path, fieldName, roleLabel, variableIDs, accessibleInjectables)
 	}
 }
 
 // validateTextField validates a text-type field value.
-func validateTextField(vctx *validationContext, field portabledoc.FieldValue, path, fieldName string) {
+func validateTextField(vctx *validationContext, field portabledoc.FieldValue, path, fieldName, roleLabel string) {
 	if field.IsEmpty() {
 		vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
-			"%s text value is required", fieldName)
+			"Role '%s': %s is required", roleLabel, fieldName)
+		return
+	}
+
+	// Validate email format for hardcoded email values
+	if fieldName == "email" && !validation.IsValidEmail(field.Value) {
+		vctx.addErrorf(ErrCodeInvalidEmailFormat, path+".value",
+			"Role '%s': invalid email format '%s'", roleLabel, field.Value)
 	}
 }
 
@@ -109,14 +114,14 @@ func validateTextField(vctx *validationContext, field portabledoc.FieldValue, pa
 func validateInjectableField(
 	vctx *validationContext,
 	field portabledoc.FieldValue,
-	path, fieldName string,
+	path, fieldName, roleLabel string,
 	variableIDs []string,
 	accessibleInjectables portabledoc.Set[string],
 ) {
 	// Injectable reference must not be empty
 	if field.IsEmpty() {
 		vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
-			"%s injectable reference is required", fieldName)
+			"Role '%s': %s variable reference is required", roleLabel, fieldName)
 		return
 	}
 
@@ -124,14 +129,14 @@ func validateInjectableField(
 	variableSet := portabledoc.NewSet(variableIDs)
 	if !variableSet.Contains(field.Value) {
 		vctx.addErrorf(ErrCodeRoleInjectableNotFound, path+".value",
-			"%s references variable '%s' which is not in variableIds", fieldName, field.Value)
+			"Role '%s': %s references unknown variable '%s'", roleLabel, fieldName, field.Value)
 		return
 	}
 
 	// Injectable must be accessible to workspace
 	if accessibleInjectables.Len() > 0 && !accessibleInjectables.Contains(field.Value) {
 		vctx.addErrorf(ErrCodeInaccessibleInjectable, path+".value",
-			"%s references injectable '%s' which is not accessible to this workspace", fieldName, field.Value)
+			"Role '%s': %s references inaccessible variable '%s'", roleLabel, fieldName, field.Value)
 	}
 }
 
@@ -143,7 +148,7 @@ func extractSignerRoles(versionID string, doc *portabledoc.Document) []*entity.T
 
 	roles := make([]*entity.TemplateVersionSignerRole, 0, len(doc.SignerRoles))
 	for _, sr := range doc.SignerRoles {
-		anchorString := generateAnchorString(sr.Label)
+		anchorString := portabledoc.GenerateAnchorString(sr.Label)
 		role := entity.NewTemplateVersionSignerRole(
 			versionID,
 			sr.Label,
@@ -156,22 +161,45 @@ func extractSignerRoles(versionID string, doc *portabledoc.Document) []*entity.T
 	return roles
 }
 
-// generateAnchorString creates a valid anchor string from a role label.
-// Format: __sig_{sanitized_label}__
-func generateAnchorString(label string) string {
-	// Convert to lowercase
-	sanitized := strings.ToLower(label)
-	// Replace spaces with underscores
-	sanitized = strings.ReplaceAll(sanitized, " ", "_")
-	// Remove invalid characters
-	sanitized = anchorSanitizer.ReplaceAllString(sanitized, "")
-	// Ensure it starts with a letter
-	if len(sanitized) > 0 && (sanitized[0] < 'a' || sanitized[0] > 'z') {
-		sanitized = "role_" + sanitized
+// extractInjectables converts document variable IDs to template version injectables.
+// It filters out role variables (ROLE.*) and creates the appropriate injectable
+// based on whether it's a system injectable or workspace injectable.
+func extractInjectables(vctx *validationContext) []*entity.TemplateVersionInjectable {
+	if len(vctx.doc.VariableIDs) == 0 {
+		return nil
 	}
-	// Handle empty result
-	if sanitized == "" {
-		sanitized = "role"
+
+	injectableMap := buildInjectableMap(vctx.accessibleInjectableList)
+	injectables := make([]*entity.TemplateVersionInjectable, 0, len(vctx.doc.VariableIDs))
+
+	for _, varID := range vctx.doc.VariableIDs {
+		if strings.HasPrefix(varID, portabledoc.RoleVariablePrefix) {
+			continue
+		}
+
+		inj, exists := injectableMap[varID]
+		if !exists {
+			continue
+		}
+
+		injectables = append(injectables, buildInjectable(vctx.versionID, varID, inj))
 	}
-	return fmt.Sprintf("__sig_%s__", sanitized)
+	return injectables
+}
+
+// buildInjectableMap creates a key -> definition lookup map.
+func buildInjectableMap(list []*entity.InjectableDefinition) map[string]*entity.InjectableDefinition {
+	m := make(map[string]*entity.InjectableDefinition, len(list))
+	for _, inj := range list {
+		m[inj.Key] = inj
+	}
+	return m
+}
+
+// buildInjectable creates the appropriate injectable entity based on source type.
+func buildInjectable(versionID, varID string, def *entity.InjectableDefinition) *entity.TemplateVersionInjectable {
+	if def.SourceType == entity.InjectableSourceTypeExternal {
+		return entity.NewTemplateVersionInjectableFromSystemKey(versionID, varID)
+	}
+	return entity.NewTemplateVersionInjectable(versionID, def.ID, false, nil)
 }

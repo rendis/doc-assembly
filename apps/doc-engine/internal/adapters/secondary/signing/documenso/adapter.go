@@ -9,8 +9,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"strconv"
 	"time"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
@@ -46,6 +49,11 @@ func (a *Adapter) ProviderName() string {
 	return providerName
 }
 
+// setAuthHeader sets the authorization header on the request.
+func (a *Adapter) setAuthHeader(req *http.Request) {
+	req.Header.Set("Authorization", a.config.APIKey)
+}
+
 // UploadDocument uploads a PDF document to Documenso and creates a signing envelope.
 func (a *Adapter) UploadDocument(ctx context.Context, req *port.UploadDocumentRequest) (*port.UploadDocumentResult, error) {
 	envelopeID, err := a.createEnvelope(ctx, req.Title, req.PDF)
@@ -58,11 +66,24 @@ func (a *Adapter) UploadDocument(ctx context.Context, req *port.UploadDocumentRe
 		return nil, err
 	}
 
+	// Create signature fields for each recipient before distributing
+	if len(req.SignatureFields) > 0 {
+		if err := a.createSignatureFields(ctx, envelopeID, recipientsResp, req.SignatureFields, req.Recipients); err != nil {
+			return nil, fmt.Errorf("creating signature fields: %w", err)
+		}
+	}
+
 	if err := a.distributeEnvelope(ctx, envelopeID); err != nil {
 		return nil, err
 	}
 
-	return buildUploadResult(envelopeID, recipientsResp), nil
+	// Fetch envelope details to get recipient tokens for signing URLs
+	envDetails, err := a.fetchEnvelope(ctx, envelopeID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching envelope details for signing URLs: %w", err)
+	}
+
+	return a.buildUploadResult(envelopeID, envDetails, req.Recipients), nil
 }
 
 // createEnvelope creates a new envelope with the PDF document.
@@ -70,7 +91,12 @@ func (a *Adapter) createEnvelope(ctx context.Context, title string, pdf []byte) 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	part, err := writer.CreateFormFile("file", "document.pdf")
+	// Create file part with explicit PDF content type
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="files"; filename="document.pdf"`)
+	h.Set("Content-Type", "application/pdf")
+
+	part, err := writer.CreatePart(h)
 	if err != nil {
 		return "", fmt.Errorf("creating form file: %w", err)
 	}
@@ -101,7 +127,7 @@ func (a *Adapter) createEnvelope(ctx context.Context, title string, pdf []byte) 
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+a.config.APIKey)
+	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := a.httpClient.Do(httpReq)
@@ -138,7 +164,7 @@ func (a *Adapter) addRecipients(ctx context.Context, envelopeID string, recipien
 
 	recipientsReq := recipientsRequest{
 		EnvelopeID: envelopeID,
-		Recipients: payloads,
+		Data:       payloads,
 	}
 
 	recipientsBody, err := json.Marshal(recipientsReq)
@@ -151,7 +177,7 @@ func (a *Adapter) addRecipients(ctx context.Context, envelopeID string, recipien
 		return nil, fmt.Errorf("creating recipients request: %w", err)
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+a.config.APIKey)
+	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(httpReq)
@@ -173,23 +199,122 @@ func (a *Adapter) addRecipients(ctx context.Context, envelopeID string, recipien
 	return &recipientsResp, nil
 }
 
+// createSignatureFields creates signature fields for each recipient in the envelope.
+func (a *Adapter) createSignatureFields(
+	ctx context.Context,
+	envelopeID string,
+	recipientsResp *recipientsResponse,
+	signatureFields []port.SignatureFieldPosition,
+	recipients []port.SigningRecipient,
+) error {
+	if len(signatureFields) == 0 {
+		return nil
+	}
+
+	fieldPayloads := a.buildFieldPayloads(signatureFields, recipients, recipientsResp)
+	if len(fieldPayloads) == 0 {
+		slog.WarnContext(ctx, "no field payloads built from signature fields")
+		return nil
+	}
+
+	return a.sendFieldsToAPI(ctx, envelopeID, fieldPayloads)
+}
+
+// buildFieldPayloads creates field payloads from signature field positions.
+func (a *Adapter) buildFieldPayloads(
+	signatureFields []port.SignatureFieldPosition,
+	recipients []port.SigningRecipient,
+	recipientsResp *recipientsResponse,
+) []fieldPayload {
+	roleToRecipientIdx := make(map[string]int, len(recipients))
+	for i, r := range recipients {
+		roleToRecipientIdx[r.RoleID] = i
+	}
+
+	fieldPayloads := make([]fieldPayload, 0, len(signatureFields))
+	for _, sf := range signatureFields {
+		payload := a.buildSingleFieldPayload(sf, roleToRecipientIdx, recipientsResp)
+		if payload != nil {
+			fieldPayloads = append(fieldPayloads, *payload)
+		}
+	}
+	return fieldPayloads
+}
+
+// buildSingleFieldPayload creates a single field payload or returns nil if not possible.
+func (a *Adapter) buildSingleFieldPayload(
+	sf port.SignatureFieldPosition,
+	roleToRecipientIdx map[string]int,
+	recipientsResp *recipientsResponse,
+) *fieldPayload {
+	recipientIdx, ok := roleToRecipientIdx[sf.RoleID]
+	if !ok || recipientIdx >= len(recipientsResp.Data) {
+		return nil
+	}
+
+	providerRecipientID := recipientsResp.Data[recipientIdx].ID
+
+	return &fieldPayload{
+		RecipientID: providerRecipientID,
+		Type:        "SIGNATURE",
+		Page:        sf.Page,
+		PositionX:   sf.PositionX,
+		PositionY:   sf.PositionY,
+		Width:       sf.Width,
+		Height:      sf.Height,
+	}
+}
+
+// sendFieldsToAPI sends field creation request to Documenso API.
+func (a *Adapter) sendFieldsToAPI(ctx context.Context, envelopeID string, fieldPayloads []fieldPayload) error {
+	fieldsReq := fieldsRequest{EnvelopeID: envelopeID, Data: fieldPayloads}
+
+	fieldsBody, err := json.Marshal(fieldsReq)
+	if err != nil {
+		return fmt.Errorf("marshaling fields request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		a.config.BaseURL+"/envelope/field/create-many", bytes.NewReader(fieldsBody))
+	if err != nil {
+		return fmt.Errorf("creating fields request: %w", err)
+	}
+
+	a.setAuthHeader(httpReq)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("executing fields request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("documenso API error creating fields (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // distributeEnvelope sends the envelope for signing.
 func (a *Adapter) distributeEnvelope(ctx context.Context, envelopeID string) error {
-	distributeReq := distributeRequest{
-		EnvelopeID: envelopeID,
+	sendReq := map[string]string{
+		"envelopeId": envelopeID,
 	}
 
-	distributeBody, err := json.Marshal(distributeReq)
+	sendBody, err := json.Marshal(sendReq)
 	if err != nil {
-		return fmt.Errorf("marshaling distribute request: %w", err)
+		return fmt.Errorf("marshaling send request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/envelope/distribute", bytes.NewReader(distributeBody))
+	// v2 endpoint: /envelope/distribute
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/envelope/distribute", bytes.NewReader(sendBody))
 	if err != nil {
 		return fmt.Errorf("creating distribute request: %w", err)
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+a.config.APIKey)
+	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(httpReq)
@@ -206,21 +331,31 @@ func (a *Adapter) distributeEnvelope(ctx context.Context, envelopeID string) err
 	return nil
 }
 
-// buildUploadResult constructs the upload result from the envelope and recipients response.
-func buildUploadResult(envelopeID string, recipientsResp *recipientsResponse) *port.UploadDocumentResult {
+// buildUploadResult constructs the upload result from the envelope details.
+// It matches recipients by index since the order is preserved from the original request.
+func (a *Adapter) buildUploadResult(envelopeID string, envDetails *envelopeDetailResponse, originalRecipients []port.SigningRecipient) *port.UploadDocumentResult {
 	result := &port.UploadDocumentResult{
 		ProviderDocumentID: envelopeID,
 		ProviderName:       providerName,
 		Status:             entity.DocumentStatusPending,
-		Recipients:         make([]port.RecipientResult, len(recipientsResp.Recipients)),
+		Recipients:         make([]port.RecipientResult, 0, len(originalRecipients)),
 	}
 
-	for i, r := range recipientsResp.Recipients {
-		result.Recipients[i] = port.RecipientResult{
-			RoleID:              r.ExternalID,
-			ProviderRecipientID: r.ID,
-			Status:              entity.RecipientStatusSent,
+	// Match recipients by index (order is preserved from request)
+	for i, orig := range originalRecipients {
+		if i >= len(envDetails.Recipients) {
+			continue
 		}
+		providerRecipient := envDetails.Recipients[i]
+
+		signingURL := fmt.Sprintf("%s/sign/%s", a.config.SigningBaseURL, providerRecipient.Token)
+
+		result.Recipients = append(result.Recipients, port.RecipientResult{
+			RoleID:              orig.RoleID,
+			ProviderRecipientID: strconv.Itoa(providerRecipient.ID),
+			SigningURL:          signingURL,
+			Status:              entity.RecipientStatusSent,
+		})
 	}
 
 	return result
@@ -228,37 +363,20 @@ func buildUploadResult(envelopeID string, recipientsResp *recipientsResponse) *p
 
 // GetSigningURL returns the URL where a specific recipient can sign the document.
 func (a *Adapter) GetSigningURL(ctx context.Context, req *port.GetSigningURLRequest) (*port.GetSigningURLResult, error) {
-	// Get envelope details to find the signing token
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet,
-		fmt.Sprintf("%s/envelope/%s", a.config.BaseURL, req.ProviderDocumentID), nil)
+	envResp, err := a.fetchEnvelope(ctx, req.ProviderDocumentID)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-
-	httpReq.Header.Set("Authorization", "Bearer "+a.config.APIKey)
-
-	resp, err := a.httpClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("executing request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("documenso API error (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	var envResp envelopeDetailResponse
-	if err := json.NewDecoder(resp.Body).Decode(&envResp); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
+		return nil, err
 	}
 
 	// Find the recipient and their signing token
+	reqRecipientID, err := strconv.Atoi(req.ProviderRecipientID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid recipient ID: %w", err)
+	}
+
 	for _, r := range envResp.Recipients {
-		if r.ID == req.ProviderRecipientID {
-			// Construct signing URL
-			// The signing URL format depends on Documenso's implementation
-			signingURL := fmt.Sprintf("https://app.documenso.com/sign/%s/%s", req.ProviderDocumentID, r.Token)
+		if r.ID == reqRecipientID {
+			signingURL := fmt.Sprintf("%s/sign/%s", a.config.SigningBaseURL, r.Token)
 
 			return &port.GetSigningURLResult{
 				SigningURL: signingURL,
@@ -301,7 +419,7 @@ func (a *Adapter) fetchEnvelope(ctx context.Context, providerDocID string) (*env
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+a.config.APIKey)
+	a.setAuthHeader(httpReq)
 
 	resp, err := a.httpClient.Do(httpReq)
 	if err != nil {
@@ -339,7 +457,7 @@ func processRecipients(recipients []recipientResponse) ([]port.RecipientStatusRe
 		}
 
 		results[i] = port.RecipientStatusResult{
-			ProviderRecipientID: r.ID,
+			ProviderRecipientID: strconv.Itoa(r.ID),
 			Status:              recipientStatus,
 			SignedAt:            signedAt,
 			ProviderStatus:      r.Status,
@@ -397,7 +515,7 @@ func (a *Adapter) CancelDocument(ctx context.Context, providerDocumentID string)
 		return fmt.Errorf("creating request: %w", err)
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+a.config.APIKey)
+	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(httpReq)
@@ -484,11 +602,11 @@ type recipientPayload struct {
 
 type recipientsRequest struct {
 	EnvelopeID string             `json:"envelopeId"`
-	Recipients []recipientPayload `json:"recipients"`
+	Data       []recipientPayload `json:"data"`
 }
 
 type recipientResponse struct {
-	ID         string `json:"id"`
+	ID         int    `json:"id"`
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 	Status     string `json:"status"`
@@ -498,11 +616,15 @@ type recipientResponse struct {
 }
 
 type recipientsResponse struct {
-	Recipients []recipientResponse `json:"recipients"`
+	Data []recipientData `json:"data"`
 }
 
-type distributeRequest struct {
+type recipientData struct {
+	ID         int    `json:"id"`
 	EnvelopeID string `json:"envelopeId"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	Token      string `json:"token"`
 }
 
 type envelopeDetailResponse struct {
@@ -523,4 +645,21 @@ type webhookPayload struct {
 		Status      string `json:"status,omitempty"`
 	} `json:"data"`
 	Timestamp string `json:"timestamp"`
+}
+
+// Field creation types for Documenso API
+
+type fieldPayload struct {
+	RecipientID int     `json:"recipientId"`
+	Type        string  `json:"type"` // "SIGNATURE", "TEXT", "DATE", etc.
+	Page        int     `json:"page"` // 1-indexed page number
+	PositionX   float64 `json:"positionX"`
+	PositionY   float64 `json:"positionY"`
+	Width       float64 `json:"width"`
+	Height      float64 `json:"height"`
+}
+
+type fieldsRequest struct {
+	EnvelopeID string         `json:"envelopeId"`
+	Data       []fieldPayload `json:"data"`
 }

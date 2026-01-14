@@ -13,6 +13,7 @@ type DocumentRecipient struct {
 	Name                  string          `json:"name"`
 	Email                 string          `json:"email"`
 	SignerRecipientID     *string         `json:"signerRecipientId,omitempty"`
+	SigningURL            *string         `json:"signingUrl,omitempty"`
 	Status                RecipientStatus `json:"status"`
 	SignedAt              *time.Time      `json:"signedAt,omitempty"`
 	CreatedAt             time.Time       `json:"createdAt"`
@@ -34,6 +35,12 @@ func NewDocumentRecipient(documentID, roleID, name, email string) *DocumentRecip
 // SetSignerRecipientID sets the recipient ID from the signing provider.
 func (r *DocumentRecipient) SetSignerRecipientID(id string) {
 	r.SignerRecipientID = &id
+	r.touch()
+}
+
+// SetSigningURL sets the URL where this recipient can sign the document.
+func (r *DocumentRecipient) SetSigningURL(url string) {
+	r.SigningURL = &url
 	r.touch()
 }
 

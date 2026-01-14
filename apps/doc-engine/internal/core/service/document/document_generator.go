@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -13,12 +14,16 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	injectablesvc "github.com/doc-assembly/doc-engine/internal/core/service/injectable"
 	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
+	"github.com/doc-assembly/doc-engine/internal/core/validation"
 )
 
 // DocumentGenerationResult contains the result of document generation.
 type DocumentGenerationResult struct {
-	Document   *entity.Document
-	Recipients []*entity.DocumentRecipient
+	Document       *entity.Document
+	Recipients     []*entity.DocumentRecipient
+	Version        *entity.TemplateVersionWithDetails
+	PortableDoc    *portabledoc.Document
+	ResolvedValues map[string]any
 }
 
 // DocumentGenerator is the centralized service for document generation.
@@ -100,21 +105,23 @@ func (g *DocumentGenerator) GenerateDocument(
 		return nil, err
 	}
 
-	recipients := g.buildRecipientsFromSignerRoles(ctx, portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
-	slog.DebugContext(ctx, "built recipients", "count", len(recipients))
+	recipients, err := g.buildRecipientsFromSignerRoles(ctx, portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
+	if err != nil {
+		slog.ErrorContext(ctx, "recipient validation failed", "error", err)
+		return nil, err
+	}
 
-	doc, err := g.createDocument(ctx, workspaceID, version.ID, mapCtx, resolvedValues)
+	doc, err := g.persistDocumentAndRecipients(ctx, workspaceID, version.ID, mapCtx, resolvedValues, recipients)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := g.saveRecipients(ctx, doc.ID, recipients); err != nil {
-		return nil, err
-	}
-
 	return &DocumentGenerationResult{
-		Document:   doc,
-		Recipients: recipients,
+		Document:       doc,
+		Recipients:     recipients,
+		Version:        version,
+		PortableDoc:    portableDoc,
+		ResolvedValues: resolvedValues,
 	}, nil
 }
 
@@ -185,6 +192,8 @@ func (g *DocumentGenerator) collectReferencedCodes(
 	for _, vi := range versionInjectables {
 		if vi.Definition != nil {
 			codeSet[vi.Definition.Key] = true
+		} else if vi.SystemInjectableKey != nil {
+			codeSet[*vi.SystemInjectableKey] = true
 		}
 	}
 
@@ -285,50 +294,60 @@ func (g *DocumentGenerator) resolveInjectables(
 	return resolvedValues, nil
 }
 
-// buildRecipientsFromSignerRoles builds DocumentRecipient entities from portabledoc SignerRoles.
+// buildRecipientsFromSignerRoles builds and validates DocumentRecipient entities from portabledoc SignerRoles.
 func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	ctx context.Context,
 	portableSignerRoles []portabledoc.SignerRole,
 	dbSignerRoles []*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
-) []*entity.DocumentRecipient {
+) ([]*entity.DocumentRecipient, error) {
 	roleByAnchor := make(map[string]*entity.TemplateVersionSignerRole, len(dbSignerRoles))
 	for _, r := range dbSignerRoles {
 		roleByAnchor[r.AnchorString] = r
 	}
 
+	var validationErrors []string
 	recipients := make([]*entity.DocumentRecipient, 0, len(portableSignerRoles))
 
 	for _, sr := range portableSignerRoles {
-		recipient := g.buildRecipient(ctx, sr, roleByAnchor, resolvedValues)
-		if recipient != nil {
-			recipients = append(recipients, recipient)
+		recipient, err := g.buildAndValidateRecipient(sr, roleByAnchor, resolvedValues)
+		if err != nil {
+			validationErrors = append(validationErrors, err.Error())
+			continue
 		}
+		recipients = append(recipients, recipient)
 	}
 
-	return recipients
+	if len(validationErrors) > 0 {
+		return nil, &entity.RecipientValidationError{Errors: validationErrors}
+	}
+
+	return recipients, nil
 }
 
-// buildRecipient creates a single DocumentRecipient from a SignerRole.
-func (g *DocumentGenerator) buildRecipient(
-	ctx context.Context,
+// buildAndValidateRecipient creates and validates a single DocumentRecipient from a SignerRole.
+func (g *DocumentGenerator) buildAndValidateRecipient(
 	sr portabledoc.SignerRole,
 	roleByAnchor map[string]*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
-) *entity.DocumentRecipient {
-	name := g.resolveFieldValue(sr.Name, resolvedValues)
-	email := g.resolveFieldValue(sr.Email, resolvedValues)
-	anchor := fmt.Sprintf("__sig_%s__", sr.ID)
+) (*entity.DocumentRecipient, error) {
+	name := validation.NormalizeName(g.resolveFieldValue(sr.Name, resolvedValues))
+	email := strings.TrimSpace(g.resolveFieldValue(sr.Email, resolvedValues))
+	anchor := portabledoc.GenerateAnchorString(sr.Label)
 	dbRole, found := roleByAnchor[anchor]
 
-	if name == "" || email == "" || !found {
-		slog.WarnContext(ctx, "skipping signer role - missing data",
-			"signerRoleID", sr.ID,
-			"hasName", name != "",
-			"hasEmail", email != "",
-			"foundInDB", found,
-		)
-		return nil
+	// Validate with descriptive error messages
+	if !found {
+		return nil, fmt.Errorf("role '%s': no matching signature anchor found", sr.Label)
+	}
+	if name == "" {
+		return nil, fmt.Errorf("role '%s': name is empty after resolution", sr.Label)
+	}
+	if email == "" {
+		return nil, fmt.Errorf("role '%s': email is empty after resolution", sr.Label)
+	}
+	if !validation.IsValidEmail(email) {
+		return nil, fmt.Errorf("role '%s': invalid email format '%s'", sr.Label, email)
 	}
 
 	return &entity.DocumentRecipient{
@@ -337,7 +356,7 @@ func (g *DocumentGenerator) buildRecipient(
 		Name:                  name,
 		Email:                 email,
 		Status:                entity.RecipientStatusPending,
-	}
+	}, nil
 }
 
 // resolveFieldValue resolves a FieldValue to its actual string value.
@@ -389,6 +408,26 @@ func (g *DocumentGenerator) createDocument(
 
 	doc.ID = docID
 	slog.DebugContext(ctx, "document saved", "documentID", docID)
+
+	return doc, nil
+}
+
+// persistDocumentAndRecipients creates and saves the document with its recipients.
+func (g *DocumentGenerator) persistDocumentAndRecipients(
+	ctx context.Context,
+	workspaceID, versionID string,
+	mapCtx *port.MapperContext,
+	resolvedValues map[string]any,
+	recipients []*entity.DocumentRecipient,
+) (*entity.Document, error) {
+	doc, err := g.createDocument(ctx, workspaceID, versionID, mapCtx, resolvedValues)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := g.saveRecipients(ctx, doc.ID, recipients); err != nil {
+		return nil, err
+	}
 
 	return doc, nil
 }

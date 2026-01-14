@@ -64,6 +64,13 @@ func validateLogicGroup(
 			"Logic must be AND or OR, got: %s", group.Logic)
 	}
 
+	// Validate group has at least one child
+	if len(group.Children) == 0 {
+		vctx.addError(ErrCodeEmptyConditionGroup, path+".children",
+			"Condition group must have at least one rule or nested group")
+		return
+	}
+
 	// Validate children
 	for i, child := range group.Children {
 		childPath := fmt.Sprintf("%s.children[%d]", path, i)
@@ -116,7 +123,10 @@ func validateLogicRule(vctx *validationContext, rule *portabledoc.LogicRule, pat
 	}
 
 	// Validate operator
-	if !portabledoc.ValidOperators.Contains(rule.Operator) {
+	if rule.Operator == "" {
+		vctx.addError(ErrCodeInvalidOperator, path+".operator",
+			"Operator is required")
+	} else if !portabledoc.ValidOperators.Contains(rule.Operator) {
 		vctx.addErrorf(ErrCodeInvalidOperator, path+".operator",
 			"Invalid operator: %s", rule.Operator)
 	}
@@ -139,6 +149,12 @@ func validateLogicRule(vctx *validationContext, rule *portabledoc.LogicRule, pat
 	if portabledoc.NoValueOperators.Contains(rule.Operator) && rule.Value.Value != "" {
 		vctx.addWarningf(WarnCodeExpressionWarning, path+".value.value",
 			"Operator '%s' doesn't require a value, but one was provided", rule.Operator)
+	}
+
+	// Operators that require a value must have one
+	if rule.Operator != "" && !portabledoc.NoValueOperators.Contains(rule.Operator) && rule.Value.Value == "" {
+		vctx.addErrorf(ErrCodeMissingConditionValue, path+".value.value",
+			"Operator '%s' requires a comparison value", rule.Operator)
 	}
 }
 

@@ -91,7 +91,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	templateMapper := mapper.NewTemplateMapper(templateVersionMapper, tagMapper, folderMapper)
 	templateVersionInjectableRepository := templateversioninjectablerepo.New(pool)
 	templateVersionSignerRoleRepository := templateversionsignerrolerepo.New(pool)
-	contentValidator := infra.ProvideContentValidator(injectableRepository)
+	contentValidator := infra.ProvideContentValidator(injectableUseCase)
 	templateVersionUseCase := template.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, templateTagRepository, contentValidator, workspaceRepository)
 	pdfRenderer, err := infra.ProvidePDFRenderer()
 	if err != nil {
@@ -112,7 +112,12 @@ func InitializeApp() (*infra.Initializer, error) {
 	documentRecipientRepository := documentrecipientrepo.New(pool)
 	injectableResolverService := infra.ProvideInjectableResolver(injectorRegistry)
 	documentGenerator := infra.ProvideDocumentGenerator(templateRepository, templateVersionRepository, documentRepository, documentRecipientRepository, injectableUseCase, mapperRegistry, injectableResolverService)
-	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator)
+	documensoConfig := infra.ProvideDocumensoConfig(configConfig)
+	signingProvider, err := infra.ProvideSigningProvider(documensoConfig)
+	if err != nil {
+		return nil, err
+	}
+	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator, documentRepository, documentRecipientRepository, pdfRenderer, signingProvider)
 	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
 	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, internalDocumentController)
 	initializer := infra.NewInitializer(httpServer, pool)

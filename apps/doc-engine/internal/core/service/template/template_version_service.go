@@ -208,6 +208,10 @@ func (s *TemplateVersionService) PublishVersion(ctx context.Context, id string, 
 		return err
 	}
 
+	if err := s.replaceInjectables(ctx, version.ID, result.ExtractedInjectables); err != nil {
+		return err
+	}
+
 	if err := s.archiveCurrentPublished(ctx, version.TemplateID, id, userID); err != nil {
 		return err
 	}
@@ -735,6 +739,36 @@ func (s *TemplateVersionService) replaceSignerRoles(ctx context.Context, version
 	slog.InfoContext(ctx, "signer roles extracted from content",
 		slog.String("version_id", versionID),
 		slog.Int("count", len(roles)),
+	)
+
+	return nil
+}
+
+// replaceInjectables deletes existing injectables and inserts new ones.
+func (s *TemplateVersionService) replaceInjectables(ctx context.Context, versionID string, injectables []*entity.TemplateVersionInjectable) error {
+	if err := s.injectableRepo.DeleteByVersionID(ctx, versionID); err != nil {
+		slog.WarnContext(ctx, "failed to delete existing injectables",
+			slog.String("version_id", versionID),
+			slog.Any("error", err),
+		)
+	}
+
+	for _, injectable := range injectables {
+		injectable.ID = uuid.NewString()
+		if _, err := s.injectableRepo.Create(ctx, injectable); err != nil {
+			key := ""
+			if injectable.SystemInjectableKey != nil {
+				key = *injectable.SystemInjectableKey
+			} else if injectable.InjectableDefinitionID != nil {
+				key = *injectable.InjectableDefinitionID
+			}
+			return fmt.Errorf("creating injectable %s: %w", key, err)
+		}
+	}
+
+	slog.InfoContext(ctx, "injectables extracted from content",
+		slog.String("version_id", versionID),
+		slog.Int("count", len(injectables)),
 	)
 
 	return nil

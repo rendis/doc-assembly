@@ -5969,6 +5969,9 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "signingUrl": {
+                    "type": "string"
                 }
             }
         },

@@ -16,6 +16,8 @@ type NodeConverter struct {
 	injectableDefaults map[string]string
 	signerRoleValues   map[string]port.SignerRoleValue
 	signerRoles        map[string]portabledoc.SignerRole // roleID -> SignerRole
+	currentPage        int                               // 1-indexed page tracking
+	signatureFields    []port.SignatureField             // collected signature fields
 }
 
 // NewNodeConverter creates a new node converter with the given injectable values.
@@ -35,7 +37,19 @@ func NewNodeConverter(
 		injectableDefaults: injectableDefaults,
 		signerRoleValues:   signerRoleValues,
 		signerRoles:        roleMap,
+		currentPage:        1, // Start on page 1
+		signatureFields:    make([]port.SignatureField, 0),
 	}
+}
+
+// GetSignatureFields returns the collected signature fields.
+func (c *NodeConverter) GetSignatureFields() []port.SignatureField {
+	return c.signatureFields
+}
+
+// GetCurrentPage returns the current page number.
+func (c *NodeConverter) GetCurrentPage() int {
+	return c.currentPage
 }
 
 // ConvertNodes converts a slice of nodes to HTML.
@@ -433,7 +447,83 @@ func toFloat64(v any) float64 {
 
 func (c *NodeConverter) signature(node portabledoc.Node) string {
 	attrs := c.parseSignatureAttrs(node.Attrs)
+	c.collectSignatureFields(attrs)
 	return c.renderSignatureBlock(attrs)
+}
+
+// collectSignatureFields extracts signature field positions from the signature block.
+func (c *NodeConverter) collectSignatureFields(attrs portabledoc.SignatureAttrs) {
+	// Default signature dimensions (as percentage of page)
+	const (
+		defaultWidth  = 30.0 // 30% of page width
+		defaultHeight = 8.0  // 8% of page height
+	)
+
+	// Calculate X positions based on layout
+	xPositions := c.calculateXPositions(attrs.Layout, attrs.Count)
+
+	// Default Y position - approximation based on typical document layouts
+	// The exact position depends on document content; this targets upper-middle area
+	yPosition := 55.0 // 55% from top (middle-upper area where signature lines typically appear)
+
+	for i, sig := range attrs.Signatures {
+		if sig.RoleID == nil || *sig.RoleID == "" {
+			continue
+		}
+
+		roleID := *sig.RoleID
+		anchorString := c.getAnchorString(&sig)
+
+		// Get X position for this signature index
+		xPos := 35.0 // default center
+		if i < len(xPositions) {
+			xPos = xPositions[i]
+		}
+
+		c.signatureFields = append(c.signatureFields, port.SignatureField{
+			RoleID:       roleID,
+			AnchorString: anchorString,
+			Page:         c.currentPage,
+			PositionX:    xPos,
+			PositionY:    yPosition,
+			Width:        defaultWidth,
+			Height:       defaultHeight,
+		})
+	}
+}
+
+// layoutPositions maps layout types to X positions (as percentage of page width).
+var layoutPositions = map[string][]float64{
+	portabledoc.LayoutSingleLeft:      {5.0},
+	portabledoc.LayoutSingleCenter:    {35.0},
+	portabledoc.LayoutSingleRight:     {65.0},
+	portabledoc.LayoutDualSides:       {5.0, 55.0},
+	portabledoc.LayoutDualCenter:      {20.0, 50.0},
+	portabledoc.LayoutDualLeft:        {5.0, 35.0},
+	portabledoc.LayoutDualRight:       {35.0, 65.0},
+	portabledoc.LayoutTripleRow:       {5.0, 35.0, 65.0},
+	portabledoc.LayoutTriplePyramid:   {35.0, 5.0, 65.0},
+	portabledoc.LayoutTripleInverted:  {5.0, 65.0, 35.0},
+	portabledoc.LayoutQuadGrid:        {5.0, 50.0, 5.0, 50.0},
+	portabledoc.LayoutQuadTopHeavy:    {5.0, 35.0, 65.0, 35.0},
+	portabledoc.LayoutQuadBottomHeavy: {35.0, 5.0, 35.0, 65.0},
+}
+
+// calculateXPositions returns X positions for signatures based on layout.
+func (c *NodeConverter) calculateXPositions(layout string, count int) []float64 {
+	if positions, ok := layoutPositions[layout]; ok {
+		return positions
+	}
+	return c.defaultXPositions(count)
+}
+
+// defaultXPositions generates positions based on count when layout is unknown.
+func (c *NodeConverter) defaultXPositions(count int) []float64 {
+	positions := make([]float64, count)
+	for i := range positions {
+		positions[i] = float64(5 + i*30)
+	}
+	return positions
 }
 
 func (c *NodeConverter) parseSignatureAttrs(attrs map[string]any) portabledoc.SignatureAttrs {
@@ -575,6 +665,7 @@ func (c *NodeConverter) getAnchorString(sig *portabledoc.SignatureItem) string {
 }
 
 func (c *NodeConverter) pageBreak(_ portabledoc.Node) string {
+	c.currentPage++
 	return "<div class=\"page-break\"></div>\n"
 }
 

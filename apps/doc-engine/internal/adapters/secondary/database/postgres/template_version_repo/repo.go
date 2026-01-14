@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/common"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
@@ -101,6 +102,7 @@ func (r *Repository) FindByIDWithDetails(ctx context.Context, id string) (*entit
 }
 
 // loadInjectablesWithDefinitions loads version injectables with their definitions.
+// Handles both workspace injectables (with definition) and system injectables (with system_injectable_key).
 func (r *Repository) loadInjectablesWithDefinitions(ctx context.Context, versionID string) ([]*entity.VersionInjectableWithDefinition, error) {
 	rows, err := r.pool.Query(ctx, queryInjectablesWithDefinitions, versionID)
 	if err != nil {
@@ -110,26 +112,9 @@ func (r *Repository) loadInjectablesWithDefinitions(ctx context.Context, version
 
 	var injectables []*entity.VersionInjectableWithDefinition
 	for rows.Next() {
-		iwd := &entity.VersionInjectableWithDefinition{
-			Definition: &entity.InjectableDefinition{},
-		}
-		if err := rows.Scan(
-			&iwd.ID,
-			&iwd.TemplateVersionID,
-			&iwd.InjectableDefinitionID,
-			&iwd.IsRequired,
-			&iwd.DefaultValue,
-			&iwd.CreatedAt,
-			&iwd.Definition.ID,
-			&iwd.Definition.WorkspaceID,
-			&iwd.Definition.Key,
-			&iwd.Definition.Label,
-			&iwd.Definition.Description,
-			&iwd.Definition.DataType,
-			&iwd.Definition.CreatedAt,
-			&iwd.Definition.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning version injectable: %w", err)
+		iwd, err := scanVersionInjectable(rows)
+		if err != nil {
+			return nil, err
 		}
 		injectables = append(injectables, iwd)
 	}
@@ -137,8 +122,41 @@ func (r *Repository) loadInjectablesWithDefinitions(ctx context.Context, version
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating version injectables: %w", err)
 	}
-
 	return injectables, nil
+}
+
+// injectableRow is a scannable interface for rows.
+type injectableRow interface {
+	Scan(dest ...any) error
+}
+
+// scanVersionInjectable scans a single row into a VersionInjectableWithDefinition.
+func scanVersionInjectable(row injectableRow) (*entity.VersionInjectableWithDefinition, error) {
+	iwd := &entity.VersionInjectableWithDefinition{}
+	var defID, defWorkspaceID, defKey, defLabel, defDescription, defDataType *string
+	var defCreatedAt, defUpdatedAt *time.Time
+
+	if err := row.Scan(
+		&iwd.ID, &iwd.TemplateVersionID, &iwd.InjectableDefinitionID, &iwd.SystemInjectableKey,
+		&iwd.IsRequired, &iwd.DefaultValue, &iwd.CreatedAt,
+		&defID, &defWorkspaceID, &defKey, &defLabel, &defDescription, &defDataType, &defCreatedAt, &defUpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("scanning version injectable: %w", err)
+	}
+
+	if defID != nil {
+		iwd.Definition = &entity.InjectableDefinition{
+			ID:          *defID,
+			WorkspaceID: defWorkspaceID,
+			Key:         common.SafeString(defKey),
+			Label:       common.SafeString(defLabel),
+			Description: common.SafeString(defDescription),
+			DataType:    entity.InjectableDataType(common.SafeString(defDataType)),
+			CreatedAt:   common.SafeTime(defCreatedAt),
+			UpdatedAt:   defUpdatedAt,
+		}
+	}
+	return iwd, nil
 }
 
 // loadSignerRoles loads signer roles for a version.

@@ -21,9 +21,22 @@ func (s *Service) validateSignatures(vctx *validationContext) {
 		signatureCount++
 	}
 
-	// Warn if no signatures defined
+	// Error if no signatures defined - at least one is required for signing
 	if signatureCount == 0 {
-		vctx.addWarning(WarnCodeNoSignatures, "content", "No signature blocks defined in document")
+		vctx.addError(ErrCodeNoSignatures, "content", "At least one signature block is required")
+	}
+
+	// Validate that all roles have at least one signature
+	s.validateRolesHaveSignatures(vctx, assignedRoleIDs)
+}
+
+// validateRolesHaveSignatures checks that each signer role has at least one signature assigned.
+func (s *Service) validateRolesHaveSignatures(vctx *validationContext, assignedRoleIDs portabledoc.Set[string]) {
+	for _, role := range vctx.doc.SignerRoles {
+		if !assignedRoleIDs.Contains(role.ID) {
+			vctx.addErrorf(ErrCodeOrphanedRole, "signerRoles",
+				"Role '%s' has no signature assigned", role.Label)
+		}
 	}
 }
 
@@ -84,8 +97,12 @@ func validateSignatureItem(
 	assignedRoleIDs portabledoc.Set[string],
 ) {
 	if !sig.HasRole() {
-		vctx.addWarningf(WarnCodeNoSignerRoles, path+".roleId",
-			"Signature '%s' has no role assigned", sig.Label)
+		label := sig.Label
+		if label == "" {
+			label = "(unnamed)"
+		}
+		vctx.addErrorf(ErrCodeMissingSignatureRole, path+".roleId",
+			"Signature '%s' must have a role assigned", label)
 		return
 	}
 

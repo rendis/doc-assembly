@@ -12,6 +12,7 @@ type ContentValidationResult struct {
 	Errors               []ValidationError
 	Warnings             []ValidationWarning
 	ExtractedSignerRoles []*entity.TemplateVersionSignerRole // Populated only on successful publish validation
+	ExtractedInjectables []*entity.TemplateVersionInjectable // Populated only on successful publish validation
 }
 
 // ValidationError represents a validation error.

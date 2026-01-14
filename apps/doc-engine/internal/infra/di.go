@@ -180,8 +180,8 @@ func ProvideDBPool(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
 }
 
 // ProvideContentValidator creates the content validator service.
-func ProvideContentValidator(injectableRepo port.InjectableRepository) port.ContentValidator {
-	return contentvalidator.New(injectableRepo)
+func ProvideContentValidator(injectableUC injectableuc.InjectableUseCase) port.ContentValidator {
+	return contentvalidator.New(injectableUC)
 }
 
 // ProvidePDFRenderer creates the PDF renderer service.
@@ -266,6 +266,16 @@ func ProvideDocumentGenerator(
 // ProvideInternalDocumentService creates the internal document service.
 func ProvideInternalDocumentService(
 	generator *documentsvc.DocumentGenerator,
+	documentRepo port.DocumentRepository,
+	recipientRepo port.DocumentRecipientRepository,
+	pdfRenderer port.PDFRenderer,
+	signingProvider port.SigningProvider,
 ) documentuc.InternalDocumentUseCase {
-	return documentsvc.NewInternalDocumentService(generator)
+	return documentsvc.NewInternalDocumentService(
+		generator,
+		documentRepo,
+		recipientRepo,
+		pdfRenderer,
+		signingProvider,
+	)
 }

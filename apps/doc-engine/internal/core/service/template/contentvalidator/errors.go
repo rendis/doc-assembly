@@ -43,7 +43,12 @@ const (
 	ErrCodeInvalidSignatureRoleRef = "INVALID_SIGNATURE_ROLE_REF"
 	ErrCodeDuplicateSignatureRole  = "DUPLICATE_SIGNATURE_ROLE"
 	ErrCodeMissingSignatureRole    = "MISSING_SIGNATURE_ROLE"
+	ErrCodeOrphanedRole            = "ORPHANED_ROLE"
+	ErrCodeNoSignatures            = "NO_SIGNATURES"
 	ErrCodeInvalidLineWidth        = "INVALID_LINE_WIDTH"
+
+	// Signer role field errors
+	ErrCodeInvalidEmailFormat = "INVALID_EMAIL_FORMAT"
 
 	// Conditional errors
 	ErrCodeInvalidConditionVar   = "UNKNOWN_VARIABLE_IN_CONDITION"
@@ -53,6 +58,8 @@ const (
 	ErrCodeMaxNestingExceeded    = "MAX_NESTING_EXCEEDED"
 	ErrCodeInvalidRuleValueMode  = "INVALID_RULE_VALUE_MODE"
 	ErrCodeInvalidConditionAttrs = "INVALID_CONDITION_ATTRS"
+	ErrCodeEmptyConditionGroup   = "EMPTY_CONDITION_GROUP"
+	ErrCodeMissingConditionValue = "MISSING_CONDITION_VALUE"
 
 	// Workflow errors
 	ErrCodeInvalidOrderMode        = "INVALID_ORDER_MODE"

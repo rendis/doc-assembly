@@ -4,29 +4,45 @@ Document Assembly System API - A microservice for template management and docume
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-- [Configuration](#configuration)
-- [API Endpoints](#api-endpoints)
-- [Sandbox & Promotion](#sandbox--promotion)
-- [Development](#development)
-- [Extensibility](#extensibility)
-- [Integration Tests](#integration-tests)
-- [Role-Based Access Control](#role-based-access-control)
+- [Doc Engine](#doc-engine)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+  - [Tech Stack](#tech-stack)
+  - [Prerequisites](#prerequisites)
+    - [Install Tools](#install-tools)
+  - [Getting Started](#getting-started)
+    - [1. Clone and Setup](#1-clone-and-setup)
+    - [2. Configuration](#2-configuration)
+    - [3. Build and Run](#3-build-and-run)
+  - [Configuration](#configuration)
+    - [Server](#server)
+    - [Database (PostgreSQL)](#database-postgresql)
+    - [Auth (Keycloak/JWKS)](#auth-keycloakjwks)
+    - [Internal API](#internal-api)
+    - [Documenso (e-signature)](#documenso-e-signature)
+    - [Storage (S3/MinIO)](#storage-s3minio)
+    - [Logging](#logging)
+  - [API Endpoints](#api-endpoints)
+  - [Sandbox \& Promotion](#sandbox--promotion)
+  - [Development](#development)
+    - [Make Commands](#make-commands)
+    - [Code Style](#code-style)
+    - [Logging](#logging-1)
+  - [Extensibility](#extensibility)
+  - [Integration Tests](#integration-tests)
+  - [Role-Based Access Control](#role-based-access-control)
 
 ## Overview
 
 Doc Engine is a Go-based microservice that provides:
+
 - **Workspace Management**: Multi-tenant workspace organization with role-based access control
 - **Template Management**: Create, edit, publish, and clone document templates
 - **Injectable Variables**: Define and manage dynamic variables for document generation
 - **Folder Organization**: Hierarchical folder structure for template organization
 - **Tag System**: Flexible tagging for template categorization
 - **Signer Role Management**: Configure signature roles and anchors for e-signature integration
-- **AI Contract Generation**: Generate structured contract documents from images, PDFs, DOCX files, or text descriptions using LLM
 
 ## Architecture
 
@@ -36,17 +52,16 @@ For detailed architecture documentation including directory structure, domain or
 
 ## Tech Stack
 
-| Component | Technology | Version |
-|-----------|------------|---------|
-| Language | Go | 1.25 |
-| HTTP Framework | Gin | 1.10.0 |
-| Database | PostgreSQL | 15+ |
-| DB Driver | pgx/v5 | 5.7.2 |
-| DI | Wire | 0.6.0 |
-| Config | Viper | 1.19.0 |
-| JWT | golang-jwt/v5 | 5.3.0 |
-| JWKS | keyfunc/v3 | 3.7.0 |
-| OpenAI SDK | go-openai | latest |
+| Component      | Technology    | Version |
+| -------------- | ------------- | ------- |
+| Language       | Go            | 1.25    |
+| HTTP Framework | Gin           | 1.10.0  |
+| Database       | PostgreSQL    | 15+     |
+| DB Driver      | pgx/v5        | 5.7.2   |
+| DI             | Wire          | 0.6.0   |
+| Config         | Viper         | 1.19.0  |
+| JWT            | golang-jwt/v5 | 5.3.0   |
+| JWKS           | keyfunc/v3    | 3.7.0   |
 
 ## Prerequisites
 
@@ -110,19 +125,68 @@ go build -o bin/doc-engine ./cmd/api
 
 Configuration is loaded from `settings/app.yaml` and can be overridden with environment variables using the prefix `DOC_ENGINE_`.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DOC_ENGINE_SERVER_PORT` | HTTP server port | 8080 |
-| `DOC_ENGINE_DATABASE_HOST` | PostgreSQL host | localhost |
-| `DOC_ENGINE_DATABASE_PORT` | PostgreSQL port | 5432 |
-| `DOC_ENGINE_DATABASE_USER` | Database user | admin |
-| `DOC_ENGINE_DATABASE_PASSWORD` | Database password | - |
-| `DOC_ENGINE_DATABASE_NAME` | Database name | doc_engine_v1 |
-| `DOC_ENGINE_AUTH_JWKS_URL` | Keycloak JWKS endpoint | - |
-| `DOC_ENGINE_AUTH_ISSUER` | JWT issuer | - |
-| `DOC_ENGINE_LLM_PROVIDER` | LLM provider (openai) | openai |
-| `DOC_ENGINE_LLM_OPENAI_API_KEY` | OpenAI API key | - |
-| `DOC_ENGINE_LLM_OPENAI_MODEL` | OpenAI model | gpt-4o |
+Copy `.env.example` to `.env` and configure the required values.
+
+### Server
+
+| Variable                             | Description                         | Default |
+| ------------------------------------ | ----------------------------------- | ------- |
+| `DOC_ENGINE_SERVER_PORT`             | HTTP server port                    | 8080    |
+| `DOC_ENGINE_SERVER_READ_TIMEOUT`     | Read timeout (seconds)              | 30      |
+| `DOC_ENGINE_SERVER_WRITE_TIMEOUT`    | Write timeout (seconds)             | 30      |
+| `DOC_ENGINE_SERVER_SHUTDOWN_TIMEOUT` | Graceful shutdown timeout (seconds) | 10      |
+
+### Database (PostgreSQL)
+
+| Variable                                    | Description             | Default      |
+| ------------------------------------------- | ----------------------- | ------------ |
+| `DOC_ENGINE_DATABASE_HOST`                  | PostgreSQL host         | localhost    |
+| `DOC_ENGINE_DATABASE_PORT`                  | PostgreSQL port         | 5432         |
+| `DOC_ENGINE_DATABASE_USER`                  | Database user           | postgres     |
+| `DOC_ENGINE_DATABASE_PASSWORD`              | Database password       | **required** |
+| `DOC_ENGINE_DATABASE_NAME`                  | Database name           | doc_assembly |
+| `DOC_ENGINE_DATABASE_SSL_MODE`              | SSL mode                | disable      |
+| `DOC_ENGINE_DATABASE_MAX_POOL_SIZE`         | Max pool connections    | 10           |
+| `DOC_ENGINE_DATABASE_MIN_POOL_SIZE`         | Min pool connections    | 2            |
+| `DOC_ENGINE_DATABASE_MAX_IDLE_TIME_SECONDS` | Max idle time (seconds) | 300          |
+
+### Auth (Keycloak/JWKS)
+
+| Variable                   | Description            | Default      |
+| -------------------------- | ---------------------- | ------------ |
+| `DOC_ENGINE_AUTH_JWKS_URL` | Keycloak JWKS endpoint | **required** |
+| `DOC_ENGINE_AUTH_ISSUER`   | JWT issuer             | **required** |
+| `DOC_ENGINE_AUTH_AUDIENCE` | JWT audience           | **required** |
+
+### Internal API
+
+| Variable                          | Description                         | Default      |
+| --------------------------------- | ----------------------------------- | ------------ |
+| `DOC_ENGINE_INTERNAL_API_ENABLED` | Enable internal API                 | true         |
+| `DOC_ENGINE_INTERNAL_API_API_KEY` | API key for service-to-service auth | **required** |
+
+### Documenso (e-signature)
+
+| Variable                              | Description              | Default                          |
+| ------------------------------------- | ------------------------ | -------------------------------- |
+| `DOC_ENGINE_DOCUMENSO_API_URL`        | Documenso API URL        | https://app.documenso.com/api/v1 |
+| `DOC_ENGINE_DOCUMENSO_API_KEY`        | Documenso API key        | **required**                     |
+| `DOC_ENGINE_DOCUMENSO_WEBHOOK_SECRET` | Webhook signature secret | -                                |
+
+### Storage (S3/MinIO)
+
+| Variable                      | Description             | Default          |
+| ----------------------------- | ----------------------- | ---------------- |
+| `DOC_ENGINE_STORAGE_BUCKET`   | S3 bucket name          | contracts-bucket |
+| `DOC_ENGINE_STORAGE_REGION`   | AWS region              | us-east-1        |
+| `DOC_ENGINE_STORAGE_ENDPOINT` | Custom endpoint (MinIO) | -                |
+
+### Logging
+
+| Variable                    | Description                          | Default |
+| --------------------------- | ------------------------------------ | ------- |
+| `DOC_ENGINE_LOGGING_LEVEL`  | Log level (debug, info, warn, error) | info    |
+| `DOC_ENGINE_LOGGING_FORMAT` | Log format (json, text)              | json    |
 
 ## API Endpoints
 
@@ -182,12 +246,12 @@ For complete documentation including setup, running tests, and troubleshooting, 
 
 Workspace roles hierarchy (highest to lowest):
 
-| Role | Weight | Permissions |
-|------|--------|-------------|
-| OWNER | 50 | Full control |
-| ADMIN | 40 | Manage members, settings |
-| EDITOR | 30 | Create/edit templates |
-| OPERATOR | 20 | Generate documents |
-| VIEWER | 10 | Read-only access |
+| Role     | Weight | Permissions              |
+| -------- | ------ | ------------------------ |
+| OWNER    | 50     | Full control             |
+| ADMIN    | 40     | Manage members, settings |
+| EDITOR   | 30     | Create/edit templates    |
+| OPERATOR | 20     | Generate documents       |
+| VIEWER   | 10     | Read-only access         |
 
 For a complete authorization matrix with all endpoints, roles (System, Tenant, Workspace), and required headers, see **[docs/authorization-matrix.md](docs/authorization-matrix.md)**.

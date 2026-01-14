@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/common"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
@@ -28,6 +29,7 @@ func (r *Repository) Create(ctx context.Context, injectable *entity.TemplateVers
 	err := r.pool.QueryRow(ctx, queryCreate,
 		injectable.TemplateVersionID,
 		injectable.InjectableDefinitionID,
+		injectable.SystemInjectableKey,
 		injectable.IsRequired,
 		injectable.DefaultValue,
 		injectable.CreatedAt,
@@ -46,6 +48,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.TemplateV
 		&injectable.ID,
 		&injectable.TemplateVersionID,
 		&injectable.InjectableDefinitionID,
+		&injectable.SystemInjectableKey,
 		&injectable.IsRequired,
 		&injectable.DefaultValue,
 		&injectable.CreatedAt,
@@ -70,30 +73,52 @@ func (r *Repository) FindByVersionID(ctx context.Context, versionID string) ([]*
 
 	var results []*entity.VersionInjectableWithDefinition
 	for rows.Next() {
-		iwd := &entity.VersionInjectableWithDefinition{
-			Definition: &entity.InjectableDefinition{},
-		}
+		iwd := &entity.VersionInjectableWithDefinition{}
+
+		// Nullable fields for definition (LEFT JOIN may return NULLs)
+		var defID, defWorkspaceID, defKey, defLabel, defDescription *string
+		var defDataType *entity.InjectableDataType
+		var defMetadata map[string]any
+		var defFormatConfig *entity.FormatConfig
+		var defCreatedAt, defUpdatedAt *string
+
 		if err := rows.Scan(
 			&iwd.ID,
 			&iwd.TemplateVersionID,
 			&iwd.InjectableDefinitionID,
+			&iwd.SystemInjectableKey,
 			&iwd.IsRequired,
 			&iwd.DefaultValue,
 			&iwd.CreatedAt,
-			&iwd.Definition.ID,
-			&iwd.Definition.WorkspaceID,
-			&iwd.Definition.Key,
-			&iwd.Definition.Label,
-			&iwd.Definition.Description,
-			&iwd.Definition.DataType,
-			&iwd.Definition.Metadata,
-			&iwd.Definition.FormatConfig,
-			&iwd.Definition.CreatedAt,
-			&iwd.Definition.UpdatedAt,
+			&defID,
+			&defWorkspaceID,
+			&defKey,
+			&defLabel,
+			&defDescription,
+			&defDataType,
+			&defMetadata,
+			&defFormatConfig,
+			&defCreatedAt,
+			&defUpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scanning version injectable: %w", err)
 		}
-		iwd.Definition.SourceType = entity.InjectableSourceTypeInternal
+
+		// Build definition only if it exists (workspace injectable)
+		if defID != nil {
+			iwd.Definition = &entity.InjectableDefinition{
+				ID:           *defID,
+				WorkspaceID:  defWorkspaceID,
+				Key:          common.SafeString(defKey),
+				Label:        common.SafeString(defLabel),
+				Description:  common.SafeString(defDescription),
+				DataType:     common.SafeDataType(defDataType),
+				Metadata:     defMetadata,
+				FormatConfig: defFormatConfig,
+				SourceType:   entity.InjectableSourceTypeInternal,
+			}
+		}
+
 		results = append(results, iwd)
 	}
 
@@ -152,6 +177,17 @@ func (r *Repository) Exists(ctx context.Context, versionID, injectableDefID stri
 	err := r.pool.QueryRow(ctx, queryExists, versionID, injectableDefID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("checking version injectable existence: %w", err)
+	}
+
+	return exists, nil
+}
+
+// ExistsSystemKey checks if a system injectable key is already linked to a version.
+func (r *Repository) ExistsSystemKey(ctx context.Context, versionID, systemKey string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, queryExistsSystemKey, versionID, systemKey).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking system injectable existence: %w", err)
 	}
 
 	return exists, nil

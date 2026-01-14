@@ -160,9 +160,10 @@ func buildCreateDocumentResponse(
 
 	for _, r := range doc.Recipients {
 		response.Recipients = append(response.Recipients, dto.InternalDocumentRecipientResponse{
-			ID:    r.ID,
-			Name:  r.Name,
-			Email: r.Email,
+			ID:         r.ID,
+			Name:       r.Name,
+			Email:      r.Email,
+			SigningURL: r.SigningURL,
 		})
 	}
 

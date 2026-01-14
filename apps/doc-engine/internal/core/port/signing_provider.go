@@ -48,6 +48,30 @@ type UploadDocumentRequest struct {
 
 	// Metadata contains optional key-value pairs to attach to the document.
 	Metadata map[string]string
+
+	// SignatureFields contains position information for signature fields.
+	SignatureFields []SignatureFieldPosition
+}
+
+// SignatureFieldPosition contains the position and size of a signature field.
+type SignatureFieldPosition struct {
+	// RoleID is the internal role ID that maps this field to a recipient.
+	RoleID string
+
+	// Page is the 1-indexed page number where the field should appear.
+	Page int
+
+	// PositionX is the X position as a percentage (0-100) from left edge.
+	PositionX float64
+
+	// PositionY is the Y position as a percentage (0-100) from top edge.
+	PositionY float64
+
+	// Width is the field width as a percentage (0-100) of page width.
+	Width float64
+
+	// Height is the field height as a percentage (0-100) of page height.
+	Height float64
 }
 
 // SigningRecipient represents a person who needs to sign the document.
@@ -87,6 +111,9 @@ type RecipientResult struct {
 
 	// ProviderRecipientID is the unique ID assigned by the signing provider.
 	ProviderRecipientID string
+
+	// SigningURL is the URL where this recipient can sign the document.
+	SigningURL string
 
 	// Status is the initial status of this recipient.
 	Status entity.RecipientStatus

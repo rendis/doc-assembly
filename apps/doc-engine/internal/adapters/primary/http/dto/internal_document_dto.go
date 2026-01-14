@@ -18,9 +18,10 @@ type InternalCreateDocumentResponse struct {
 
 // InternalDocumentRecipientResponse represents a recipient in the internal API response.
 type InternalDocumentRecipientResponse struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Email      string  `json:"email"`
+	SigningURL *string `json:"signingUrl,omitempty"`
 }
 
 // InternalCreateDocumentWithRecipientsResponse includes recipients in the response.

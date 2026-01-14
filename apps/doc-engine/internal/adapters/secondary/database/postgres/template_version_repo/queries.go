@@ -19,12 +19,13 @@ const (
 
 	queryInjectablesWithDefinitions = `
 		SELECT
-			tvi.id, tvi.template_version_id, tvi.injectable_definition_id, tvi.is_required, tvi.default_value, tvi.created_at,
+			tvi.id, tvi.template_version_id, tvi.injectable_definition_id, tvi.system_injectable_key,
+			tvi.is_required, tvi.default_value, tvi.created_at,
 			id.id, id.workspace_id, id.key, id.label, id.description, id.data_type, id.created_at, id.updated_at
 		FROM content.template_version_injectables tvi
-		JOIN content.injectable_definitions id ON tvi.injectable_definition_id = id.id
+		LEFT JOIN content.injectable_definitions id ON tvi.injectable_definition_id = id.id
 		WHERE tvi.template_version_id = $1
-		ORDER BY id.key`
+		ORDER BY COALESCE(id.key, tvi.system_injectable_key)`
 
 	querySignerRoles = `
 		SELECT id, template_version_id, role_name, anchor_string, signer_order, created_at, updated_at

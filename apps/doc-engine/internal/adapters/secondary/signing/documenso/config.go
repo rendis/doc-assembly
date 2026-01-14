@@ -14,6 +14,10 @@ type Config struct {
 	// Defaults to "https://app.documenso.com/api/v2" if not set.
 	BaseURL string
 
+	// SigningBaseURL is the base URL for signing links (without /api/v2).
+	// Defaults to deriving from BaseURL (e.g., "https://app.documenso.com").
+	SigningBaseURL string
+
 	// WebhookSecret is the secret key used to validate incoming webhooks.
 	WebhookSecret string
 
@@ -35,6 +39,16 @@ func (c *Config) Validate() error {
 
 	// Ensure base URL doesn't have trailing slash
 	c.BaseURL = strings.TrimSuffix(c.BaseURL, "/")
+
+	// Derive signing base URL from API base URL if not set
+	if strings.TrimSpace(c.SigningBaseURL) == "" {
+		// Remove /api/v2 or /api/v1 suffix to get the base signing URL
+		signingBase := c.BaseURL
+		signingBase = strings.TrimSuffix(signingBase, "/api/v2")
+		signingBase = strings.TrimSuffix(signingBase, "/api/v1")
+		c.SigningBaseURL = signingBase
+	}
+	c.SigningBaseURL = strings.TrimSuffix(c.SigningBaseURL, "/")
 
 	return nil
 }
