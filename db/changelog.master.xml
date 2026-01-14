@@ -48,7 +48,7 @@
     <!-- Workspaces: Root operational entities -->
     <include file="src/tenancy/workspaces.xml"/>
 
-    <!-- Workspace Sandbox: Sandbox support for CLIENT workspaces -->
+    <!-- Workspace Sandbox: Functions and triggers for sandbox auto-creation/sync -->
     <include file="src/tenancy/workspaces_sandbox.xml"/>
 
     <!-- ============================================ -->
@@ -87,9 +87,6 @@
     <!-- Injectable Definitions: Universe of variables -->
     <include file="src/content/injectable_definitions.xml"/>
 
-    <!-- Injectable Definitions: Active & Soft Delete support -->
-    <include file="src/content/injectable_definitions_soft_delete.xml"/>
-
     <!-- Templates: Document blueprints (metadata only) -->
     <include file="src/content/templates.xml"/>
 
@@ -110,9 +107,6 @@
 
     <!-- System Injectable Assignments: Scope assignments for system injectables -->
     <include file="src/content/system_injectable_assignments.xml"/>
-
-    <!-- Template Version Injectables: System injectable support -->
-    <include file="src/content/template_version_injectables_system.xml"/>
 
     <!-- ============================================ -->
     <!-- PHASE 7: Execution Tables                   -->

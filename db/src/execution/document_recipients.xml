@@ -28,8 +28,14 @@
             <column name="signer_recipient_id" type="VARCHAR(255)">
                 <constraints nullable="true"/>
             </column>
-            <column name="status" type="recipient_status" defaultValue="WAITING">
+            <column name="status" type="recipient_status" defaultValue="PENDING">
                 <constraints nullable="false"/>
+            </column>
+            <column name="signed_at" type="TIMESTAMPTZ">
+                <constraints nullable="true"/>
+            </column>
+            <column name="signing_url" type="VARCHAR(500)">
+                <constraints nullable="true"/>
             </column>
             <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>

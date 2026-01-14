@@ -28,6 +28,21 @@
             <column name="data_type" type="injectable_data_type">
                 <constraints nullable="false"/>
             </column>
+            <column name="default_value" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="metadata" type="JSONB" defaultValueComputed="'{}'::jsonb">
+                <constraints nullable="true"/>
+            </column>
+            <column name="format_config" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
             <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
@@ -53,10 +68,11 @@
     <!-- ========== UNIQUE CONSTRAINTS ========== -->
 
     <changeSet id="injectable_definitions:add_unique_constraint:workspace_key" author="doc-assembly">
-        <comment>Unique key per scope (workspace or global)</comment>
+        <comment>Unique key per scope (workspace or global) - only for non-deleted records</comment>
         <sql>
             CREATE UNIQUE INDEX idx_injectable_definitions_unique_key
-            ON content.injectable_definitions (COALESCE(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid), key);
+            ON content.injectable_definitions (COALESCE(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid), key)
+            WHERE is_deleted = FALSE;
         </sql>
         <rollback>DROP INDEX IF EXISTS content.idx_injectable_definitions_unique_key;</rollback>
     </changeSet>
@@ -89,45 +105,7 @@
         <rollback>DROP TRIGGER IF EXISTS trigger_injectable_definitions_updated_at ON content.injectable_definitions;</rollback>
     </changeSet>
 
-    <!-- ========== NEW COLUMNS ========== -->
-
-    <changeSet id="injectable_definitions:add_column:source_type" author="doc-assembly">
-        <comment>Source type: INTERNAL (system-calculated) or EXTERNAL (from external source)</comment>
-        <addColumn tableName="injectable_definitions" schemaName="content">
-            <column name="source_type" type="injectable_source_type" defaultValue="EXTERNAL">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-        <rollback>
-            <dropColumn tableName="injectable_definitions" schemaName="content" columnName="source_type"/>
-        </rollback>
-    </changeSet>
-
-    <changeSet id="injectable_definitions:add_column:metadata" author="doc-assembly">
-        <comment>Flexible JSONB metadata for configuration options (formats, etc.)</comment>
-        <addColumn tableName="injectable_definitions" schemaName="content">
-            <column name="metadata" type="JSONB" defaultValueComputed="'{}'::jsonb">
-                <constraints nullable="true"/>
-            </column>
-        </addColumn>
-        <rollback>
-            <dropColumn tableName="injectable_definitions" schemaName="content" columnName="metadata"/>
-        </rollback>
-    </changeSet>
-
-    <!-- ========== FORMAT CONFIG COLUMN ========== -->
-
-    <changeSet id="injectable_definitions:add_column:format_config" author="doc-assembly">
-        <comment>Dedicated column for format configuration (default format and available options)</comment>
-        <addColumn tableName="injectable_definitions" schemaName="content">
-            <column name="format_config" type="JSONB">
-                <constraints nullable="true"/>
-            </column>
-        </addColumn>
-        <rollback>
-            <dropColumn tableName="injectable_definitions" schemaName="content" columnName="format_config"/>
-        </rollback>
-    </changeSet>
+    <!-- ========== CHECK CONSTRAINTS ========== -->
 
     <changeSet id="injectable_definitions:add_check_constraint:format_config" author="doc-assembly">
         <comment>Validate format_config structure: must be NULL, empty object, OR contain 'default' (string) and 'options' (array)</comment>
@@ -152,24 +130,20 @@
         </rollback>
     </changeSet>
 
-    <!-- ========== DROP SOURCE_TYPE COLUMN ========== -->
+    <!-- ========== ADDITIONAL INDEXES ========== -->
 
-    <changeSet id="injectable_definitions:drop_column:source_type" author="doc-assembly">
-        <comment>Remove source_type column - no longer needed</comment>
-        <dropColumn tableName="injectable_definitions" schemaName="content" columnName="source_type"/>
-        <rollback>
-            <addColumn tableName="injectable_definitions" schemaName="content">
-                <column name="source_type" type="injectable_source_type" defaultValue="EXTERNAL">
-                    <constraints nullable="false"/>
-                </column>
-            </addColumn>
-        </rollback>
+    <changeSet id="injectable_definitions:index_creation:is_active" author="doc-assembly">
+        <comment>Index for filtering by active status</comment>
+        <createIndex indexName="idx_injectable_definitions_is_active" tableName="injectable_definitions" schemaName="content">
+            <column name="is_active"/>
+        </createIndex>
     </changeSet>
 
-    <changeSet id="enum:injectable_source_type:drop" author="doc-assembly">
-        <comment>Remove injectable_source_type enum - no longer used after column removal</comment>
-        <sql>DROP TYPE IF EXISTS injectable_source_type;</sql>
-        <rollback>CREATE TYPE injectable_source_type AS ENUM ('INTERNAL', 'EXTERNAL');</rollback>
+    <changeSet id="injectable_definitions:index_creation:is_deleted" author="doc-assembly">
+        <comment>Index for filtering by deleted status</comment>
+        <createIndex indexName="idx_injectable_definitions_is_deleted" tableName="injectable_definitions" schemaName="content">
+            <column name="is_deleted"/>
+        </createIndex>
     </changeSet>
 
 </databaseChangeLog>

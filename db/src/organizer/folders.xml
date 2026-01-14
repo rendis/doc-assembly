@@ -22,6 +22,9 @@
             <column name="name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
+            <column name="path" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
             <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
@@ -94,47 +97,7 @@
         <rollback>DROP TRIGGER IF EXISTS trigger_folders_updated_at ON organizer.folders;</rollback>
     </changeSet>
 
-    <!-- ========== PATH COLUMN (Materialized Path) ========== -->
-
-    <changeSet id="folders:add_column:path" author="doc-assembly">
-        <comment>Materialized path for efficient hierarchical queries</comment>
-        <addColumn tableName="folders" schemaName="organizer">
-            <column name="path" type="TEXT"/>
-        </addColumn>
-        <rollback>
-            <dropColumn tableName="folders" schemaName="organizer" columnName="path"/>
-        </rollback>
-    </changeSet>
-
-    <changeSet id="folders:migrate_paths" author="doc-assembly">
-        <comment>Populate path for existing folders using recursive CTE</comment>
-        <sql>
-            WITH RECURSIVE folder_paths AS (
-                SELECT id, id::text as path
-                FROM organizer.folders
-                WHERE parent_id IS NULL
-                UNION ALL
-                SELECT f.id, fp.path || '/' || f.id::text
-                FROM organizer.folders f
-                JOIN folder_paths fp ON f.parent_id = fp.id
-            )
-            UPDATE organizer.folders f
-            SET path = fp.path
-            FROM folder_paths fp
-            WHERE f.id = fp.id;
-        </sql>
-        <rollback>
-            UPDATE organizer.folders SET path = NULL;
-        </rollback>
-    </changeSet>
-
-    <changeSet id="folders:add_not_null:path" author="doc-assembly">
-        <comment>Path is required after migration</comment>
-        <addNotNullConstraint tableName="folders" schemaName="organizer" columnName="path"/>
-        <rollback>
-            <dropNotNullConstraint tableName="folders" schemaName="organizer" columnName="path"/>
-        </rollback>
-    </changeSet>
+    <!-- ========== PATH SUPPORT (Materialized Path) ========== -->
 
     <changeSet id="folders:index_creation:path" author="doc-assembly">
         <comment>B-tree index for path prefix searches (LIKE 'path/%')</comment>
@@ -187,6 +150,50 @@
             FOR EACH ROW EXECUTE FUNCTION organizer.compute_folder_path();
         </sql>
         <rollback>DROP TRIGGER IF EXISTS trigger_folders_path ON organizer.folders;</rollback>
+    </changeSet>
+
+    <changeSet id="folders:add_not_null:path" author="doc-assembly">
+        <comment>Path is required (trigger fills it automatically)</comment>
+        <addNotNullConstraint tableName="folders" schemaName="organizer" columnName="path"/>
+        <rollback>
+            <dropNotNullConstraint tableName="folders" schemaName="organizer" columnName="path"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ========== UTILITY FUNCTION ========== -->
+
+    <changeSet id="folders:function:populate_folder_paths" author="doc-assembly">
+        <comment>Utility function to populate paths for existing folders (for data repair)</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION organizer.populate_folder_paths()
+            RETURNS INTEGER AS $$
+            DECLARE
+                updated_count INTEGER;
+            BEGIN
+                WITH RECURSIVE folder_paths AS (
+                    SELECT id, id::text as computed_path
+                    FROM organizer.folders
+                    WHERE parent_id IS NULL
+                    UNION ALL
+                    SELECT f.id, fp.computed_path || '/' || f.id::text
+                    FROM organizer.folders f
+                    JOIN folder_paths fp ON f.parent_id = fp.id
+                )
+                UPDATE organizer.folders f
+                SET path = fp.computed_path
+                FROM folder_paths fp
+                WHERE f.id = fp.id AND (f.path IS NULL OR f.path != fp.computed_path);
+
+                GET DIAGNOSTICS updated_count = ROW_COUNT;
+                RETURN updated_count;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            COMMENT ON FUNCTION organizer.populate_folder_paths() IS
+            'Populates or repairs folder paths using recursive CTE.
+            Usage: SELECT organizer.populate_folder_paths();';
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS organizer.populate_folder_paths();</rollback>
     </changeSet>
 
 </databaseChangeLog>

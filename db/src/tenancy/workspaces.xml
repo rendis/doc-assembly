@@ -28,6 +28,12 @@
             <column name="settings" type="JSONB">
                 <constraints nullable="true"/>
             </column>
+            <column name="is_sandbox" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sandbox_of_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
             <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
@@ -50,6 +56,37 @@
             onDelete="RESTRICT"/>
     </changeSet>
 
+    <changeSet id="workspaces:add_fk_constraint:sandbox_of_id" author="doc-assembly">
+        <comment>FK to parent workspace with CASCADE delete</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="tenancy"
+            baseTableName="workspaces"
+            baseColumnNames="sandbox_of_id"
+            constraintName="fk_workspaces_sandbox_of"
+            referencedTableSchemaName="tenancy"
+            referencedTableName="workspaces"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- ========== CHECK CONSTRAINTS ========== -->
+
+    <changeSet id="workspaces:add_check_constraint:sandbox_requires_parent" author="doc-assembly">
+        <comment>Ensure is_sandbox and sandbox_of_id are consistent</comment>
+        <sql>
+            ALTER TABLE tenancy.workspaces
+            ADD CONSTRAINT chk_sandbox_requires_parent
+            CHECK (
+                (is_sandbox = FALSE AND sandbox_of_id IS NULL)
+                OR
+                (is_sandbox = TRUE AND sandbox_of_id IS NOT NULL)
+            );
+        </sql>
+        <rollback>
+            ALTER TABLE tenancy.workspaces DROP CONSTRAINT IF EXISTS chk_sandbox_requires_parent;
+        </rollback>
+    </changeSet>
+
     <!-- ========== UNIQUE PARTIAL INDEXES ========== -->
 
     <changeSet id="workspaces:unique_partial_index:tenant_system" author="doc-assembly">
@@ -60,6 +97,16 @@
             WHERE type = 'SYSTEM';
         </sql>
         <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_tenant_system_workspace;</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:index_creation:unique_sandbox_per_workspace" author="doc-assembly">
+        <comment>Ensure only ONE sandbox per parent workspace</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_unique_sandbox_per_workspace
+            ON tenancy.workspaces(sandbox_of_id)
+            WHERE is_sandbox = TRUE;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_unique_sandbox_per_workspace;</rollback>
     </changeSet>
 
     <!-- ========== REGULAR INDEXES ========== -->
@@ -92,6 +139,23 @@
             ON tenancy.workspaces USING GIN (name gin_trgm_ops);
         </sql>
         <rollback>DROP INDEX IF EXISTS tenancy.idx_workspaces_name_trgm;</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:index_creation:sandbox_of_id" author="doc-assembly">
+        <comment>Index for sandbox lookups</comment>
+        <sql>
+            CREATE INDEX idx_workspaces_sandbox_of_id
+            ON tenancy.workspaces(sandbox_of_id)
+            WHERE sandbox_of_id IS NOT NULL;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS tenancy.idx_workspaces_sandbox_of_id;</rollback>
+    </changeSet>
+
+    <changeSet id="workspaces:index_creation:is_sandbox" author="doc-assembly">
+        <comment>Index for filtering by sandbox status</comment>
+        <createIndex indexName="idx_workspaces_is_sandbox" tableName="workspaces" schemaName="tenancy">
+            <column name="is_sandbox"/>
+        </createIndex>
     </changeSet>
 
     <!-- ========== TRIGGERS ========== -->

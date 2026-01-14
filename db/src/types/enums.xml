@@ -59,12 +59,6 @@
         <rollback>DROP TYPE IF EXISTS injectable_data_type;</rollback>
     </changeSet>
 
-    <changeSet id="enum:injectable_source_type" author="doc-assembly">
-        <comment>Source type for injectable: INTERNAL (system-calculated) or EXTERNAL (from external source/user input)</comment>
-        <sql>CREATE TYPE injectable_source_type AS ENUM ('INTERNAL', 'EXTERNAL');</sql>
-        <rollback>DROP TYPE IF EXISTS injectable_source_type;</rollback>
-    </changeSet>
-
     <changeSet id="enum:version_status" author="doc-assembly">
         <comment>Template version lifecycle status: DRAFT (editing), SCHEDULED (awaiting activation), PUBLISHED (active), ARCHIVED (historical)</comment>
         <sql>CREATE TYPE version_status AS ENUM ('DRAFT', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED');</sql>
@@ -81,7 +75,7 @@
 
     <changeSet id="enum:recipient_status" author="doc-assembly">
         <comment>Document recipient signing status</comment>
-        <sql>CREATE TYPE recipient_status AS ENUM ('WAITING', 'SIGNED', 'REJECTED');</sql>
+        <sql>CREATE TYPE recipient_status AS ENUM ('PENDING', 'SENT', 'DELIVERED', 'SIGNED', 'DECLINED');</sql>
         <rollback>DROP TYPE IF EXISTS recipient_status;</rollback>
     </changeSet>
 
@@ -89,62 +83,6 @@
         <comment>Document signing workflow status</comment>
         <sql>CREATE TYPE document_status AS ENUM ('DRAFT', 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'DECLINED', 'VOIDED', 'EXPIRED', 'ERROR');</sql>
         <rollback>DROP TYPE IF EXISTS document_status;</rollback>
-    </changeSet>
-
-    <changeSet id="enum:recipient_status:migrate_to_new_values" author="doc-assembly">
-        <comment>Migrate recipient_status enum: WAITING->PENDING, REJECTED->DECLINED, add SENT, DELIVERED</comment>
-        <sql splitStatements="false">
-            -- Step 1: Create new enum with desired values
-            CREATE TYPE recipient_status_new AS ENUM ('PENDING', 'SENT', 'DELIVERED', 'SIGNED', 'DECLINED');
-
-            -- Step 2: Update default value (remove old default first)
-            ALTER TABLE execution.document_recipients
-                ALTER COLUMN status DROP DEFAULT;
-
-            -- Step 3: Migrate data and change column type
-            ALTER TABLE execution.document_recipients
-                ALTER COLUMN status TYPE recipient_status_new
-                USING (
-                    CASE status::text
-                        WHEN 'WAITING' THEN 'PENDING'::recipient_status_new
-                        WHEN 'REJECTED' THEN 'DECLINED'::recipient_status_new
-                        WHEN 'SIGNED' THEN 'SIGNED'::recipient_status_new
-                        ELSE 'PENDING'::recipient_status_new
-                    END
-                );
-
-            -- Step 4: Drop old enum and rename new one
-            DROP TYPE recipient_status;
-            ALTER TYPE recipient_status_new RENAME TO recipient_status;
-
-            -- Step 5: Set new default
-            ALTER TABLE execution.document_recipients
-                ALTER COLUMN status SET DEFAULT 'PENDING'::recipient_status;
-        </sql>
-        <rollback>
-            -- Recreate old enum
-            CREATE TYPE recipient_status_old AS ENUM ('WAITING', 'SIGNED', 'REJECTED');
-
-            ALTER TABLE execution.document_recipients
-                ALTER COLUMN status DROP DEFAULT;
-
-            ALTER TABLE execution.document_recipients
-                ALTER COLUMN status TYPE recipient_status_old
-                USING (
-                    CASE status::text
-                        WHEN 'PENDING' THEN 'WAITING'::recipient_status_old
-                        WHEN 'DECLINED' THEN 'REJECTED'::recipient_status_old
-                        WHEN 'SIGNED' THEN 'SIGNED'::recipient_status_old
-                        ELSE 'WAITING'::recipient_status_old
-                    END
-                );
-
-            DROP TYPE recipient_status;
-            ALTER TYPE recipient_status_old RENAME TO recipient_status;
-
-            ALTER TABLE execution.document_recipients
-                ALTER COLUMN status SET DEFAULT 'WAITING'::recipient_status;
-        </rollback>
     </changeSet>
 
 </databaseChangeLog>

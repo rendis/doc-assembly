@@ -17,7 +17,10 @@
                 <constraints nullable="false"/>
             </column>
             <column name="injectable_definition_id" type="uuid">
-                <constraints nullable="false"/>
+                <constraints nullable="true"/>
+            </column>
+            <column name="system_injectable_key" type="VARCHAR(100)">
+                <constraints nullable="true"/>
             </column>
             <column name="is_required" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
@@ -59,15 +62,55 @@
             onDelete="RESTRICT"/>
     </changeSet>
 
+    <changeSet id="template_version_injectables:add_fk_constraint:system_injectable_key" author="doc-assembly">
+        <comment>FK to system_injectable_definitions</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="template_version_injectables"
+            baseColumnNames="system_injectable_key"
+            constraintName="fk_template_version_injectables_system_injectable_key"
+            referencedTableSchemaName="content"
+            referencedTableName="system_injectable_definitions"
+            referencedColumnNames="key"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <!-- ========== CHECK CONSTRAINTS ========== -->
+
+    <changeSet id="template_version_injectables:check_constraint:injectable_source_xor" author="doc-assembly">
+        <comment>Ensure exactly one of injectable_definition_id or system_injectable_key is set</comment>
+        <sql>
+            ALTER TABLE content.template_version_injectables
+            ADD CONSTRAINT chk_injectable_source_xor CHECK (
+                (injectable_definition_id IS NOT NULL AND system_injectable_key IS NULL) OR
+                (injectable_definition_id IS NULL AND system_injectable_key IS NOT NULL)
+            );
+        </sql>
+        <rollback>
+            ALTER TABLE content.template_version_injectables DROP CONSTRAINT chk_injectable_source_xor;
+        </rollback>
+    </changeSet>
+
     <!-- ========== UNIQUE CONSTRAINTS ========== -->
 
-    <changeSet id="template_version_injectables:add_unique_constraint:version_injectable" author="doc-assembly">
-        <comment>Prevent duplicate injectable assignments per template version</comment>
-        <addUniqueConstraint
-            schemaName="content"
-            tableName="template_version_injectables"
-            columnNames="template_version_id, injectable_definition_id"
-            constraintName="uq_template_version_injectables_version_injectable"/>
+    <changeSet id="template_version_injectables:add_unique_constraint:version_injectable_definition" author="doc-assembly">
+        <comment>Prevent duplicate injectable_definition assignments per template version</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_tvi_unique_version_injectable_definition
+            ON content.template_version_injectables (template_version_id, injectable_definition_id)
+            WHERE injectable_definition_id IS NOT NULL;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS content.idx_tvi_unique_version_injectable_definition;</rollback>
+    </changeSet>
+
+    <changeSet id="template_version_injectables:add_unique_constraint:version_system_injectable" author="doc-assembly">
+        <comment>Prevent duplicate system_injectable assignments per template version</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_tvi_unique_version_system_injectable
+            ON content.template_version_injectables (template_version_id, system_injectable_key)
+            WHERE system_injectable_key IS NOT NULL;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS content.idx_tvi_unique_version_system_injectable;</rollback>
     </changeSet>
 
     <!-- ========== INDEXES ========== -->
@@ -83,6 +126,13 @@
         <comment>Index for injectable definition lookups</comment>
         <createIndex indexName="idx_template_version_injectables_injectable_definition_id" tableName="template_version_injectables" schemaName="content">
             <column name="injectable_definition_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="template_version_injectables:index_creation:system_injectable_key" author="doc-assembly">
+        <comment>Index for system injectable key lookups</comment>
+        <createIndex indexName="idx_template_version_injectables_system_injectable_key" tableName="template_version_injectables" schemaName="content">
+            <column name="system_injectable_key"/>
         </createIndex>
     </changeSet>
 

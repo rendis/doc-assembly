@@ -237,9 +237,11 @@ erDiagram
         varchar_255 label "NOT NULL"
         text description
         injectable_data_type data_type "NOT NULL"
-        injectable_source_type source_type "NOT NULL DEFAULT EXTERNAL"
+        text default_value "Optional default"
         jsonb metadata "DEFAULT {}"
         jsonb format_config "CHECK constraint"
+        boolean is_active "DEFAULT TRUE"
+        boolean is_deleted "DEFAULT FALSE"
         timestamptz created_at "NOT NULL"
         timestamptz updated_at
     }
@@ -338,6 +340,8 @@ erDiagram
         varchar_255 email "NOT NULL"
         varchar_255 signer_recipient_id "Provider ID"
         recipient_status status "DEFAULT PENDING"
+        timestamptz signed_at "When signed"
+        varchar_500 signing_url "Signing URL"
         timestamptz created_at "NOT NULL"
         timestamptz updated_at
     }
@@ -470,6 +474,8 @@ flowchart LR
 **Indexes**:
 - `idx_tenants_code` - Fast lookup by tenant code
 - `idx_unique_system_tenant` - Partial unique index ensuring only ONE system tenant exists
+- `idx_tenants_name_trgm` - Trigram index for fuzzy tenant name search
+- `idx_tenants_code_trgm` - Trigram index for fuzzy tenant code search
 
 **Triggers**:
 - `trigger_tenants_updated_at` - Auto-updates `updated_at` on modification
@@ -513,6 +519,7 @@ flowchart LR
 - `idx_workspaces_type` - Filter by type
 - `idx_workspaces_is_sandbox` - Filter by sandbox status
 - `idx_workspaces_sandbox_of_id` - Lookup sandbox by parent (partial, WHERE sandbox_of_id IS NOT NULL)
+- `idx_workspaces_name_trgm` - Trigram index for fuzzy workspace name search
 
 **Special Partial Unique Indexes**:
 - `idx_unique_tenant_system_workspace` - Ensures only ONE SYSTEM workspace per tenant
@@ -671,7 +678,68 @@ WHERE p.type = 'CLIENT' AND p.is_sandbox = FALSE;
 
 ---
 
-### 5.6 `organizer.folders`
+### 5.6 `identity.system_roles`
+
+**Purpose**: Platform-level administrative roles that grant system-wide access.
+
+**Why it exists**: Some users need platform-level access (SUPERADMIN, PLATFORM_ADMIN) that spans across all tenants. This table tracks those elevated roles separately from workspace-level memberships.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `user_id` | UUID | FK → users, NOT NULL, UNIQUE | User with system role |
+| `role` | system_role | NOT NULL | `SUPERADMIN` or `PLATFORM_ADMIN` |
+| `granted_by` | UUID | FK → users, NULLABLE | User who granted the role |
+| `created_at` | TIMESTAMPTZ | NOT NULL | When role was granted |
+
+**Indexes**:
+- `idx_system_roles_user_id` - User lookup
+- `idx_system_roles_role` - Role filtering
+
+**Unique Constraints**:
+- `uq_system_roles_user_id` - One system role per user
+
+**Foreign Keys**:
+- `fk_system_roles_user_id` → `identity.users(id)` CASCADE
+- `fk_system_roles_granted_by` → `identity.users(id)` SET NULL
+
+**Triggers**:
+- `trigger_sync_system_role_memberships` - Auto-syncs to tenant_members and workspace_members for system tenant/workspace
+
+---
+
+### 5.7 `identity.tenant_members`
+
+**Purpose**: Tenant-level access relationships between users and tenants.
+
+**Why it exists**: Users can belong to multiple tenants with different roles. This table manages tenant-level membership separately from workspace-level membership.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PK, NOT NULL | Unique identifier |
+| `tenant_id` | UUID | FK → tenants, NOT NULL | Target tenant |
+| `user_id` | UUID | FK → users, NOT NULL | Member user |
+| `role` | tenant_role | NOT NULL | `TENANT_OWNER` or `TENANT_ADMIN` |
+| `membership_status` | membership_status | NOT NULL, DEFAULT 'ACTIVE' | `PENDING` or `ACTIVE` |
+| `granted_by` | UUID | FK → users, NULLABLE | Who granted access |
+| `created_at` | TIMESTAMPTZ | NOT NULL | When membership was created |
+
+**Indexes**:
+- `idx_tenant_members_tenant_id` - List members of a tenant
+- `idx_tenant_members_user_id` - List tenants a user belongs to
+- `idx_tenant_members_role` - Filter by role
+
+**Unique Constraints**:
+- `uq_tenant_members_tenant_user` - One membership per user per tenant
+
+**Foreign Keys**:
+- `fk_tenant_members_tenant_id` → `tenancy.tenants(id)` CASCADE
+- `fk_tenant_members_user_id` → `identity.users(id)` CASCADE
+- `fk_tenant_members_granted_by` → `identity.users(id)` SET NULL
+
+---
+
+### 5.8 `organizer.folders`
 
 **Purpose**: Hierarchical file system for organizing templates within a workspace.
 
@@ -726,7 +794,7 @@ The `path` column enables efficient hierarchical queries without recursive CTEs 
 
 ---
 
-### 5.7 `organizer.tags`
+### 5.9 `organizer.tags`
 
 **Purpose**: Cross-cutting labels that can be applied to templates for flexible categorization.
 
@@ -750,9 +818,12 @@ The `path` column enables efficient hierarchical queries without recursive CTEs 
 **Check Constraints**:
 - `chk_tags_color_format` - Validates HEX color format (`^#[0-9A-Fa-f]{6}$`)
 
+**Triggers**:
+- `trigger_tags_updated_at` - Auto-updates `updated_at` on modification
+
 ---
 
-### 5.8 `content.injectable_definitions`
+### 5.10 `content.injectable_definitions`
 
 **Purpose**: Defines the universe of available variables that can be injected into templates.
 
@@ -766,7 +837,6 @@ The `path` column enables efficient hierarchical queries without recursive CTEs 
 | `label` | VARCHAR(255) | NOT NULL | Human-readable name |
 | `description` | TEXT | - | Detailed description for users |
 | `data_type` | injectable_data_type | NOT NULL | `TEXT`, `NUMBER`, `DATE`, `CURRENCY`, `BOOLEAN`, `IMAGE`, `TABLE` |
-| `source_type` | injectable_source_type | NOT NULL, DEFAULT 'EXTERNAL' | `INTERNAL` (system-calculated) or `EXTERNAL` (user/API input) |
 | `metadata` | JSONB | DEFAULT '{}' | Flexible configuration (format options, timezone, etc.) |
 | `format_config` | JSONB | CHECK constraint | Format configuration: default format and available options |
 | `default_value` | TEXT | - | Default value for this injectable (optional) |
@@ -790,10 +860,6 @@ The `path` column enables efficient hierarchical queries without recursive CTEs 
 **Scope Inheritance**:
 - Global definitions (workspace_id = NULL) are available to all workspaces
 - Workspace-specific definitions override or extend globals
-
-**Source Types**:
-- `INTERNAL`: Values calculated automatically by the system (dates, IDs, counters)
-- `EXTERNAL`: Values provided by user input or external API sources
 
 **Metadata Structure**:
 
@@ -854,7 +920,7 @@ Valid values:
 
 ---
 
-### 5.9 `content.templates`
+### 5.11 `content.templates`
 
 **Purpose**: The document blueprint metadata that groups multiple versions together.
 
@@ -876,6 +942,9 @@ Valid values:
 - `idx_templates_is_public_library` - Find public templates
 - `idx_templates_title_trgm` - Fuzzy title search
 
+**Triggers**:
+- `trigger_templates_updated_at` - Auto-updates `updated_at` on modification
+
 **Relationship to Versions**:
 - A template can have multiple versions (1:N)
 - Only ONE version can be PUBLISHED at a time (enforced by exclusion constraint)
@@ -883,7 +952,7 @@ Valid values:
 
 ---
 
-### 5.10 `content.template_versions`
+### 5.12 `content.template_versions`
 
 **Purpose**: Versioned content for templates with lifecycle states and scheduling support.
 
@@ -925,6 +994,9 @@ Valid values:
 **Exclusion Constraint**:
 - `chk_template_versions_single_published` - Only ONE PUBLISHED version per template
 
+**Triggers**:
+- `trigger_template_versions_updated_at` - Auto-updates `updated_at` on modification
+
 **Version Status Flow**:
 ```
 DRAFT → PUBLISHED → ARCHIVED
@@ -935,31 +1007,37 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.11 `content.template_version_injectables`
+### 5.13 `content.template_version_injectables`
 
 **Purpose**: Configures which injectable variables a specific template version uses and how.
 
-**Why it exists**: Each version may use different variables with different requirements. This allows versions to evolve their variable requirements independently.
+**Why it exists**: Each version may use different variables with different requirements. This allows versions to evolve their variable requirements independently. Supports both workspace-defined injectables and system injectables.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, NOT NULL | Unique identifier |
 | `template_version_id` | UUID | FK → template_versions, NOT NULL | Version using this variable |
-| `injectable_definition_id` | UUID | FK → injectable_definitions, NOT NULL | Variable definition |
+| `injectable_definition_id` | UUID | FK → injectable_definitions, NULLABLE | Workspace injectable (mutually exclusive with system_injectable_key) |
+| `system_injectable_key` | VARCHAR(100) | FK → system_injectable_definitions, NULLABLE | System injectable key (mutually exclusive with injectable_definition_id) |
 | `is_required` | BOOLEAN | NOT NULL, DEFAULT false | Whether value must be provided |
 | `default_value` | TEXT | - | Default value if none provided |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
 
 **Indexes**:
 - `idx_template_version_injectables_template_version_id` - List variables for a version
-- `idx_template_version_injectables_injectable_definition_id` - Find versions using a variable
+- `idx_template_version_injectables_injectable_definition_id` - Find versions using a workspace variable
+- `idx_template_version_injectables_system_injectable_key` - Find versions using a system injectable
 
-**Unique Constraints**:
-- `uq_template_version_injectables_version_injectable` - A variable can only be added once per version
+**Unique Constraints** (Partial):
+- `idx_tvi_unique_version_injectable_definition` - One workspace injectable per version (WHERE injectable_definition_id IS NOT NULL)
+- `idx_tvi_unique_version_system_injectable` - One system injectable per version (WHERE system_injectable_key IS NOT NULL)
+
+**Check Constraints**:
+- `chk_injectable_source_xor` - Exactly one of `injectable_definition_id` or `system_injectable_key` must be set (XOR)
 
 ---
 
-### 5.12 `content.template_version_signer_roles`
+### 5.14 `content.template_version_signer_roles`
 
 **Purpose**: Defines the signature roles for a template version and their corresponding PDF anchors.
 
@@ -983,6 +1061,9 @@ DRAFT → PUBLISHED → ARCHIVED
 - `uq_template_version_signer_roles_version_anchor` - Unique anchors per version
 - `uq_template_version_signer_roles_version_order` - Unique order per version
 
+**Triggers**:
+- `trigger_template_version_signer_roles_updated_at` - Auto-updates `updated_at` on modification
+
 **Anchor Format**:
 - Anchors are text strings embedded invisibly in the document
 - External signature provider searches for these anchors to place signature fields
@@ -990,7 +1071,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.13 `content.template_tags`
+### 5.15 `content.template_tags`
 
 **Purpose**: Many-to-many relationship table linking templates to tags.
 
@@ -1009,7 +1090,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.14 `content.system_injectable_definitions`
+### 5.16 `content.system_injectable_definitions`
 
 **Purpose**: Registry of system-defined injectables that are managed in code but controlled via database for activation.
 
@@ -1039,7 +1120,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ---
 
-### 5.15 `content.system_injectable_assignments`
+### 5.17 `content.system_injectable_assignments`
 
 **Purpose**: Controls where system injectables are available by defining scope assignments.
 
@@ -1132,7 +1213,7 @@ WHERE sid.is_active = TRUE
 
 ---
 
-### 5.16 `execution.documents`
+### 5.18 `execution.documents`
 
 **Purpose**: Represents a generated document instance with all injected data and signature tracking.
 
@@ -1179,6 +1260,9 @@ WHERE sid.is_active = TRUE
   related_document_id IS NULL OR related_document_id != id
   ```
 
+**Triggers**:
+- `trigger_documents_updated_at` - Auto-updates `updated_at` on modification
+
 **Transactional Grouping**:
 
 The `transactional_id` groups documents that belong to the same business operation. For example, when a customer signs multiple contracts in a single session, all documents share the same `transactional_id`.
@@ -1205,7 +1289,7 @@ Documents reference a specific `template_version_id`, not just the template. Thi
 
 ---
 
-### 5.17 `execution.document_recipients`
+### 5.19 `execution.document_recipients`
 
 **Purpose**: Tracks individual participants (signers) of a document and their signature status.
 
@@ -1215,22 +1299,27 @@ Documents reference a specific `template_version_id`, not just the template. Thi
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, NOT NULL | Unique identifier |
 | `document_id` | UUID | FK → documents, NOT NULL | Parent document |
-| `template_role_id` | UUID | FK → template_signer_roles, NOT NULL | Role they're filling |
+| `template_version_role_id` | UUID | FK → template_version_signer_roles, NOT NULL | Role they're filling |
 | `name` | VARCHAR(255) | NOT NULL | Recipient display name |
 | `email` | VARCHAR(255) | NOT NULL | Recipient email for notifications |
 | `signer_recipient_id` | VARCHAR(255) | - | ID from signature provider |
 | `status` | recipient_status | NOT NULL, DEFAULT 'PENDING' | `PENDING`, `SENT`, `DELIVERED`, `SIGNED`, `DECLINED` |
+| `signed_at` | TIMESTAMPTZ | - | Timestamp when recipient signed |
+| `signing_url` | VARCHAR(500) | - | URL for recipient to sign the document |
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | - | Last status change |
 
 **Indexes**:
 - `idx_document_recipients_document_id` - List recipients for document
-- `idx_document_recipients_template_role_id` - Usage analytics
+- `idx_document_recipients_template_version_role_id` - Usage analytics
 - `idx_document_recipients_email` - Find documents by signer email
 - `idx_document_recipients_status` - Filter by signing status
 
 **Unique Constraints**:
 - `uq_document_recipients_document_role` - One recipient per role per document
+
+**Triggers**:
+- `trigger_document_recipients_updated_at` - Auto-updates `updated_at` on modification
 
 ---
 
@@ -1360,7 +1449,29 @@ LIMIT 10;
 
 ---
 
-### 7.3 `user_status`
+### 7.3 `system_role`
+
+**Purpose**: System-level roles for platform administration.
+
+| Value | Description |
+|-------|-------------|
+| `SUPERADMIN` | Full platform control, can manage all tenants and system configuration |
+| `PLATFORM_ADMIN` | Platform administration, can manage tenants and view system metrics |
+
+---
+
+### 7.4 `tenant_role`
+
+**Purpose**: Tenant-level roles for tenant administration.
+
+| Value | Description |
+|-------|-------------|
+| `TENANT_OWNER` | Full tenant control, billing, can create workspaces |
+| `TENANT_ADMIN` | Tenant administration, can manage workspaces and users |
+
+---
+
+### 7.5 `user_status`
 
 **Purpose**: Shadow user account status.
 
@@ -1372,7 +1483,7 @@ LIMIT 10;
 
 ---
 
-### 7.4 `workspace_role`
+### 7.6 `workspace_role`
 
 **Purpose**: Role-based access control within workspaces.
 
@@ -1386,7 +1497,7 @@ LIMIT 10;
 
 ---
 
-### 7.5 `membership_status`
+### 7.7 `membership_status`
 
 **Purpose**: Status of a user's workspace membership.
 
@@ -1397,7 +1508,7 @@ LIMIT 10;
 
 ---
 
-### 7.6 `injectable_data_type`
+### 7.8 `injectable_data_type`
 
 **Purpose**: Data types for injectable variables.
 
@@ -1413,22 +1524,7 @@ LIMIT 10;
 
 ---
 
-### 7.7 `injectable_source_type`
-
-**Purpose**: Indicates whether an injectable's value is calculated internally by the system or provided from an external source.
-
-| Value | Description |
-|-------|-------------|
-| `INTERNAL` | Value calculated/generated by the system (e.g., current date, document ID, counters) |
-| `EXTERNAL` | Value provided from external source (user input, API, CRM integration) |
-
-**Usage**:
-- `INTERNAL` injectables are auto-populated at document generation time
-- `EXTERNAL` injectables require data to be provided when creating a document
-
----
-
-### 7.8 `injectable_scope_type`
+### 7.9 `injectable_scope_type`
 
 **Purpose**: Defines the visibility scope for system injectable assignments.
 
@@ -1445,7 +1541,7 @@ LIMIT 10;
 
 ---
 
-### 7.9 `version_status`
+### 7.10 `version_status`
 
 **Purpose**: Lifecycle status of template versions.
 
@@ -1464,7 +1560,7 @@ LIMIT 10;
 
 ---
 
-### 7.10 `recipient_status`
+### 7.11 `recipient_status`
 
 **Purpose**: Individual signer's progress through the signing workflow.
 
@@ -1481,6 +1577,32 @@ LIMIT 10;
 PENDING → SENT → DELIVERED → SIGNED
                           ↘
                          DECLINED
+```
+
+---
+
+### 7.12 `document_status`
+
+**Purpose**: Document signing workflow status.
+
+| Value | Description |
+|-------|-------------|
+| `DRAFT` | Document created but not yet sent for signatures |
+| `PENDING` | Document sent, awaiting first action |
+| `IN_PROGRESS` | At least one recipient has interacted |
+| `COMPLETED` | All recipients have signed |
+| `DECLINED` | One or more recipients declined to sign |
+| `VOIDED` | Document cancelled by sender |
+| `EXPIRED` | Signing deadline passed |
+| `ERROR` | Error during processing |
+
+**Status Flow**:
+```
+DRAFT → PENDING → IN_PROGRESS → COMPLETED
+                             ↘ DECLINED
+                             ↘ VOIDED
+                             ↘ EXPIRED
+                             ↘ ERROR
 ```
 
 ---
