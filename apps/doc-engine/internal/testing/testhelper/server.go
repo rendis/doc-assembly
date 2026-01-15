@@ -85,11 +85,13 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	workspaceInjectableService := injectablesvc.NewWorkspaceInjectableService(workspaceInjectableRepo)
 	systemInjectableService := injectablesvc.NewSystemInjectableService(systemInjectableRepo, nil)
 
-	// Create content validator
-	contentValidator := contentvalidator.New(injectableRepo)
-
 	// Create services - Content
 	injectableService := injectablesvc.NewInjectableService(injectableRepo, systemInjectableRepo, nil)
+
+	// Create content validator
+	contentValidator := contentvalidator.New(injectableService)
+
+	// Create services - Content
 	templateService := templatesvc.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
 	templateVersionService := templatesvc.NewTemplateVersionService(
 		templateVersionRepo,
