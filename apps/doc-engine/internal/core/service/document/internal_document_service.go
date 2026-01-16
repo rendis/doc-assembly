@@ -8,7 +8,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
+	document_uc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
 
 // InternalDocumentService implements usecase.InternalDocumentUseCase.
@@ -29,7 +29,7 @@ func NewInternalDocumentService(
 	recipientRepo port.DocumentRecipientRepository,
 	pdfRenderer port.PDFRenderer,
 	signingProvider port.SigningProvider,
-) documentuc.InternalDocumentUseCase {
+) document_uc.InternalDocumentUseCase {
 	return &InternalDocumentService{
 		generator:       generator,
 		documentRepo:    documentRepo,
@@ -44,7 +44,7 @@ func NewInternalDocumentService(
 // and sends it to the signing provider.
 func (s *InternalDocumentService) CreateDocument(
 	ctx context.Context,
-	cmd documentuc.InternalCreateCommand,
+	cmd document_uc.InternalCreateCommand,
 ) (*entity.DocumentWithRecipients, error) {
 	slog.InfoContext(ctx, "creating document via internal API",
 		"externalID", cmd.ExternalID, "templateID", cmd.TemplateID)
@@ -70,7 +70,7 @@ func (s *InternalDocumentService) CreateDocument(
 }
 
 // buildMapperContext creates a MapperContext from the command.
-func (s *InternalDocumentService) buildMapperContext(cmd documentuc.InternalCreateCommand) *port.MapperContext {
+func (s *InternalDocumentService) buildMapperContext(cmd document_uc.InternalCreateCommand) *port.MapperContext {
 	return &port.MapperContext{
 		ExternalID:      cmd.ExternalID,
 		TemplateID:      cmd.TemplateID,
