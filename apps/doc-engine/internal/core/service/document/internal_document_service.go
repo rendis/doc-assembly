@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
+	portable_doc "github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	document_uc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
@@ -144,7 +144,7 @@ func (s *InternalDocumentService) renderPDF(
 func (s *InternalDocumentService) buildSignerRoleValues(
 	recipients []*entity.DocumentRecipient,
 	dbSignerRoles []*entity.TemplateVersionSignerRole,
-	portableDocRoles []portabledoc.SignerRole,
+	portableDocRoles []portable_doc.SignerRole,
 ) map[string]port.SignerRoleValue {
 	// Create map: DB role ID -> anchor string
 	dbRoleToAnchor := make(map[string]string, len(dbSignerRoles))
@@ -155,7 +155,7 @@ func (s *InternalDocumentService) buildSignerRoleValues(
 	// Create map: anchor string -> portable doc role ID
 	anchorToPortableID := make(map[string]string, len(portableDocRoles))
 	for _, role := range portableDocRoles {
-		anchor := portabledoc.GenerateAnchorString(role.Label)
+		anchor := portable_doc.GenerateAnchorString(role.Label)
 		anchorToPortableID[anchor] = role.ID
 	}
 

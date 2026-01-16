@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
-	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
+	portable_doc "github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
-	injectablesvc "github.com/doc-assembly/doc-engine/internal/core/service/injectable"
-	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
+	injectable_svc "github.com/doc-assembly/doc-engine/internal/core/service/injectable"
+	injectable_uc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
 	"github.com/doc-assembly/doc-engine/internal/core/validation"
 )
 
@@ -22,7 +22,7 @@ type DocumentGenerationResult struct {
 	Document       *entity.Document
 	Recipients     []*entity.DocumentRecipient
 	Version        *entity.TemplateVersionWithDetails
-	PortableDoc    *portabledoc.Document
+	PortableDoc    *portable_doc.Document
 	ResolvedValues map[string]any
 }
 
@@ -34,9 +34,9 @@ type DocumentGenerator struct {
 	versionRepo    port.TemplateVersionRepository
 	documentRepo   port.DocumentRepository
 	recipientRepo  port.DocumentRecipientRepository
-	injectableUC   injectableuc.InjectableUseCase
+	injectableUC   injectable_uc.InjectableUseCase
 	mapperRegistry port.MapperRegistry
-	resolver       *injectablesvc.InjectableResolverService
+	resolver       *injectable_svc.InjectableResolverService
 }
 
 // NewDocumentGenerator creates a new DocumentGenerator instance.
@@ -45,9 +45,9 @@ func NewDocumentGenerator(
 	versionRepo port.TemplateVersionRepository,
 	documentRepo port.DocumentRepository,
 	recipientRepo port.DocumentRecipientRepository,
-	injectableUC injectableuc.InjectableUseCase,
+	injectableUC injectable_uc.InjectableUseCase,
 	mapperRegistry port.MapperRegistry,
-	resolver *injectablesvc.InjectableResolverService,
+	resolver *injectable_svc.InjectableResolverService,
 ) *DocumentGenerator {
 	return &DocumentGenerator{
 		templateRepo:   templateRepo,
@@ -167,13 +167,13 @@ func (g *DocumentGenerator) findPublishedVersion(
 	return version, nil
 }
 
-// parseContentStructure parses the JSON ContentStructure into portabledoc.Document.
-func (g *DocumentGenerator) parseContentStructure(content json.RawMessage) (*portabledoc.Document, error) {
+// parseContentStructure parses the JSON ContentStructure into portable_doc.Document.
+func (g *DocumentGenerator) parseContentStructure(content json.RawMessage) (*portable_doc.Document, error) {
 	if content == nil {
 		return nil, entity.ErrMissingRequiredContent
 	}
 
-	var doc portabledoc.Document
+	var doc portable_doc.Document
 	if err := json.Unmarshal(content, &doc); err != nil {
 		return nil, fmt.Errorf("unmarshaling content structure: %w", err)
 	}
@@ -185,7 +185,7 @@ func (g *DocumentGenerator) parseContentStructure(content json.RawMessage) (*por
 // This includes codes from version injectables and codes referenced in SignerRoles.
 func (g *DocumentGenerator) collectReferencedCodes(
 	versionInjectables []*entity.VersionInjectableWithDefinition,
-	signerRoles []portabledoc.SignerRole,
+	signerRoles []portable_doc.SignerRole,
 ) []string {
 	codeSet := make(map[string]bool)
 
@@ -294,10 +294,10 @@ func (g *DocumentGenerator) resolveInjectables(
 	return resolvedValues, nil
 }
 
-// buildRecipientsFromSignerRoles builds and validates DocumentRecipient entities from portabledoc SignerRoles.
+// buildRecipientsFromSignerRoles builds and validates DocumentRecipient entities from portable_doc SignerRoles.
 func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	ctx context.Context,
-	portableSignerRoles []portabledoc.SignerRole,
+	portableSignerRoles []portable_doc.SignerRole,
 	dbSignerRoles []*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
 ) ([]*entity.DocumentRecipient, error) {
@@ -327,13 +327,13 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 
 // buildAndValidateRecipient creates and validates a single DocumentRecipient from a SignerRole.
 func (g *DocumentGenerator) buildAndValidateRecipient(
-	sr portabledoc.SignerRole,
+	sr portable_doc.SignerRole,
 	roleByAnchor map[string]*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
 ) (*entity.DocumentRecipient, error) {
 	name := validation.NormalizeName(g.resolveFieldValue(sr.Name, resolvedValues))
 	email := strings.TrimSpace(g.resolveFieldValue(sr.Email, resolvedValues))
-	anchor := portabledoc.GenerateAnchorString(sr.Label)
+	anchor := portable_doc.GenerateAnchorString(sr.Label)
 	dbRole, found := roleByAnchor[anchor]
 
 	// Validate with descriptive error messages
@@ -361,7 +361,7 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 
 // resolveFieldValue resolves a FieldValue to its actual string value.
 func (g *DocumentGenerator) resolveFieldValue(
-	field portabledoc.FieldValue,
+	field portable_doc.FieldValue,
 	resolvedValues map[string]any,
 ) string {
 	if field.IsText() {
