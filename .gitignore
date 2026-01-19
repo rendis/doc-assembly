@@ -145,6 +145,7 @@ secrets/
 !.env.example
 
 # Agents
+.claude/
 CLAUDE.md
 GEMINI.md
 apps/doc-engine/tmp

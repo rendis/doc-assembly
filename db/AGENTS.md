@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI Agents when working with code in this repository.
 
 ## Project Overview
 
@@ -28,13 +28,13 @@ liquibase --defaults-file=liquibase-local.properties status
 
 ### Schema Organization (5 schemas)
 
-| Schema | Purpose |
-|--------|---------|
-| `tenancy` | Multi-tenant infrastructure (tenants, workspaces) |
-| `identity` | Shadow users and workspace membership |
-| `organizer` | Resource classification (folders, tags, cache tables) |
-| `content` | Template engine (templates, injectables, signer roles) |
-| `execution` | Generated documents and signature tracking |
+| Schema      | Purpose                                                |
+| ----------- | ------------------------------------------------------ |
+| `tenancy`   | Multi-tenant infrastructure (tenants, workspaces)      |
+| `identity`  | Shadow users and workspace membership                  |
+| `organizer` | Resource classification (folders, tags, cache tables)  |
+| `content`   | Template engine (templates, injectables, signer roles) |
+| `execution` | Generated documents and signature tracking             |
 
 ### Migration Phases (in changelog.master.xml)
 
@@ -49,11 +49,12 @@ liquibase --defaults-file=liquibase-local.properties status
 
 ### Changeset ID Convention
 
-```
+```plaintext
 {table}:{operation}[:{specification}]
 ```
 
 Examples:
+
 - `tenants:table_creation`
 - `tenants:index_creation:code`
 - `tenants:add_fk_constraint:workspace_id`
@@ -69,7 +70,7 @@ Examples:
 
 ### Multi-Tenant Hierarchy
 
-```
+```plaintext
 Global (tenant_id = NULL)
   └── SYSTEM Workspace (shared templates)
 
@@ -80,7 +81,7 @@ Tenant (e.g., Chile, Mexico)
 
 ## File Structure
 
-```
+```plaintext
 changelog.master.xml          # Master orchestrator
 liquibase-*.properties        # Environment configs
 src/
@@ -94,6 +95,7 @@ src/
 ## Documentation
 
 See `DATABASE.md` for complete schema documentation including:
+
 - ER diagrams (Mermaid)
 - Table reference with all columns, constraints, indexes
 - ENUM type definitions
