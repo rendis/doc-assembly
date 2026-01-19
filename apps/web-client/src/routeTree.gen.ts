@@ -9,400 +9,360 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as EditorTestRouteImport } from './routes/editor-test'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as AdminRouteRouteImport } from './routes/admin/route'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as AdminTenantsRouteImport } from './routes/admin/tenants'
-import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
-import { Route as AdminAuditRouteImport } from './routes/admin/audit'
-import { Route as AppSelectTenantRouteImport } from './routes/_app/select-tenant'
-import { Route as AppWorkspaceWorkspaceIdRouteImport } from './routes/_app/workspace/$workspaceId'
-import { Route as AppWorkspaceWorkspaceIdIndexRouteImport } from './routes/_app/workspace/$workspaceId/index'
-import { Route as AppWorkspaceWorkspaceIdSettingsRouteImport } from './routes/_app/workspace/$workspaceId/settings'
-import { Route as AppWorkspaceWorkspaceIdDocumentsRouteImport } from './routes/_app/workspace/$workspaceId/documents'
-import { Route as AppWorkspaceWorkspaceIdTemplatesIndexRouteImport } from './routes/_app/workspace/$workspaceId/templates/index'
-import { Route as AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRouteImport } from './routes/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
+import { Route as SelectTenantRouteImport } from './routes/select-tenant'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceWorkspaceIdRouteImport } from './routes/workspace.$workspaceId'
+import { Route as WorkspaceWorkspaceIdIndexRouteImport } from './routes/workspace.$workspaceId/index'
+import { Route as WorkspaceWorkspaceIdVariablesRouteImport } from './routes/workspace.$workspaceId/variables'
+import { Route as WorkspaceWorkspaceIdTemplatesRouteImport } from './routes/workspace.$workspaceId/templates'
+import { Route as WorkspaceWorkspaceIdSettingsRouteImport } from './routes/workspace.$workspaceId/settings'
+import { Route as WorkspaceWorkspaceIdDocumentsRouteImport } from './routes/workspace.$workspaceId/documents'
+import { Route as WorkspaceWorkspaceIdAdministrationRouteImport } from './routes/workspace.$workspaceId/administration'
+import { Route as WorkspaceWorkspaceIdTemplatesIndexRouteImport } from './routes/workspace.$workspaceId/templates.index'
+import { Route as WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport } from './routes/workspace.$workspaceId/templates.$templateId'
+import { Route as WorkspaceWorkspaceIdEditorVersionIdRouteImport } from './routes/workspace.$workspaceId/editor.$versionId'
+import { Route as WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRouteImport } from './routes/workspace.$workspaceId/editor.$templateId.version.$versionId'
 
-const EditorTestRoute = EditorTestRouteImport.update({
-  id: '/editor-test',
-  path: '/editor-test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRouteRoute = AdminRouteRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminTenantsRoute = AdminTenantsRouteImport.update({
-  id: '/tenants',
-  path: '/tenants',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminAuditRoute = AdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AppSelectTenantRoute = AppSelectTenantRouteImport.update({
+const SelectTenantRoute = SelectTenantRouteImport.update({
   id: '/select-tenant',
   path: '/select-tenant',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkspaceWorkspaceIdRoute = AppWorkspaceWorkspaceIdRouteImport.update({
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceWorkspaceIdRoute = WorkspaceWorkspaceIdRouteImport.update({
   id: '/workspace/$workspaceId',
   path: '/workspace/$workspaceId',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkspaceWorkspaceIdIndexRoute =
-  AppWorkspaceWorkspaceIdIndexRouteImport.update({
+const WorkspaceWorkspaceIdIndexRoute =
+  WorkspaceWorkspaceIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
   } as any)
-const AppWorkspaceWorkspaceIdSettingsRoute =
-  AppWorkspaceWorkspaceIdSettingsRouteImport.update({
+const WorkspaceWorkspaceIdVariablesRoute =
+  WorkspaceWorkspaceIdVariablesRouteImport.update({
+    id: '/variables',
+    path: '/variables',
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
+  } as any)
+const WorkspaceWorkspaceIdTemplatesRoute =
+  WorkspaceWorkspaceIdTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
+  } as any)
+const WorkspaceWorkspaceIdSettingsRoute =
+  WorkspaceWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
-    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
   } as any)
-const AppWorkspaceWorkspaceIdDocumentsRoute =
-  AppWorkspaceWorkspaceIdDocumentsRouteImport.update({
+const WorkspaceWorkspaceIdDocumentsRoute =
+  WorkspaceWorkspaceIdDocumentsRouteImport.update({
     id: '/documents',
     path: '/documents',
-    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
   } as any)
-const AppWorkspaceWorkspaceIdTemplatesIndexRoute =
-  AppWorkspaceWorkspaceIdTemplatesIndexRouteImport.update({
-    id: '/templates/',
-    path: '/templates/',
-    getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
+const WorkspaceWorkspaceIdAdministrationRoute =
+  WorkspaceWorkspaceIdAdministrationRouteImport.update({
+    id: '/administration',
+    path: '/administration',
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
   } as any)
-const AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute =
-  AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRouteImport.update(
-    {
-      id: '/templates/$templateId/version/$versionId/design',
-      path: '/templates/$templateId/version/$versionId/design',
-      getParentRoute: () => AppWorkspaceWorkspaceIdRoute,
-    } as any,
-  )
+const WorkspaceWorkspaceIdTemplatesIndexRoute =
+  WorkspaceWorkspaceIdTemplatesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => WorkspaceWorkspaceIdTemplatesRoute,
+  } as any)
+const WorkspaceWorkspaceIdTemplatesTemplateIdRoute =
+  WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport.update({
+    id: '/$templateId',
+    path: '/$templateId',
+    getParentRoute: () => WorkspaceWorkspaceIdTemplatesRoute,
+  } as any)
+const WorkspaceWorkspaceIdEditorVersionIdRoute =
+  WorkspaceWorkspaceIdEditorVersionIdRouteImport.update({
+    id: '/editor/$versionId',
+    path: '/editor/$versionId',
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
+  } as any)
+const WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute =
+  WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRouteImport.update({
+    id: '/editor/$templateId/version/$versionId',
+    path: '/editor/$templateId/version/$versionId',
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/admin': typeof AdminRouteRouteWithChildren
-  '/editor-test': typeof EditorTestRoute
-  '/select-tenant': typeof AppSelectTenantRoute
-  '/admin/audit': typeof AdminAuditRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/tenants': typeof AdminTenantsRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/': typeof AppIndexRoute
-  '/admin/': typeof AdminIndexRoute
-  '/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdRouteWithChildren
-  '/workspace/$workspaceId/documents': typeof AppWorkspaceWorkspaceIdDocumentsRoute
-  '/workspace/$workspaceId/settings': typeof AppWorkspaceWorkspaceIdSettingsRoute
-  '/workspace/$workspaceId/': typeof AppWorkspaceWorkspaceIdIndexRoute
-  '/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
-  '/workspace/$workspaceId/templates/$templateId/version/$versionId/design': typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/select-tenant': typeof SelectTenantRoute
+  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRouteWithChildren
+  '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
+  '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
+  '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
+  '/workspace/$workspaceId/templates': typeof WorkspaceWorkspaceIdTemplatesRouteWithChildren
+  '/workspace/$workspaceId/variables': typeof WorkspaceWorkspaceIdVariablesRoute
+  '/workspace/$workspaceId/': typeof WorkspaceWorkspaceIdIndexRoute
+  '/workspace/$workspaceId/editor/$versionId': typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  '/workspace/$workspaceId/templates/$templateId': typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  '/workspace/$workspaceId/templates/': typeof WorkspaceWorkspaceIdTemplatesIndexRoute
+  '/workspace/$workspaceId/editor/$templateId/version/$versionId': typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
 export interface FileRoutesByTo {
-  '/editor-test': typeof EditorTestRoute
-  '/select-tenant': typeof AppSelectTenantRoute
-  '/admin/audit': typeof AdminAuditRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/tenants': typeof AdminTenantsRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/': typeof AppIndexRoute
-  '/admin': typeof AdminIndexRoute
-  '/workspace/$workspaceId/documents': typeof AppWorkspaceWorkspaceIdDocumentsRoute
-  '/workspace/$workspaceId/settings': typeof AppWorkspaceWorkspaceIdSettingsRoute
-  '/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdIndexRoute
-  '/workspace/$workspaceId/templates': typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
-  '/workspace/$workspaceId/templates/$templateId/version/$versionId/design': typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/select-tenant': typeof SelectTenantRoute
+  '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
+  '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
+  '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
+  '/workspace/$workspaceId/variables': typeof WorkspaceWorkspaceIdVariablesRoute
+  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdIndexRoute
+  '/workspace/$workspaceId/editor/$versionId': typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  '/workspace/$workspaceId/templates/$templateId': typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  '/workspace/$workspaceId/templates': typeof WorkspaceWorkspaceIdTemplatesIndexRoute
+  '/workspace/$workspaceId/editor/$templateId/version/$versionId': typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/admin': typeof AdminRouteRouteWithChildren
-  '/_app': typeof AppRouteWithChildren
-  '/editor-test': typeof EditorTestRoute
-  '/_app/select-tenant': typeof AppSelectTenantRoute
-  '/admin/audit': typeof AdminAuditRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/tenants': typeof AdminTenantsRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/_app/': typeof AppIndexRoute
-  '/admin/': typeof AdminIndexRoute
-  '/_app/workspace/$workspaceId': typeof AppWorkspaceWorkspaceIdRouteWithChildren
-  '/_app/workspace/$workspaceId/documents': typeof AppWorkspaceWorkspaceIdDocumentsRoute
-  '/_app/workspace/$workspaceId/settings': typeof AppWorkspaceWorkspaceIdSettingsRoute
-  '/_app/workspace/$workspaceId/': typeof AppWorkspaceWorkspaceIdIndexRoute
-  '/_app/workspace/$workspaceId/templates/': typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
-  '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design': typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/select-tenant': typeof SelectTenantRoute
+  '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRouteWithChildren
+  '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
+  '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
+  '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
+  '/workspace/$workspaceId/templates': typeof WorkspaceWorkspaceIdTemplatesRouteWithChildren
+  '/workspace/$workspaceId/variables': typeof WorkspaceWorkspaceIdVariablesRoute
+  '/workspace/$workspaceId/': typeof WorkspaceWorkspaceIdIndexRoute
+  '/workspace/$workspaceId/editor/$versionId': typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  '/workspace/$workspaceId/templates/$templateId': typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  '/workspace/$workspaceId/templates/': typeof WorkspaceWorkspaceIdTemplatesIndexRoute
+  '/workspace/$workspaceId/editor/$templateId/version/$versionId': typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/admin'
-    | '/editor-test'
-    | '/select-tenant'
-    | '/admin/audit'
-    | '/admin/settings'
-    | '/admin/tenants'
-    | '/admin/users'
     | '/'
-    | '/admin/'
+    | '/login'
+    | '/select-tenant'
     | '/workspace/$workspaceId'
+    | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
-    | '/workspace/$workspaceId/'
     | '/workspace/$workspaceId/templates'
-    | '/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
+    | '/workspace/$workspaceId/variables'
+    | '/workspace/$workspaceId/'
+    | '/workspace/$workspaceId/editor/$versionId'
+    | '/workspace/$workspaceId/templates/$templateId'
+    | '/workspace/$workspaceId/templates/'
+    | '/workspace/$workspaceId/editor/$templateId/version/$versionId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/editor-test'
-    | '/select-tenant'
-    | '/admin/audit'
-    | '/admin/settings'
-    | '/admin/tenants'
-    | '/admin/users'
     | '/'
-    | '/admin'
+    | '/login'
+    | '/select-tenant'
+    | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
+    | '/workspace/$workspaceId/variables'
     | '/workspace/$workspaceId'
+    | '/workspace/$workspaceId/editor/$versionId'
+    | '/workspace/$workspaceId/templates/$templateId'
     | '/workspace/$workspaceId/templates'
-    | '/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
+    | '/workspace/$workspaceId/editor/$templateId/version/$versionId'
   id:
     | '__root__'
-    | '/admin'
-    | '/_app'
-    | '/editor-test'
-    | '/_app/select-tenant'
-    | '/admin/audit'
-    | '/admin/settings'
-    | '/admin/tenants'
-    | '/admin/users'
-    | '/_app/'
-    | '/admin/'
-    | '/_app/workspace/$workspaceId'
-    | '/_app/workspace/$workspaceId/documents'
-    | '/_app/workspace/$workspaceId/settings'
-    | '/_app/workspace/$workspaceId/'
-    | '/_app/workspace/$workspaceId/templates/'
-    | '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
+    | '/'
+    | '/login'
+    | '/select-tenant'
+    | '/workspace/$workspaceId'
+    | '/workspace/$workspaceId/administration'
+    | '/workspace/$workspaceId/documents'
+    | '/workspace/$workspaceId/settings'
+    | '/workspace/$workspaceId/templates'
+    | '/workspace/$workspaceId/variables'
+    | '/workspace/$workspaceId/'
+    | '/workspace/$workspaceId/editor/$versionId'
+    | '/workspace/$workspaceId/templates/$templateId'
+    | '/workspace/$workspaceId/templates/'
+    | '/workspace/$workspaceId/editor/$templateId/version/$versionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AdminRouteRoute: typeof AdminRouteRouteWithChildren
-  AppRoute: typeof AppRouteWithChildren
-  EditorTestRoute: typeof EditorTestRoute
+  IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  SelectTenantRoute: typeof SelectTenantRoute
+  WorkspaceWorkspaceIdRoute: typeof WorkspaceWorkspaceIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/editor-test': {
-      id: '/editor-test'
-      path: '/editor-test'
-      fullPath: '/editor-test'
-      preLoaderRoute: typeof EditorTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/_app/': {
-      id: '/_app/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/tenants': {
-      id: '/admin/tenants'
-      path: '/tenants'
-      fullPath: '/admin/tenants'
-      preLoaderRoute: typeof AdminTenantsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/audit': {
-      id: '/admin/audit'
-      path: '/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AdminAuditRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/_app/select-tenant': {
-      id: '/_app/select-tenant'
+    '/select-tenant': {
+      id: '/select-tenant'
       path: '/select-tenant'
       fullPath: '/select-tenant'
-      preLoaderRoute: typeof AppSelectTenantRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof SelectTenantRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/workspace/$workspaceId': {
-      id: '/_app/workspace/$workspaceId'
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace/$workspaceId': {
+      id: '/workspace/$workspaceId'
       path: '/workspace/$workspaceId'
       fullPath: '/workspace/$workspaceId'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof WorkspaceWorkspaceIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/workspace/$workspaceId/': {
-      id: '/_app/workspace/$workspaceId/'
+    '/workspace/$workspaceId/': {
+      id: '/workspace/$workspaceId/'
       path: '/'
       fullPath: '/workspace/$workspaceId/'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdIndexRouteImport
-      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
+      preLoaderRoute: typeof WorkspaceWorkspaceIdIndexRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
     }
-    '/_app/workspace/$workspaceId/settings': {
-      id: '/_app/workspace/$workspaceId/settings'
-      path: '/settings'
-      fullPath: '/workspace/$workspaceId/settings'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdSettingsRouteImport
-      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
+    '/workspace/$workspaceId/variables': {
+      id: '/workspace/$workspaceId/variables'
+      path: '/variables'
+      fullPath: '/workspace/$workspaceId/variables'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdVariablesRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
     }
-    '/_app/workspace/$workspaceId/documents': {
-      id: '/_app/workspace/$workspaceId/documents'
-      path: '/documents'
-      fullPath: '/workspace/$workspaceId/documents'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdDocumentsRouteImport
-      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
-    }
-    '/_app/workspace/$workspaceId/templates/': {
-      id: '/_app/workspace/$workspaceId/templates/'
+    '/workspace/$workspaceId/templates': {
+      id: '/workspace/$workspaceId/templates'
       path: '/templates'
       fullPath: '/workspace/$workspaceId/templates'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdTemplatesIndexRouteImport
-      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
+      preLoaderRoute: typeof WorkspaceWorkspaceIdTemplatesRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
     }
-    '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design': {
-      id: '/_app/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
-      path: '/templates/$templateId/version/$versionId/design'
-      fullPath: '/workspace/$workspaceId/templates/$templateId/version/$versionId/design'
-      preLoaderRoute: typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRouteImport
-      parentRoute: typeof AppWorkspaceWorkspaceIdRoute
+    '/workspace/$workspaceId/settings': {
+      id: '/workspace/$workspaceId/settings'
+      path: '/settings'
+      fullPath: '/workspace/$workspaceId/settings'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdSettingsRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
+    }
+    '/workspace/$workspaceId/documents': {
+      id: '/workspace/$workspaceId/documents'
+      path: '/documents'
+      fullPath: '/workspace/$workspaceId/documents'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdDocumentsRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
+    }
+    '/workspace/$workspaceId/administration': {
+      id: '/workspace/$workspaceId/administration'
+      path: '/administration'
+      fullPath: '/workspace/$workspaceId/administration'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdAdministrationRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
+    }
+    '/workspace/$workspaceId/templates/': {
+      id: '/workspace/$workspaceId/templates/'
+      path: '/'
+      fullPath: '/workspace/$workspaceId/templates/'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdTemplatesIndexRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdTemplatesRoute
+    }
+    '/workspace/$workspaceId/templates/$templateId': {
+      id: '/workspace/$workspaceId/templates/$templateId'
+      path: '/$templateId'
+      fullPath: '/workspace/$workspaceId/templates/$templateId'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdTemplatesRoute
+    }
+    '/workspace/$workspaceId/editor/$versionId': {
+      id: '/workspace/$workspaceId/editor/$versionId'
+      path: '/editor/$versionId'
+      fullPath: '/workspace/$workspaceId/editor/$versionId'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdEditorVersionIdRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
+    }
+    '/workspace/$workspaceId/editor/$templateId/version/$versionId': {
+      id: '/workspace/$workspaceId/editor/$templateId/version/$versionId'
+      path: '/editor/$templateId/version/$versionId'
+      fullPath: '/workspace/$workspaceId/editor/$templateId/version/$versionId'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
     }
   }
 }
 
-interface AdminRouteRouteChildren {
-  AdminAuditRoute: typeof AdminAuditRoute
-  AdminSettingsRoute: typeof AdminSettingsRoute
-  AdminTenantsRoute: typeof AdminTenantsRoute
-  AdminUsersRoute: typeof AdminUsersRoute
-  AdminIndexRoute: typeof AdminIndexRoute
+interface WorkspaceWorkspaceIdTemplatesRouteChildren {
+  WorkspaceWorkspaceIdTemplatesTemplateIdRoute: typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  WorkspaceWorkspaceIdTemplatesIndexRoute: typeof WorkspaceWorkspaceIdTemplatesIndexRoute
 }
 
-const AdminRouteRouteChildren: AdminRouteRouteChildren = {
-  AdminAuditRoute: AdminAuditRoute,
-  AdminSettingsRoute: AdminSettingsRoute,
-  AdminTenantsRoute: AdminTenantsRoute,
-  AdminUsersRoute: AdminUsersRoute,
-  AdminIndexRoute: AdminIndexRoute,
-}
-
-const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
-  AdminRouteRouteChildren,
-)
-
-interface AppWorkspaceWorkspaceIdRouteChildren {
-  AppWorkspaceWorkspaceIdDocumentsRoute: typeof AppWorkspaceWorkspaceIdDocumentsRoute
-  AppWorkspaceWorkspaceIdSettingsRoute: typeof AppWorkspaceWorkspaceIdSettingsRoute
-  AppWorkspaceWorkspaceIdIndexRoute: typeof AppWorkspaceWorkspaceIdIndexRoute
-  AppWorkspaceWorkspaceIdTemplatesIndexRoute: typeof AppWorkspaceWorkspaceIdTemplatesIndexRoute
-  AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute: typeof AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute
-}
-
-const AppWorkspaceWorkspaceIdRouteChildren: AppWorkspaceWorkspaceIdRouteChildren =
+const WorkspaceWorkspaceIdTemplatesRouteChildren: WorkspaceWorkspaceIdTemplatesRouteChildren =
   {
-    AppWorkspaceWorkspaceIdDocumentsRoute:
-      AppWorkspaceWorkspaceIdDocumentsRoute,
-    AppWorkspaceWorkspaceIdSettingsRoute: AppWorkspaceWorkspaceIdSettingsRoute,
-    AppWorkspaceWorkspaceIdIndexRoute: AppWorkspaceWorkspaceIdIndexRoute,
-    AppWorkspaceWorkspaceIdTemplatesIndexRoute:
-      AppWorkspaceWorkspaceIdTemplatesIndexRoute,
-    AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute:
-      AppWorkspaceWorkspaceIdTemplatesTemplateIdVersionVersionIdDesignRoute,
+    WorkspaceWorkspaceIdTemplatesTemplateIdRoute:
+      WorkspaceWorkspaceIdTemplatesTemplateIdRoute,
+    WorkspaceWorkspaceIdTemplatesIndexRoute:
+      WorkspaceWorkspaceIdTemplatesIndexRoute,
   }
 
-const AppWorkspaceWorkspaceIdRouteWithChildren =
-  AppWorkspaceWorkspaceIdRoute._addFileChildren(
-    AppWorkspaceWorkspaceIdRouteChildren,
+const WorkspaceWorkspaceIdTemplatesRouteWithChildren =
+  WorkspaceWorkspaceIdTemplatesRoute._addFileChildren(
+    WorkspaceWorkspaceIdTemplatesRouteChildren,
   )
 
-interface AppRouteChildren {
-  AppSelectTenantRoute: typeof AppSelectTenantRoute
-  AppIndexRoute: typeof AppIndexRoute
-  AppWorkspaceWorkspaceIdRoute: typeof AppWorkspaceWorkspaceIdRouteWithChildren
+interface WorkspaceWorkspaceIdRouteChildren {
+  WorkspaceWorkspaceIdAdministrationRoute: typeof WorkspaceWorkspaceIdAdministrationRoute
+  WorkspaceWorkspaceIdDocumentsRoute: typeof WorkspaceWorkspaceIdDocumentsRoute
+  WorkspaceWorkspaceIdSettingsRoute: typeof WorkspaceWorkspaceIdSettingsRoute
+  WorkspaceWorkspaceIdTemplatesRoute: typeof WorkspaceWorkspaceIdTemplatesRouteWithChildren
+  WorkspaceWorkspaceIdVariablesRoute: typeof WorkspaceWorkspaceIdVariablesRoute
+  WorkspaceWorkspaceIdIndexRoute: typeof WorkspaceWorkspaceIdIndexRoute
+  WorkspaceWorkspaceIdEditorVersionIdRoute: typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute: typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
 
-const AppRouteChildren: AppRouteChildren = {
-  AppSelectTenantRoute: AppSelectTenantRoute,
-  AppIndexRoute: AppIndexRoute,
-  AppWorkspaceWorkspaceIdRoute: AppWorkspaceWorkspaceIdRouteWithChildren,
+const WorkspaceWorkspaceIdRouteChildren: WorkspaceWorkspaceIdRouteChildren = {
+  WorkspaceWorkspaceIdAdministrationRoute:
+    WorkspaceWorkspaceIdAdministrationRoute,
+  WorkspaceWorkspaceIdDocumentsRoute: WorkspaceWorkspaceIdDocumentsRoute,
+  WorkspaceWorkspaceIdSettingsRoute: WorkspaceWorkspaceIdSettingsRoute,
+  WorkspaceWorkspaceIdTemplatesRoute:
+    WorkspaceWorkspaceIdTemplatesRouteWithChildren,
+  WorkspaceWorkspaceIdVariablesRoute: WorkspaceWorkspaceIdVariablesRoute,
+  WorkspaceWorkspaceIdIndexRoute: WorkspaceWorkspaceIdIndexRoute,
+  WorkspaceWorkspaceIdEditorVersionIdRoute:
+    WorkspaceWorkspaceIdEditorVersionIdRoute,
+  WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute:
+    WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute,
 }
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+const WorkspaceWorkspaceIdRouteWithChildren =
+  WorkspaceWorkspaceIdRoute._addFileChildren(WorkspaceWorkspaceIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  AdminRouteRoute: AdminRouteRouteWithChildren,
-  AppRoute: AppRouteWithChildren,
-  EditorTestRoute: EditorTestRoute,
+  IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  SelectTenantRoute: SelectTenantRoute,
+  WorkspaceWorkspaceIdRoute: WorkspaceWorkspaceIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

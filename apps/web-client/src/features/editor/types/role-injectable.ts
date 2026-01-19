@@ -1,20 +1,20 @@
-import type { InjectorType } from '../data/variables';
+import type { InjectorType } from './variables'
 
 /**
  * Propiedades disponibles para un rol de firmante
  * Extensible para agregar más propiedades en el futuro (phone, address, title, etc.)
  */
-export type RolePropertyKey = 'name' | 'email';
+export type RolePropertyKey = 'name' | 'email'
 
 /**
  * Definición de una propiedad de rol
  */
 export interface RolePropertyDefinition {
-  key: RolePropertyKey;
-  labelKey: string; // Key de traducción i18n
-  defaultLabel: string; // Label por defecto (fallback)
-  icon: string; // Nombre del icono Lucide
-  dataType: InjectorType; // Tipo de dato para el injector
+  key: RolePropertyKey
+  labelKey: string // Key de traducción i18n
+  defaultLabel: string // Label por defecto (fallback)
+  icon: string // Nombre del icono Lucide
+  dataType: InjectorType // Tipo de dato para el injector
 }
 
 /**
@@ -36,7 +36,7 @@ export const ROLE_PROPERTIES: RolePropertyDefinition[] = [
     icon: 'Mail',
     dataType: 'TEXT',
   },
-];
+]
 
 /**
  * Variable de rol para uso en el sidebar y mentions
@@ -44,23 +44,23 @@ export const ROLE_PROPERTIES: RolePropertyDefinition[] = [
  */
 export interface RoleInjectable {
   /** ID único: role_{roleId}_{propertyKey} */
-  id: string;
+  id: string
   /** ID del rol de firmante */
-  roleId: string;
+  roleId: string
   /** Label del rol: "Cliente", "Vendedor" */
-  roleLabel: string;
+  roleLabel: string
   /** Key de la propiedad: 'name', 'email' */
-  propertyKey: RolePropertyKey;
+  propertyKey: RolePropertyKey
   /** Label de la propiedad: "nombre", "email" */
-  propertyLabel: string;
+  propertyLabel: string
   /** Label completo para mostrar: "Cliente.nombre" */
-  label: string;
+  label: string
   /** ID de variable para el backend: "ROLE.Cliente.name" */
-  variableId: string;
+  variableId: string
   /** Tipo de dato */
-  type: InjectorType;
+  type: InjectorType
   /** Grupo para el menú de mentions */
-  group: 'role';
+  group: 'role'
 }
 
 /**
@@ -70,7 +70,7 @@ export function generateRoleInjectableId(
   roleId: string,
   propertyKey: RolePropertyKey
 ): string {
-  return `role_${roleId}_${propertyKey}`;
+  return `role_${roleId}_${propertyKey}`
 }
 
 /**
@@ -82,31 +82,31 @@ export function generateRoleVariableId(
   propertyKey: RolePropertyKey
 ): string {
   // Normalizar el label (sin espacios, lowercase para consistencia)
-  const normalizedLabel = roleLabel.trim().replace(/\s+/g, '_');
-  return `ROLE.${normalizedLabel}.${propertyKey}`;
+  const normalizedLabel = roleLabel.trim().replace(/\s+/g, '_')
+  return `ROLE.${normalizedLabel}.${propertyKey}`
 }
 
 /**
  * Verifica si un variableId corresponde a un role injectable
  */
 export function isRoleVariableId(variableId: string): boolean {
-  return variableId.startsWith('ROLE.');
+  return variableId.startsWith('ROLE.')
 }
 
 /**
  * Parsea un variableId de rol para obtener sus componentes
  */
 export function parseRoleVariableId(variableId: string): {
-  roleLabel: string;
-  propertyKey: RolePropertyKey;
+  roleLabel: string
+  propertyKey: RolePropertyKey
 } | null {
-  if (!isRoleVariableId(variableId)) return null;
+  if (!isRoleVariableId(variableId)) return null
 
-  const parts = variableId.split('.');
-  if (parts.length !== 3) return null;
+  const parts = variableId.split('.')
+  if (parts.length !== 3) return null
 
   return {
     roleLabel: parts[1],
     propertyKey: parts[2] as RolePropertyKey,
-  };
+  }
 }

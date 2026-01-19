@@ -1,42 +1,57 @@
-import { createRootRoute, Outlet, redirect } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { useAppContextStore } from '@/stores/app-context-store';
-import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import { createRootRoute, Outlet, useNavigate, useLocation } from '@tanstack/react-router'
+import { AnimatePresence, LayoutGroup } from 'framer-motion'
+import { useEffect, useMemo } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
+import { WorkspaceTransitionOverlay } from '@/components/layout/WorkspaceTransitionOverlay'
 
 export const Route = createRootRoute({
-  beforeLoad: ({ location }) => {
-    // Admin routes don't require tenant selection
-    if (location.pathname.startsWith('/admin')) {
-      return;
+  component: RootLayout,
+})
+
+const PUBLIC_ROUTES = ['/login']
+
+function RootLayout() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated())
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading)
+
+  // Calcular key que agrupa rutas del mismo layout
+  // Para rutas /workspace/xxx/* usar solo /workspace/xxx
+  // Para otras rutas usar el pathname completo
+  const layoutKey = useMemo(() => {
+    const match = location.pathname.match(/^\/workspace\/[^/]+/)
+    return match ? match[0] : location.pathname
+  }, [location.pathname])
+
+  useEffect(() => {
+    // Skip check while auth is loading
+    if (isAuthLoading) return
+
+    // Check if current route is public
+    const isPublicRoute = PUBLIC_ROUTES.some(route =>
+      location.pathname.startsWith(route)
+    )
+
+    // If not authenticated and not on public route, redirect to login
+    if (!isAuthenticated && !isPublicRoute) {
+      console.log('[Auth Guard] Not authenticated, redirecting to login')
+      navigate({ to: '/login', replace: true })
     }
+  }, [isAuthenticated, isAuthLoading, location.pathname, navigate])
 
-    const { currentTenant } = useAppContextStore.getState();
-
-    // For non-admin routes, require tenant selection
-    if (!currentTenant && location.pathname !== '/select-tenant') {
-      throw redirect({
-        to: '/select-tenant',
-      });
-    }
-  },
-  component: RootComponent,
-});
-
-function RootComponent() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center bg-background">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Loading...</span>
+    <LayoutGroup>
+      <div className="min-h-screen bg-background text-foreground">
+        <AnimatePresence mode="wait" initial={false}>
+          <div key={layoutKey}>
+            <Outlet />
           </div>
-        </div>
-      }
-    >
-      <Outlet />
-      <TanStackRouterDevtools />
-    </Suspense>
-  );
+        </AnimatePresence>
+
+        {/* Overlay que persiste entre rutas para animaciones de transición */}
+        <WorkspaceTransitionOverlay />
+      </div>
+    </LayoutGroup>
+  )
 }

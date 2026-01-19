@@ -1,23 +1,25 @@
-import { useMemo, useCallback } from 'react';
-import { useSignerRolesStore } from '../stores/signer-roles-store';
+import { useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/lib/i18n'
+import { useSignerRolesStore } from '../stores/signer-roles-store'
 import {
   ROLE_PROPERTIES,
   generateRoleInjectableId,
   generateRoleVariableId,
   type RoleInjectable,
-} from '../types/role-injectable';
+} from '../types/role-injectable'
 
 interface UseRoleInjectablesReturn {
   /** Todas las variables de rol disponibles */
-  roleInjectables: RoleInjectable[];
+  roleInjectables: RoleInjectable[]
   /** Filtrar role injectables por query */
-  filterRoleInjectables: (query: string) => RoleInjectable[];
+  filterRoleInjectables: (query: string) => RoleInjectable[]
   /** Obtener role injectable por id */
-  getRoleInjectableById: (id: string) => RoleInjectable | undefined;
+  getRoleInjectableById: (id: string) => RoleInjectable | undefined
   /** Obtener role injectables por role id */
-  getRoleInjectablesByRoleId: (roleId: string) => RoleInjectable[];
+  getRoleInjectablesByRoleId: (roleId: string) => RoleInjectable[]
   /** Obtener role injectable por variableId */
-  getRoleInjectableByVariableId: (variableId: string) => RoleInjectable | undefined;
+  getRoleInjectableByVariableId: (variableId: string) => RoleInjectable | undefined
 }
 
 /**
@@ -25,70 +27,72 @@ interface UseRoleInjectablesReturn {
  * Los role injectables se generan dinámicamente a partir de los roles definidos
  */
 export function useRoleInjectables(): UseRoleInjectablesReturn {
+  const { t } = useTranslation()
   // Suscribirse al store de roles
-  const roles = useSignerRolesStore((state) => state.roles);
+  const roles = useSignerRolesStore((state) => state.roles)
 
   // Generar role injectables a partir de los roles
   const roleInjectables = useMemo<RoleInjectable[]>(() => {
-    const injectables: RoleInjectable[] = [];
+    const injectables: RoleInjectable[] = []
 
     for (const role of roles) {
       // Solo generar injectables si el rol tiene label
-      if (!role.label?.trim()) continue;
+      if (!role.label?.trim()) continue
 
       for (const prop of ROLE_PROPERTIES) {
+        const translatedPropertyLabel = t(prop.labelKey)
         injectables.push({
           id: generateRoleInjectableId(role.id, prop.key),
           roleId: role.id,
           roleLabel: role.label,
           propertyKey: prop.key,
-          propertyLabel: prop.defaultLabel,
-          label: `${role.label}.${prop.defaultLabel}`,
+          propertyLabel: translatedPropertyLabel,
+          label: `${role.label}.${translatedPropertyLabel}`,
           variableId: generateRoleVariableId(role.label, prop.key),
           type: prop.dataType,
           group: 'role',
-        });
+        })
       }
     }
 
-    return injectables;
-  }, [roles]);
+    return injectables
+  }, [roles, t])
 
   const filterRoleInjectables = useCallback(
     (query: string): RoleInjectable[] => {
-      if (!query.trim()) return roleInjectables;
+      if (!query.trim()) return roleInjectables
 
-      const lowerQuery = query.toLowerCase();
+      const lowerQuery = query.toLowerCase()
       return roleInjectables.filter(
         (ri) =>
           ri.label.toLowerCase().includes(lowerQuery) ||
           ri.roleLabel.toLowerCase().includes(lowerQuery) ||
           ri.propertyLabel.toLowerCase().includes(lowerQuery)
-      );
+      )
     },
     [roleInjectables]
-  );
+  )
 
   const getRoleInjectableById = useCallback(
     (id: string): RoleInjectable | undefined => {
-      return roleInjectables.find((ri) => ri.id === id);
+      return roleInjectables.find((ri) => ri.id === id)
     },
     [roleInjectables]
-  );
+  )
 
   const getRoleInjectablesByRoleId = useCallback(
     (roleId: string): RoleInjectable[] => {
-      return roleInjectables.filter((ri) => ri.roleId === roleId);
+      return roleInjectables.filter((ri) => ri.roleId === roleId)
     },
     [roleInjectables]
-  );
+  )
 
   const getRoleInjectableByVariableId = useCallback(
     (variableId: string): RoleInjectable | undefined => {
-      return roleInjectables.find((ri) => ri.variableId === variableId);
+      return roleInjectables.find((ri) => ri.variableId === variableId)
     },
     [roleInjectables]
-  );
+  )
 
   return {
     roleInjectables,
@@ -96,7 +100,7 @@ export function useRoleInjectables(): UseRoleInjectablesReturn {
     getRoleInjectableById,
     getRoleInjectablesByRoleId,
     getRoleInjectableByVariableId,
-  };
+  }
 }
 
 // =============================================================================
@@ -109,28 +113,29 @@ export function useRoleInjectables(): UseRoleInjectablesReturn {
  * Para uso fuera de componentes React
  */
 export function getRoleInjectables(): RoleInjectable[] {
-  const roles = useSignerRolesStore.getState().roles;
-  const injectables: RoleInjectable[] = [];
+  const roles = useSignerRolesStore.getState().roles
+  const injectables: RoleInjectable[] = []
 
   for (const role of roles) {
-    if (!role.label?.trim()) continue;
+    if (!role.label?.trim()) continue
 
     for (const prop of ROLE_PROPERTIES) {
+      const translatedPropertyLabel = i18n.t(prop.labelKey)
       injectables.push({
         id: generateRoleInjectableId(role.id, prop.key),
         roleId: role.id,
         roleLabel: role.label,
         propertyKey: prop.key,
-        propertyLabel: prop.defaultLabel,
-        label: `${role.label}.${prop.defaultLabel}`,
+        propertyLabel: translatedPropertyLabel,
+        label: `${role.label}.${translatedPropertyLabel}`,
         variableId: generateRoleVariableId(role.label, prop.key),
         type: prop.dataType,
         group: 'role',
-      });
+      })
     }
   }
 
-  return injectables;
+  return injectables
 }
 
 /**
@@ -138,29 +143,33 @@ export function getRoleInjectables(): RoleInjectable[] {
  * Para uso fuera de componentes React
  */
 export function filterRoleInjectablesStatic(query: string): RoleInjectable[] {
-  const injectables = getRoleInjectables();
-  if (!query.trim()) return injectables;
+  const injectables = getRoleInjectables()
+  if (!query.trim()) return injectables
 
-  const lowerQuery = query.toLowerCase();
+  const lowerQuery = query.toLowerCase()
   return injectables.filter(
     (ri) =>
       ri.label.toLowerCase().includes(lowerQuery) ||
       ri.roleLabel.toLowerCase().includes(lowerQuery)
-  );
+  )
 }
 
 /**
  * Obtiene un role injectable por su id
  * Para uso fuera de componentes React
  */
-export function getRoleInjectableByIdStatic(id: string): RoleInjectable | undefined {
-  return getRoleInjectables().find((ri) => ri.id === id);
+export function getRoleInjectableByIdStatic(
+  id: string
+): RoleInjectable | undefined {
+  return getRoleInjectables().find((ri) => ri.id === id)
 }
 
 /**
  * Obtiene role injectables por roleId
  * Para uso fuera de componentes React
  */
-export function getRoleInjectablesByRoleIdStatic(roleId: string): RoleInjectable[] {
-  return getRoleInjectables().filter((ri) => ri.roleId === roleId);
+export function getRoleInjectablesByRoleIdStatic(
+  roleId: string
+): RoleInjectable[] {
+  return getRoleInjectables().filter((ri) => ri.roleId === roleId)
 }

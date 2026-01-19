@@ -1,111 +1,59 @@
-import { Pin, PinOff, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion'
+import { Pin } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useSidebarStore } from '@/stores/sidebar-store'
+import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 
-/**
- * Props for the SidebarToggleButton component
- */
 interface SidebarToggleButtonProps {
-  /**
-   * Whether the sidebar is currently pinned
-   */
-  isPinned: boolean;
-
-  /**
-   * Whether the sidebar is currently expanded (pinned or hovered)
-   */
-  isExpanded: boolean;
-
-  /**
-   * Callback to toggle the pin state
-   */
-  onTogglePin: () => void;
-
-  /**
-   * Accessible label for the button
-   */
-  ariaLabel: string;
-
-  /**
-   * Optional tooltip text
-   */
-  title?: string;
+  className?: string
 }
 
-/**
- * Floating circular button for toggling sidebar pin state
- *
- * Features:
- * - Positioned absolutely on the right edge of sidebar
- * - Shows different icons based on state:
- *   - ChevronRight: collapsed (hover to expand)
- *   - Pin: expanded but not pinned (click to pin)
- *   - PinOff: pinned (click to unpin)
- * - Smooth animations and hover effects
- * - Fully accessible with keyboard support
- *
- * @example
- * ```tsx
- * <SidebarToggleButton
- *   isPinned={isPinned}
- *   isExpanded={isExpanded}
- *   onTogglePin={togglePin}
- *   ariaLabel="Pin sidebar"
- *   title="Click to pin sidebar"
- * />
- * ```
- */
-export const SidebarToggleButton = ({
-  isPinned,
-  isExpanded,
-  onTogglePin,
-  ariaLabel,
-  title,
-}: SidebarToggleButtonProps) => {
-  // Determine which icon to show based on state
-  const renderIcon = () => {
-    if (!isExpanded) {
-      // Collapsed state - show chevron pointing right
-      return <ChevronRight className="h-3 w-3" />;
-    }
+export function SidebarToggleButton({ className }: SidebarToggleButtonProps) {
+  const { t } = useTranslation()
+  const { isPinned, togglePinned } = useSidebarStore()
 
-    if (isPinned) {
-      // Pinned state - show unpin icon
-      return <PinOff className="h-3 w-3" />;
-    }
-
-    // Expanded but not pinned - show pin icon
-    return <Pin className="h-3 w-3" />;
-  };
+  const tooltipText = isPinned ? t('sidebar.unpin') : t('sidebar.pin')
 
   return (
-    <button
-      onClick={onTogglePin}
-      aria-label={ariaLabel}
-      title={title}
-      className={cn(
-        // Positioning - absolutely positioned on right edge
-        'absolute -right-3 top-16 z-50',
-
-        // Size and layout
-        'flex h-6 w-6 items-center justify-center rounded-full',
-
-        // Appearance
-        'bg-card border-2 border-border shadow-md',
-
-        // Hover state
-        'hover:bg-accent hover:border-accent-foreground',
-
-        // Active state (when clicking)
-        'active:scale-95',
-
-        // Transitions
-        'transition-all duration-200 ease-in-out',
-
-        // Focus state for accessibility
-        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
-      )}
-    >
-      {renderIcon()}
-    </button>
-  );
-};
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={togglePinned}
+          aria-label={tooltipText}
+          className={cn(
+            'absolute right-0 top-1/2 z-10 h-7 w-7 -translate-y-1/2 translate-x-1/2 rounded-full border bg-background shadow-sm transition-all hover:scale-105 hover:bg-accent',
+            isPinned && 'border-admin/50 bg-background',
+            className
+          )}
+        >
+          <motion.div
+            initial={false}
+            animate={{ rotate: isPinned ? 45 : 0 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <Pin
+              size={14}
+              className={cn(
+                'transition-colors duration-200',
+                isPinned
+                  ? 'fill-admin text-admin'
+                  : 'text-muted-foreground'
+              )}
+            />
+          </motion.div>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        {tooltipText}
+      </TooltipContent>
+    </Tooltip>
+  )
+}

@@ -1,19 +1,35 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Link2, Loader2, Crop, AlertCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Crop, Loader2, AlertCircle, ImageIcon, Shuffle } from 'lucide-react';
 import type { ImageUrlTabProps, ImagePreviewState } from './types';
 
 const URL_REGEX = /^https?:\/\/.+/i;
+const DEBOUNCE_MS = 500;
 
-export function ImageUrlTab({ onImageReady, onCropRequest, croppedImage }: ImageUrlTabProps) {
-  const [url, setUrl] = useState('');
+const generateTestImageUrl = () => {
+  const seed = Math.random().toString(36).substring(7);
+  return `https://picsum.photos/seed/${seed}/400/300`;
+};
+
+export function ImageUrlTab({
+  onImageReady,
+  onOpenCropper,
+  currentImage,
+}: ImageUrlTabProps) {
+  const [url, setUrl] = useState(currentImage?.src ?? '');
   const [preview, setPreview] = useState<ImagePreviewState>({
-    src: null,
+    src: currentImage?.src ?? null,
     isLoading: false,
     error: null,
-    isBase64: false,
+    isBase64: currentImage?.isBase64 ?? false,
   });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -22,18 +38,14 @@ export function ImageUrlTab({ onImageReady, onCropRequest, croppedImage }: Image
       setPreview({
         src: null,
         isLoading: false,
-        error: 'URL no valida. Debe comenzar con http:// o https://',
+        error: 'URL no válida. Debe comenzar con http:// o https://',
         isBase64: false,
       });
+      onImageReady(null);
       return;
     }
 
-    setPreview({
-      src: null,
-      isLoading: true,
-      error: null,
-      isBase64: false,
-    });
+    setPreview((prev) => ({ ...prev, isLoading: true, error: null }));
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -45,49 +57,47 @@ export function ImageUrlTab({ onImageReady, onCropRequest, croppedImage }: Image
         error: null,
         isBase64: false,
       });
-      onImageReady(imageUrl, false);
+      onImageReady({
+        src: imageUrl,
+        isBase64: false,
+      });
     };
 
     img.onerror = () => {
       setPreview({
         src: null,
         isLoading: false,
-        error: 'No se pudo cargar la imagen. Verifique la URL o intente con otra imagen.',
+        error: 'No se pudo cargar la imagen. Verifica la URL.',
         isBase64: false,
       });
+      onImageReady(null);
     };
 
     img.src = imageUrl;
   }, [onImageReady]);
 
-  const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUrl = e.target.value;
-    setUrl(newUrl);
+  const handleUrlChange = useCallback((value: string) => {
+    setUrl(value);
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    if (!newUrl.trim()) {
+    if (!value.trim()) {
       setPreview({
         src: null,
         isLoading: false,
         error: null,
         isBase64: false,
       });
+      onImageReady(null);
       return;
     }
 
     debounceRef.current = setTimeout(() => {
-      loadImage(newUrl.trim());
-    }, 500);
-  }, [loadImage]);
-
-  const handleCropClick = useCallback(() => {
-    if (preview.src) {
-      onCropRequest(preview.src);
-    }
-  }, [preview.src, onCropRequest]);
+      loadImage(value.trim());
+    }, DEBOUNCE_MS);
+  }, [loadImage, onImageReady]);
 
   useEffect(() => {
     return () => {
@@ -97,72 +107,90 @@ export function ImageUrlTab({ onImageReady, onCropRequest, croppedImage }: Image
     };
   }, []);
 
+  const handleCropClick = useCallback(() => {
+    if (preview.src) {
+      onOpenCropper(preview.src);
+    }
+  }, [preview.src, onOpenCropper]);
+
+  const handleGenerateTestImage = useCallback(() => {
+    const testUrl = generateTestImageUrl();
+    setUrl(testUrl);
+    loadImage(testUrl);
+  }, [loadImage]);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label className="text-sm font-medium">URL de la imagen</Label>
-        <div className="relative">
-          <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Label htmlFor="image-url">URL de la imagen</Label>
+        <div className="flex gap-2">
           <Input
+            id="image-url"
             type="url"
-            value={url}
-            onChange={handleUrlChange}
             placeholder="https://ejemplo.com/imagen.jpg"
-            className="pl-10"
+            value={url}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className="flex-1"
           />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleGenerateTestImage}
+                >
+                  <Shuffle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Imagen de prueba</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
-      {preview.isLoading && (
-        <div className="flex items-center justify-center h-48 bg-muted/30 rounded-lg border border-dashed">
+      <div className="min-h-[200px] bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+        {preview.isLoading && (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="text-sm">Cargando imagen...</span>
           </div>
-        </div>
-      )}
+        )}
 
-      {preview.error && (
-        <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <span className="text-sm">{preview.error}</span>
-        </div>
-      )}
-
-      {(preview.src || croppedImage) && !preview.isLoading && !preview.error && (
-        <div className="space-y-3">
-          <div className="relative bg-muted/30 rounded-lg border p-4 flex justify-center">
-            <img
-              src={croppedImage?.src || preview.src || ''}
-              alt="Vista previa"
-              className="max-h-48 max-w-full object-contain"
-              style={{
-                borderRadius: croppedImage?.shape === 'circle' ? '50%' : '0.25rem',
-              }}
-            />
+        {preview.error && (
+          <div className="flex flex-col items-center gap-2 text-destructive">
+            <AlertCircle className="h-8 w-8" />
+            <span className="text-sm text-center px-4">{preview.error}</span>
           </div>
+        )}
 
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleCropClick}
-            >
-              <Crop className="h-4 w-4 mr-2" />
-              {croppedImage ? 'Volver a recortar' : 'Recortar imagen'}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {!url && !croppedImage && !preview.isLoading && !preview.error && (
-        <div className="flex items-center justify-center h-48 bg-muted/30 rounded-lg border border-dashed">
+        {!preview.isLoading && !preview.error && !preview.src && (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <Link2 className="h-8 w-8" />
+            <ImageIcon className="h-12 w-12" />
             <span className="text-sm">Ingresa una URL para ver la vista previa</span>
           </div>
-        </div>
+        )}
+
+        {!preview.isLoading && !preview.error && preview.src && (
+          <img
+            src={preview.src}
+            alt="Vista previa"
+            className="max-h-[200px] max-w-full object-contain"
+            crossOrigin="anonymous"
+          />
+        )}
+      </div>
+
+      {preview.src && !preview.isLoading && !preview.error && (
+        <Button
+          variant="outline"
+          onClick={handleCropClick}
+          className="w-full"
+        >
+          <Crop className="h-4 w-4 mr-2" />
+          Recortar imagen
+        </Button>
       )}
     </div>
   );

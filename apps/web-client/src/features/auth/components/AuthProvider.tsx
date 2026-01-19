@@ -1,82 +1,113 @@
-import { useEffect, useRef, useState } from 'react';
-import keycloak from '@/lib/keycloak';
-import { useAuthStore } from '@/stores/auth-store';
-import { authApi } from '../api/auth-api';
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
+import {
+  refreshAccessToken,
+  getUserInfo,
+  setupTokenRefresh,
+} from '@/lib/keycloak'
+import { fetchMyRoles } from '@/features/auth/api/auth-api'
+import { initializeTheme } from '@/stores/theme-store'
+import { LoadingOverlay } from '@/components/common/LoadingSpinner'
 
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode
 }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const isRun = useRef(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const { setToken, setSystemRoles } = useAuthStore();
-  
-  // MODO MOCK: Bypass de autenticación para desarrollo local
-  const useMockAuth = import.meta.env.VITE_USE_MOCK_AUTH === 'true';
+export function AuthProvider({ children }: AuthProviderProps) {
+  const {
+    token,
+    refreshToken,
+    isAuthLoading,
+    setAuthLoading,
+    setUserProfile,
+    setAllRoles,
+    clearAuth,
+    isTokenExpired,
+  } = useAuthStore()
+
+  // Ref to prevent StrictMode double-initialization
+  const initRef = useRef<{ started: boolean; promise: Promise<void> | null }>({
+    started: false,
+    promise: null,
+  })
 
   useEffect(() => {
-    if (useMockAuth) {
-        console.warn('⚠️ MOCK AUTH ENABLED: Skipping Keycloak login');
-        setToken('mock-token-12345');
-        setSystemRoles([{ type: 'SYSTEM', role: 'SUPERADMIN', resourceId: null }]); // Mock SuperAdmin
-        // Usar setTimeout para evitar update síncrono durante render
-        setTimeout(() => setIsInitialized(true), 0);
-        return;
+    // Initialize theme system
+    const cleanupTheme = initializeTheme()
+
+    // Skip if already started (prevents StrictMode double-call)
+    if (initRef.current.started) {
+      // Wait for existing promise if in-flight
+      if (initRef.current.promise) {
+        initRef.current.promise.finally(() => setAuthLoading(false))
+      }
+      return () => {
+        cleanupTheme?.()
+      }
     }
+    initRef.current.started = true
 
-    if (isRun.current) return;
-    isRun.current = true;
-
-    keycloak
-      .init({
-        onLoad: 'login-required',
-        checkLoginIframe: false,
-      })
-      .then(async (authenticated) => {
-        if (authenticated) {
-          setToken(keycloak.token || null);
-          
-          // Fetch System Roles
-          try {
-            const response = await authApi.getMySystemRoles();
-            if (response && Array.isArray(response.roles)) {
-                setSystemRoles(response.roles);
+    const init = async () => {
+      try {
+        // Check if we have existing tokens
+        if (token && refreshToken) {
+          // If token is expired, try to refresh
+          if (isTokenExpired()) {
+            console.log('[Auth] Token expired, attempting refresh...')
+            try {
+              await refreshAccessToken()
+              console.log('[Auth] Token refreshed successfully')
+            } catch (error) {
+              console.error('[Auth] Failed to refresh token:', error)
+              clearAuth()
+              setAuthLoading(false)
+              return
             }
-          } catch (e) {
-            console.error("Failed to fetch system roles", e);
           }
 
-          setInterval(() => {
-            keycloak
-              .updateToken(70)
-              .then((refreshed) => {
-                if (refreshed) {
-                  setToken(keycloak.token || null);
-                }
-              })
-              .catch(() => {
-                console.error('Failed to refresh token');
-                keycloak.logout();
-              });
-          }, 60000);
-        }
-        setIsInitialized(true);
-      })
-      .catch((err) => {
-        console.error('Keycloak init failed', err);
-        // En caso de error crítico, podríamos mostrar un error en UI
-        setIsInitialized(true); 
-      });
-  }, [setToken, setSystemRoles, useMockAuth]);
+          // Token is valid, load user info and roles
+          try {
+            const userInfo = await getUserInfo()
+            setUserProfile({
+              id: userInfo.sub,
+              email: userInfo.email || '',
+              firstName: userInfo.given_name,
+              lastName: userInfo.family_name,
+              username: userInfo.preferred_username,
+            })
 
-  if (!isInitialized) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+            const roles = await fetchMyRoles()
+            setAllRoles(roles)
+
+            console.log('[Auth] User info and roles loaded')
+          } catch (error) {
+            console.error('[Auth] Failed to load user info or roles:', error)
+            // Don't clear auth here - user is still authenticated
+            // Roles will be empty but user can still navigate
+          }
+        }
+      } catch (error) {
+        console.error('[Auth] Initialization failed:', error)
+        clearAuth()
+      } finally {
+        setAuthLoading(false)
+      }
+    }
+
+    initRef.current.promise = init()
+
+    // Setup automatic token refresh
+    const cleanupRefresh = setupTokenRefresh()
+
+    return () => {
+      cleanupTheme?.()
+      cleanupRefresh()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isAuthLoading) {
+    return <LoadingOverlay message="Initializing..." />
   }
 
-  return <>{children}</>;
-};
+  return <>{children}</>
+}

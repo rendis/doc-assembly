@@ -1,20 +1,27 @@
-import { apiClient } from '@/lib/api-client';
-import type { UserRole } from '@/stores/auth-store';
+import apiClient from '@/lib/api-client'
+import type { RoleEntry } from '@/stores/auth-store'
 
-export const authApi = {
-  /**
-   * Obtiene los roles de sistema del usuario actual.
-   * GET /api/v1/me/roles
-   */
-  getMySystemRoles: async (): Promise<{ roles: UserRole[] }> => {
-    return apiClient.get('/me/roles');
-  },
+interface MyRolesResponse {
+  roles: RoleEntry[]
+}
 
-  /**
-   * Registra el acceso a un recurso (Tenant/Workspace) para historial.
-   * POST /api/v1/me/access
-   */
-  recordAccess: async (entityId: string, entityType: 'TENANT' | 'WORKSPACE'): Promise<void> => {
-    return apiClient.post('/me/access', { entityId, entityType });
-  }
-};
+/**
+ * Get current user's roles
+ */
+export async function fetchMyRoles(): Promise<RoleEntry[]> {
+  const response = await apiClient.get<MyRolesResponse>('/me/roles')
+  return response.data.roles
+}
+
+/**
+ * Record resource access (for analytics/audit)
+ */
+export async function recordAccess(
+  entityType: 'TENANT' | 'WORKSPACE',
+  entityId: string
+): Promise<void> {
+  await apiClient.post('/me/access', {
+    entityType,
+    entityId,
+  })
+}

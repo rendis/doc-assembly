@@ -1,43 +1,27 @@
-import type { VersionStatus } from '../types';
-import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils'
+import type { TemplateStatus } from '../types'
 
 interface StatusBadgeProps {
-  status: VersionStatus;
-  size?: 'sm' | 'md';
-  showDot?: boolean;
+  status: TemplateStatus
 }
 
-const statusStyles: Record<VersionStatus, string> = {
-  DRAFT: 'bg-warning-muted text-warning-foreground',
-  PUBLISHED: 'bg-success-muted text-success-foreground',
-  ARCHIVED: 'bg-muted text-muted-foreground',
-};
-
-const dotStyles: Record<VersionStatus, string> = {
-  DRAFT: 'bg-warning',
-  PUBLISHED: 'bg-success',
-  ARCHIVED: 'bg-muted-foreground',
-};
-
-export function StatusBadge({ status, size = 'sm', showDot = true }: StatusBadgeProps) {
-  const { t } = useTranslation();
-
-  const sizeClasses = size === 'sm'
-    ? 'px-2 py-0.5 text-xs'
-    : 'px-2.5 py-1 text-sm';
-
-  const dotSize = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2';
-
-  const statusKey = status.toLowerCase() as 'draft' | 'published' | 'archived';
-
+export function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${statusStyles[status]} ${sizeClasses}`}
-    >
-      {showDot && (
-        <span className={`${dotSize} rounded-full ${dotStyles[status]}`} />
+      className={cn(
+        'inline-flex items-center gap-1.5 border px-2 py-1 font-mono text-[10px] uppercase tracking-widest',
+        status === 'PUBLISHED'
+          ? 'border-foreground bg-background font-bold text-foreground'
+          : 'border-border bg-background font-medium text-muted-foreground'
       )}
-      {t(`templates.status.${statusKey}`)}
+    >
+      <span
+        className={cn(
+          'h-1.5 w-1.5 rounded-full',
+          status === 'PUBLISHED' ? 'bg-foreground' : 'border border-muted-foreground'
+        )}
+      />
+      {status === 'PUBLISHED' ? 'Published' : status === 'DRAFT' ? 'Draft' : 'Archived'}
     </span>
-  );
+  )
 }

@@ -10,28 +10,28 @@ export interface PreviewRequest {
    * - "precio" → 1500.50
    * - "activo" → true
    */
-  injectables: Record<string, any>;
+  injectables: Record<string, unknown>
 }
 
 /**
  * Valores del formulario de injectables
  */
 export interface InjectableFormValues {
-  [variableId: string]: any;
+  [variableId: string]: unknown
 }
 
 /**
  * Errores de validación del formulario
  */
 export interface InjectableFormErrors {
-  [variableId: string]: string;
+  [variableId: string]: string
 }
 
 /**
  * Estado del formulario de preview
  */
 export interface PreviewFormState {
-  values: InjectableFormValues;
-  errors: InjectableFormErrors;
-  touched: Set<string>; // Para validación on-blur
+  values: InjectableFormValues
+  errors: InjectableFormErrors
+  touched: Set<string>
 }

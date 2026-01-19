@@ -1,25 +1,46 @@
-import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
+import { Languages } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  supportedLanguages,
+  languageNames,
+  changeLanguage,
+  type SupportedLanguage,
+} from '@/lib/i18n'
 
-export const LanguageSelector = () => {
-  const { i18n } = useTranslation();
-
-  const changeLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    i18n.changeLanguage(e.target.value);
-  };
+export function LanguageSelector() {
+  const { i18n } = useTranslation()
+  const currentLang = (
+    supportedLanguages.includes(i18n.language as SupportedLanguage)
+      ? i18n.language
+      : 'en'
+  ) as SupportedLanguage
 
   return (
-    <div className="relative flex items-center">
-      <Globe className="absolute left-2 h-4 w-4 text-slate-500 pointer-events-none" />
-      <select
-        onChange={changeLanguage}
-        value={i18n.resolvedLanguage}
-        className="h-9 appearance-none rounded-md border border-slate-200 bg-transparent pl-8 pr-8 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      >
-        <option value="en">English</option>
-        <option value="es">Español</option>
-      </select>
-      {/* Flecha personalizada CSS puro para reemplazar la nativa si se desea, o dejar la nativa */}
-    </div>
-  );
-};
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9">
+          <Languages className="h-4 w-4" />
+          <span className="sr-only">Change language</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="flex flex-col gap-1">
+        {supportedLanguages.map((lang) => (
+          <DropdownMenuItem
+            key={lang}
+            onClick={() => changeLanguage(lang as SupportedLanguage)}
+            className={`py-1 ${currentLang === lang ? 'bg-primary/10 text-primary font-medium' : ''}`}
+          >
+            {languageNames[lang as SupportedLanguage]}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}

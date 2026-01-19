@@ -1,28 +1,70 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-import Backend from 'i18next-http-backend';
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+import LanguageDetector from 'i18next-browser-languagedetector'
+import HttpBackend from 'i18next-http-backend'
 
+/**
+ * Supported languages
+ */
+export const supportedLanguages = ['en', 'es'] as const
+export type SupportedLanguage = (typeof supportedLanguages)[number]
+
+/**
+ * Language display names
+ */
+export const languageNames: Record<SupportedLanguage, string> = {
+  en: 'English',
+  es: 'Español',
+}
+
+/**
+ * Initialize i18next
+ */
 i18n
-  // Carga traducciones desde /public/locales
-  .use(Backend)
-  // Detecta idioma del usuario
+  .use(HttpBackend)
   .use(LanguageDetector)
-  // Pasa la instancia a react-i18next
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
-    supportedLngs: ['en', 'es'],
-    load: 'languageOnly', // Carga 'es' en vez de 'es-419'
-    debug: false,
+    supportedLngs: supportedLanguages,
+    debug: import.meta.env.DEV,
 
     interpolation: {
-      escapeValue: false, // React ya escapa por defecto
+      escapeValue: false, // React already escapes by default
     },
 
     backend: {
-      loadPath: '/locales/{{lng}}/translation.json',
+      loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
-  });
 
-export default i18n;
+    detection: {
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'doc-assembly-language',
+    },
+
+    defaultNS: 'translation',
+    ns: ['translation'],
+  })
+
+/**
+ * Change language
+ */
+export function changeLanguage(lng: SupportedLanguage): Promise<void> {
+  return i18n.changeLanguage(lng).then(() => {
+    document.documentElement.lang = lng
+  })
+}
+
+/**
+ * Get current language
+ */
+export function getCurrentLanguage(): SupportedLanguage {
+  const current = i18n.language
+  if (supportedLanguages.includes(current as SupportedLanguage)) {
+    return current as SupportedLanguage
+  }
+  return 'en'
+}
+
+export default i18n

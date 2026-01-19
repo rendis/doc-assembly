@@ -1,13 +1,16 @@
-import Mention from '@tiptap/extension-mention';
+import Mention from '@tiptap/extension-mention'
 // @ts-expect-error - TipTap types compatibility
-import type { Editor } from '@tiptap/core';
-import { PluginKey } from '@tiptap/pm/state';
-import { filterVariables, type MentionVariable } from './variables';
-import { variableSuggestion } from './suggestion';
-import { hasConfigurableOptions, getDefaultFormat } from '../../types/injectable';
-import type { Variable } from '../../data/variables';
+import type { Editor } from '@tiptap/core'
+import { PluginKey } from '@tiptap/pm/state'
+import { filterVariables, type MentionVariable } from './variables'
+import { variableSuggestion } from './suggestion'
+import {
+  hasConfigurableOptions,
+  getDefaultFormat,
+} from '../../types/injectable'
+import type { Variable } from '../../types/variables'
 
-const MentionPluginKey = new PluginKey('mentionSuggestion');
+const MentionPluginKey = new PluginKey('mentionSuggestion')
 
 export const MentionExtension = Mention.configure({
   suggestion: {
@@ -16,8 +19,16 @@ export const MentionExtension = Mention.configure({
     allowSpaces: true,
     ...variableSuggestion,
     items: ({ query }: { query: string }) => filterVariables(query),
-    command: ({ editor, range, props }: { editor: Editor; range: { from: number; to: number }; props: unknown }) => {
-      const item = props as MentionVariable;
+    command: ({
+      editor,
+      range,
+      props,
+    }: {
+      editor: Editor
+      range: { from: number; to: number }
+      props: unknown
+    }) => {
+      const item = props as MentionVariable
 
       // Si es un role injectable, insertar directamente con atributos de rol
       if (item.isRoleVariable) {
@@ -34,30 +45,31 @@ export const MentionExtension = Mention.configure({
             roleLabel: item.roleLabel,
             propertyKey: item.propertyKey,
           })
-          .run();
-        return;
+          .run()
+        return
       }
 
       // Check if variable has configurable options
-      if (hasConfigurableOptions(item.metadata)) {
+      if (hasConfigurableOptions(item.formatConfig)) {
         // Convert to Variable format for the event
         const variable: Variable = {
           id: item.id,
           variableId: item.id,
           label: item.label,
           type: item.type,
-          metadata: item.metadata,
-        };
+          formatConfig: item.formatConfig,
+          sourceType: item.sourceType || 'EXTERNAL',
+        }
 
         // Emit event to open format selector
         editor.view.dom.dispatchEvent(
           new CustomEvent('editor:select-variable-format', {
             detail: { variable, range },
           })
-        );
+        )
       } else {
         // Insert directly with default format
-        const defaultFormat = getDefaultFormat(item.metadata);
+        const defaultFormat = getDefaultFormat(item.formatConfig)
         editor
           .chain()
           .focus()
@@ -68,8 +80,8 @@ export const MentionExtension = Mention.configure({
             variableId: item.id,
             format: defaultFormat || null,
           })
-          .run();
+          .run()
       }
     },
   },
-});
+})

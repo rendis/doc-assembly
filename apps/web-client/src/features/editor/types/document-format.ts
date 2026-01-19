@@ -3,18 +3,18 @@
  *
  * This format is compatible with ProseMirror/TipTap JSON structure
  * and includes all metadata needed to fully restore a document.
+ *
+ * NOTE: This must replicate the exact format from the old system (web-client)
+ * because it's the same format used by the backend.
  */
 
-import type { InjectorType } from '../data/variables';
-import type { LogicGroup } from '../extensions/Conditional/ConditionalExtension';
+import type { LogicGroup } from '../extensions/Conditional/ConditionalExtension'
+import type { SignatureCount, SignatureItem, SignatureLayout, SignatureLineWidth } from '../extensions/Signature/types'
+import type { PageMargins } from './index'
 import type {
-  SignatureCount,
-  SignatureLayout,
-  SignatureLineWidth,
-  SignatureItem,
-} from '../extensions/Signature/types';
-import type { SignerRoleDefinition, SigningWorkflowConfig } from './signer-roles';
-import type { PageMargins } from './pagination';
+  SigningWorkflowConfig,
+  SignerRoleDefinition,
+} from './signer-roles'
 
 // =============================================================================
 // Document Format Version
@@ -30,7 +30,7 @@ import type { PageMargins } from './pagination';
  * - 1.1.0: Added signingWorkflow (orderMode, notifications)
  * - 1.0.0: Initial version
  */
-export const DOCUMENT_FORMAT_VERSION = '1.1.0';
+export const DOCUMENT_FORMAT_VERSION = '1.1.0'
 
 // =============================================================================
 // Document Envelope
@@ -44,28 +44,28 @@ export const DOCUMENT_FORMAT_VERSION = '1.1.0';
  */
 export interface PortableDocument {
   /** Format version for migration support */
-  version: string;
+  version: string
 
   /** Document metadata */
-  meta: DocumentMeta;
+  meta: DocumentMeta
 
   /** Page configuration */
-  pageConfig: PageConfig;
+  pageConfig: PageConfig
 
   /** Variable IDs used in document (references to backend variables) */
-  variableIds: string[];
+  variableIds: string[]
 
   /** Signer role definitions */
-  signerRoles: SignerRoleDefinition[];
+  signerRoles: SignerRoleDefinition[]
 
   /** Signing workflow configuration (order mode, notifications) */
-  signingWorkflow: SigningWorkflowConfig;
+  signingWorkflow: SigningWorkflowConfig
 
   /** ProseMirror-compatible content structure */
-  content: ProseMirrorDocument;
+  content: ProseMirrorDocument
 
   /** Export metadata (auto-generated) */
-  exportInfo: ExportInfo;
+  exportInfo: ExportInfo
 }
 
 // =============================================================================
@@ -74,64 +74,56 @@ export interface PortableDocument {
 
 export interface DocumentMeta {
   /** Document title */
-  title: string;
+  title: string
 
   /** Optional description */
-  description?: string;
+  description?: string
 
   /** Document language (ISO 639-1) */
-  language: 'en' | 'es';
+  language: 'en' | 'es'
 
   /** Custom metadata key-value pairs */
-  customFields?: Record<string, string>;
+  customFields?: Record<string, string>
 }
 
 // =============================================================================
 // Page Configuration
 // =============================================================================
 
-export type PageFormatId = 'A4' | 'LETTER' | 'LEGAL' | 'CUSTOM';
-
-// PageMargins is imported from './pagination' to avoid duplicate exports
+export type PageFormatId = 'A4' | 'LETTER' | 'LEGAL' | 'CUSTOM'
 
 export interface PageConfig {
   /** Page format preset ID or 'CUSTOM' */
-  formatId: PageFormatId;
+  formatId: PageFormatId
 
   /** Page width in pixels (96 DPI) */
-  width: number;
+  width: number
 
   /** Page height in pixels (96 DPI) */
-  height: number;
+  height: number
 
   /** Page margins in pixels */
-  margins: PageMargins;
-
-  /** Show page numbers in rendered output */
-  showPageNumbers: boolean;
-
-  /** Visual gap between pages in editor (pixels) */
-  pageGap: number;
+  margins: PageMargins
 }
 
 // =============================================================================
 // Backend Variable Types (source of truth from API)
 // =============================================================================
 
-export type VariableType = InjectorType;
+export type VariableType = 'TEXT' | 'NUMBER' | 'DATE' | 'CURRENCY' | 'BOOLEAN' | 'IMAGE' | 'TABLE' | 'ROLE_TEXT'
 
 export interface VariableValidation {
   /** Minimum value (NUMBER, DATE) */
-  min?: number | string;
+  min?: number | string
 
   /** Maximum value (NUMBER, DATE) */
-  max?: number | string;
+  max?: number | string
 
   /** Regex pattern (TEXT) */
-  pattern?: string;
+  pattern?: string
 
   /** Allowed values (enum) */
-  allowedValues?: string[];
+  allowedValues?: string[]
 }
 
 /**
@@ -140,28 +132,28 @@ export interface VariableValidation {
  */
 export interface BackendVariable {
   /** Unique identifier */
-  id: string;
+  id: string
 
   /** Variable key (used in templates and stored in document) */
-  variableId: string;
+  variableId: string
 
   /** Human-readable label */
-  label: string;
+  label: string
 
   /** Data type */
-  type: VariableType;
+  type: VariableType
 
   /** Whether this variable is required */
-  required?: boolean;
+  required?: boolean
 
   /** Default value (type-appropriate) */
-  defaultValue?: string | number | boolean;
+  defaultValue?: string | number | boolean
 
   /** Format specification (for DATE, CURRENCY) */
-  format?: string;
+  format?: string
 
   /** Validation rules */
-  validation?: VariableValidation;
+  validation?: VariableValidation
 }
 
 /**
@@ -169,10 +161,10 @@ export interface BackendVariable {
  */
 export interface VariableResolutionResult {
   /** Variables that were found in the backend */
-  resolved: BackendVariable[];
+  resolved: BackendVariable[]
 
   /** Variable IDs in the document that don't exist in the backend */
-  orphaned: string[];
+  orphaned: string[]
 }
 
 // =============================================================================
@@ -181,16 +173,16 @@ export interface VariableResolutionResult {
 
 export interface ExportInfo {
   /** ISO 8601 timestamp */
-  exportedAt: string;
+  exportedAt: string
 
   /** User who exported (optional, for audit) */
-  exportedBy?: string;
+  exportedBy?: string
 
   /** Source application identifier */
-  sourceApp: string;
+  sourceApp: string
 
   /** Checksum for integrity verification */
-  checksum?: string;
+  checksum?: string
 }
 
 // =============================================================================
@@ -202,21 +194,21 @@ export interface ExportInfo {
  * Compatible with editor.getJSON() output
  */
 export interface ProseMirrorDocument {
-  type: 'doc';
-  content: ProseMirrorNode[];
+  type: 'doc'
+  content: ProseMirrorNode[]
 }
 
 export interface ProseMirrorMark {
-  type: string;
-  attrs?: Record<string, unknown>;
+  type: string
+  attrs?: Record<string, unknown>
 }
 
 export interface ProseMirrorNode {
-  type: string;
-  attrs?: Record<string, unknown>;
-  content?: ProseMirrorNode[];
-  marks?: ProseMirrorMark[];
-  text?: string;
+  type: string
+  attrs?: Record<string, unknown>
+  content?: ProseMirrorNode[]
+  marks?: ProseMirrorMark[]
+  text?: string
 }
 
 // =============================================================================
@@ -225,63 +217,63 @@ export interface ProseMirrorNode {
 
 /** Heading node attributes */
 export interface HeadingAttrs {
-  level: 1 | 2 | 3;
+  level: 1 | 2 | 3
 }
 
 /** Ordered list node attributes */
 export interface OrderedListAttrs {
-  start?: number;
+  start?: number
 }
 
 /** Task item node attributes */
 export interface TaskItemAttrs {
-  checked: boolean;
+  checked: boolean
 }
 
 /** Code block node attributes */
 export interface CodeBlockAttrs {
-  language?: string;
+  language?: string
 }
 
 /** Page break node attributes */
 export interface PageBreakAttrs {
-  id: string;
+  id: string
 }
 
 /** Image display mode */
-export type ImageDisplayMode = 'block' | 'inline';
+export type ImageDisplayMode = 'block' | 'inline'
 
 /** Image alignment */
-export type ImageAlign = 'left' | 'center' | 'right';
+export type ImageAlign = 'left' | 'center' | 'right'
 
 /** Image shape */
-export type ImageShape = 'square' | 'circle';
+export type ImageShape = 'square' | 'circle'
 
 /** Image node attributes */
 export interface ImageAttrs {
   /** Base64 data URI or URL */
-  src: string;
-  alt?: string;
-  title?: string;
-  width?: number;
-  height?: number;
-  displayMode: ImageDisplayMode;
-  align: ImageAlign;
-  shape: ImageShape;
+  src: string
+  alt?: string
+  title?: string
+  width?: number
+  height?: number
+  displayMode: ImageDisplayMode
+  align: ImageAlign
+  shape: ImageShape
 }
 
 /** Signature node attributes */
 export interface SignatureAttrs {
-  count: SignatureCount;
-  layout: SignatureLayout;
-  lineWidth: SignatureLineWidth;
-  signatures: SignatureItem[];
+  count: SignatureCount
+  layout: SignatureLayout
+  lineWidth: SignatureLineWidth
+  signatures: SignatureItem[]
 }
 
 /** Conditional node attributes */
 export interface ConditionalAttrs {
-  conditions: LogicGroup;
-  expression: string;
+  conditions: LogicGroup
+  expression: string
 }
 
 /**
@@ -290,18 +282,18 @@ export interface ConditionalAttrs {
  */
 export interface InjectorAttrs {
   /** Reference to backend variable */
-  variableId: string;
+  variableId: string
 }
 
 /** Link mark attributes */
 export interface LinkMarkAttrs {
-  href: string;
-  target?: string;
+  href: string
+  target?: string
 }
 
 /** Highlight mark attributes */
 export interface HighlightMarkAttrs {
-  color?: string;
+  color?: string
 }
 
 // =============================================================================
@@ -310,38 +302,38 @@ export interface HighlightMarkAttrs {
 
 export interface ValidationError {
   /** Error code for programmatic handling */
-  code: string;
+  code: string
 
   /** JSON path to the error location */
-  path: string;
+  path: string
 
   /** Human-readable error message */
-  message: string;
+  message: string
 }
 
 export interface ValidationWarning {
   /** Warning code for programmatic handling */
-  code: string;
+  code: string
 
   /** JSON path to the warning location */
-  path: string;
+  path: string
 
   /** Human-readable warning message */
-  message: string;
+  message: string
 
   /** Suggested fix */
-  suggestion?: string;
+  suggestion?: string
 }
 
 export interface ValidationResult {
   /** Whether the document is valid */
-  valid: boolean;
+  valid: boolean
 
   /** Critical errors that prevent import */
-  errors: ValidationError[];
+  errors: ValidationError[]
 
   /** Non-critical warnings */
-  warnings: ValidationWarning[];
+  warnings: ValidationWarning[]
 }
 
 // =============================================================================
@@ -350,16 +342,16 @@ export interface ValidationResult {
 
 export interface ImportResult {
   /** Whether import was successful */
-  success: boolean;
+  success: boolean
 
   /** Validation result */
-  validation: ValidationResult;
+  validation: ValidationResult
 
   /** Imported document (if successful) */
-  document?: PortableDocument;
+  document?: PortableDocument
 
   /** Variable IDs in document that don't exist in the backend */
-  orphanedVariables?: string[];
+  orphanedVariables?: string[]
 }
 
 // =============================================================================
@@ -368,13 +360,13 @@ export interface ImportResult {
 
 export interface ExportOptions {
   /** Include checksum for integrity verification */
-  includeChecksum?: boolean;
+  includeChecksum?: boolean
 
   /** Pretty print JSON output */
-  prettyPrint?: boolean;
+  prettyPrint?: boolean
 
   /** User identifier for audit trail */
-  exportedBy?: string;
+  exportedBy?: string
 }
 
 // =============================================================================
@@ -383,21 +375,21 @@ export interface ExportOptions {
 
 export interface ImportOptions {
   /** Whether to validate semantic references */
-  validateReferences?: boolean;
+  validateReferences?: boolean
 
   /** Whether to auto-migrate older versions */
-  autoMigrate?: boolean;
+  autoMigrate?: boolean
 
   /** Maximum allowed image size in bytes (default: 5MB) */
-  maxImageSize?: number;
+  maxImageSize?: number
 }
 
 // =============================================================================
 // Re-export related types for convenience
 // =============================================================================
 
-export type { SignerRoleDefinition } from './signer-roles';
-export type { SignerRoleFieldType, SignerRoleFieldValue } from './signer-roles';
+// Re-export signer role types
+export type { SignerRoleDefinition, SignerRoleFieldValue, SignerRoleFieldType } from './signer-roles'
 export type {
   SigningOrderMode,
   NotificationTrigger,
@@ -408,6 +400,10 @@ export type {
   RoleNotificationConfig,
   SigningNotificationConfig,
   SigningWorkflowConfig,
-} from './signer-roles';
-export type { LogicGroup, LogicRule, RuleValue, RuleOperator, LogicOperator } from '../extensions/Conditional/ConditionalExtension';
-export type { SignatureCount, SignatureLayout, SignatureLineWidth, SignatureItem } from '../extensions/Signature/types';
+} from './signer-roles'
+
+// Re-export conditional logic types
+export type { LogicGroup, LogicRule, RuleValue, RuleOperator } from '../extensions/Conditional/ConditionalExtension'
+
+// Re-export signature types
+export type { SignatureCount, SignatureLayout, SignatureLineWidth, SignatureItem } from '../extensions/Signature/types'

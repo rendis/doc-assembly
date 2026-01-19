@@ -1,19 +1,25 @@
-// @ts-expect-error - TipTap types are not fully compatible with strict mode
-import { mergeAttributes, Node } from '@tiptap/core';
-import { ReactNodeViewRenderer } from '@tiptap/react';
-import { SignatureComponent } from './SignatureComponent';
-import type { SignatureBlockAttrs, SignatureCount, SignatureLayout, SignatureLineWidth } from './types';
-import { createDefaultSignatureAttrs, createEmptySignatureItem } from './types';
+import { mergeAttributes, Node } from '@tiptap/core'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import { SignatureComponent } from './SignatureComponent'
+import type {
+  SignatureBlockAttrs,
+  SignatureCount,
+  SignatureLayout,
+  SignatureLineWidth,
+} from './types'
+import { createDefaultSignatureAttrs, createEmptySignatureItem } from './types'
 
 export interface SetSignatureOptions {
-  count?: SignatureCount;
-  layout?: SignatureLayout;
-  lineWidth?: SignatureLineWidth;
+  count?: SignatureCount
+  layout?: SignatureLayout
+  lineWidth?: SignatureLineWidth
 }
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    setSignature: (options?: SetSignatureOptions) => ReturnType;
+    signature: {
+      setSignature: (options?: SetSignatureOptions) => ReturnType
+    }
   }
 }
 
@@ -23,6 +29,8 @@ export const SignatureExtension = Node.create({
   group: 'block',
 
   atom: true,
+
+  draggable: true,
 
   allowGapCursor: false,
 
@@ -40,33 +48,37 @@ export const SignatureExtension = Node.create({
       signatures: {
         default: [createEmptySignatureItem(0)],
         parseHTML: (element: HTMLElement) => {
-          const signaturesAttr = element.getAttribute('data-signatures');
+          const signaturesAttr = element.getAttribute('data-signatures')
           if (signaturesAttr) {
             try {
-              return JSON.parse(signaturesAttr);
+              return JSON.parse(signaturesAttr)
             } catch {
-              return [createEmptySignatureItem(0)];
+              return [createEmptySignatureItem(0)]
             }
           }
           // Retrocompatibilidad con formato antiguo
-          const roleId = element.getAttribute('data-role-id');
-          const label = element.getAttribute('data-label') || 'Firma';
+          const roleId = element.getAttribute('data-role-id')
+          const label = element.getAttribute('data-label') || 'Firma'
           if (roleId) {
-            return [{
-              id: `legacy_${Date.now()}`,
-              roleId,
-              label,
-            }];
+            return [
+              {
+                id: `legacy_${Date.now()}`,
+                roleId,
+                label,
+              },
+            ]
           }
-          return [createEmptySignatureItem(0)];
+          return [createEmptySignatureItem(0)]
         },
-        renderHTML: (attributes: { signatures: SignatureBlockAttrs['signatures'] }) => {
+        renderHTML: (attributes: {
+          signatures: SignatureBlockAttrs['signatures']
+        }) => {
           return {
             'data-signatures': JSON.stringify(attributes.signatures),
-          };
+          }
         },
       },
-    };
+    }
   },
 
   parseHTML() {
@@ -75,61 +87,98 @@ export const SignatureExtension = Node.create({
         tag: 'div[data-type="signature"]',
         getAttrs: (element: HTMLElement) => {
           // Detectar formato legacy
-          const roleId = element.getAttribute('data-role-id');
+          const roleId = element.getAttribute('data-role-id')
           if (roleId && !element.getAttribute('data-signatures')) {
-            const label = element.getAttribute('data-label') || 'Firma';
+            const label = element.getAttribute('data-label') || 'Firma'
             return {
               count: 1,
               layout: 'single-center',
               lineWidth: 'md',
-              signatures: [{
-                id: `legacy_${Date.now()}`,
-                roleId,
-                label,
-              }],
-            };
+              signatures: [
+                {
+                  id: `legacy_${Date.now()}`,
+                  roleId,
+                  label,
+                },
+              ],
+            }
           }
-          return {};
+          return {}
         },
       },
-    ];
+    ]
   },
 
   renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
-    return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'signature' })];
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, { 'data-type': 'signature' }),
+    ]
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(SignatureComponent);
+    return ReactNodeViewRenderer(SignatureComponent, {
+      stopEvent: (event) => {
+        const target = event.event.target as HTMLElement
+        // Stop events in toolbar and drag handles from reaching editor
+        if (target.closest('[data-toolbar]') || target.closest('[data-drag-handle]')) {
+          return true
+        }
+        return false
+      },
+    })
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-c': () => {
+        const { selection } = this.editor.state
+        if (selection.node?.type.name === this.name) {
+          return true // Prevenir copy
+        }
+        return false
+      },
+      'Mod-x': () => {
+        const { selection } = this.editor.state
+        if (selection.node?.type.name === this.name) {
+          return true // Prevenir cut
+        }
+        return false
+      },
+    }
   },
 
   addCommands() {
     return {
       setSignature:
         (options?: SetSignatureOptions) =>
-        ({ commands }: { commands: { insertContent: (content: unknown) => boolean } }) => {
-          const defaultAttrs = createDefaultSignatureAttrs();
+        ({
+          commands,
+        }: {
+          commands: { insertContent: (content: unknown) => boolean }
+        }) => {
+          const defaultAttrs = createDefaultSignatureAttrs()
           const attrs: SignatureBlockAttrs = {
             ...defaultAttrs,
             ...options,
-          };
+          }
 
           // Asegurar que el array de signatures coincida con count
           if (attrs.signatures.length !== attrs.count) {
-            const newSignatures = [];
+            const newSignatures = []
             for (let i = 0; i < attrs.count; i++) {
               newSignatures.push(
                 attrs.signatures[i] || createEmptySignatureItem(i)
-              );
+              )
             }
-            attrs.signatures = newSignatures;
+            attrs.signatures = newSignatures
           }
 
           return commands.insertContent({
             type: this.name,
             attrs,
-          });
+          })
         },
-    };
+    }
   },
-});
+})

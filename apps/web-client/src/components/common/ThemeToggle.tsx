@@ -1,25 +1,54 @@
-import { useThemeStore } from '@/stores/theme-store';
-import { Laptop, Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Monitor } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useThemeStore, type Theme } from '@/stores/theme-store'
+import { cn } from '@/lib/utils'
+
+const themeOrder: Theme[] = ['system', 'light', 'dark']
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useThemeStore();
+  const { theme, setTheme } = useThemeStore()
 
-  const cycleTheme = () => {
-    if (theme === 'system') setTheme('light');
-    else if (theme === 'light') setTheme('dark');
-    else setTheme('system');
-  };
-
-  const Icon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Laptop;
+  const toggleTheme = () => {
+    const currentTheme = theme ?? 'system'
+    const currentIndex = themeOrder.indexOf(currentTheme)
+    const nextIndex = (currentIndex + 1) % themeOrder.length
+    setTheme(themeOrder[nextIndex] ?? 'system')
+  }
 
   return (
-    <button
-      onClick={cycleTheme}
-      className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus:outline-none"
-      title={`Tema actual: ${theme}. Click para cambiar.`}
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-9 w-9"
+      onClick={toggleTheme}
     >
-      <Icon className="h-5 w-5" />
-      <span className="sr-only">Cambiar tema</span>
-    </button>
-  );
+      <div className="relative h-4 w-4">
+        <Monitor
+          className={cn(
+            'absolute inset-0 h-4 w-4 transition-all duration-300',
+            (theme ?? 'system') === 'system'
+              ? 'scale-100 rotate-0 opacity-100'
+              : 'scale-0 rotate-90 opacity-0'
+          )}
+        />
+        <Sun
+          className={cn(
+            'absolute inset-0 h-4 w-4 transition-all duration-300',
+            (theme ?? 'system') === 'light'
+              ? 'scale-100 rotate-0 opacity-100'
+              : 'scale-0 -rotate-90 opacity-0'
+          )}
+        />
+        <Moon
+          className={cn(
+            'absolute inset-0 h-4 w-4 transition-all duration-300',
+            (theme ?? 'system') === 'dark'
+              ? 'scale-100 rotate-0 opacity-100'
+              : 'scale-0 rotate-90 opacity-0'
+          )}
+        />
+      </div>
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  )
 }

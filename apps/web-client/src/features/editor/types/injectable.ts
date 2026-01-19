@@ -1,4 +1,4 @@
-import type { InjectorType, Variable } from '../data/variables';
+import type { InjectorType, Variable } from './variables'
 
 // ============================================
 // Internal Injectable Constants
@@ -15,98 +15,61 @@ export const INTERNAL_INJECTABLE_KEYS = [
   'year_now',
   'month_now',
   'day_now',
-] as const;
+] as const
 
-export type InternalInjectableKey = typeof INTERNAL_INJECTABLE_KEYS[number];
+export type InternalInjectableKey = (typeof INTERNAL_INJECTABLE_KEYS)[number]
 
 /**
  * Check if a key is an internal (auto-calculable) injectable
  */
 export function isInternalKey(key: string): key is InternalInjectableKey {
-  return INTERNAL_INJECTABLE_KEYS.includes(key as InternalInjectableKey);
+  return INTERNAL_INJECTABLE_KEYS.includes(key as InternalInjectableKey)
 }
 
 // ============================================
-// Metadata Types
+// Format Config Type
 // ============================================
 
 /**
- * Metadata options for variables with format selection (DATE, TIME, MONTH)
+ * Format configuration from backend API
+ * Contains available format options and default selection
  */
-export interface FormatMetadataOptions {
-  formats: string[];
-  default: string;
-}
-
-/**
- * Metadata options for CURRENCY type
- */
-export interface CurrencyMetadataOptions {
-  currency?: string;
-  locale?: string;
-  decimalPlaces?: number;
-  currencySymbol?: string;
-  thousandsSeparator?: string;
-}
-
-/**
- * Metadata options for NUMBER type
- */
-export interface NumberMetadataOptions {
-  decimalPlaces?: number;
-  thousandsSeparator?: string;
-  decimalSeparator?: string;
-}
-
-/**
- * Union type for all metadata options
- */
-export type InjectableMetadataOptions =
-  | FormatMetadataOptions
-  | CurrencyMetadataOptions
-  | NumberMetadataOptions;
-
-/**
- * Metadata structure from API
- */
-export interface InjectableMetadata {
-  options?: InjectableMetadataOptions;
+export interface FormatConfig {
+  /** Default format to apply */
+  default: string
+  /** Available format options for user selection */
+  options: string[]
 }
 
 // ============================================
-// Metadata Helper Functions
+// Format Config Helper Functions
 // ============================================
 
 /**
- * Check if metadata has configurable format options
+ * Check if formatConfig has configurable options (more than one option)
  */
-export function hasConfigurableOptions(metadata?: InjectableMetadata): boolean {
+export function hasConfigurableOptions(formatConfig?: FormatConfig): boolean {
   return Boolean(
-    metadata?.options &&
-      'formats' in metadata.options &&
-      Array.isArray(metadata.options.formats) &&
-      metadata.options.formats.length > 1
-  );
+    formatConfig?.options &&
+      Array.isArray(formatConfig.options) &&
+      formatConfig.options.length > 1
+  )
 }
 
 /**
- * Get default format from metadata
+ * Get default format from formatConfig
  */
-export function getDefaultFormat(metadata?: InjectableMetadata): string | undefined {
-  if (metadata?.options && 'default' in metadata.options) {
-    return metadata.options.default;
-  }
-  return undefined;
+export function getDefaultFormat(
+  formatConfig?: FormatConfig
+): string | undefined {
+  return formatConfig?.default
 }
 
 /**
- * Get available formats from metadata
+ * Get available formats from formatConfig
  */
-export function getAvailableFormats(metadata?: InjectableMetadata): string[] {
-  if (metadata?.options && 'formats' in metadata.options) {
-    return metadata.options.formats;
-  }
-  return [];
+export function getAvailableFormats(formatConfig?: FormatConfig): string[] {
+  return formatConfig?.options ?? []
 }
 
 // ============================================
@@ -115,29 +78,27 @@ export function getAvailableFormats(metadata?: InjectableMetadata): string[] {
 
 /**
  * Injectable definition from API
- * Maps to: github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse
  */
 export interface Injectable {
-  id: string;
-  workspaceId: string;
-  key: string;
-  label: string;
-  dataType: InjectorType;
-  description?: string;
-  isGlobal: boolean;
-  sourceType: 'INTERNAL' | 'EXTERNAL';
-  metadata?: InjectableMetadata;
-  createdAt: string;
-  updatedAt?: string;
+  id: string
+  workspaceId: string
+  key: string
+  label: string
+  dataType: InjectorType
+  description?: string
+  isGlobal: boolean
+  sourceType: 'INTERNAL' | 'EXTERNAL'
+  formatConfig?: FormatConfig
+  createdAt: string
+  updatedAt?: string
 }
 
 /**
  * List injectables response from API
- * Maps to: github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListInjectablesResponse
  */
 export interface InjectablesListResponse {
-  items: Injectable[];
-  total: number;
+  items: Injectable[]
+  total: number
 }
 
 /**
@@ -150,20 +111,21 @@ export function mapInjectableToVariable(injectable: Injectable): Variable {
     label: injectable.label,
     type: injectable.dataType,
     description: injectable.description,
-    metadata: injectable.metadata,
-  };
+    formatConfig: injectable.formatConfig,
+    sourceType: injectable.sourceType,
+  }
 }
 
 /**
  * Convert array of Injectables to Variables
  */
 export function mapInjectablesToVariables(injectables: Injectable[]): Variable[] {
-  return injectables.map(mapInjectableToVariable);
+  return injectables.map(mapInjectableToVariable)
 }
 
 /**
  * Check if an injectable is internal (system-calculated)
  */
 export function isInternalInjectable(injectable: Injectable): boolean {
-  return injectable.sourceType === 'INTERNAL';
+  return injectable.sourceType === 'INTERNAL'
 }

@@ -1,12 +1,12 @@
-import { Node, mergeAttributes } from '@tiptap/core';
-import { ReactNodeViewRenderer } from '@tiptap/react';
-import { PageBreakHRComponent } from './PageBreakHRComponent';
+import { Node, mergeAttributes } from '@tiptap/core'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import { PageBreakHRComponent } from './PageBreakHRComponent'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     pageBreak: {
-      setPageBreak: () => ReturnType;
-    };
+      setPageBreak: () => ReturnType
+    }
   }
 }
 
@@ -21,27 +21,27 @@ export const PageBreakHR = Node.create({
       type: {
         default: 'pagebreak',
       },
-    };
+    }
   },
 
   addCommands() {
     return {
       setPageBreak:
         () =>
-        ({ commands }: { commands: { insertContent: (content: { type: string }) => boolean } }) => {
-          return commands.insertContent({ type: this.name });
+        ({ commands }) => {
+          return commands.insertContent({ type: this.name })
         },
-    };
+    }
   },
 
   addKeyboardShortcuts() {
     return {
       'Mod-Enter': () => this.editor.commands.setPageBreak(),
-    };
+    }
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(PageBreakHRComponent);
+    return ReactNodeViewRenderer(PageBreakHRComponent)
   },
 
   parseHTML() {
@@ -50,10 +50,16 @@ export const PageBreakHR = Node.create({
       { tag: 'hr.page-break' },
       { tag: 'hr.manual-page-break' },
       { tag: 'div[data-type="page-break"]' },
-    ];
+    ]
   },
 
-  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
-    return ['hr', mergeAttributes(HTMLAttributes, { 'data-type': 'pagebreak', class: 'manual-page-break' })];
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'hr',
+      mergeAttributes(HTMLAttributes, {
+        'data-type': 'pagebreak',
+        class: 'manual-page-break',
+      }),
+    ]
   },
-});
+})

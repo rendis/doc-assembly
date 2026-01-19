@@ -1,17 +1,14 @@
-import { Images } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import type { ImageGalleryTabProps } from './types';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function ImageGalleryTab({ onSelectImage: _onSelectImage }: ImageGalleryTabProps) {
+export function ImageGalleryTab(_props: ImageGalleryTabProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-64 bg-muted/30 rounded-lg border border-dashed">
-      <Images className="h-12 w-12 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-medium text-foreground mb-1">
-        Galeria de imagenes
-      </h3>
-      <p className="text-sm text-muted-foreground text-center max-w-xs">
-        Esta funcionalidad estara disponible proximamente.
-        Por ahora, puedes insertar imagenes usando una URL.
+    <div className="min-h-[280px] flex flex-col items-center justify-center text-muted-foreground">
+      <ImageIcon className="h-16 w-16 mb-4 opacity-50" />
+      <h3 className="text-lg font-medium mb-2">Galería de imágenes</h3>
+      <p className="text-sm text-center max-w-[300px]">
+        Esta funcionalidad estará disponible próximamente.
+        Por ahora, puedes insertar imágenes usando una URL.
       </p>
     </div>
   );

@@ -1,16 +1,19 @@
-import { useState, useCallback } from 'react';
-import { GripVertical, Trash2, Type, Variable, AlertTriangle } from 'lucide-react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { GripVertical, AlertTriangle, ChevronDown, Check, Type, Variable } from 'lucide-react'
+import { Trash2 } from '@/components/animate-ui/icons/trash-2'
+import { AnimateIcon } from '@/components/animate-ui/icons/icon'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -18,89 +21,187 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useSignerRolesStore } from '../stores/signer-roles-store'
+import { NotificationBadge, NotificationConfigDialog } from './workflow'
 import type {
   SignerRoleDefinition,
   SignerRoleFieldValue,
   NotificationTriggerMap,
-  SigningWorkflowConfig,
-} from '../types/signer-roles';
-import { getDefaultParallelTriggers, getDefaultSequentialTriggers } from '../types/signer-roles';
-import type { Variable as VariableType } from '../data/variables';
-import { NotificationBadge, NotificationConfigDialog } from './workflow';
-import { useEditorStore, countRoleInjectables, deleteRoleInjectables } from '../stores/editor-store';
-import { useTranslation } from 'react-i18next';
+} from '../types/signer-roles'
+import { getDefaultParallelTriggers, getDefaultSequentialTriggers } from '../types/signer-roles'
+import type { Variable as VariableType } from '../types/variables'
 
 interface SignerRoleItemProps {
-  role: SignerRoleDefinition;
-  variables: VariableType[];
-  allRoles: SignerRoleDefinition[];
-  workflowConfig: SigningWorkflowConfig;
-  onUpdate: (id: string, updates: Partial<Omit<SignerRoleDefinition, 'id'>>) => void;
-  onDelete: (id: string) => void;
-  onUpdateRoleTriggers: (roleId: string, triggers: NotificationTriggerMap) => void;
+  role: SignerRoleDefinition
+  index: number
+  isCompactMode: boolean
+  isDragging?: boolean
+  isOverlay?: boolean
+  variables: VariableType[]
+  allRoles: SignerRoleDefinition[]
+  // Selection mode
+  isSelectionMode: boolean
+  isSelected: boolean
+  onToggleSelection: (id: string) => void
+  onUpdate: (
+    id: string,
+    updates: Partial<Omit<SignerRoleDefinition, 'id'>>
+  ) => void
+  onDelete: (id: string) => void
+  /** Whether the item is editable (false when document is published) */
+  editable?: boolean
+}
+
+interface FieldTypeToggleProps {
+  value: 'text' | 'injectable'
+  onChange: (value: 'text' | 'injectable') => void
+  disabled?: boolean
+}
+
+function FieldTypeToggle({ value, onChange, disabled }: FieldTypeToggleProps) {
+  const { t } = useTranslation()
+  const isVariable = value === 'injectable'
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <div className="inline-flex items-center gap-1 shrink-0">
+        {/* Text icon */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onChange('text')}
+              disabled={disabled}
+              className={cn(
+                'p-1 rounded transition-colors',
+                !isVariable
+                  ? 'text-foreground'
+                  : 'text-muted-foreground/50 hover:text-muted-foreground',
+                disabled && 'pointer-events-none opacity-50'
+              )}
+            >
+              <Type className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {t('editor.roles.card.fieldType.text')}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Switch track */}
+        <button
+          type="button"
+          onClick={() => onChange(isVariable ? 'text' : 'injectable')}
+          disabled={disabled}
+          className={cn(
+            'relative w-8 h-4 rounded-full transition-colors border',
+            isVariable
+              ? 'bg-role-muted border-role-muted'
+              : 'bg-muted-foreground/20 border-muted-foreground/30',
+            disabled && 'pointer-events-none opacity-50'
+          )}
+        >
+          {/* Switch knob */}
+          <motion.div
+            className={cn(
+              'absolute top-0.5 w-3 h-3 rounded-full shadow-sm',
+              isVariable ? 'bg-role-foreground' : 'bg-foreground'
+            )}
+            animate={{ left: isVariable ? 16 : 2 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          />
+        </button>
+
+        {/* Variable icon */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onChange('injectable')}
+              disabled={disabled}
+              className={cn(
+                'p-1 rounded transition-colors',
+                isVariable
+                  ? 'text-role-foreground'
+                  : 'text-muted-foreground/50 hover:text-muted-foreground',
+                disabled && 'pointer-events-none opacity-50'
+              )}
+            >
+              <Variable className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {t('editor.roles.card.fieldType.variable')}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  )
 }
 
 interface FieldEditorProps {
-  label: string;
-  field: SignerRoleFieldValue;
-  variables: VariableType[];
-  onChange: (value: SignerRoleFieldValue) => void;
+  label: string
+  fieldType: 'name' | 'email'
+  field: SignerRoleFieldValue
+  variables: VariableType[]
+  disabled?: boolean
+  onChange: (value: SignerRoleFieldValue) => void
 }
 
-function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
-  const isText = field.type === 'text';
-  const textVariables = variables.filter(v => v.type === 'TEXT');
-
-  const handleTypeToggle = () => {
-    onChange({
-      type: isText ? 'injectable' : 'text',
-      value: '',
-    });
-  };
+function FieldEditor({ label, fieldType, field, variables, disabled, onChange }: FieldEditorProps) {
+  const { t } = useTranslation()
+  const textVariables = variables.filter((v) => v.type === 'TEXT')
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground w-14 shrink-0">{label}:</span>
+    <div className={cn('flex items-center gap-2 overflow-hidden', disabled && 'opacity-50')}>
+      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-11 shrink-0">
+        {label}:
+      </span>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0"
-        onClick={handleTypeToggle}
-        title={isText ? 'Cambiar a variable' : 'Cambiar a texto'}
-      >
-        {isText ? (
-          <Type className="h-3.5 w-3.5" />
-        ) : (
-          <Variable className="h-3.5 w-3.5 text-primary" />
-        )}
-      </Button>
+      <FieldTypeToggle
+        value={field.type}
+        onChange={(type) => onChange({ type, value: '' })}
+        disabled={disabled}
+      />
 
-      {isText ? (
-        <Input
+      {field.type === 'text' ? (
+        <input
+          type="text"
           value={field.value}
           onChange={(e) => onChange({ type: 'text', value: e.target.value })}
-          placeholder={label === 'Nombre' ? 'Nombre del firmante' : 'email@ejemplo.com'}
-          className="h-7 text-xs flex-1 min-w-0"
+          placeholder={t(`editor.roles.card.placeholders.${fieldType}`)}
+          disabled={disabled}
+          className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent px-1 outline-none transition-all placeholder:text-muted-foreground focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-50"
         />
       ) : (
         <Select
           value={field.value}
           onValueChange={(value) => onChange({ type: 'injectable', value })}
+          disabled={disabled}
         >
-          <SelectTrigger className="h-7 text-xs flex-1 min-w-0">
-            <SelectValue placeholder="Seleccionar variable" />
+          <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus-visible:border-foreground focus-visible:ring-0 focus-visible:ring-offset-0">
+            <SelectValue placeholder={t('editor.roles.card.selectVariable')} />
           </SelectTrigger>
           <SelectContent>
             {textVariables.length === 0 ? (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                No hay variables de texto disponibles
+                {t('editor.roles.card.noVariables')}
               </div>
             ) : (
               textVariables.map((variable) => (
-                <SelectItem key={variable.id} value={variable.variableId} className="text-xs">
+                <SelectItem
+                  key={variable.id}
+                  value={variable.variableId}
+                  className="text-xs"
+                >
                   {variable.label}
                 </SelectItem>
               ))
@@ -109,42 +210,124 @@ function FieldEditor({ label, field, variables, onChange }: FieldEditorProps) {
         </Select>
       )}
     </div>
-  );
+  )
 }
 
 export function SignerRoleItem({
   role,
+  index,
+  isCompactMode,
+  isDragging = false,
+  isOverlay = false,
   variables,
   allRoles,
-  workflowConfig,
+  isSelectionMode,
+  isSelected,
+  onToggleSelection,
   onUpdate,
   onDelete,
-  onUpdateRoleTriggers,
+  editable = true,
 }: SignerRoleItemProps) {
-  const { t } = useTranslation();
-  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [injectableCount, setInjectableCount] = useState(0);
-  const editor = useEditorStore((state) => state.editor);
+  // Combine editable and selection mode for disabling interactions
+  const isDisabled = !editable || isSelectionMode
+  const { t } = useTranslation()
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(!isCompactMode)
+  const [isGripHovered, setIsGripHovered] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Handle delete button click - check for injectables first
-  const handleDeleteClick = useCallback(() => {
-    const count = countRoleInjectables(editor, role.id);
-    if (count > 0) {
-      setInjectableCount(count);
-      setShowDeleteConfirmation(true);
-    } else {
-      // No injectables, delete directly
-      onDelete(role.id);
+  // Obtener workflowConfig del store
+  const workflowConfig = useSignerRolesStore((state) => state.workflowConfig)
+  const updateRoleTriggers = useSignerRolesStore((state) => state.updateRoleTriggers)
+
+  // Verificar si estamos en modo individual
+  const isIndividualMode = workflowConfig.notifications.scope === 'individual'
+
+  // Obtener los triggers configurados para este rol (o defaults)
+  const roleConfig = workflowConfig.notifications.roleConfigs.find(
+    (rc) => rc.roleId === role.id
+  )
+  const defaultTriggers =
+    workflowConfig.orderMode === 'parallel'
+      ? getDefaultParallelTriggers()
+      : getDefaultSequentialTriggers()
+  const roleTriggers = roleConfig?.triggers ?? defaultTriggers
+
+  // Handler para guardar notificaciones
+  const handleSaveNotifications = (triggers: NotificationTriggerMap) => {
+    updateRoleTriggers(role.id, triggers)
+  }
+
+  // Auto-colapsar/expandir cuando modo compacto cambia
+  useEffect(() => {
+    // Cancelar cualquier timeout pendiente del blur para evitar race condition
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current)
+      blurTimeoutRef.current = null
     }
-  }, [editor, role.id, onDelete]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional sync with compact mode
+    setIsExpanded(!isCompactMode)
+  }, [isCompactMode])
 
-  // Handle confirmed deletion - delete injectables and role
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleDeleteClick = useCallback(() => {
+    setShowDeleteConfirmation(true)
+  }, [])
+
   const handleConfirmDelete = useCallback(() => {
-    deleteRoleInjectables(editor, role.id);
-    onDelete(role.id);
-    setShowDeleteConfirmation(false);
-  }, [editor, role.id, onDelete]);
+    onDelete(role.id)
+    setShowDeleteConfirmation(false)
+  }, [role.id, onDelete])
+
+  // Manejar blur para auto-colapsar en modo compacto
+  const handleBlur = useCallback(
+    (e: React.FocusEvent) => {
+      if (isCompactMode && cardRef.current) {
+        // Verificar si el nuevo focus está dentro de la card
+        if (!cardRef.current.contains(e.relatedTarget as Node)) {
+          blurTimeoutRef.current = setTimeout(() => setIsExpanded(false), 150)
+        }
+      }
+    },
+    [isCompactMode]
+  )
+
+  // Cancelar colapso si el focus vuelve a la card
+  const handleFocus = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current)
+      blurTimeoutRef.current = null
+    }
+  }, [])
+
+  const handleCardClick = useCallback(() => {
+    if (isCompactMode) {
+      setIsExpanded((prev) => !prev)
+    }
+  }, [isCompactMode])
+
+  // Handle badge click for selection
+  const handleBadgeClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isSelectionMode) {
+        e.stopPropagation()
+        onToggleSelection(role.id)
+      } else if (isCompactMode) {
+        setIsExpanded((prev) => !prev)
+      }
+    },
+    [isSelectionMode, isCompactMode, role.id, onToggleSelection]
+  )
 
   const {
     attributes,
@@ -152,98 +335,216 @@ export function SignerRoleItem({
     setNodeRef,
     transform,
     transition,
-    isDragging,
-  } = useSortable({ id: role.id });
+    isDragging: _isSortableDragging,
+  } = useSortable({ id: role.id, disabled: isOverlay || isDisabled })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  // No aplicar transforms del sortable al overlay
+  const style = isOverlay
+    ? undefined
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }
 
   const handleNameChange = (value: SignerRoleFieldValue) => {
-    onUpdate(role.id, { name: value });
-  };
+    onUpdate(role.id, { name: value })
+  }
 
   const handleEmailChange = (value: SignerRoleFieldValue) => {
-    onUpdate(role.id, { email: value });
-  };
-
-  // Get role notification triggers
-  const isIndividualMode = workflowConfig.notifications.scope === 'individual';
-  const roleConfig = workflowConfig.notifications.roleConfigs.find(
-    (rc) => rc.roleId === role.id
-  );
-  const defaultTriggers =
-    workflowConfig.orderMode === 'parallel'
-      ? getDefaultParallelTriggers()
-      : getDefaultSequentialTriggers();
-  const roleTriggers = roleConfig?.triggers ?? defaultTriggers;
-
-  const handleSaveNotifications = (triggers: NotificationTriggerMap) => {
-    onUpdateRoleTriggers(role.id, triggers);
-  };
+    onUpdate(role.id, { email: value })
+  }
 
   return (
     <>
-
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'border rounded-lg p-3 bg-card transition-shadow',
-        isDragging && 'shadow-lg ring-2 ring-primary/20 opacity-90 z-50'
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground hover:text-foreground touch-none"
-        >
-          <GripVertical className="h-4 w-4" />
-        </div>
-
-        <Input
-          value={role.label}
-          onChange={(e) => onUpdate(role.id, { label: e.target.value })}
-          placeholder="Nombre del rol"
-          className="h-6 text-xs font-medium flex-1 min-w-0 border-transparent bg-transparent hover:border-input focus:border-input px-1"
-        />
-
-        {isIndividualMode && (
-          <NotificationBadge
-            triggers={roleTriggers}
-            onClick={() => setShowNotificationDialog(true)}
-          />
+      <div
+        ref={(node) => {
+          setNodeRef(node)
+          if (cardRef) {
+            cardRef.current = node
+          }
+        }}
+        style={style}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        className={cn(
+          'border border-border rounded-lg p-3 bg-card transition-all',
+          // Efecto 3D base
+          'shadow-sm',
+          // Hover: elevación solo cuando grip está hovered
+          'hover:shadow-md hover:border-border/60',
+          isGripHovered && !isDisabled && '-translate-y-0.5',
+          isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted/30',
+          isDragging && 'opacity-40 scale-[0.98]',
+          isOverlay && 'shadow-xl ring-2 ring-primary/20 rotate-1 scale-105'
         )}
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-          onClick={handleDeleteClick}
+      >
+        {/* Header */}
+        <motion.div
+          layout={!isDragging && !isOverlay}
+          animate={{ marginBottom: isExpanded ? 12 : 0 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          className="flex items-center gap-2"
         >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+          <div
+            {...(isDisabled ? {} : { ...attributes, ...listeners })}
+            onMouseEnter={() => !isDisabled && setIsGripHovered(true)}
+            onMouseLeave={() => setIsGripHovered(false)}
+            className={cn(
+              'p-1 -ml-1 touch-none',
+              isDisabled
+                ? 'text-muted-foreground/20 cursor-default'
+                : 'cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground'
+            )}
+          >
+            <GripVertical className="h-4 w-4" />
+          </div>
 
-      {/* Fields */}
-      <div className="space-y-2">
-        <FieldEditor
-          label="Nombre"
-          field={role.name}
-          variables={variables}
-          onChange={handleNameChange}
-        />
-        <FieldEditor
-          label="Email"
-          field={role.email}
-          variables={variables}
-          onChange={handleEmailChange}
-        />
+          {/* Número de posición / Checkbox de selección */}
+          <motion.span
+            className={cn(
+              'flex h-5 w-5 items-center justify-center rounded-full shrink-0 select-none touch-none transition-all',
+              isSelectionMode
+                ? isSelected
+                  ? 'bg-foreground/75 text-background border-2 border-foreground/75 cursor-pointer shadow-md'
+                  : 'bg-background border-2 border-foreground/50 cursor-pointer shadow-md hover:shadow-lg hover:border-foreground/70'
+                : 'bg-muted/50 text-[11px] font-mono font-semibold text-muted-foreground border border-border/50',
+              !isSelectionMode && isCompactMode && !isExpanded && 'cursor-pointer hover:bg-muted'
+            )}
+            onClick={handleBadgeClick}
+          >
+            <AnimatePresence mode="wait">
+              {isSelectionMode ? (
+                isSelected ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Check className="h-3 w-3" />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  />
+                )
+              ) : (
+                <motion.span
+                  key="number"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {index + 1}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.span>
+
+          <input
+            type="text"
+            value={role.label}
+            onChange={(e) => onUpdate(role.id, { label: e.target.value })}
+            placeholder={t('editor.roles.card.placeholder')}
+            disabled={isDisabled}
+            className={cn(
+              'h-6 text-xs font-medium flex-1 min-w-0 border-0 border-b border-transparent bg-transparent px-1 rounded-none outline-none transition-all placeholder:text-muted-foreground',
+              isDisabled ? 'cursor-default disabled:opacity-50' : 'hover:border-border focus-visible:border-foreground'
+            )}
+          />
+
+          {/* NotificationBadge - solo visible en modo individual */}
+          {isIndividualMode && (
+            <NotificationBadge
+              triggers={roleTriggers}
+              onClick={isDisabled ? undefined : () => setShowNotificationDialog(true)}
+              className={isDisabled ? 'opacity-30 cursor-default' : undefined}
+            />
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-6 w-6 shrink-0',
+              isDisabled
+                ? 'text-muted-foreground/20 cursor-default'
+                : 'text-muted-foreground/50 hover:text-destructive'
+            )}
+            onClick={isDisabled ? undefined : handleDeleteClick}
+            disabled={isDisabled}
+          >
+            <AnimateIcon animateOnHover={!isDisabled}>
+              <Trash2 size={14} />
+            </AnimateIcon>
+          </Button>
+
+          {/* Chevron para indicar expandible (solo en modo compacto) */}
+          <motion.button
+            type="button"
+            initial={false}
+            animate={{
+              opacity: isCompactMode ? 1 : 0,
+              width: isCompactMode ? 'auto' : 0,
+            }}
+            transition={{
+              duration: 0.2,
+              ease: [0.4, 0, 0.2, 1],
+              opacity: { duration: 0.15 },
+            }}
+            onClick={handleCardClick}
+            className={cn(
+              'shrink-0 rounded hover:bg-muted transition-colors overflow-hidden',
+              !isCompactMode && 'pointer-events-none'
+            )}
+          >
+            <motion.div
+              className="p-1"
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </motion.div>
+          </motion.button>
+        </motion.div>
+
+        {/* Fields con animación */}
+        <motion.div
+          initial={false}
+          animate={{
+            height: isExpanded ? 'auto' : 0,
+          }}
+          transition={{
+            height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+          }}
+          style={{ overflowY: 'hidden', overflowX: 'visible' }}
+        >
+          <div className="space-y-2 pt-2">
+            <FieldEditor
+              label={t('editor.roles.card.fields.name')}
+              fieldType="name"
+              field={role.name}
+              variables={variables}
+              disabled={isDisabled}
+              onChange={handleNameChange}
+            />
+            <FieldEditor
+              label={t('editor.roles.card.fields.email')}
+              fieldType="email"
+              field={role.email}
+              variables={variables}
+              disabled={isDisabled}
+              onChange={handleEmailChange}
+            />
+          </div>
+        </motion.div>
       </div>
-    </div>
 
       {/* Notification config dialog (individual mode) */}
       <NotificationConfigDialog
@@ -257,22 +558,18 @@ export function SignerRoleItem({
       />
 
       {/* Delete confirmation dialog */}
-      <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+      <Dialog
+        open={showDeleteConfirmation}
+        onOpenChange={setShowDeleteConfirmation}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              {t('editor.signerRoles.deleteConfirmation.title', 'Eliminar rol')}
+              {t('editor.roles.card.delete.title')}
             </DialogTitle>
             <DialogDescription className="pt-2">
-              {t(
-                'editor.signerRoles.deleteConfirmation.message',
-                {
-                  count: injectableCount,
-                  roleName: role.label,
-                  defaultValue: `El rol "${role.label}" tiene ${injectableCount} ${injectableCount === 1 ? 'variable' : 'variables'} insertada${injectableCount === 1 ? '' : 's'} en el documento. Si eliminas este rol, también se eliminarán del documento.`,
-                }
-              )}
+              {t('editor.roles.card.delete.confirmation', { name: role.label })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -280,17 +577,14 @@ export function SignerRoleItem({
               variant="outline"
               onClick={() => setShowDeleteConfirmation(false)}
             >
-              {t('common.cancel', 'Cancelar')}
+              {t('common.cancel')}
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-            >
-              {t('editor.signerRoles.deleteConfirmation.confirm', 'Eliminar rol y variables')}
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              {t('editor.roles.card.delete.title')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

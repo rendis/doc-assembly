@@ -1,38 +1,10 @@
 /**
- * Document Services - Export/Import functionality
+ * Document Export/Import Services
+ *
+ * This barrel export provides all services for document export/import.
  */
 
-// Export service
-export {
-  exportDocument,
-  serializeDocument,
-  downloadAsJson,
-  exportAndDownload,
-  getDocumentSummary,
-} from './document-export';
-
-// Import service
-export {
-  importDocument,
-  validateDocumentForImport,
-  readDocumentFile,
-  openFileDialog,
-  importFromFile,
-} from './document-import';
-
-// Migrations
-export {
-  migrateDocument,
-  needsMigration,
-  getMigrationInfo,
-  registerMigration,
-  getRegisteredMigrations,
-} from './document-migrations';
-
-// Validation
-export {
-  validateDocumentSemantics,
-  hasUndefinedReferences,
-  getUsedVariableIds,
-  getUsedRoleIds,
-} from './document-validator';
+export * from './document-export'
+export * from './document-import'
+export * from './document-validator'
+export * from './document-migrations'

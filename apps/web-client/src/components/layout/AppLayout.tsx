@@ -1,55 +1,100 @@
-import { Outlet } from '@tanstack/react-router';
-import { useAppContextStore } from '@/stores/app-context-store';
-import { AppSidebar } from './AppSidebar';
-import { ConsoleSwitch } from '@/components/common/ConsoleSwitch';
-import { ThemeToggle } from '@/components/common/ThemeToggle';
-import { UserMenu } from '@/components/common/UserMenu';
-import { TenantSelector } from '@/features/tenants/components/TenantSelector';
+import { Outlet } from '@tanstack/react-router'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useCallback, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { AppSidebar } from './AppSidebar'
+import { AppHeader } from './AppHeader'
+import { useSidebarStore } from '@/stores/sidebar-store'
 
-export const AppLayout = () => {
-  const { currentWorkspace } = useAppContextStore();
+// Variantes de animación - sidebar aparece inmediatamente
+const sidebarVariants = {
+  initial: { opacity: 1 },
+  animate: { opacity: 1 },
+}
+
+const overlayVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+}
+
+export function AppLayout() {
+  const { isMobileOpen, toggleMobileOpen, closeMobile, isPinned, setHovering } =
+    useSidebarStore()
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleMouseEnter = useCallback(() => {
+    if (isPinned) return
+
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+
+    setHovering(true)
+  }, [isPinned, setHovering])
+
+  const handleMouseLeave = useCallback(() => {
+    if (isPinned) return
+
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHovering(false)
+    }, 150)
+  }, [isPinned, setHovering])
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
-    <div className="flex h-screen bg-background text-foreground transition-colors">
-      {/* App Sidebar */}
-      <AppSidebar />
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Header completo con border y botón de menú móvil integrado */}
+      <AppHeader
+        variant="full"
+        showMobileMenu={true}
+        isMobileMenuOpen={isMobileOpen}
+        onMobileMenuToggle={toggleMobileOpen}
+      />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* App Header */}
-        <header className="flex h-14 items-center justify-between border-b bg-card px-6 py-2 shadow-sm transition-colors">
-          <div className="flex items-center gap-4">
-            <ConsoleSwitch />
-            <div className="h-6 w-px bg-border" />
-            <TenantSelector />
+      {/* Mobile overlay */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            variants={overlayVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={closeMobile}
+          />
+        )}
+      </AnimatePresence>
 
-            {currentWorkspace && (
-              <>
-                <span className="text-muted-foreground text-lg font-light">/</span>
-                <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border border-transparent">
-                  <span className="text-sm font-bold tracking-tight text-foreground truncate max-w-[200px]">
-                    {currentWorkspace.name}
-                  </span>
-                  {currentWorkspace.type === 'SYSTEM' && (
-                    <span className="text-[10px] bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 px-1 rounded font-bold uppercase">
-                      SYS
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+      {/* Sidebar con animación de entrada */}
+      <motion.div
+        variants={sidebarVariants}
+        initial="initial"
+        animate="animate"
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 pt-16 lg:relative lg:pt-0',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <AppSidebar />
+      </motion.div>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <UserMenu />
-          </div>
-        </header>
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-hidden">
+      {/* Contenido principal */}
+      <main className="flex flex-1 flex-col overflow-hidden pt-16">
+        <div className="flex-1 overflow-auto">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
-  );
-};
+  )
+}

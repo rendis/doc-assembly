@@ -1,60 +1,40 @@
-import { apiClient } from '@/lib/api-client';
-import type {
-  Tag,
-  TagWithCount,
-  ListResponse,
-  CreateTagRequest,
-  UpdateTagRequest,
-} from '../types';
+import apiClient from '@/lib/api-client'
 
-export const tagsApi = {
-  /**
-   * Lista tags del workspace con conteo de plantillas.
-   * GET /api/v1/workspace/tags
-   */
-  list: async (): Promise<ListResponse<TagWithCount>> => {
-    const response = await apiClient.get('/workspace/tags') as
-      | TagWithCount[]
-      | { data: TagWithCount[]; count: number };
-    // Normalize response
-    if (Array.isArray(response)) {
-      return { data: response, count: response.length };
-    }
-    return {
-      data: response?.data ?? [],
-      count: response?.count ?? 0,
-    };
-  },
+export interface TagWithCount {
+  id: string
+  name: string
+  color: string
+  templateCount: number
+  workspaceId: string
+  createdAt: string
+  updatedAt: string
+}
 
-  /**
-   * Obtiene detalle de un tag.
-   * GET /api/v1/workspace/tags/{tagId}
-   */
-  get: async (tagId: string): Promise<Tag> => {
-    return apiClient.get(`/workspace/tags/${tagId}`);
-  },
+interface TagsListResponse {
+  data: TagWithCount[]
+  count: number
+}
 
-  /**
-   * Crea un nuevo tag.
-   * POST /api/v1/workspace/tags
-   */
-  create: async (data: CreateTagRequest): Promise<Tag> => {
-    return apiClient.post('/workspace/tags', data);
-  },
+export async function fetchTags(): Promise<TagsListResponse> {
+  const response = await apiClient.get<TagsListResponse>('/workspace/tags')
+  return response.data
+}
 
-  /**
-   * Actualiza un tag.
-   * PUT /api/v1/workspace/tags/{tagId}
-   */
-  update: async (tagId: string, data: UpdateTagRequest): Promise<Tag> => {
-    return apiClient.put(`/workspace/tags/${tagId}`, data);
-  },
+export interface CreateTagRequest {
+  name: string
+  color: string
+}
 
-  /**
-   * Elimina un tag.
-   * DELETE /api/v1/workspace/tags/{tagId}
-   */
-  delete: async (tagId: string): Promise<void> => {
-    return apiClient.delete(`/workspace/tags/${tagId}`);
-  },
-};
+export interface TagResponse {
+  id: string
+  name: string
+  color: string
+  workspaceId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function createTag(data: CreateTagRequest): Promise<TagResponse> {
+  const response = await apiClient.post<TagResponse>('/workspace/tags', data)
+  return response.data
+}

@@ -1,220 +1,169 @@
-import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { templatesApi } from '../api/templates-api';
-import { TagBadge } from './TagBadge';
-import type { Folder, TagWithCount } from '../types';
+import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from '@tanstack/react-router'
+import { X } from 'lucide-react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { cn } from '@/lib/utils'
+import { useCreateTemplate } from '../hooks/useTemplates'
+import { addTagsToTemplate } from '../api/templates-api'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { TagSelector } from './TagSelector'
 
 interface CreateTemplateDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  folders: Folder[];
-  tags: TagWithCount[];
-  currentFolderId?: string;
-  onCreated: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  folderId?: string | null
 }
 
 export function CreateTemplateDialog({
-  isOpen,
-  onClose,
-  folders,
-  tags,
-  currentFolderId,
-  onCreated,
+  open,
+  onOpenChange,
+  folderId,
 }: CreateTemplateDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { currentWorkspace } = useAppContextStore()
+  const [title, setTitle] = useState('')
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const createTemplate = useCreateTemplate()
 
-  const [title, setTitle] = useState('');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Handle dialog open state change and reset form
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
+      setTitle('')
+      setSelectedTagIds([])
+      setIsSubmitting(false)
+    }
+    onOpenChange(isOpen)
+  }, [onOpenChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+    e.preventDefault()
+    if (!title.trim() || !currentWorkspace || isSubmitting) return
 
-    setIsSubmitting(true);
-    setError(null);
+    setIsSubmitting(true)
 
     try {
-      const result = await templatesApi.create({
+      // 1. Create the template
+      const response = await createTemplate.mutateAsync({
         title: title.trim(),
-        folderId: currentFolderId,
-      });
+        folderId: folderId ?? undefined,
+        isPublicLibrary: false,
+      })
 
-      // Assign tags if any selected
+      // 2. Add tags to the template (if any selected)
       if (selectedTagIds.length > 0) {
-        await templatesApi.assignTags(result.template.id, { tagIds: selectedTagIds });
+        await addTagsToTemplate(response.template.id, selectedTagIds)
       }
 
-      onCreated();
-      handleClose();
-    } catch (err) {
-      console.error('Failed to create template:', err);
-      setError(t('templates.create.error'));
-    } finally {
-      setIsSubmitting(false);
+      // 3. Close dialog and navigate
+      onOpenChange(false)
+      navigate({
+        to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
+        params: {
+          workspaceId: currentWorkspace.id,
+          templateId: response.template.id,
+          versionId: response.initialVersion.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
+        } as any,
+      })
+    } catch {
+      // Error is handled by mutation
+      setIsSubmitting(false)
     }
-  };
-
-  const handleClose = () => {
-    if (isSubmitting) return;
-    setTitle('');
-    setSelectedTagIds([]);
-    setError(null);
-    onClose();
-  };
-
-  const toggleTag = (tagId: string) => {
-    if (selectedTagIds.includes(tagId)) {
-      setSelectedTagIds(selectedTagIds.filter((id) => id !== tagId));
-    } else {
-      setSelectedTagIds([...selectedTagIds, tagId]);
-    }
-  };
-
-  if (!isOpen) return null;
+  }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={handleClose}
-      />
-
-      {/* Dialog */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          className="
-            w-full max-w-md bg-background rounded-lg shadow-xl
-            animate-in fade-in-0 zoom-in-95
-          "
-          onClick={(e) => e.stopPropagation()}
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          className={cn(
+            'fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
+          )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">{t('templates.create.title')}</h2>
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className="flex items-start justify-between border-b border-border p-6">
+            <div>
+              <DialogPrimitive.Title className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
+                {t('templates.createDialog.title', 'New Template')}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="mt-1 text-sm font-light text-muted-foreground">
+                {t(
+                  'templates.createDialog.description',
+                  'Create a new document template'
+                )}
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="mx-6 mt-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md">
-              {error}
-            </div>
-          )}
-
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {/* Title */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium mb-1.5">
-                {t('templates.create.titleLabel')} *
-              </label>
-              <input
-                id="title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('templates.create.titlePlaceholder')}
-                disabled={isSubmitting}
-                className="
-                  w-full px-3 py-2 text-sm
-                  border rounded-md bg-background
-                  placeholder:text-muted-foreground
-                  focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
-                required
-                autoFocus
-              />
-            </div>
-
-            {/* Folder (readonly) */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                {t('templates.create.folderLabel')}
-              </label>
-              <div className="px-3 py-2 text-sm border rounded-md bg-muted/50 text-muted-foreground">
-                {currentFolderId
-                  ? folders.find((f) => f.id === currentFolderId)?.name
-                  : t('folders.root')}
-              </div>
-            </div>
-
-            {/* Tags */}
-            {tags.length > 0 && (
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-6 p-6">
+              {/* Title field */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  {t('templates.create.tagsLabel')}
+                <label
+                  htmlFor="template-title"
+                  className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground"
+                >
+                  {t('templates.createDialog.titleLabel', 'Title')}
                 </label>
-                <div className="flex flex-wrap gap-1.5 p-3 border rounded-md min-h-[44px]">
-                  {tags.map((tag) => {
-                    const isSelected = selectedTagIds.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        disabled={isSubmitting}
-                        className={`
-                          transition-opacity disabled:cursor-not-allowed
-                          ${isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'}
-                          ${isSubmitting ? 'opacity-50' : ''}
-                        `}
-                      >
-                        <TagBadge
-                          tag={tag}
-                          size="sm"
-                          onRemove={isSelected ? () => toggleTag(tag.id) : undefined}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
+                <input
+                  id="template-title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t(
+                    'templates.createDialog.titlePlaceholder',
+                    'Enter template title...'
+                  )}
+                  maxLength={255}
+                  autoFocus
+                  className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 text-base font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
+                />
               </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
+              {/* Tags field */}
+              <div>
+                <label className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  {t('templates.createDialog.tagsLabel', 'Tags')}
+                </label>
+                <TagSelector
+                  selectedTagIds={selectedTagIds}
+                  onSelectionChange={setSelectedTagIds}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 border-t border-border p-6">
               <button
                 type="button"
-                onClick={handleClose}
-                className="
-                  px-4 py-2 text-sm font-medium
-                  border rounded-md
-                  hover:bg-muted transition-colors
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
+                onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
+                className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
               >
-                {t('common.cancel')}
+                {t('common.cancel', 'Cancel')}
               </button>
               <button
                 type="submit"
-                className="
-                  flex items-center gap-2 px-4 py-2 text-sm font-medium
-                  bg-primary text-primary-foreground rounded-md
-                  hover:bg-primary/90 transition-colors
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
-                disabled={isSubmitting || !title.trim()}
+                disabled={!title.trim() || isSubmitting}
+                className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
               >
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {t('templates.create.button')}
+                {isSubmitting
+                  ? t('common.creating', 'Creating...')
+                  : t('templates.createDialog.submit', 'Create Template')}
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </>
-  );
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  )
 }

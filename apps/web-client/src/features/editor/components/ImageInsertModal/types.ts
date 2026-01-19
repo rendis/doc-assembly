@@ -1,23 +1,12 @@
-export type ImageInsertTab = 'url' | 'gallery';
+import type { ImageShape } from '../../extensions/Image/types';
 
-export interface ImageInsertModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onInsert: (result: ImageInsertResult) => void;
-  shape?: 'square' | 'circle';
-}
+export type ImageInsertTab = 'url' | 'gallery';
 
 export interface ImageInsertResult {
   src: string;
   alt?: string;
   isBase64: boolean;
-  shape?: 'square' | 'circle';
-}
-
-export interface ImageUrlTabProps {
-  onImageReady: (src: string, isBase64: boolean) => void;
-  onCropRequest: (src: string) => void;
-  croppedImage?: ImageInsertResult | null;
+  shape?: ImageShape;
 }
 
 export interface ImagePreviewState {
@@ -27,16 +16,29 @@ export interface ImagePreviewState {
   isBase64: boolean;
 }
 
+export interface ImageInsertModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onInsert: (result: ImageInsertResult) => void;
+  initialShape?: ImageShape;
+}
+
+export interface ImageUrlTabProps {
+  onImageReady: (result: ImageInsertResult | null) => void;
+  onOpenCropper: (imageSrc: string) => void;
+  currentImage: ImageInsertResult | null;
+}
+
 export interface ImageCropperProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageSrc: string;
-  onSave: (croppedImage: string, shape: 'square' | 'circle') => void;
+  onSave: (croppedImage: string, shape: ImageShape) => void;
   maxWidth?: number;
   maxHeight?: number;
-  initialShape?: 'square' | 'circle';
+  initialShape?: ImageShape;
 }
 
 export interface ImageGalleryTabProps {
-  onSelectImage: (src: string) => void;
+  onSelect: (result: ImageInsertResult) => void;
 }

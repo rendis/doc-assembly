@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { v4 as uuid } from 'uuid';
+import { create } from 'zustand'
+import { v4 as uuid } from 'uuid'
 import type {
   SignerRoleDefinition,
   SignerRolesStore,
@@ -7,19 +7,23 @@ import type {
   NotificationScope,
   NotificationTriggerMap,
   SigningWorkflowConfig,
-} from '../types/signer-roles';
+} from '../types/signer-roles'
 import {
   createEmptyRole,
   createDefaultWorkflowConfig,
   getDefaultParallelTriggers,
   getDefaultSequentialTriggers,
-} from '../types/signer-roles';
+} from '../types/signer-roles'
 
 const initialState = {
   roles: [] as SignerRoleDefinition[],
   isCollapsed: false,
+  isCompactMode: false,
   workflowConfig: createDefaultWorkflowConfig(),
-};
+  // Selection mode
+  isSelectionMode: false,
+  selectedRoleIds: [] as string[],
+}
 
 export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
   ...initialState,
@@ -27,13 +31,13 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
   setRoles: (roles) => set({ roles }),
 
   addRole: () => {
-    const { roles } = get();
-    const newOrder = roles.length + 1;
+    const { roles } = get()
+    const newOrder = roles.length + 1
     const newRole: SignerRoleDefinition = {
       id: uuid(),
       ...createEmptyRole(newOrder),
-    };
-    set({ roles: [...roles, newRole] });
+    }
+    set({ roles: [...roles, newRole] })
   },
 
   updateRole: (id, updates) => {
@@ -41,40 +45,96 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
       roles: state.roles.map((role) =>
         role.id === id ? { ...role, ...updates } : role
       ),
-    }));
+    }))
   },
 
   deleteRole: (id) => {
     set((state) => {
-      const filteredRoles = state.roles.filter((role) => role.id !== id);
+      const filteredRoles = state.roles.filter((role) => role.id !== id)
       // Reordenar los roles restantes
       const reorderedRoles = filteredRoles.map((role, index) => ({
         ...role,
         order: index + 1,
-      }));
-      return { roles: reorderedRoles };
-    });
+      }))
+      return { roles: reorderedRoles }
+    })
   },
 
   reorderRoles: (startIndex, endIndex) => {
     set((state) => {
-      const roles = [...state.roles];
-      const [removed] = roles.splice(startIndex, 1);
-      roles.splice(endIndex, 0, removed);
+      const roles = [...state.roles]
+      const [removed] = roles.splice(startIndex, 1)
+      roles.splice(endIndex, 0, removed)
       // Actualizar orden
       const reorderedRoles = roles.map((role, index) => ({
         ...role,
         order: index + 1,
-      }));
-      return { roles: reorderedRoles };
-    });
+      }))
+      return { roles: reorderedRoles }
+    })
   },
 
   toggleCollapsed: () => {
-    set((state) => ({ isCollapsed: !state.isCollapsed }));
+    set((state) => ({ isCollapsed: !state.isCollapsed }))
+  },
+
+  toggleCompactMode: () => {
+    set((state) => ({ isCompactMode: !state.isCompactMode }))
   },
 
   reset: () => set(initialState),
+
+  // Selection mode actions
+  enterSelectionMode: (initialId?: string) => {
+    set({
+      isSelectionMode: true,
+      selectedRoleIds: initialId ? [initialId] : [],
+    })
+  },
+
+  exitSelectionMode: () => {
+    set({
+      isSelectionMode: false,
+      selectedRoleIds: [],
+    })
+  },
+
+  toggleRoleSelection: (id: string) => {
+    set((state) => {
+      const isSelected = state.selectedRoleIds.includes(id)
+      const newSelectedIds = isSelected
+        ? state.selectedRoleIds.filter((rid) => rid !== id)
+        : [...state.selectedRoleIds, id]
+
+      // Auto-exit selection mode if no items selected
+      if (newSelectedIds.length === 0) {
+        return {
+          isSelectionMode: false,
+          selectedRoleIds: [],
+        }
+      }
+
+      return { selectedRoleIds: newSelectedIds }
+    })
+  },
+
+  deleteSelectedRoles: () => {
+    set((state) => {
+      const filteredRoles = state.roles.filter(
+        (role) => !state.selectedRoleIds.includes(role.id)
+      )
+      // Reorder remaining roles
+      const reorderedRoles = filteredRoles.map((role, index) => ({
+        ...role,
+        order: index + 1,
+      }))
+      return {
+        roles: reorderedRoles,
+        isSelectionMode: false,
+        selectedRoleIds: [],
+      }
+    })
+  },
 
   // Workflow actions
   setOrderMode: (mode: SigningOrderMode) => {
@@ -82,7 +142,7 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
       const defaultTriggers =
         mode === 'parallel'
           ? getDefaultParallelTriggers()
-          : getDefaultSequentialTriggers();
+          : getDefaultSequentialTriggers()
 
       return {
         workflowConfig: {
@@ -100,17 +160,17 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
             ),
           },
         },
-      };
-    });
+      }
+    })
   },
 
   setNotificationScope: (scope: NotificationScope) => {
     set((state) => {
-      const { workflowConfig, roles } = state;
+      const { workflowConfig, roles } = state
       const defaultTriggers =
         workflowConfig.orderMode === 'parallel'
           ? getDefaultParallelTriggers()
-          : getDefaultSequentialTriggers();
+          : getDefaultSequentialTriggers()
 
       // When switching to individual, initialize roleConfigs for all roles
       const roleConfigs =
@@ -122,7 +182,7 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
                   (rc) => rc.roleId === role.id
                 )?.triggers || defaultTriggers,
             }))
-          : workflowConfig.notifications.roleConfigs;
+          : workflowConfig.notifications.roleConfigs
 
       return {
         workflowConfig: {
@@ -133,8 +193,8 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
             roleConfigs,
           },
         },
-      };
-    });
+      }
+    })
   },
 
   updateGlobalTriggers: (triggers: NotificationTriggerMap) => {
@@ -146,20 +206,20 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
           globalTriggers: triggers,
         },
       },
-    }));
+    }))
   },
 
   updateRoleTriggers: (roleId: string, triggers: NotificationTriggerMap) => {
     set((state) => {
-      const { roleConfigs } = state.workflowConfig.notifications;
-      const existingIndex = roleConfigs.findIndex((rc) => rc.roleId === roleId);
+      const { roleConfigs } = state.workflowConfig.notifications
+      const existingIndex = roleConfigs.findIndex((rc) => rc.roleId === roleId)
 
       const newRoleConfigs =
         existingIndex >= 0
           ? roleConfigs.map((rc, i) =>
               i === existingIndex ? { ...rc, triggers } : rc
             )
-          : [...roleConfigs, { roleId, triggers }];
+          : [...roleConfigs, { roleId, triggers }]
 
       return {
         workflowConfig: {
@@ -169,23 +229,23 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
             roleConfigs: newRoleConfigs,
           },
         },
-      };
-    });
+      }
+    })
   },
 
   setWorkflowConfig: (config: SigningWorkflowConfig) => {
-    set({ workflowConfig: config });
+    set({ workflowConfig: config })
   },
-}));
+}))
 
 /**
  * Selector para obtener roles ordenados
  */
 export const selectOrderedRoles = (state: SignerRolesStore) =>
-  [...state.roles].sort((a, b) => a.order - b.order);
+  [...state.roles].sort((a, b) => a.order - b.order)
 
 /**
  * Selector para obtener un rol por ID
  */
 export const selectRoleById = (state: SignerRolesStore, id: string) =>
-  state.roles.find((role) => role.id === id);
+  state.roles.find((role) => role.id === id)

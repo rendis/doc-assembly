@@ -1,134 +1,161 @@
-import { useRef, useCallback, useState } from 'react';
-import { Cropper, CircleStencil } from 'react-advanced-cropper';
-import 'react-advanced-cropper/dist/style.css';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Square, Circle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { ImageCropperProps } from './types';
+import { useRef, useState, useCallback } from 'react'
+import { Cropper, CropperRef, CircleStencil } from 'react-advanced-cropper'
+import 'react-advanced-cropper/dist/style.css'
+import { X, RotateCcw, Square, Circle } from 'lucide-react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { cn } from '@/lib/utils'
+import type { ImageShape } from '../../extensions/Image/types'
+import type { ImageCropperProps } from './types'
 
-const DEFAULT_MAX_WIDTH = 1200;
-const DEFAULT_MAX_HEIGHT = 800;
+const MAX_WIDTH = 1200
+const MAX_HEIGHT = 800
+const PNG_QUALITY = 0.9
 
 export function ImageCropper({
   open,
   onOpenChange,
   imageSrc,
   onSave,
-  maxWidth = DEFAULT_MAX_WIDTH,
-  maxHeight = DEFAULT_MAX_HEIGHT,
+  maxWidth = MAX_WIDTH,
+  maxHeight = MAX_HEIGHT,
   initialShape = 'square',
 }: ImageCropperProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cropperRef = useRef<any>(null);
-  const [shape, setShape] = useState<'square' | 'circle'>(initialShape);
+  const cropperRef = useRef<CropperRef>(null)
+  const [shape, setShape] = useState<ImageShape>(initialShape)
+
+  // Handle dialog open state change and reset shape
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen) {
+      setShape(initialShape)
+    }
+    onOpenChange(isOpen)
+  }, [onOpenChange, initialShape])
 
   const handleReset = useCallback(() => {
-    const defaultState = cropperRef.current?.getDefaultState();
-    if (defaultState) {
-      cropperRef.current?.setState(defaultState);
-    }
-  }, []);
+    cropperRef.current?.reset()
+  }, [])
 
   const handleSave = useCallback(() => {
-    const canvas = cropperRef.current?.getCanvas({
-      maxWidth: shape === 'circle' ? Math.min(maxWidth, maxHeight) : maxWidth,
-      maxHeight: shape === 'circle' ? Math.min(maxWidth, maxHeight) : maxHeight,
-      imageSmoothingQuality: 'high',
-    });
+    const cropper = cropperRef.current
+    if (!cropper) return
 
-    if (canvas) {
-      const dataUrl = canvas.toDataURL('image/png', 0.9);
-      onSave(dataUrl, shape);
-      onOpenChange(false);
-    }
-  }, [onSave, onOpenChange, maxWidth, maxHeight, shape]);
+    const canvas = cropper.getCanvas({
+      maxWidth,
+      maxHeight,
+    })
 
-  const handleCancel = useCallback(() => {
-    onOpenChange(false);
-  }, [onOpenChange]);
+    if (!canvas) return
+
+    const croppedImage = canvas.toDataURL('image/png', PNG_QUALITY)
+    onSave(croppedImage, shape)
+    onOpenChange(false)
+  }, [maxWidth, maxHeight, onSave, shape, onOpenChange])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Recortar Imagen</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Shape selector */}
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-sm text-muted-foreground mr-2">Forma:</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className={cn(
-                'gap-2',
-                shape === 'square' && 'bg-accent text-accent-foreground border-primary'
-              )}
-              onClick={() => setShape('square')}
-            >
-              <Square className="h-4 w-4" />
-              Cuadrada
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className={cn(
-                'gap-2',
-                shape === 'circle' && 'bg-accent text-accent-foreground border-primary'
-              )}
-              onClick={() => setShape('circle')}
-            >
-              <Circle className="h-4 w-4" />
-              Circular
-            </Button>
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          className={cn(
+            'fixed left-[50%] top-[50%] z-50 w-full max-w-3xl translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
+          )}
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-border p-6">
+            <div>
+              <DialogPrimitive.Title className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
+                Recortar imagen
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="mt-1 text-sm font-light text-muted-foreground">
+                Ajusta el área de recorte
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
           </div>
 
-          <div className="relative bg-muted/30 rounded-lg overflow-hidden">
-            <Cropper
-              key={`${imageSrc}-${shape}`}
-              ref={cropperRef}
-              src={imageSrc}
-              className="h-[350px]"
-              stencilComponent={shape === 'circle' ? CircleStencil : undefined}
-              stencilProps={{
-                grid: true,
-                aspectRatio: shape === 'circle' ? 1 : undefined,
-              }}
-            />
+          {/* Content */}
+          <div className="p-6">
+            {/* Shape selector */}
+            <div className="mb-4 flex items-center gap-2">
+              <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                Forma:
+              </span>
+              <button
+                type="button"
+                onClick={() => setShape('square')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-none border px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors',
+                  shape === 'square'
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                )}
+              >
+                <Square className="h-3.5 w-3.5" />
+                Cuadrado
+              </button>
+              <button
+                type="button"
+                onClick={() => setShape('circle')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-none border px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors',
+                  shape === 'circle'
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                )}
+              >
+                <Circle className="h-3.5 w-3.5" />
+                Circular
+              </button>
+            </div>
+
+            {/* Cropper */}
+            <div className="relative h-[400px] overflow-hidden bg-muted">
+              <Cropper
+                ref={cropperRef}
+                src={imageSrc}
+                stencilComponent={shape === 'circle' ? CircleStencil : undefined}
+                stencilProps={{
+                  grid: true,
+                  aspectRatio: shape === 'circle' ? 1 : undefined,
+                }}
+                className="h-full"
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-border p-6">
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={handleReset}
+              className="flex items-center gap-1.5 rounded-none border border-border bg-background px-4 py-2 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             >
-              <RefreshCw className="h-4 w-4 mr-1" />
+              <RotateCcw className="h-3.5 w-3.5" />
               Restablecer
-            </Button>
+            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90"
+              >
+                Aplicar recorte
+              </button>
+            </div>
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave}>
-            Aplicar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  )
 }

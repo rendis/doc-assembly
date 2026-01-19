@@ -2,11 +2,14 @@
  * Document Export Service
  *
  * Exports the editor content and metadata into a portable JSON format.
+ * This must replicate the exact format from the old system (web-client)
+ * because it's the same format used by the backend.
+ *
  * Variables are stored as IDs only; full definitions come from the backend.
  */
 
 // @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
-import type { Editor, JSONContent } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core'
 import type {
   PortableDocument,
   DocumentMeta,
@@ -17,19 +20,19 @@ import type {
   ProseMirrorNode,
   SignerRoleDefinition,
   SigningWorkflowConfig,
-  PageFormatId,
-} from '../types/document-format';
-import type { PaginationConfig } from '../types/pagination';
-import { DOCUMENT_FORMAT_VERSION } from '../types/document-format';
+} from '../types/document-format'
+import type { PaginationStore } from '../stores/pagination-store'
+import { DOCUMENT_FORMAT_VERSION } from '../types/document-format'
+import { PAGE_SIZES } from '../types'
 
 // =============================================================================
 // Helper Types
 // =============================================================================
 
 interface EditorStoreData {
-  paginationConfig: PaginationConfig;
-  signerRoles: SignerRoleDefinition[];
-  workflowConfig: SigningWorkflowConfig;
+  pagination: Pick<PaginationStore, 'pageSize' | 'margins'>
+  signerRoles: SignerRoleDefinition[]
+  workflowConfig: SigningWorkflowConfig
 }
 
 // =============================================================================
@@ -40,39 +43,39 @@ interface EditorStoreData {
  * Extracts ProseMirror JSON content from the editor
  */
 function extractContent(editor: Editor): ProseMirrorDocument {
-  const json = editor.getJSON() as JSONContent;
+  const json = editor.getJSON() as JSONContent
 
   return {
     type: 'doc',
     content: (json.content || []) as ProseMirrorNode[],
-  };
+  }
 }
 
 /**
  * Recursively traverses content to find all injector nodes and extract variable references
  */
 function findInjectorNodes(content: ProseMirrorNode[]): Set<string> {
-  const variableIds = new Set<string>();
+  const variableIds = new Set<string>()
 
   function traverse(nodes: ProseMirrorNode[]) {
     for (const node of nodes) {
       if (node.type === 'injector' && node.attrs?.variableId) {
-        variableIds.add(node.attrs.variableId as string);
+        variableIds.add(node.attrs.variableId as string)
       }
 
       // Also check conditional nodes for variable references in conditions
       if (node.type === 'conditional' && node.attrs?.conditions) {
-        extractVariablesFromConditions(node.attrs.conditions, variableIds);
+        extractVariablesFromConditions(node.attrs.conditions, variableIds)
       }
 
       if (node.content) {
-        traverse(node.content);
+        traverse(node.content)
       }
     }
   }
 
-  traverse(content);
-  return variableIds;
+  traverse(content)
+  return variableIds
 }
 
 /**
@@ -82,17 +85,17 @@ function extractVariablesFromConditions(
   conditions: unknown,
   variableIds: Set<string>
 ): void {
-  if (!conditions || typeof conditions !== 'object') return;
+  if (!conditions || typeof conditions !== 'object') return
 
-  const group = conditions as { type?: string; variableId?: string; children?: unknown[] };
+  const group = conditions as { type?: string; variableId?: string; children?: unknown[] }
 
   if (group.type === 'rule' && group.variableId) {
-    variableIds.add(group.variableId);
+    variableIds.add(group.variableId)
   }
 
   if (group.type === 'group' && Array.isArray(group.children)) {
     for (const child of group.children) {
-      extractVariablesFromConditions(child, variableIds);
+      extractVariablesFromConditions(child, variableIds)
     }
   }
 }
@@ -102,8 +105,8 @@ function extractVariablesFromConditions(
  * Only returns IDs; full definitions come from the backend
  */
 function extractVariableIds(content: ProseMirrorDocument): string[] {
-  const usedVariableIds = findInjectorNodes(content.content);
-  return Array.from(usedVariableIds).sort();
+  const usedVariableIds = findInjectorNodes(content.content)
+  return Array.from(usedVariableIds).sort()
 }
 
 // =============================================================================
@@ -111,19 +114,28 @@ function extractVariableIds(content: ProseMirrorDocument): string[] {
 // =============================================================================
 
 /**
+ * Gets the page format ID (key) from PAGE_SIZES based on dimensions
+ * Returns 'CUSTOM' if no matching format is found
+ */
+function getPageFormatId(pageSize: { width: number; height: number }): PageConfig['formatId'] {
+  const entry = Object.entries(PAGE_SIZES).find(
+    ([_, size]) => size.width === pageSize.width && size.height === pageSize.height
+  )
+  return (entry?.[0] as PageConfig['formatId']) || 'CUSTOM'
+}
+
+/**
  * Converts pagination store config to PageConfig format
  */
-function extractPageConfig(paginationConfig: PaginationConfig): PageConfig {
-  const { format, showPageNumbers, pageGap } = paginationConfig;
+function extractPageConfig(pagination: EditorStoreData['pagination']): PageConfig {
+  const { pageSize, margins } = pagination
 
   return {
-    formatId: format.id as PageFormatId,
-    width: format.width,
-    height: format.height,
-    margins: { ...format.margins },
-    showPageNumbers,
-    pageGap,
-  };
+    formatId: getPageFormatId(pageSize),
+    width: pageSize.width,
+    height: pageSize.height,
+    margins: { ...margins },
+  }
 }
 
 // =============================================================================
@@ -137,26 +149,26 @@ function generateExportInfo(options: ExportOptions = {}): ExportInfo {
   const info: ExportInfo = {
     exportedAt: new Date().toISOString(),
     sourceApp: 'doc-assembly-web/1.1.0',
-  };
-
-  if (options.exportedBy) {
-    info.exportedBy = options.exportedBy;
   }
 
-  return info;
+  if (options.exportedBy) {
+    info.exportedBy = options.exportedBy
+  }
+
+  return info
 }
 
 /**
  * Generates a simple checksum for the document
  */
 function generateChecksum(content: string): string {
-  let hash = 0;
+  let hash = 0
   for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    const char = content.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
   }
-  return Math.abs(hash).toString(16).padStart(8, '0');
+  return Math.abs(hash).toString(16).padStart(8, '0')
 }
 
 // =============================================================================
@@ -174,19 +186,19 @@ export function exportDocument(
   options: ExportOptions = {}
 ): PortableDocument {
   // Extract content from editor
-  const content = extractContent(editor);
+  const content = extractContent(editor)
 
   // Extract variable IDs used in the document
-  const variableIds = extractVariableIds(content);
+  const variableIds = extractVariableIds(content)
 
   // Extract page configuration
-  const pageConfig = extractPageConfig(storeData.paginationConfig);
+  const pageConfig = extractPageConfig(storeData.pagination)
 
   // Get signer roles
-  const signerRoles = [...storeData.signerRoles];
+  const signerRoles = [...storeData.signerRoles]
 
   // Generate export info
-  const exportInfo = generateExportInfo(options);
+  const exportInfo = generateExportInfo(options)
 
   // Assemble the document
   const document: PortableDocument = {
@@ -198,15 +210,15 @@ export function exportDocument(
     signingWorkflow: storeData.workflowConfig,
     content,
     exportInfo,
-  };
+  }
 
   // Add checksum if requested
   if (options.includeChecksum) {
-    const contentString = JSON.stringify(document.content);
-    document.exportInfo.checksum = generateChecksum(contentString);
+    const contentString = JSON.stringify(document.content)
+    document.exportInfo.checksum = generateChecksum(contentString)
   }
 
-  return document;
+  return document
 }
 
 /**
@@ -218,7 +230,7 @@ export function serializeDocument(
 ): string {
   return prettyPrint
     ? JSON.stringify(document, null, 2)
-    : JSON.stringify(document);
+    : JSON.stringify(document)
 }
 
 /**
@@ -228,17 +240,17 @@ export function downloadAsJson(
   document: PortableDocument,
   filename: string = 'document.json'
 ): void {
-  const json = serializeDocument(document, true);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  const json = serializeDocument(document, true)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
 
-  const a = window.document.createElement('a');
-  a.href = url;
-  a.download = filename.endsWith('.json') ? filename : `${filename}.json`;
-  window.document.body.appendChild(a);
-  a.click();
-  window.document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const a = window.document.createElement('a')
+  a.href = url
+  a.download = filename.endsWith('.json') ? filename : `${filename}.json`
+  window.document.body.appendChild(a)
+  a.click()
+  window.document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 /**
@@ -251,9 +263,9 @@ export function exportAndDownload(
   filename: string = 'document.json',
   options: ExportOptions = {}
 ): PortableDocument {
-  const document = exportDocument(editor, storeData, meta, options);
-  downloadAsJson(document, filename);
-  return document;
+  const document = exportDocument(editor, storeData, meta, options)
+  downloadAsJson(document, filename)
+  return document
 }
 
 // =============================================================================
@@ -264,14 +276,14 @@ export function exportAndDownload(
  * Gets a summary of document contents for preview
  */
 export function getDocumentSummary(document: PortableDocument): {
-  variableCount: number;
-  signerRoleCount: number;
-  pageFormat: string;
-  hasConditionals: boolean;
-  hasSignatures: boolean;
+  variableCount: number
+  signerRoleCount: number
+  pageFormat: string
+  hasConditionals: boolean
+  hasSignatures: boolean
 } {
-  const hasConditionals = hasNodeType(document.content.content, 'conditional');
-  const hasSignatures = hasNodeType(document.content.content, 'signature');
+  const hasConditionals = hasNodeType(document.content.content, 'conditional')
+  const hasSignatures = hasNodeType(document.content.content, 'signature')
 
   return {
     variableCount: document.variableIds.length,
@@ -279,7 +291,7 @@ export function getDocumentSummary(document: PortableDocument): {
     pageFormat: document.pageConfig.formatId,
     hasConditionals,
     hasSignatures,
-  };
+  }
 }
 
 /**
@@ -287,8 +299,8 @@ export function getDocumentSummary(document: PortableDocument): {
  */
 function hasNodeType(content: ProseMirrorNode[], nodeType: string): boolean {
   for (const node of content) {
-    if (node.type === nodeType) return true;
-    if (node.content && hasNodeType(node.content, nodeType)) return true;
+    if (node.type === nodeType) return true
+    if (node.content && hasNodeType(node.content, nodeType)) return true
   }
-  return false;
+  return false
 }

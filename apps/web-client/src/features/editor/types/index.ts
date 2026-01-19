@@ -1,36 +1,45 @@
-// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
-import type { Editor as TiptapEditor } from '@tiptap/core';
-
-export interface EditorProps {
-  content: string;
-  onChange?: (content: string) => void;
-  editable?: boolean;
-  onEditorReady?: (editor: TiptapEditor) => void;
-  templateId?: string;
-  versionId?: string;
+// Page types
+export interface PageSize {
+  width: number
+  height: number
+  label: string
 }
 
-export interface EditorToolbarProps {
-  editor: TiptapEditor;
-  templateId?: string;
-  versionId?: string;
+export interface PageMargins {
+  top: number
+  bottom: number
+  left: number
+  right: number
 }
 
-export interface UseEditorStateOptions {
-  content: string;
-  editable?: boolean;
-  onUpdate?: (html: string) => void;
+export interface PageSettings {
+  pageSize: PageSize
+  margins: PageMargins
 }
 
-export interface UseEditorStateReturn {
-  editor: TiptapEditor | null;
+// Límites de márgenes para evitar bugs de paginación
+export const MARGIN_LIMITS = {
+  min: 50,
+  max: 200,
+} as const
+
+// Solo formatos estándar para documentos de firma digital
+export const PAGE_SIZES: Record<string, PageSize> = {
+  A4: { width: 794, height: 1123, label: 'A4' },
+  LETTER: { width: 818, height: 1060, label: 'Letter' },
+  LEGAL: { width: 818, height: 1404, label: 'Legal' },
 }
 
-// Document Format Types
-export * from './document-format';
+export const DEFAULT_MARGINS: PageMargins = {
+  top: 96,
+  bottom: 96,
+  left: 96,
+  right: 96,
+}
 
-// Pagination Types
-export * from './pagination';
-
-// Signer Roles Types
-export * from './signer-roles';
+// Variables and injectables
+export * from './variables'
+export * from './injectable'
+export * from './role-injectable'
+export * from './signer-roles'
+export * from './document-format'

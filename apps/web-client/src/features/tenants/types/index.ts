@@ -1,22 +1,33 @@
 export interface Tenant {
-  id: string;
-  name: string;
-  code: string;
-  description?: string;
-  settings?: Record<string, unknown>;
-  createdAt: string;
-  updatedAt?: string;
-  role?: string; // From TenantWithRoleResponse
+  id: string
+  name: string
+  code: string
+  description?: string
+  settings?: TenantSettings
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface TenantSettings {
+  currency?: string
+  timezone?: string
+  dateFormat?: string
+  locale?: string
+}
+
+export interface TenantWithRole extends Tenant {
+  role: string
+  lastAccessedAt?: string | null
 }
 
 export interface CreateTenantRequest {
-  name: string;
-  code: string;
-  description?: string;
+  name: string
+  code: string
+  description?: string
 }
 
 export interface UpdateTenantRequest {
-  name: string;
-  description?: string;
-  settings?: Record<string, unknown>;
+  name?: string
+  description?: string
+  settings?: TenantSettings
 }

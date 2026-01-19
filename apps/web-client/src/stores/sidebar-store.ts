@@ -1,116 +1,65 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 /**
- * Sidebar type identifier
- */
-export type SidebarType = 'app' | 'admin';
-
-/**
- * State for a single sidebar instance
- */
-interface SidebarSubState {
-  isPinned: boolean;
-  isHovered: boolean;
-}
-
-/**
- * Global sidebar state for both app and admin sidebars
+ * Sidebar store state
  */
 interface SidebarState {
-  // App Sidebar State
-  app: SidebarSubState;
+  // State
+  isCollapsed: boolean
+  isMobileOpen: boolean
+  isPinned: boolean
+  isHovering: boolean
 
-  // Admin Sidebar State
-  admin: SidebarSubState;
-
-  // App Sidebar Actions
-  setAppPinned: (pinned: boolean) => void;
-  setAppHovered: (hovered: boolean) => void;
-  toggleAppPin: () => void;
-
-  // Admin Sidebar Actions
-  setAdminPinned: (pinned: boolean) => void;
-  setAdminHovered: (hovered: boolean) => void;
-  toggleAdminPin: () => void;
-
-  // Computed Helpers
-  isAppExpanded: () => boolean;
-  isAdminExpanded: () => boolean;
+  // Actions
+  toggleCollapsed: () => void
+  setCollapsed: (collapsed: boolean) => void
+  toggleMobileOpen: () => void
+  setMobileOpen: (open: boolean) => void
+  closeMobile: () => void
+  togglePinned: () => void
+  setPinned: (pinned: boolean) => void
+  setHovering: (hovering: boolean) => void
 }
 
 /**
- * Zustand store for sidebar state management with persistence
- *
- * Features:
- * - Separate state for app and admin sidebars
- * - Persists only isPinned state to localStorage
- * - Hover state is transient (not persisted)
- * - Provides computed helpers for expanded state
+ * Sidebar store with persistence
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      // Initial state - both sidebars start collapsed
-      app: {
-        isPinned: false,
-        isHovered: false,
-      },
-      admin: {
-        isPinned: false,
-        isHovered: false,
-      },
+      // Initial state
+      isCollapsed: false,
+      isMobileOpen: false,
+      isPinned: true,
+      isHovering: false,
 
-      // App Sidebar Actions
-      setAppPinned: (pinned) =>
-        set((state) => ({
-          app: { ...state.app, isPinned: pinned },
-        })),
+      // Actions
+      toggleCollapsed: () => set({ isCollapsed: !get().isCollapsed }),
 
-      setAppHovered: (hovered) =>
-        set((state) => ({
-          app: { ...state.app, isHovered: hovered },
-        })),
+      setCollapsed: (collapsed) => set({ isCollapsed: collapsed }),
 
-      toggleAppPin: () =>
-        set((state) => ({
-          app: { ...state.app, isPinned: !state.app.isPinned },
-        })),
+      toggleMobileOpen: () => set({ isMobileOpen: !get().isMobileOpen }),
 
-      // Admin Sidebar Actions
-      setAdminPinned: (pinned) =>
-        set((state) => ({
-          admin: { ...state.admin, isPinned: pinned },
-        })),
+      setMobileOpen: (open) => set({ isMobileOpen: open }),
 
-      setAdminHovered: (hovered) =>
-        set((state) => ({
-          admin: { ...state.admin, isHovered: hovered },
-        })),
+      closeMobile: () => set({ isMobileOpen: false }),
 
-      toggleAdminPin: () =>
-        set((state) => ({
-          admin: { ...state.admin, isPinned: !state.admin.isPinned },
-        })),
-
-      // Computed Helpers
-      isAppExpanded: () => {
-        const { app } = get();
-        return app.isPinned || app.isHovered;
+      togglePinned: () => {
+        const newPinned = !get().isPinned
+        set({ isPinned: newPinned, isHovering: false })
       },
 
-      isAdminExpanded: () => {
-        const { admin } = get();
-        return admin.isPinned || admin.isHovered;
-      },
+      setPinned: (pinned) => set({ isPinned: pinned, isHovering: false }),
+
+      setHovering: (hovering) => set({ isHovering: hovering }),
     }),
     {
-      name: 'sidebar-storage',
-      // Only persist isPinned state, not hover state
+      name: 'doc-assembly-sidebar',
       partialize: (state) => ({
-        app: { isPinned: state.app.isPinned, isHovered: false },
-        admin: { isPinned: state.admin.isPinned, isHovered: false },
+        isCollapsed: state.isCollapsed,
+        isPinned: state.isPinned,
       }),
     }
   )
-);
+)

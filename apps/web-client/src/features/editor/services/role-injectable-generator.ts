@@ -5,8 +5,8 @@
  * para nombres y emails de roles de firmantes.
  */
 
-import { faker } from '@faker-js/faker';
-import type { RolePropertyKey } from '../types/role-injectable';
+import { faker } from '@faker-js/faker'
+import type { RolePropertyKey } from '../types/role-injectable'
 
 /**
  * Genera un valor aleatorio según el tipo de propiedad de rol
@@ -21,21 +21,20 @@ export function generateRoleValue(
 ): string {
   switch (propertyKey) {
     case 'name':
-      return faker.person.fullName();
+      return faker.person.fullName()
 
     case 'email':
-      // Si hay contexto de nombre, usarlo para el email
       if (context?.firstName || context?.lastName) {
         return faker.internet.email({
           firstName: context.firstName,
           lastName: context.lastName,
-          provider: 'example.com', // Dominio reservado para pruebas (RFC 2606)
-        });
+          provider: 'example.com',
+        })
       }
-      return faker.internet.email({ provider: 'example.com' });
+      return faker.internet.email({ provider: 'example.com' })
 
     default:
-      return '';
+      return ''
   }
 }
 
@@ -46,21 +45,21 @@ export function generateRoleValue(
  * @returns Objeto con nombre completo y email relacionado
  */
 export function generateConsistentRoleValues(): {
-  name: string;
-  email: string;
+  name: string
+  email: string
 } {
-  const firstName = faker.person.firstName();
-  const lastName = faker.person.lastName();
-  const fullName = `${firstName} ${lastName}`;
+  const firstName = faker.person.firstName()
+  const lastName = faker.person.lastName()
+  const fullName = `${firstName} ${lastName}`
 
   return {
     name: fullName,
     email: faker.internet.email({
       firstName,
       lastName,
-      provider: 'example.com', // Usar dominio genérico para pruebas
+      provider: 'example.com',
     }),
-  };
+  }
 }
 
 /**
@@ -74,13 +73,14 @@ export function generateRoleInjectableValues(
   roleLabel: string,
   propertyKeys: RolePropertyKey[]
 ): Record<string, string> {
-  const values: Record<string, string> = {};
-  const { name, email } = generateConsistentRoleValues();
+  const values: Record<string, string> = {}
+  const { name, email } = generateConsistentRoleValues()
 
   propertyKeys.forEach((key) => {
-    const variableId = `ROLE.${roleLabel}.${key}`;
-    values[variableId] = key === 'name' ? name : email;
-  });
+    const normalizedLabel = roleLabel.trim().replace(/\s+/g, '_')
+    const variableId = `ROLE.${normalizedLabel}.${key}`
+    values[variableId] = key === 'name' ? name : email
+  })
 
-  return values;
+  return values
 }

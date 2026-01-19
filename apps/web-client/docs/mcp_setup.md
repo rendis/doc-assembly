@@ -94,24 +94,25 @@ Edit `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project):
 
 Once configured, the following tools are available to the LLM:
 
-| Tool | Description |
-|------|-------------|
-| `list-endpoints` | Lists all API paths with HTTP methods and summaries |
-| `get-endpoint` | Gets detailed information about a specific endpoint |
-| `get-request-body` | Gets the request body schema for an endpoint |
-| `get-response-schema` | Gets the response schema by endpoint, method, and status code |
-| `get-path-parameters` | Gets the parameters for a specific path |
-| `list-components` | Lists all schema components (DTOs, responses, parameters) |
-| `get-component` | Gets the detailed definition for a specific component |
-| `list-security-schemes` | Lists available security/authentication schemes |
-| `get-examples` | Gets examples for a component or endpoint |
-| `search-schema` | Searches across paths, operations, and schemas |
+| Tool                    | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| `list-endpoints`        | Lists all API paths with HTTP methods and summaries           |
+| `get-endpoint`          | Gets detailed information about a specific endpoint           |
+| `get-request-body`      | Gets the request body schema for an endpoint                  |
+| `get-response-schema`   | Gets the response schema by endpoint, method, and status code |
+| `get-path-parameters`   | Gets the parameters for a specific path                       |
+| `list-components`       | Lists all schema components (DTOs, responses, parameters)     |
+| `get-component`         | Gets the detailed definition for a specific component         |
+| `list-security-schemes` | Lists available security/authentication schemes               |
+| `get-examples`          | Gets examples for a component or endpoint                     |
+| `search-schema`         | Searches across paths, operations, and schemas                |
 
 ## Usage Examples
 
 ### Finding Endpoints
 
 Ask the LLM:
+
 > "List all endpoints related to templates"
 
 The LLM will use `search-schema` or `list-endpoints` to find relevant paths.
@@ -119,6 +120,7 @@ The LLM will use `search-schema` or `list-endpoints` to find relevant paths.
 ### Understanding a Request
 
 Ask the LLM:
+
 > "What parameters does POST /api/v1/templates require?"
 
 The LLM will use `get-endpoint`, `get-request-body`, and `get-path-parameters`.
@@ -126,6 +128,7 @@ The LLM will use `get-endpoint`, `get-request-body`, and `get-path-parameters`.
 ### Exploring DTOs
 
 Ask the LLM:
+
 > "Show me the structure of the TemplateResponse DTO"
 
 The LLM will use `get-component` to retrieve the schema definition.
@@ -133,6 +136,7 @@ The LLM will use `get-component` to retrieve the schema definition.
 ### Generating Code
 
 Ask the LLM:
+
 > "Generate a Go client for the workspace endpoints"
 
 The LLM will use multiple tools to understand the endpoints and generate accurate code.
@@ -142,16 +146,19 @@ The LLM will use multiple tools to understand the endpoints and generate accurat
 ### Server Not Connecting
 
 1. Verify npx is in PATH:
+
    ```bash
    which npx
    ```
 
 2. Test the MCP server manually:
+
    ```bash
    npx -y mcp-openapi-schema /path/to/swagger.yaml --help
    ```
 
 3. Check the swagger file exists and is valid:
+
    ```bash
    ls -la /path/to/swagger.yaml
    ```
@@ -159,6 +166,7 @@ The LLM will use multiple tools to understand the endpoints and generate accurat
 ### Tools Not Available
 
 1. For Claude Code, verify with:
+
    ```bash
    claude mcp list
    ```

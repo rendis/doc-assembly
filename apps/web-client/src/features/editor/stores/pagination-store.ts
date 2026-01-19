@@ -1,72 +1,63 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { PageFormat, PageMargins, PaginationConfig } from '../types/pagination';
-import { PAGE_FORMATS, DEFAULT_PAGE_FORMAT } from '../utils/page-formats';
+import { create } from 'zustand'
+import type { PageMargins, PageSize } from '../types'
+import { PAGE_SIZES, DEFAULT_MARGINS } from '../types'
 
-interface PaginationStore {
-  config: PaginationConfig;
-  setPaginationConfig: (config: Partial<PaginationConfig>) => void;
-  setFormat: (format: PageFormat) => void;
-  setCustomFormat: (width: number, height: number, margins: PageMargins) => void;
-  togglePagination: (enabled: boolean) => void;
-  setPageGap: (gap: number) => void;
-  setShowPageNumbers: (show: boolean) => void;
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface PaginationState {
+  pageSize: PageSize
+  margins: PageMargins
 }
 
-export const usePaginationStore = create<PaginationStore>()(
-  persist(
-    (set) => ({
-      config: {
-        enabled: true,
-        format: DEFAULT_PAGE_FORMAT,
-        showPageNumbers: true,
-        pageGap: 40,
-      },
+export interface PaginationActions {
+  setPageSize: (size: PageSize) => void
+  setMargins: (margins: PageMargins) => void
+  reset: () => void
+}
 
-      setPaginationConfig: (config) =>
-        set((state) => ({
-          config: { ...state.config, ...config },
-        })),
+export type PaginationStore = PaginationState & PaginationActions
 
-      setFormat: (format) =>
-        set((state) => ({
-          config: { ...state.config, format },
-        })),
+// =============================================================================
+// Initial State
+// =============================================================================
 
-      setCustomFormat: (width, height, margins) =>
-        set((state) => ({
-          config: {
-            ...state.config,
-            format: {
-              id: 'CUSTOM',
-              name: 'Personalizado',
-              width,
-              height,
-              margins,
-            },
-          },
-        })),
+const initialState: PaginationState = {
+  pageSize: PAGE_SIZES.A4,
+  margins: DEFAULT_MARGINS,
+}
 
-      togglePagination: (enabled) =>
-        set((state) => ({
-          config: { ...state.config, enabled },
-        })),
+// =============================================================================
+// Store
+// =============================================================================
 
-      setPageGap: (pageGap) =>
-        set((state) => ({
-          config: { ...state.config, pageGap },
-        })),
+export const usePaginationStore = create<PaginationStore>()((set) => ({
+  ...initialState,
 
-      setShowPageNumbers: (showPageNumbers) =>
-        set((state) => ({
-          config: { ...state.config, showPageNumbers },
-        })),
-    }),
-    {
-      name: 'pagination-config',
-    }
-  )
-);
+  setPageSize: (pageSize) => set({ pageSize }),
 
-// Re-export PAGE_FORMATS for convenience
-export { PAGE_FORMATS };
+  setMargins: (margins) => set({ margins }),
+
+  reset: () => set(initialState),
+}))
+
+// =============================================================================
+// Selectors
+// =============================================================================
+
+/**
+ * Selector para obtener la configuración de página
+ */
+export const selectPageConfig = (state: PaginationStore) => ({
+  pageSize: state.pageSize,
+  margins: state.margins,
+})
+
+/**
+ * Selector para obtener las dimensiones de página
+ */
+export const selectPageDimensions = (state: PaginationStore) => ({
+  width: state.pageSize.width,
+  height: state.pageSize.height,
+})

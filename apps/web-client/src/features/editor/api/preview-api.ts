@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/api-client';
-import type { PreviewRequest } from '../types/preview';
+import { apiClient } from '@/lib/api-client'
+import type { PreviewRequest } from '../types/preview'
 
 export const previewApi = {
   /**
@@ -19,28 +19,24 @@ export const previewApi = {
       `/content/templates/${templateId}/versions/${versionId}/preview`,
       request,
       {
-        responseType: 'blob', // CRÍTICO: Para recibir PDF como blob
+        responseType: 'blob',
         headers: {
           'Content-Type': 'application/json',
         },
       }
-    );
+    )
 
-    // Con el interceptor corregido, response es el objeto AxiosResponse completo
-    const blob = response.data;
+    const blob = response.data
 
-    // Verificar que sea un blob válido
     if (!(blob instanceof Blob)) {
-      throw new Error('Invalid response format');
+      throw new Error('Invalid response format')
     }
 
-    // Verificar que sea PDF
     if (blob.type !== 'application/pdf') {
-      // Podría ser un error JSON disfrazado
-      const text = await blob.text();
-      throw new Error(text || 'Invalid PDF response');
+      const text = await blob.text()
+      throw new Error(text || 'Invalid PDF response')
     }
 
-    return blob;
+    return blob
   },
-};
+}

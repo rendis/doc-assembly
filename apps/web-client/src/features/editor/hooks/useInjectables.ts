@@ -1,65 +1,106 @@
-import { useEffect, useCallback } from 'react';
-import {
-  useInjectablesStore,
-  filterVariables as storeFilterVariables,
-  getVariableById as storeGetVariableById,
-  getVariablesByType as storeGetVariablesByType,
-} from '../stores/injectables-store';
-import type { Variable, InjectorType } from '../data/variables';
+import { useEffect, useCallback } from 'react'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { useInjectablesStore } from '../stores/injectables-store'
+import { fetchInjectables } from '../api/injectables-api'
+import type { Variable } from '../types/variables'
 
-interface UseInjectablesReturn {
-  /** Variables in frontend format (ready for use in editor) */
-  variables: Variable[];
+// Module-level deduplication (persists across StrictMode remounts)
+let inFlightFetch: Promise<void> | null = null
+let lastFetchedWorkspaceId: string | null = null
+
+export interface UseInjectablesReturn {
+  /** List of variables (mapped from injectables) */
+  variables: Variable[]
+  /** Raw injectables from API */
+  injectables: ReturnType<typeof useInjectablesStore.getState>['injectables']
   /** Loading state */
-  isLoading: boolean;
-  /** Error message if fetch failed */
-  error: string | null;
-  /** Total count from API */
-  total: number;
-  /** Refresh data from API */
-  refresh: () => Promise<void>;
-  /** Filter variables by query (label or variableId) */
-  filterVariables: (query: string) => Variable[];
-  /** Get variable by id or variableId */
-  getVariableById: (id: string) => Variable | undefined;
-  /** Get variables filtered by types */
-  getVariablesByType: (types: InjectorType[]) => Variable[];
+  isLoading: boolean
+  /** Error message, if any */
+  error: string | null
+  /** Refetch injectables from API */
+  refetch: () => Promise<void>
 }
 
+/**
+ * Hook to load and manage injectables (variables) from the API.
+ *
+ * This hook:
+ * - Fetches injectables when a workspace is selected
+ * - Automatically reloads when workspace changes
+ * - Returns empty array if no workspace is selected (not an error)
+ * - Handles loading and error states
+ *
+ * @example
+ * ```tsx
+ * const { variables, isLoading, error, refetch } = useInjectables()
+ *
+ * if (isLoading) return <Spinner />
+ * if (error) return <ErrorMessage>{error}</ErrorMessage>
+ *
+ * return <DocumentEditor variables={variables} />
+ * ```
+ */
 export function useInjectables(): UseInjectablesReturn {
-  const { variables, isLoading, error, total, initialized, fetchInjectables } =
-    useInjectablesStore();
+  const currentWorkspace = useAppContextStore((state) => state.currentWorkspace)
 
-  // Fetch on mount if not initialized
-  useEffect(() => {
-    if (!initialized) {
-      fetchInjectables();
+  const { setInjectables, setLoading, setError } = useInjectablesStore()
+
+  const loadInjectables = useCallback(async () => {
+    const workspaceId = currentWorkspace?.id
+
+    // Skip if no workspace selected (not an error condition)
+    if (!workspaceId) {
+      setInjectables([])
+      return
     }
-  }, [initialized, fetchInjectables]);
 
-  const filterVariables = useCallback(
-    (query: string): Variable[] => storeFilterVariables(query),
-    []
-  );
+    // Skip if already loaded for this workspace (module-level check)
+    if (lastFetchedWorkspaceId === workspaceId) {
+      return
+    }
 
-  const getVariableById = useCallback(
-    (id: string): Variable | undefined => storeGetVariableById(id),
-    []
-  );
+    // If request already in-flight, wait for it instead of making a new one
+    if (inFlightFetch) {
+      await inFlightFetch
+      return
+    }
 
-  const getVariablesByType = useCallback(
-    (types: InjectorType[]): Variable[] => storeGetVariablesByType(types),
-    []
-  );
+    // Create and track the fetch promise for deduplication
+    inFlightFetch = (async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetchInjectables()
+        setInjectables(response.items)
+        lastFetchedWorkspaceId = workspaceId
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load injectables'
+        setError(errorMessage)
+        console.error('[useInjectables] Failed to load injectables:', err)
+      } finally {
+        setLoading(false)
+        inFlightFetch = null
+      }
+    })()
+
+    await inFlightFetch
+  }, [currentWorkspace?.id, setInjectables, setLoading, setError])
+
+  // Load on mount and when workspace changes
+  useEffect(() => {
+    loadInjectables()
+  }, [loadInjectables])
+
+  // Get current state from store
+  const store = useInjectablesStore.getState()
 
   return {
-    variables,
-    isLoading,
-    error,
-    total,
-    refresh: fetchInjectables,
-    filterVariables,
-    getVariableById,
-    getVariablesByType,
-  };
+    variables: store.variables,
+    injectables: store.injectables,
+    isLoading: store.isLoading,
+    error: store.error,
+    refetch: loadInjectables,
+  }
 }

@@ -1,54 +1,70 @@
-import { useAppContextStore } from '@/stores/app-context-store';
-import { useAuthStore } from '@/stores/auth-store';
-import { WORKSPACE_RULES, TENANT_RULES, SYSTEM_RULES, Permission, WorkspaceRole, TenantRole, SystemRole } from '../rbac/rules';
+import { useAuthStore } from '@/stores/auth-store'
+import { useAppContextStore } from '@/stores/app-context-store'
+import {
+  Permission,
+  WORKSPACE_RULES,
+  TENANT_RULES,
+  SYSTEM_RULES,
+  type WorkspaceRole,
+  type TenantRole,
+  type SystemRole,
+} from '../rbac/rules'
 
-export const usePermission = () => {
-  const { currentWorkspace, currentTenant } = useAppContextStore();
-  const { systemRoles } = useAuthStore();
+/**
+ * Hook to check if user has a specific permission
+ */
+export function usePermission() {
+  const { systemRoles } = useAuthStore()
+  const { currentTenant, currentWorkspace } = useAppContextStore()
 
-  const can = (permission: Permission): boolean => {
-    // 0. Check System Roles first
-    const systemRole = systemRoles.find(r => r.type === 'SYSTEM');
-    if (systemRole) {
-      const role = systemRole.role as SystemRole;
-      const systemPermissions = SYSTEM_RULES[role] || [];
-
-      // SUPERADMIN has access to everything
-      if (role === SystemRole.SUPERADMIN) {
-        return true;
-      }
-
-      // Check if this system role has the specific permission
-      if (systemPermissions.includes(permission)) {
-        return true;
+  const hasPermission = (permission: Permission): boolean => {
+    // Check system roles first (highest priority)
+    for (const role of systemRoles) {
+      const systemPerms = SYSTEM_RULES[role as SystemRole]
+      if (systemPerms?.includes(permission)) {
+        return true
       }
     }
 
-    // 1. Check Workspace Permissions
-    if (currentWorkspace?.role) {
-      const role = currentWorkspace.role as WorkspaceRole;
-      const permissions = WORKSPACE_RULES[role] || [];
-      if (permissions.includes(permission)) return true;
-    }
-
-    // 2. Check Tenant Permissions
+    // Check tenant role
     if (currentTenant?.role) {
-      const role = currentTenant.role as TenantRole;
-      const permissions = TENANT_RULES[role] || [];
-      if (permissions.includes(permission)) return true;
+      const tenantPerms = TENANT_RULES[currentTenant.role as TenantRole]
+      if (tenantPerms?.includes(permission)) {
+        return true
+      }
     }
 
-    return false;
-  };
+    // Check workspace role
+    if (currentWorkspace?.role) {
+      const workspacePerms = WORKSPACE_RULES[currentWorkspace.role as WorkspaceRole]
+      if (workspacePerms?.includes(permission)) {
+        return true
+      }
+    }
 
-  const getSystemRole = (): SystemRole | null => {
-    const systemRole = systemRoles.find(r => r.type === 'SYSTEM');
-    return (systemRole?.role as SystemRole) ?? null;
-  };
+    return false
+  }
+
+  const hasAnyPermission = (permissions: Permission[]): boolean => {
+    return permissions.some((p) => hasPermission(p))
+  }
+
+  const hasAllPermissions = (permissions: Permission[]): boolean => {
+    return permissions.every((p) => hasPermission(p))
+  }
 
   return {
-    can,
-    role: currentWorkspace?.role || currentTenant?.role,
-    systemRole: getSystemRole()
-  };
-};
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    Permission,
+  }
+}
+
+/**
+ * Hook to check if user can access admin console
+ */
+export function useCanAccessAdmin(): boolean {
+  const { canAccessAdmin } = useAuthStore()
+  return canAccessAdmin()
+}

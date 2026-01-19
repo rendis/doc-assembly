@@ -1,38 +1,56 @@
-import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { SignatureCount, SignatureLayout } from '../types';
-import { getLayoutsForCount } from '../signature-layouts';
+import { cn } from '@/lib/utils'
+import { Check } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import type { SignatureCount, SignatureLayout } from '../types'
+import { getLayoutsForCount } from '../signature-layouts'
 
 interface SignatureLayoutSelectorProps {
-  count: SignatureCount;
-  value: SignatureLayout;
-  onChange: (layout: SignatureLayout) => void;
+  count: SignatureCount
+  value: SignatureLayout
+  onChange: (layout: SignatureLayout) => void
 }
 
 /**
  * Renderiza una miniatura visual del layout
  */
-function LayoutThumbnail({ layout, count }: { layout: SignatureLayout; count: SignatureCount }) {
+function LayoutThumbnail({
+  layout,
+  count,
+}: {
+  layout: SignatureLayout
+  count: SignatureCount
+}) {
   // Smaller boxes for single signatures so alignment differences are visible
-  const boxWidth = count === 4 ? '18px' : count === 3 ? '22px' : count === 2 ? '28px' : '24px';
+  const boxWidth =
+    count === 4 ? '18px' : count === 3 ? '22px' : count === 2 ? '28px' : '24px'
 
   const renderSignatureBox = (key: string, className?: string) => (
     <div
       key={key}
-      className={cn('h-1.5 bg-primary/60 rounded-sm', className)}
+      className={cn('h-1.5 bg-foreground rounded-sm', className)}
       style={{ width: boxWidth }}
     />
-  );
+  )
 
   switch (layout) {
     // 1 firma
     case 'single-left':
-      return <div className="flex justify-start w-full">{renderSignatureBox('1')}</div>;
+      return (
+        <div className="flex justify-start w-full">
+          {renderSignatureBox('1')}
+        </div>
+      )
     case 'single-center':
-      return <div className="flex justify-center w-full">{renderSignatureBox('1')}</div>;
+      return (
+        <div className="flex justify-center w-full">
+          {renderSignatureBox('1')}
+        </div>
+      )
     case 'single-right':
-      return <div className="flex justify-end w-full">{renderSignatureBox('1')}</div>;
+      return (
+        <div className="flex justify-end w-full">{renderSignatureBox('1')}</div>
+      )
 
     // 2 firmas
     case 'dual-sides':
@@ -41,28 +59,28 @@ function LayoutThumbnail({ layout, count }: { layout: SignatureLayout; count: Si
           {renderSignatureBox('1')}
           {renderSignatureBox('2')}
         </div>
-      );
+      )
     case 'dual-center':
       return (
         <div className="flex flex-col items-center gap-1.5 w-full">
           {renderSignatureBox('1')}
           {renderSignatureBox('2')}
         </div>
-      );
+      )
     case 'dual-left':
       return (
         <div className="flex flex-col items-start gap-1.5 w-full">
           {renderSignatureBox('1')}
           {renderSignatureBox('2')}
         </div>
-      );
+      )
     case 'dual-right':
       return (
         <div className="flex flex-col items-end gap-1.5 w-full">
           {renderSignatureBox('1')}
           {renderSignatureBox('2')}
         </div>
-      );
+      )
 
     // 3 firmas
     case 'triple-row':
@@ -72,7 +90,7 @@ function LayoutThumbnail({ layout, count }: { layout: SignatureLayout; count: Si
           {renderSignatureBox('2')}
           {renderSignatureBox('3')}
         </div>
-      );
+      )
     case 'triple-pyramid':
       return (
         <div className="flex flex-col gap-1.5 w-full">
@@ -80,23 +98,19 @@ function LayoutThumbnail({ layout, count }: { layout: SignatureLayout; count: Si
             {renderSignatureBox('1')}
             {renderSignatureBox('2')}
           </div>
-          <div className="flex justify-center">
-            {renderSignatureBox('3')}
-          </div>
+          <div className="flex justify-center">{renderSignatureBox('3')}</div>
         </div>
-      );
+      )
     case 'triple-inverted':
       return (
         <div className="flex flex-col gap-1.5 w-full">
-          <div className="flex justify-center">
-            {renderSignatureBox('1')}
-          </div>
+          <div className="flex justify-center">{renderSignatureBox('1')}</div>
           <div className="flex justify-between">
             {renderSignatureBox('2')}
             {renderSignatureBox('3')}
           </div>
         </div>
-      );
+      )
 
     // 4 firmas
     case 'quad-grid':
@@ -107,7 +121,7 @@ function LayoutThumbnail({ layout, count }: { layout: SignatureLayout; count: Si
           {renderSignatureBox('3')}
           {renderSignatureBox('4')}
         </div>
-      );
+      )
     case 'quad-top-heavy':
       return (
         <div className="flex flex-col gap-1.5 w-full">
@@ -116,27 +130,23 @@ function LayoutThumbnail({ layout, count }: { layout: SignatureLayout; count: Si
             {renderSignatureBox('2')}
             {renderSignatureBox('3')}
           </div>
-          <div className="flex justify-center">
-            {renderSignatureBox('4')}
-          </div>
+          <div className="flex justify-center">{renderSignatureBox('4')}</div>
         </div>
-      );
+      )
     case 'quad-bottom-heavy':
       return (
         <div className="flex flex-col gap-1.5 w-full">
-          <div className="flex justify-center">
-            {renderSignatureBox('1')}
-          </div>
+          <div className="flex justify-center">{renderSignatureBox('1')}</div>
           <div className="flex justify-between">
             {renderSignatureBox('2')}
             {renderSignatureBox('3')}
             {renderSignatureBox('4')}
           </div>
         </div>
-      );
+      )
 
     default:
-      return null;
+      return null
   }
 }
 
@@ -145,7 +155,8 @@ export function SignatureLayoutSelector({
   value,
   onChange,
 }: SignatureLayoutSelectorProps) {
-  const layouts = getLayoutsForCount(count);
+  const { t } = useTranslation()
+  const layouts = getLayoutsForCount(count)
 
   return (
     <motion.div
@@ -153,23 +164,24 @@ export function SignatureLayoutSelector({
       className="grid grid-cols-2 gap-2"
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
     >
-      <AnimatePresence mode="popLayout">
-        {layouts.map((layout) => (
+      {layouts.map((layout) => (
           <motion.button
             key={layout.id}
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ opacity: { duration: 0.15 }, layout: { duration: 0.3 } }}
+            transition={{
+              opacity: { duration: 0.15 },
+              layout: { duration: 0.2 },
+            }}
             type="button"
             onClick={() => onChange(layout.id)}
             className={cn(
               'relative p-3 border rounded-lg',
-              'hover:border-primary/50 hover:bg-accent/50',
-              'focus:outline-none focus:ring-2 focus:ring-primary/20',
+              'hover:border-muted-foreground hover:bg-muted',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               value === layout.id
-                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                ? 'border-foreground bg-muted ring-2 ring-foreground/10'
                 : 'border-border'
             )}
           >
@@ -180,7 +192,7 @@ export function SignatureLayoutSelector({
                 animate={{ opacity: 1, scale: 1 }}
                 className="absolute top-1 right-1"
               >
-                <Check className="h-3 w-3 text-primary" />
+                <Check className="h-3 w-3 text-foreground" />
               </motion.div>
             )}
 
@@ -191,11 +203,10 @@ export function SignatureLayoutSelector({
 
             {/* Label */}
             <p className="text-xs text-center mt-2 text-muted-foreground">
-              {layout.name}
+              {t(layout.nameKey)}
             </p>
           </motion.button>
         ))}
-      </AnimatePresence>
     </motion.div>
-  );
+  )
 }

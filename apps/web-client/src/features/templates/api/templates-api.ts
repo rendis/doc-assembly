@@ -1,113 +1,295 @@
-import { apiClient } from '@/lib/api-client';
+import apiClient from '@/lib/api-client'
 import type {
-  Template,
-  TemplateListItem,
-  TemplateWithDetails,
-  TemplateWithAllVersions,
-  TemplateCreateResponse,
-  CreateTemplateRequest,
-  UpdateTemplateRequest,
-  CloneTemplateRequest,
-  ListResponse,
-  TemplateListParams,
-  AssignTagsRequest,
-} from '../types';
+    CreateTemplateRequest,
+    CreateVersionFromExistingRequest,
+    CreateVersionRequest,
+    TemplateCreateResponse,
+    TemplateListItem,
+    TemplateVersionResponse,
+    TemplateWithAllVersionsResponse,
+} from '@/types/api'
+// Version types (from local types)
+import type {
+    TemplateVersionDetail,
+    UpdateVersionRequest,
+} from '../types'
 
-export const templatesApi = {
+export interface TemplatesListParams {
+  search?: string
+  hasPublishedVersion?: boolean
+  tagIds?: string[]
+  limit?: number
+  offset?: number
+}
+
+export interface TemplatesListResponse {
+  items: TemplateListItem[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export async function fetchTemplates(
+  params: TemplatesListParams = {}
+): Promise<TemplatesListResponse> {
+  const searchParams = new URLSearchParams()
+
+  if (params.search) searchParams.set('search', params.search)
+  if (params.hasPublishedVersion !== undefined) {
+    searchParams.set('hasPublishedVersion', String(params.hasPublishedVersion))
+  }
+  if (params.tagIds?.length) {
+    searchParams.set('tagIds', params.tagIds.join(','))
+  }
+  if (params.limit) searchParams.set('limit', String(params.limit))
+  if (params.offset) searchParams.set('offset', String(params.offset))
+
+  const query = searchParams.toString()
+  const response = await apiClient.get<TemplatesListResponse>(
+    `/content/templates${query ? `?${query}` : ''}`
+  )
+  return response.data
+}
+
+export async function createTemplate(
+  data: CreateTemplateRequest
+): Promise<TemplateCreateResponse> {
+  const response = await apiClient.post<TemplateCreateResponse>(
+    '/content/templates',
+    data
+  )
+  return response.data
+}
+
+export interface AddTagsToTemplateRequest {
+  tagIds: string[]
+}
+
+export async function addTagsToTemplate(
+  templateId: string,
+  tagIds: string[]
+): Promise<void> {
+  if (tagIds.length === 0) return
+  await apiClient.post<void>(`/content/templates/${templateId}/tags`, {
+    tagIds,
+  })
+}
+
+export async function updateTemplate(
+  templateId: string,
+  data: { title?: string; folderId?: string; isPublicLibrary?: boolean }
+): Promise<void> {
+  await apiClient.put<void>(`/content/templates/${templateId}`, data)
+}
+
+export async function deleteTemplate(templateId: string): Promise<void> {
+  await apiClient.delete<void>(`/content/templates/${templateId}`)
+}
+
+export async function removeTagFromTemplate(
+  templateId: string,
+  tagId: string
+): Promise<void> {
+  await apiClient.delete<void>(`/content/templates/${templateId}/tags/${tagId}`)
+}
+
+// ============================================
+// Template Detail & Versions API
+// ============================================
+
+export async function fetchTemplateWithVersions(
+  templateId: string
+): Promise<TemplateWithAllVersionsResponse> {
+  const response = await apiClient.get<TemplateWithAllVersionsResponse>(
+    `/content/templates/${templateId}/all-versions`
+  )
+  return response.data
+}
+
+export async function createVersion(
+  templateId: string,
+  data: CreateVersionRequest
+): Promise<TemplateVersionResponse> {
+  const response = await apiClient.post<TemplateVersionResponse>(
+    `/content/templates/${templateId}/versions`,
+    data
+  )
+  return response.data
+}
+
+export async function createVersionFromExisting(
+  templateId: string,
+  data: CreateVersionFromExistingRequest
+): Promise<TemplateVersionResponse> {
+  const response = await apiClient.post<TemplateVersionResponse>(
+    `/content/templates/${templateId}/versions/from-existing`,
+    data
+  )
+  return response.data
+}
+
+export async function updateVersion(
+  templateId: string,
+  versionId: string,
+  data: UpdateVersionRequest
+): Promise<TemplateVersionResponse> {
+  const response = await apiClient.put<TemplateVersionResponse>(
+    `/content/templates/${templateId}/versions/${versionId}`,
+    data
+  )
+  return response.data
+}
+
+// ============================================
+// Versions API (calcar v1)
+// ============================================
+
+/**
+ * Obtiene detalle de una versión.
+ * GET /api/v1/content/templates/{templateId}/versions/{versionId}
+ */
+export async function fetchVersion(
+  templateId: string,
+  versionId: string
+): Promise<TemplateVersionDetail> {
+  const response = await apiClient.get<TemplateVersionDetail>(
+    `/content/templates/${templateId}/versions/${versionId}`
+  )
+  return response.data
+}
+
+/**
+ * Versions API object (calcar v1 structure)
+ * Provides version-related API methods
+ */
+export const versionsApi = {
   /**
-   * Lista plantillas con filtros y paginación.
-   * GET /api/v1/content/templates
+   * Obtiene detalle de una versión.
+   * GET /api/v1/content/templates/{templateId}/versions/{versionId}
    */
-  list: async (params: TemplateListParams = {}): Promise<ListResponse<TemplateListItem>> => {
-    const searchParams = new URLSearchParams();
+  get: async (templateId: string, versionId: string): Promise<TemplateVersionDetail> => {
+    const response = await apiClient.get<TemplateVersionDetail>(
+      `/content/templates/${templateId}/versions/${versionId}`
+    )
+    return response.data
+  },
 
-    if (params.folderId) searchParams.append('folderId', params.folderId);
-    if (params.hasPublishedVersion !== undefined) searchParams.append('hasPublishedVersion', String(params.hasPublishedVersion));
-    if (params.tagIds?.length) {
-      params.tagIds.forEach((id) => searchParams.append('tagIds', id));
+  /**
+   * Actualiza una versión.
+   * PUT /api/v1/content/templates/{templateId}/versions/{versionId}
+   */
+  update: async (
+    templateId: string,
+    versionId: string,
+    data: UpdateVersionRequest
+  ): Promise<TemplateVersionResponse> => {
+    const response = await apiClient.put<TemplateVersionResponse>(
+      `/content/templates/${templateId}/versions/${versionId}`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Publica una versión inmediatamente.
+   * POST /api/v1/content/templates/{templateId}/versions/{versionId}/publish
+   */
+  publish: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.post(`/content/templates/${templateId}/versions/${versionId}/publish`)
+  },
+
+  /**
+   * Programa la publicación de una versión.
+   * POST /api/v1/content/templates/{templateId}/versions/{versionId}/schedule-publish
+   */
+  schedulePublish: async (
+    templateId: string,
+    versionId: string,
+    publishAt: string
+  ): Promise<void> => {
+    await apiClient.post(
+      `/content/templates/${templateId}/versions/${versionId}/schedule-publish`,
+      { publishAt }
+    )
+  },
+
+  /**
+   * Cancela una acción programada (publicación o archivo).
+   * DELETE /api/v1/content/templates/{templateId}/versions/{versionId}/schedule
+   */
+  cancelSchedule: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.delete(`/content/templates/${templateId}/versions/${versionId}/schedule`)
+  },
+
+  /**
+   * Archiva una versión publicada.
+   * POST /api/v1/content/templates/{templateId}/versions/{versionId}/archive
+   */
+  archive: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.post(`/content/templates/${templateId}/versions/${versionId}/archive`)
+  },
+
+  /**
+   * Elimina una versión (solo DRAFT).
+   * DELETE /api/v1/content/templates/{templateId}/versions/{versionId}
+   */
+  delete: async (templateId: string, versionId: string): Promise<void> => {
+    await apiClient.delete(`/content/templates/${templateId}/versions/${versionId}`)
+  },
+}
+
+// ============================================
+// Version Promotion API (Sandbox → Production)
+// ============================================
+
+export type PromotionMode = 'NEW_TEMPLATE' | 'NEW_VERSION'
+
+export interface PromoteVersionRequest {
+  mode: PromotionMode
+  targetTemplateId?: string
+  targetFolderId?: string
+  versionName?: string
+}
+
+export interface PromoteVersionResponse {
+  template?: TemplateListItem
+  version: TemplateVersionResponse
+}
+
+/**
+ * Promotes a published version from sandbox to production.
+ * This call is made WITHOUT the X-Sandbox-Mode header.
+ * POST /api/v1/content/templates/{templateId}/versions/{versionId}/promote
+ */
+export async function promoteVersion(
+  templateId: string,
+  versionId: string,
+  request: PromoteVersionRequest
+): Promise<PromoteVersionResponse> {
+  const response = await apiClient.post<PromoteVersionResponse>(
+    `/content/templates/${templateId}/versions/${versionId}/promote`,
+    request,
+    {
+      headers: {
+        'X-Sandbox-Mode': 'false', // Explicit false to bypass interceptor and call production API
+      },
     }
-    if (params.search) searchParams.append('search', params.search);
-    if (params.limit) searchParams.append('limit', String(params.limit));
-    if (params.offset !== undefined) searchParams.append('offset', String(params.offset));
+  )
+  return response.data
+}
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `/content/templates?${queryString}` : '/content/templates';
-
-    const response = await apiClient.get(url) as
-      | TemplateListItem[]
-      | { items: TemplateListItem[]; total: number };
-
-    // Normalize response - API returns { items, total, limit, offset }
-    if (Array.isArray(response)) {
-      return { data: response, count: response.length };
-    }
-    return {
-      data: response?.items ?? [],
-      count: response?.total ?? 0,
-    };
-  },
-
-  /**
-   * Obtiene detalle de una plantilla con versión publicada.
-   * GET /api/v1/content/templates/{templateId}
-   */
-  get: async (templateId: string): Promise<TemplateWithDetails> => {
-    return apiClient.get(`/content/templates/${templateId}`);
-  },
-
-  /**
-   * Obtiene plantilla con todas sus versiones.
-   * GET /api/v1/content/templates/{templateId}/all-versions
-   */
-  getWithAllVersions: async (templateId: string): Promise<TemplateWithAllVersions> => {
-    return apiClient.get(`/content/templates/${templateId}/all-versions`);
-  },
-
-  /**
-   * Crea una nueva plantilla.
-   * POST /api/v1/content/templates
-   */
-  create: async (data: CreateTemplateRequest): Promise<TemplateCreateResponse> => {
-    return apiClient.post('/content/templates', data);
-  },
-
-  /**
-   * Actualiza una plantilla.
-   * PUT /api/v1/content/templates/{templateId}
-   */
-  update: async (templateId: string, data: UpdateTemplateRequest): Promise<Template> => {
-    return apiClient.put(`/content/templates/${templateId}`, data);
-  },
-
-  /**
-   * Elimina una plantilla.
-   * DELETE /api/v1/content/templates/{templateId}
-   */
-  delete: async (templateId: string): Promise<void> => {
-    return apiClient.delete(`/content/templates/${templateId}`);
-  },
-
-  /**
-   * Clona una plantilla.
-   * POST /api/v1/content/templates/{templateId}/clone
-   */
-  clone: async (templateId: string, data: CloneTemplateRequest): Promise<TemplateCreateResponse> => {
-    return apiClient.post(`/content/templates/${templateId}/clone`, data);
-  },
-
-  /**
-   * Asigna tags a una plantilla.
-   * POST /api/v1/content/templates/{templateId}/tags
-   */
-  assignTags: async (templateId: string, data: AssignTagsRequest): Promise<void> => {
-    return apiClient.post(`/content/templates/${templateId}/tags`, data);
-  },
-
-  /**
-   * Remueve un tag de una plantilla.
-   * DELETE /api/v1/content/templates/{templateId}/tags/{tagId}
-   */
-  removeTag: async (templateId: string, tagId: string): Promise<void> => {
-    return apiClient.delete(`/content/templates/${templateId}/tags/${tagId}`);
-  },
-};
+/**
+ * Fetches templates from production workspace (without sandbox header).
+ * Used for searching target templates when promoting as NEW_VERSION.
+ */
+export async function fetchProductionTemplates(
+  search: string
+): Promise<TemplatesListResponse> {
+  const response = await apiClient.get<TemplatesListResponse>('/content/templates', {
+    params: { search, limit: 20 },
+    headers: {
+      'X-Sandbox-Mode': 'false', // Explicit false to bypass interceptor and call production API
+    },
+  })
+  return response.data
+}

@@ -1,434 +1,331 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { TemplatesSidebar } from './TemplatesSidebar';
-import { TemplatesGrid } from './TemplatesGrid';
-import { FilterBar } from './FilterBar';
-import { Breadcrumb } from './Breadcrumb';
-import { CreateTemplateDialog } from './CreateTemplateDialog';
-import { CreateFolderDialog } from './CreateFolderDialog';
-import { ManageTagsDialog } from './ManageTagsDialog';
-import { ContextMenu } from './ContextMenu';
-import { ConfirmMoveDialog } from './ConfirmMoveDialog';
-import { MoveFolderDialog } from './MoveFolderDialog';
-import { RenameFolderDialog } from './RenameFolderDialog';
-import { RenameTemplateDialog } from './RenameTemplateDialog';
-import { useTemplates } from '../hooks/useTemplates';
-import { useFolders } from '../hooks/useFolders';
-import { useTags } from '../hooks/useTags';
-import { useDebounce } from '@/hooks/use-debounce';
-import type { TemplateListItem, FolderTree, Folder } from '../types';
-import { templatesApi } from '../api/templates-api';
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { usePageTransitionStore } from '@/stores/page-transition-store'
+import { TemplatesToolbar } from './TemplatesToolbar'
+import { TemplateListRow } from './TemplateListRow'
+import { CreateTemplateDialog } from './CreateTemplateDialog'
+import { EditTemplateDialog } from './EditTemplateDialog'
+import { DeleteTemplateDialog } from './DeleteTemplateDialog'
+import { useTemplates } from '../hooks/useTemplates'
+import { useTags } from '../hooks/useTags'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { TemplateListItem } from '@/types/api'
+
+const PAGE_SIZE = 20
 
 export function TemplatesPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { currentWorkspace } = useAppContextStore()
 
-  // Hooks
-  const {
-    templates,
-    totalCount,
-    tags: templatesTags,
-    isLoading: isTemplatesLoading,
-    filters,
-    setSearch,
-    setFolderId,
-    setTagIds,
-    setHasPublishedVersion,
-    clearFilters,
-    hasActiveFilters,
-    page,
-    totalPages,
-    setPage,
-    refresh: refreshTemplates,
-  } = useTemplates();
+  // View mode
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
 
-  const {
-    folders,
-    flatFolders,
-    isLoading: isFoldersLoading,
-    getFolderPath,
-    getFolderById,
-    moveFolder,
-    updateFolder,
-    refresh: refreshFolders,
-  } = useFolders();
+  // Search with debounce
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const {
-    tags,
-    isLoading: isTagsLoading,
-    refresh: refreshTags,
-  } = useTags();
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
+    undefined
+  )
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
 
-  // Local state
-  const [searchInput, setSearchInput] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
-  const [createFolderParentId, setCreateFolderParentId] = useState<string | undefined>();
-  const [isManageTagsDialogOpen, setIsManageTagsDialogOpen] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{
-    type: 'template' | 'folder';
-    item: TemplateListItem | FolderTree;
-    x: number;
-    y: number;
-  } | null>(null);
+  // Pagination
+  const [page, setPage] = useState(0)
 
-  // Move folder dialogs state
-  const [confirmMoveDialog, setConfirmMoveDialog] = useState<{
-    isOpen: boolean;
-    sourceFolder: Folder | null;
-    targetFolder: Folder | null;
-  }>({ isOpen: false, sourceFolder: null, targetFolder: null });
+  // Create dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
-  const [moveFolderDialog, setMoveFolderDialog] = useState<{
-    isOpen: boolean;
-    folder: Folder | null;
-  }>({ isOpen: false, folder: null });
+  // Edit/Delete dialogs
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateListItem | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const [renameFolderDialog, setRenameFolderDialog] = useState<{
-    isOpen: boolean;
-    folder: Folder | null;
-  }>({ isOpen: false, folder: null });
+  // Page transition state
+  const { isTransitioning, direction, startTransition, endTransition } = usePageTransitionStore()
+  const [isExiting, setIsExiting] = useState(false)
+  const [isEntering, setIsEntering] = useState(false)
 
-  const [renameTemplateDialog, setRenameTemplateDialog] = useState<{
-    isOpen: boolean;
-    template: { id: string; title: string } | null;
-  }>({ isOpen: false, template: null });
+  // Filter animation state - counter forces re-mount of rows
+  const [filterAnimationKey, setFilterAnimationKey] = useState(0)
+  const prevResultsRef = useRef<string | null>(null)
 
-  // Move template dialog state
-  const [moveTemplateDialog, setMoveTemplateDialog] = useState<{
-    isOpen: boolean;
-    templateId: string | null;
-    templateTitle: string;
-    targetFolderId: string | null;
-    targetFolderName: string;
-  }>({ isOpen: false, templateId: null, templateTitle: '', targetFolderId: null, targetFolderName: '' });
-
-  // Debounced search
-  const debouncedSearch = useDebounce(searchInput, 300);
-
-  // Sync debounced search with filters
+  // Handle entering animation (always on mount)
   useEffect(() => {
-    setSearch(debouncedSearch);
-  }, [debouncedSearch, setSearch]);
+    // Siempre activar animación de entrada al montar
+    setIsEntering(true)
 
-  // Handlers
-  const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-  };
+    const timer = setTimeout(() => {
+      if (direction === 'backward') {
+        endTransition()
+      }
+      setIsEntering(false)
+    }, 600)
 
-  const handleFolderSelect = (folderId: string | null) => {
-    setFolderId(folderId);
-  };
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Solo ejecutar al montar
 
-  const handleTemplateMenu = (template: TemplateListItem, e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenu({
-      type: 'template',
-      item: template,
-      x: e.clientX,
-      y: e.clientY,
-    });
-  };
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
-  const handleFolderMenu = (folder: FolderTree, e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenu({
-      type: 'folder',
-      item: folder,
-      x: e.clientX,
-      y: e.clientY,
-    });
-  };
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0)
+  }, [debouncedSearch, statusFilter, selectedTagIds])
 
-  const handleCreateFolder = (parentId?: string) => {
-    setCreateFolderParentId(parentId);
-    setIsCreateFolderDialogOpen(true);
-  };
+  // Fetch tags
+  const { data: tagsData } = useTags()
 
-  // Drag & drop folder move handler
-  const handleDragMove = useCallback((sourceFolderId: string, targetFolderId: string | null) => {
-    const sourceFolder = getFolderById(sourceFolderId);
-    const targetFolder = targetFolderId ? getFolderById(targetFolderId) : null;
+  // Fetch templates
+  const { data, isLoading } = useTemplates({
+    search: debouncedSearch || undefined,
+    hasPublishedVersion: statusFilter,
+    tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  })
 
-    if (!sourceFolder) return;
+  // Memoize templates to avoid dependency array issues
+  const templates = useMemo(() => data?.items ?? [], [data?.items])
+  const total = data?.total ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
-    // Don't move if already in this parent
-    if (sourceFolder.parentId === targetFolderId) return;
+  // Detect filter result changes and trigger animation by incrementing key
+  useEffect(() => {
+    const currentResultsKey = templates.map((t) => t.id).join(',')
 
-    setConfirmMoveDialog({
-      isOpen: true,
-      sourceFolder,
-      targetFolder: targetFolder ?? null,
-    });
-  }, [getFolderById]);
+    // Si hay resultados y son diferentes a los anteriores
+    if (templates.length > 0 && prevResultsRef.current !== currentResultsKey) {
+      // No animar en la carga inicial (isEntering ya maneja eso)
+      if (prevResultsRef.current !== null && !isEntering) {
+        setFilterAnimationKey((k) => k + 1)
+      }
+    }
 
-  // Drag & drop template move handler
-  const handleTemplateDrop = useCallback((templateId: string, targetFolderId: string | null) => {
-    const template = templates.find(t => t.id === templateId);
-    if (!template) return;
+    prevResultsRef.current = currentResultsKey
+  }, [templates, isEntering])
 
-    // Don't move if already in this folder
-    if (template.folderId === targetFolderId) return;
+  // Pagination info
+  const paginationInfo = useMemo(() => {
+    if (total === 0) return t('templates.noTemplates', 'No templates found')
+    const start = page * PAGE_SIZE + 1
+    const end = Math.min((page + 1) * PAGE_SIZE, total)
+    return t('templates.showing', 'Showing {{start}}-{{end}} of {{total}} templates', {
+      start,
+      end,
+      total,
+    })
+  }, [page, total, t])
 
-    const targetFolderName = targetFolderId
-      ? getFolderById(targetFolderId)?.name ?? t('folders.root')
-      : t('folders.root');
+  const handleViewTemplateDetail = (templateId: string) => {
+    if (currentWorkspace && !isTransitioning) {
+      startTransition('forward')
+      setIsExiting(true)
+      // Wait for exit animation to complete before navigating
+      setTimeout(() => {
+        navigate({
+          to: '/workspace/$workspaceId/templates/$templateId',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
+          params: { workspaceId: currentWorkspace.id, templateId } as any,
+        })
+      }, 600)
+    }
+  }
 
-    setMoveTemplateDialog({
-      isOpen: true,
-      templateId,
-      templateTitle: template.title,
-      targetFolderId,
-      targetFolderName,
-    });
-  }, [templates, getFolderById, t]);
+  const handleGoToFolder = (folderId: string | undefined) => {
+    if (!currentWorkspace) return
 
-  // Confirm template move
-  const handleConfirmTemplateMove = useCallback(async () => {
-    if (!moveTemplateDialog.templateId) return;
+    // Si folderId es null, undefined, o 'root', navegar al root de documents (sin search param)
+    const isRoot = !folderId || folderId === 'root'
 
-    await templatesApi.update(moveTemplateDialog.templateId, {
-      folderId: moveTemplateDialog.targetFolderId ?? undefined,
-    });
+    navigate({
+      to: '/workspace/$workspaceId/documents',
+      /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Router type limitation */
+      params: { workspaceId: currentWorkspace.id } as any,
+      search: isRoot ? undefined : { folderId } as any,
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+    })
+  }
 
-    setMoveTemplateDialog({ isOpen: false, templateId: null, templateTitle: '', targetFolderId: null, targetFolderName: '' });
-    await refreshTemplates();
-  }, [moveTemplateDialog, refreshTemplates]);
+  const handleOpenEditDialog = (template: TemplateListItem) => {
+    setSelectedTemplate(template)
+    setEditDialogOpen(true)
+  }
 
-  // Context menu move handler - opens folder selection dialog
-  const handleContextMenuMoveFolder = useCallback((folder: FolderTree) => {
-    const folderData = getFolderById(folder.id);
-    if (!folderData) return;
-
-    setMoveFolderDialog({
-      isOpen: true,
-      folder: folderData,
-    });
-  }, [getFolderById]);
-
-  // Confirm move from drag & drop
-  const handleConfirmDragMove = useCallback(async () => {
-    if (!confirmMoveDialog.sourceFolder) return;
-
-    await moveFolder(
-      confirmMoveDialog.sourceFolder.id,
-      confirmMoveDialog.targetFolder?.id
-    );
-
-    setConfirmMoveDialog({ isOpen: false, sourceFolder: null, targetFolder: null });
-  }, [confirmMoveDialog, moveFolder]);
-
-  // Confirm move from dialog selection
-  const handleConfirmDialogMove = useCallback(async (folderId: string, newParentId: string | undefined) => {
-    await moveFolder(folderId, newParentId);
-    setMoveFolderDialog({ isOpen: false, folder: null });
-  }, [moveFolder]);
-
-  // Rename folder handlers
-  const handleContextMenuRenameFolder = useCallback((folder: FolderTree) => {
-    const folderData = getFolderById(folder.id);
-    if (!folderData) return;
-
-    setRenameFolderDialog({
-      isOpen: true,
-      folder: folderData,
-    });
-  }, [getFolderById]);
-
-  const handleConfirmRenameFolder = useCallback(async (folderId: string, newName: string) => {
-    await updateFolder(folderId, newName);
-    setRenameFolderDialog({ isOpen: false, folder: null });
-  }, [updateFolder]);
-
-  const handleRefreshAll = useCallback(async () => {
-    await Promise.all([refreshTemplates(), refreshFolders(), refreshTags()]);
-  }, [refreshTemplates, refreshFolders, refreshTags]);
-
-  // Rename template handlers
-  const handleRenameTemplate = useCallback((template: { id: string; title: string }) => {
-    setRenameTemplateDialog({
-      isOpen: true,
-      template,
-    });
-  }, []);
-
-  const handleConfirmRenameTemplate = useCallback(async (templateId: string, newTitle: string) => {
-    await templatesApi.update(templateId, { title: newTitle });
-    setRenameTemplateDialog({ isOpen: false, template: null });
-    await handleRefreshAll();
-  }, [handleRefreshAll]);
-
-  const getFolderName = (folderId: string | undefined): string | undefined => {
-    if (!folderId) return undefined;
-    return getFolderById(folderId)?.name;
-  };
-
-  // Current folder path for breadcrumb
-  const currentPath = filters.folderId ? getFolderPath(filters.folderId) : [];
+  const handleOpenDeleteDialog = (template: TemplateListItem) => {
+    setSelectedTemplate(template)
+    setDeleteDialogOpen(true)
+  }
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <TemplatesSidebar
-        folders={folders}
-        selectedFolderId={filters.folderId ?? null}
-        onFolderSelect={handleFolderSelect}
-        onCreateFolder={() => handleCreateFolder()}
-        onFolderMenu={handleFolderMenu}
-        onDragMove={handleDragMove}
-        onTemplateDrop={handleTemplateDrop}
-        isFoldersLoading={isFoldersLoading}
-        tags={templatesTags}
-        onManageTags={() => setIsManageTagsDialogOpen(true)}
-        isTagsLoading={isTagsLoading}
-      />
-
-      {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="flex-shrink-0 px-6 py-4 border-b bg-background">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-xl font-semibold">{t('templates.title')}</h1>
-              <p className="text-sm text-muted-foreground">{t('templates.subtitle')}</p>
+    <motion.div
+      className="animate-page-enter flex h-full flex-1 flex-col bg-background"
+      animate={isExiting ? { opacity: 0 } : undefined}
+      transition={isExiting ? { duration: 0.3, delay: 0.3 } : undefined}
+    >
+      {/* Header */}
+      <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              {t('templates.header', 'Management')}
             </div>
-            <button
-              type="button"
-              onClick={() => setIsCreateDialogOpen(true)}
-              className="
-                flex items-center gap-2 px-4 py-2
-                bg-primary text-primary-foreground
-                rounded-md font-medium text-sm
-                hover:bg-primary/90 transition-colors
-              "
-            >
-              <Plus className="w-4 h-4" />
-              {t('templates.new')}
-            </button>
+            <h1 className="font-display text-4xl font-light leading-tight tracking-tight text-foreground md:text-5xl">
+              {t('templates.title', 'Template List')}
+            </h1>
           </div>
-
-          {/* Breadcrumb */}
-          <Breadcrumb path={currentPath} onNavigate={handleFolderSelect} />
-        </header>
-
-        {/* Filter bar */}
-        <div className="flex-shrink-0 px-6 py-3 border-b">
-          <FilterBar
-            searchValue={searchInput}
-            onSearchChange={handleSearchChange}
-            selectedTagIds={filters.tagIds ?? []}
-            onTagsChange={setTagIds}
-            availableTags={tags}
-            publishedFilter={filters.hasPublishedVersion}
-            onPublishedFilterChange={setHasPublishedVersion}
-            onClearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
+          <button
+            onClick={() => setCreateDialogOpen(true)}
+            className="group flex h-12 items-center gap-2 rounded-none bg-foreground px-6 text-sm font-medium tracking-wide text-background shadow-lg shadow-muted transition-colors hover:bg-foreground/90"
+          >
+            <Plus size={20} />
+            <span>{t('templates.createNew', 'CREATE NEW TEMPLATE')}</span>
+          </button>
         </div>
+      </header>
 
-        {/* Templates grid */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <TemplatesGrid
-            templates={templates}
-            isLoading={isTemplatesLoading}
-            allTags={tags}
-            onTemplateMenu={handleTemplateMenu}
-            onRefresh={handleRefreshAll}
-            getFolderName={getFolderName}
-            filterTagIds={filters.tagIds}
-            onFolderClick={handleFolderSelect}
-            currentFolderId={filters.folderId}
-            page={page}
-            totalPages={totalPages}
-            totalCount={totalCount}
-            onPageChange={setPage}
-          />
-        </div>
-      </main>
+      {/* Toolbar */}
+      <TemplatesToolbar
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        tags={tagsData?.data ?? []}
+        selectedTagIds={selectedTagIds}
+        onTagsChange={setSelectedTagIds}
+      />
 
-      {/* Dialogs */}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 pb-12 md:px-6 lg:px-6">
+        {/* Loading state - don't show during enter transition (data should be cached) */}
+        {isLoading && !isEntering && (
+          <div className="space-y-4 pt-6">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && templates.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-lg text-muted-foreground">
+              {t('templates.noTemplates', 'No templates found')}
+            </p>
+            {(debouncedSearch || statusFilter !== undefined || selectedTagIds.length > 0) && (
+              <button
+                onClick={() => {
+                  setSearchQuery('')
+                  setStatusFilter(undefined)
+                  setSelectedTagIds([])
+                }}
+                className="mt-4 text-sm text-foreground underline underline-offset-4 hover:no-underline"
+              >
+                {t('templates.clearFilters', 'Clear filters')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Table */}
+        {!isLoading && templates.length > 0 && (
+          <table className="w-full border-collapse text-left">
+            <thead className="sticky top-0 z-10 bg-background">
+              <tr>
+                <th className="w-[40%] border-b border-border py-4 pl-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                  {t('templates.columns.name', 'Template Name')}
+                </th>
+                <th className="w-[15%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                  {t('templates.columns.versions', 'Versions')}
+                </th>
+                <th className="w-[15%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                  {t('templates.columns.status', 'Status')}
+                </th>
+                <th className="w-[15%] border-b border-border py-4 font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                  {t('templates.columns.lastModified', 'Last Modified')}
+                </th>
+                <th className="w-[10%] border-b border-border py-4 pr-4 text-center font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">
+                  {t('templates.columns.action', 'Action')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="font-light">
+              {templates.map((template, index) => (
+                <TemplateListRow
+                  key={`${template.id}-${filterAnimationKey}`}
+                  template={template}
+                  index={index}
+                  isExiting={isExiting}
+                  isEntering={isEntering || filterAnimationKey > 0}
+                  isFilterAnimating={filterAnimationKey > 0}
+                  onClick={() => handleViewTemplateDetail(template.id)}
+                  onGoToFolder={handleGoToFolder}
+                  onEdit={() => handleOpenEditDialog(template)}
+                  onDelete={() => handleOpenDeleteDialog(template)}
+                />
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && total > 0 && (
+          <div className="flex items-center justify-between py-8">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              {paginationInfo}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="flex h-8 w-8 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:text-muted-foreground"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="flex h-8 w-8 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:text-muted-foreground"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Create Template Dialog */}
       <CreateTemplateDialog
-        isOpen={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
-        folders={flatFolders}
-        tags={tags}
-        currentFolderId={filters.folderId}
-        onCreated={handleRefreshAll}
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
 
-      <CreateFolderDialog
-        isOpen={isCreateFolderDialogOpen}
-        onClose={() => setIsCreateFolderDialogOpen(false)}
-        folders={flatFolders}
-        parentId={createFolderParentId}
-        onCreated={refreshFolders}
+      {/* Edit Template Dialog */}
+      <EditTemplateDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        template={selectedTemplate}
       />
 
-      <ManageTagsDialog
-        isOpen={isManageTagsDialogOpen}
-        onClose={() => setIsManageTagsDialogOpen(false)}
-        onChanged={() => {
-          refreshTags();
-          refreshTemplates();
-        }}
+      {/* Delete Template Dialog */}
+      <DeleteTemplateDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        template={selectedTemplate}
       />
-
-      {/* Context menu */}
-      {contextMenu && (
-        <ContextMenu
-          type={contextMenu.type}
-          item={contextMenu.item}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={() => setContextMenu(null)}
-          onRefresh={handleRefreshAll}
-          onMoveFolder={handleContextMenuMoveFolder}
-          onCreateSubfolder={handleCreateFolder}
-          onRenameFolder={handleContextMenuRenameFolder}
-          onRenameTemplate={handleRenameTemplate}
-        />
-      )}
-
-      {/* Move folder dialogs */}
-      <ConfirmMoveDialog
-        isOpen={confirmMoveDialog.isOpen}
-        sourceName={confirmMoveDialog.sourceFolder?.name ?? ''}
-        targetName={confirmMoveDialog.targetFolder?.name ?? t('folders.root')}
-        onConfirm={handleConfirmDragMove}
-        onCancel={() => setConfirmMoveDialog({ isOpen: false, sourceFolder: null, targetFolder: null })}
-      />
-
-      <MoveFolderDialog
-        isOpen={moveFolderDialog.isOpen}
-        folder={moveFolderDialog.folder}
-        folders={folders}
-        flatFolders={flatFolders}
-        onConfirm={handleConfirmDialogMove}
-        onCancel={() => setMoveFolderDialog({ isOpen: false, folder: null })}
-      />
-
-      <RenameFolderDialog
-        isOpen={renameFolderDialog.isOpen}
-        folder={renameFolderDialog.folder}
-        onConfirm={handleConfirmRenameFolder}
-        onCancel={() => setRenameFolderDialog({ isOpen: false, folder: null })}
-      />
-
-      <RenameTemplateDialog
-        isOpen={renameTemplateDialog.isOpen}
-        template={renameTemplateDialog.template}
-        onConfirm={handleConfirmRenameTemplate}
-        onCancel={() => setRenameTemplateDialog({ isOpen: false, template: null })}
-      />
-
-      {/* Move template confirmation dialog */}
-      <ConfirmMoveDialog
-        isOpen={moveTemplateDialog.isOpen}
-        sourceName={moveTemplateDialog.templateTitle}
-        targetName={moveTemplateDialog.targetFolderName}
-        onConfirm={handleConfirmTemplateMove}
-        onCancel={() => setMoveTemplateDialog({ isOpen: false, templateId: null, templateTitle: '', targetFolderId: null, targetFolderName: '' })}
-      />
-    </div>
-  );
+    </motion.div>
+  )
 }

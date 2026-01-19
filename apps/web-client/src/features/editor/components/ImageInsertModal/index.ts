@@ -1,2 +1,5 @@
 export { ImageInsertModal } from './ImageInsertModal';
-export type { ImageInsertModalProps, ImageInsertResult, ImageInsertTab } from './types';
+export { ImageCropper } from './ImageCropper';
+export { ImageUrlTab } from './ImageUrlTab';
+export { ImageGalleryTab } from './ImageGalleryTab';
+export * from './types';

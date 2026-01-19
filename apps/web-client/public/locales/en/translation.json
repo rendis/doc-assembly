@@ -1,241 +1,597 @@
 {
   "common": {
+    "appName": "Doc-Assembly",
     "loading": "Loading...",
-    "error": "Error",
-    "save": "Save",
+    "error": "An error occurred",
+    "retry": "Retry",
     "cancel": "Cancel",
+    "save": "Save",
+    "apply": "Apply",
+    "saving": "Saving...",
     "delete": "Delete",
-    "logout": "Logout",
-    "welcome": "Welcome",
-    "settings": "Settings",
-    "create": "Create",
+    "deleting": "Deleting...",
+    "archiving": "Archiving...",
+    "cancelling": "Cancelling...",
     "edit": "Edit",
+    "create": "Create",
+    "creating": "Creating...",
+    "move": "Move",
+    "moving": "Moving...",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
     "previous": "Previous",
     "next": "Next",
     "search": "Search",
-    "noResults": "No results found.",
-    "actions": "Actions",
-    "name": "Name",
-    "code": "Code",
-    "description": "Description",
-    "createdAt": "Created At",
-    "type": "Type",
-    "status": "Status",
-    "members": "Members",
-    "creating": "Creating...",
-    "close": "Close",
-    "confirm": "Confirm",
+    "filter": "Filter",
+    "sort": "Sort",
+    "noResults": "No results found",
+    "viewAll": "View All",
+    "more": "More",
+    "less": "Less",
     "yes": "Yes",
     "no": "No",
-    "apply": "Apply",
-    "keep": "Keep",
-    "retry": "Retry"
+    "all": "All",
+    "none": "None",
+    "selectAll": "Select All",
+    "actions": "Actions",
+    "clear": "Clear all",
+    "optional": "optional",
+    "processing": "Processing..."
   },
-  "auth": {
-    "select_tenant": "Select an Organization",
-    "no_tenants": "You do not have access to any organization.",
-    "loading_tenants": "Loading organizations...",
-    "organizations": "Organizations",
-    "selectOrManage": "Select or manage organizations."
-  },
-  "workspace": {
-    "title": "Workspaces",
-    "subtitle": "Manage your documents and templates in {{tenantName}}",
-    "new": "New Workspace",
-    "no_workspaces": "No workspaces available.",
-    "documents": "Documents",
-    "templates": "Templates",
-    "configuration": "Configuration",
-    "type_system": "System Configuration & Templates",
-    "type_client": "Document Management Workspace",
-    "searchPlaceholder": "Search workspaces...",
-    "name": "Workspace Name",
-    "type": "Workspace Type",
-    "typeClient": "Client Workspace",
-    "typeSystem": "System Workspace",
-    "createTitle": "New Workspace",
-    "createButton": "Create Workspace",
-    "errorCreating": "Error creating workspace.",
-    "namePlaceholder": "e.g., Legal Documents",
-    "documentsExplorer": "Document explorer",
-    "templatesManager": "Template manager",
-    "settings": {
-      "title": "Workspace Settings",
-      "options": "Configuration options",
-      "noPermission": "You do not have permission to access this section"
+  "tags": {
+    "searchPlaceholder": "Search or create tags...",
+    "noTags": "No tags available",
+    "createNew": "Create \"{{name}}\"",
+    "create": {
+      "title": "Create New Tag",
+      "nameLabel": "Name",
+      "namePlaceholder": "Tag name (3-50 chars)",
+      "colorLabel": "Color",
+      "submit": "Create Tag",
+      "minLength": "Minimum 3 characters"
     }
   },
-  "pagination": {
-    "showing": "Showing {{from}} to {{to}} of {{total}} results",
-    "page": "Page {{page}} of {{totalPages}}"
-  },
-  "navigation": {
-    "admin": "Admin",
-    "app": "App",
-    "adminConsole": "Admin Console"
+  "nav": {
+    "dashboard": "Dashboard",
+    "templates": "Templates",
+    "documents": "Documents",
+    "variables": "Variables",
+    "settings": "Settings",
+    "administration": "Administration",
+    "logout": "Logout"
   },
   "sidebar": {
     "pin": "Pin sidebar",
-    "unpin": "Unpin sidebar",
-    "expand": "Expand sidebar"
+    "unpin": "Unpin sidebar"
   },
-  "userMenu": {
-    "theme": "Theme",
-    "language": "Language"
+  "auth": {
+    "login": "Login",
+    "loginTitle": "Login to your account",
+    "email": "Email",
+    "password": "Password",
+    "authenticate": "Authenticate",
+    "forgotPassword": "Recover password access",
+    "logout": "Logout",
+    "loggingIn": "Signing in...",
+    "invalidCredentials": "Invalid email or password"
   },
-  "theme": {
-    "light": "Light",
-    "dark": "Dark",
-    "system": "System"
+  "login": {
+    "title": "Login to",
+    "subtitle": "your account.",
+    "email": "Username / Email",
+    "password": "Password",
+    "authenticate": "AUTHENTICATE",
+    "authenticating": "AUTHENTICATING...",
+    "recover": "Recover password access",
+    "error": "Invalid username or password"
   },
   "tenant": {
-    "createTitle": "Create Organization",
-    "createButton": "Create",
-    "name": "Name",
-    "code": "Code (Slug)",
-    "codeHelp": "Short identifier (e.g., ACME), max 10 chars.",
-    "description": "Description",
-    "namePlaceholder": "Acme Corp",
-    "codePlaceholder": "ACME",
-    "errorCreating": "Error creating organization. Check permissions or duplicate code.",
+    "selectTitle": "Select your Organization",
+    "selectDescription": "Choose a tenant environment to access your workspaces and documents.",
     "searchPlaceholder": "Search organizations...",
-    "noTenants": "No tenants found.",
-    "system": "SYSTEM"
+    "lastAccessed": "Last accessed",
+    "users": "users",
+    "backToLogin": "Back to login"
   },
-  "admin": {
-    "dashboard": "Dashboard",
-    "dashboardDescription": "Platform overview and quick actions",
-    "currentRole": "Your role:",
-    "quickActions": "Quick Actions",
-    "manageTenants": "Manage Tenants",
-    "manageTenantsDesc": "View and manage organizations",
-    "manageUsers": "System Users",
-    "manageUsersDesc": "Manage system-level roles",
-    "viewAudit": "Audit Logs",
-    "viewAuditDesc": "Review platform activity",
-    "tenants": "Tenants",
-    "systemUsers": "System Users",
-    "platformSettings": "Platform Settings",
-    "auditLogs": "Audit Logs",
+  "selectTenant": {
+    "title": "Select your",
+    "subtitle": "Organization.",
+    "description": "Choose a tenant environment to access your document templates and assembly tools.",
+    "back": "Back to login",
+    "filter": "Filter by organization...",
+    "minChars": "Type at least 3 characters to search",
+    "join": "Join New Organization"
+  },
+  "workspace": {
+    "current": "Current Workspace",
+    "select": "Select Workspace",
+    "type": {
+      "SYSTEM": "System",
+      "CLIENT": "Client"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "ARCHIVED": "Archived"
+    }
+  },
+  "dashboard": {
+    "title": "Status Monitor",
+    "subtitle": "Workspace Overview",
+    "lastSynced": "Last Synced",
+    "totalGenerated": "Total Generated",
+    "signedThisMonth": "Signed (30 Days)",
+    "inProgress": "In Progress",
+    "recentActivity": "Recent Activity",
+    "quickDraft": "Quick Draft",
+    "newDocument": "New Document",
+    "integrations": "Integrations",
     "stats": {
-      "tenants": "Total Tenants",
-      "tenantsDesc": "Active organizations",
-      "users": "System Users",
-      "usersDesc": "Users with system roles",
-      "settings": "Platform Settings",
-      "settingsDesc": "Configuration items",
-      "activity": "Recent Activity",
-      "activityDesc": "Last 24 hours"
+      "generated": "Total Generated",
+      "signed": "Signed (30 Days)",
+      "inProgress": "In Progress"
     },
-    "tenantsPage": {
-      "title": "Tenant Management",
-      "description": "Manage all organizations in the platform",
-      "searchPlaceholder": "Search tenants...",
-      "totalCount": "{{count}} tenants",
-      "name": "Name",
-      "code": "Code",
+    "activity": {
+      "title": "Recent Activity"
+    }
+  },
+  "templates": {
+    "title": "Template List",
+    "section": "Templates",
+    "header": "Management",
+    "createNew": "Create New Template",
+    "searchPlaceholder": "Search templates...",
+    "folder": "Folder",
+    "tags": "Tags",
+    "columns": {
+      "name": "Template Name",
+      "versions": "Versions",
+      "scheduled": "Scheduled",
+      "status": "Status",
+      "lastModified": "Last Modified",
+      "action": "Action"
+    },
+    "status": {
+      "label": "Status",
+      "published": "Published",
+      "draft": "Draft",
+      "any": "Any"
+    },
+    "versions": "Versions",
+    "version": "version",
+    "versionsLabel": "versions",
+    "lastModified": "Last Modified",
+    "author": "Author",
+    "noTemplates": "No templates found",
+    "showing": "Showing {{start}}-{{end}} of {{total}} templates",
+    "empty": "No templates in this folder",
+    "createFirst": "Create your first template",
+    "createDialog": {
+      "title": "New Template",
+      "description": "Create a new document template",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter template title...",
+      "tagsLabel": "Tags",
+      "submit": "Create Template"
+    },
+    "actions": {
+      "newTemplate": "NEW TEMPLATE",
+      "goToFolder": "Go to folder",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "editDialog": {
+      "title": "Edit Template",
+      "description": "Update template name and tags",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter template title...",
+      "tagsLabel": "Tags",
+      "submit": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "moveDialog": {
+      "title": "Move Template",
+      "message": "Are you sure you want to move \"{{name}}\" to \"{{folder}}\"?",
+      "toRoot": "Root"
+    },
+    "detail": {
+      "header": "Template Details",
+      "backToList": "Back to Templates",
+      "backToFolder": "Back to Folder",
+      "notFound": "Template not found",
+      "metadata": "Metadata",
+      "folder": "Folder",
       "createdAt": "Created",
-      "actions": "Actions",
-      "noResults": "No tenants found.",
-      "pagination": "Page {{page}} of {{totalPages}}"
+      "updatedAt": "Last Updated",
+      "versionsCount": "Versions",
+      "tags": "Tags",
+      "noTags": "No tags",
+      "editTags": "Edit tags",
+      "versionsSection": "Version History",
+      "versionsTotal": "{{count}} version(s)",
+      "noVersions": "No versions yet",
+      "createVersion": "Create New Version",
+      "createFirstVersion": "Create first version",
+      "filters": {
+        "published": "Published",
+        "scheduled": "Scheduled",
+        "draft": "Drafts",
+        "archived": "Archived"
+      }
     },
-    "users": {
-      "title": "System Users",
-      "description": "Manage users with system-level roles",
-      "addUser": "Add System User",
-      "infoTitle": "About System Roles",
-      "infoDescription": "System roles grant platform-wide access. SUPERADMIN has full access to all features and tenants. PLATFORM_ADMIN can manage tenants but cannot assign system roles.",
-      "user": "User",
-      "role": "Role",
-      "assignedAt": "Assigned",
-      "actions": "Actions",
-      "noResults": "No system users found.",
-      "revokeRole": "Revoke Role",
-      "confirmRevoke": "Are you sure you want to revoke this user's system role?",
-      "errorRevoke": "Failed to revoke role. Please try again.",
-      "errorLoad": "Failed to load system users. You may not have permission.",
-      "roleSuperadmin": "SUPERADMIN - Full platform access",
-      "rolePlatformAdmin": "PLATFORM_ADMIN - Limited admin access"
+    "editTagsDialog": {
+      "title": "Edit Tags",
+      "description": "Add or remove tags from this template",
+      "submit": "Save Tags"
     },
-    "settings": {
-      "title": "Platform Settings",
-      "description": "Configure platform-wide settings and preferences",
-      "comingSoon": "Coming Soon",
-      "comingSoonDescription": "Platform settings functionality is not yet available. This feature will allow you to configure global settings, branding, and integrations.",
-      "noApiTitle": "API Not Available",
-      "noApiDescription": "The backend API for platform settings has not been implemented yet. Once available, you will be able to configure various platform options from this page."
+    "versionInfo": {
+      "createdAt": "Created",
+      "publishedAt": "Published",
+      "archivedAt": "Archived",
+      "scheduledAt": "Scheduled",
+      "openEditor": "Open in Editor"
     },
-    "audit": {
-      "title": "Audit Logs",
-      "description": "View platform activity and security events",
-      "comingSoon": "Coming Soon",
-      "comingSoonDescription": "Audit logs functionality is not yet available. This feature will provide a comprehensive view of all platform activities, user actions, and security events.",
-      "noApiTitle": "API Not Available",
-      "noApiDescription": "The backend API for audit logs has not been implemented yet. Once available, you will be able to search, filter, and export audit data.",
-      "featureActivity": "User Activity",
-      "featureActivityDesc": "Track logins, logouts, and user sessions across the platform.",
-      "featureChanges": "Data Changes",
-      "featureChangesDesc": "Monitor create, update, and delete operations on all resources.",
-      "featureSecurity": "Security Events",
-      "featureSecurityDesc": "Review role changes, permission updates, and access attempts."
+    "createVersionDialog": {
+      "title": "New Version",
+      "description": "Create a new version of this template",
+      "nameLabel": "Version Name",
+      "namePlaceholder": "e.g., Initial Draft, Review Changes...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description of changes...",
+      "submit": "Create Version"
+    },
+    "cloneVersionDialog": {
+      "title": "Clone Version",
+      "description": "Create a new version from {{versionName}}",
+      "sourceVersion": "Source version: v{{versionNumber}} - {{versionName}}",
+      "submit": "Clone Version"
+    },
+    "versionDeleteDialog": {
+      "title": "Delete Version",
+      "message": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "versionArchiveDialog": {
+      "title": "Archive Version",
+      "message": "Are you sure you want to archive version {{version}}? This action cannot be undone.",
+      "confirm": "Archive"
+    },
+    "versionCancelScheduleDialog": {
+      "title": "Cancel Scheduled Publication",
+      "message": "Are you sure you want to cancel the scheduled publication of version {{version}}?",
+      "confirm": "Cancel Schedule"
+    },
+    "versions": {
+      "actions": {
+        "promote": "Promote to Production",
+        "delete": "Delete",
+        "publishNow": "Publish Now",
+        "schedule": "Schedule",
+        "archive": "Archive",
+        "clone": "Clone version",
+        "cancelSchedule": "Cancel Schedule"
+      }
+    },
+    "promoteDialog": {
+      "title": "Promote to Production",
+      "description": "Promote version \"{{name}}\" to production",
+      "modeNewTemplate": "New Template",
+      "modeNewTemplateDesc": "Create a new template with this version",
+      "modeExistingTemplate": "Existing Template",
+      "modeExistingTemplateDesc": "Add as new version to existing template",
+      "templateName": "Template Name",
+      "templateNamePlaceholder": "Enter template name",
+      "targetTemplate": "Target Template",
+      "searchPlaceholder": "Search templates...",
+      "versionName": "Version Name",
+      "versionNamePlaceholder": "Enter version name",
+      "noTemplatesFound": "No templates found",
+      "selectTemplate": "Search and select a template",
+      "promote": "Promote",
+      "promoting": "Promoting...",
+      "success": "Version promoted successfully",
+      "successNewTemplate": "New template created in production",
+      "successNewVersion": "New version added to template",
+      "conflictError": "Version name already exists",
+      "conflictErrorDesc": "A version with this name already exists in the target template. Please choose a different name."
+    },
+    "publishDialog": {
+      "title": "Publish Version",
+      "description": "Make version \"{{name}}\" live",
+      "warningTitle": "This action will:",
+      "warning1": "Replace the current published version",
+      "warning2": "Make this content immediately available",
+      "confirm": "Publish Now"
+    },
+    "scheduleDialog": {
+      "title": "Schedule Publication",
+      "description": "Schedule when \"{{name}}\" will go live",
+      "dateLabel": "Publish Date",
+      "timeLabel": "Publish Time",
+      "info": "The version will be published automatically at the scheduled time. You can cancel anytime before then.",
+      "confirm": "Schedule"
+    },
+    "tooltips": {
+      "publishedVersion": "Published version: v{{version}}",
+      "scheduledVersions": "{{count}} version(s) scheduled to publish"
+    },
+    "validationDialog": {
+      "title": "Validation Errors",
+      "description": "Cannot publish version due to content errors",
+      "errors": "Errors",
+      "warnings": "Warnings",
+      "openEditor": "Open in Editor"
+    }
+  },
+  "documents": {
+    "title": "Document Explorer",
+    "newFolder": "New Folder",
+    "searchPlaceholder": "Search documents...",
+    "type": "Type",
+    "subfolders": "Subfolders",
+    "documents": "Documents",
+    "noDocuments": "No documents found",
+    "header": {
+      "label": "Repository"
+    },
+    "filters": {
+      "type": "Type: All",
+      "sort": "Sort: Newest"
+    }
+  },
+  "folders": {
+    "subfolders": "Subfolders",
+    "empty": "No folders yet. Create one to get started.",
+    "createDialog": {
+      "title": "New Folder",
+      "description": "Create a new folder to organize your templates",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter folder name...",
+      "submit": "Create Folder"
+    },
+    "renameDialog": {
+      "title": "Rename Folder",
+      "description": "Enter a new name for this folder.",
+      "nameLabel": "Folder Name",
+      "namePlaceholder": "Enter folder name..."
+    },
+    "deleteDialog": {
+      "title": "Delete Folder",
+      "thisFolder": "this folder",
+      "multipleFolders": "{{count}} folders",
+      "confirmMessage": "Are you sure you want to delete {{name}}?",
+      "warning": "This will also delete all subfolders and documents inside. This action cannot be undone."
+    },
+    "moveDialog": {
+      "title": "Move to Folder",
+      "description": "Select a destination folder.",
+      "root": "Root (No parent)",
+      "noFolders": "No folders available"
+    },
+    "confirmMoveDialog": {
+      "title": "Move Folder",
+      "message": "Are you sure you want to move \"{{name}}\" to \"{{folder}}\"?"
+    },
+    "actions": {
+      "newFolder": "NEW FOLDER",
+      "rename": "Rename",
+      "move": "Move to...",
+      "delete": "Delete"
+    },
+    "selection": {
+      "count": "{{count}} selected",
+      "selectAll": "Select All",
+      "start": "Select items"
+    },
+    "stats": {
+      "folders_one": "folder",
+      "folders_other": "folders",
+      "templates_one": "template",
+      "templates_other": "templates",
+      "empty": "Empty"
     }
   },
   "editor": {
-    "bold": "Bold",
-    "italic": "Italic",
-    "heading1": "Heading 1",
-    "heading2": "Heading 2",
-    "bulletList": "Bullet List",
-    "orderedList": "Ordered List",
-    "quote": "Quote",
-    "alignLeft": "Align left",
-    "alignCenter": "Center",
-    "alignRight": "Align right",
-    "alignJustify": "Justify",
-    "undo": "Undo",
-    "redo": "Redo",
-    "import": "Import document",
-    "variables": {
-      "selectFormat": "Select format",
-      "formatOptions": "Format options",
-      "select": "Select"
+    "document": "Document",
+    "status": {
+      "editable": "Editable",
+      "readOnly": "Read only",
+      "readOnlyBanner": "This document is published and cannot be edited"
+    },
+    "errors": {
+      "loadFailed": "Failed to load",
+      "importFailed": "Failed to import content",
+      "versionLoadFailed": "Failed to load version"
+    },
+    "variablesPanel": {
+      "header": "Variables",
+      "collapse": {
+        "expand": "Expand panel",
+        "collapse": "Collapse panel"
+      },
+      "search": {
+        "placeholder": "Search variables..."
+      },
+      "loading": "Loading variables...",
+      "empty": {
+        "title": "No variables found",
+        "searchSuggestion": "Try another search",
+        "addSuggestion": "Add variables to workspace"
+      },
+      "sections": {
+        "signerRoles": "Signer Roles",
+        "internalVariables": "System Variables",
+        "externalVariables": "Custom Variables"
+      }
+    },
+    "toolbar": {
+      "blocks": "Blocks",
+      "scrollLeft": "Scroll left",
+      "scrollRight": "Scroll right",
+      "undo": "Undo",
+      "redo": "Redo",
+      "fontFamily": "Font",
+      "fontSize": "Size",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "bulletList": "Bullet list",
+      "orderedList": "Numbered list",
+      "blockquote": "Quote",
+      "horizontalRule": "Horizontal line",
+      "insertImage": "Insert image",
+      "signatureBlock": "Signature block",
+      "conditionalBlock": "Conditional block",
+      "exportDocument": "Export document (JSON)",
+      "importDocument": "Import document (JSON)",
+      "history": "History",
+      "headings": "Headings",
+      "textFormatting": "Text formatting",
+      "lists": "Lists",
+      "blockElements": "Blocks",
+      "actions": "Actions",
+      "exportDocumentShort": "Export document",
+      "importDocumentShort": "Import document"
+    },
+    "preparation": {
+      "title": "Preparing document"
+    },
+    "autosaved": "Autosaved",
+    "saving": "Saving...",
+    "publish": "Publish Template",
+    "backToDetails": "Back to Template Details",
+    "structures": "Structures",
+    "variables": "Variables",
+    "signerRoles": "Signer Roles",
+    "roleInjectables": {
+      "name": "name",
+      "email": "email"
+    },
+    "roles": {
+      "defaultLabel": "Role {{number}}",
+      "emptyValue": "(empty)",
+      "empty": {
+        "title": "No roles defined",
+        "description": "Add roles to assign them to signatures"
+      },
+      "addFirst": "Add first role",
+      "panel": {
+        "selection": {
+          "enable": "Select roles",
+          "disable": "Cancel selection"
+        },
+        "view": {
+          "expanded": "Expanded view",
+          "compact": "Compact view",
+          "expandAll": "Expand all cards"
+        },
+        "collapse": {
+          "expand": "Expand panel",
+          "collapse": "Collapse panel"
+        },
+        "add": "Add role",
+        "delete": {
+          "title_one": "Delete {{count}} role",
+          "title_other": "Delete {{count}} roles",
+          "confirmation": "Are you sure you want to delete the selected roles? This action cannot be undone."
+        }
+      },
+      "card": {
+        "placeholder": "Role name",
+        "fields": {
+          "name": "Name",
+          "email": "Email"
+        },
+        "fieldType": {
+          "text": "Text",
+          "variable": "Variable",
+          "toVariable": "Switch to variable",
+          "toText": "Switch to text"
+        },
+        "placeholders": {
+          "name": "Signer name",
+          "email": "email@example.com"
+        },
+        "selectVariable": "Select variable",
+        "noVariables": "No text variables available",
+        "delete": {
+          "title": "Delete role",
+          "confirmation": "Are you sure you want to delete the role \"{{name}}\"? This action cannot be undone."
+        }
+      }
+    },
+    "insertImage": "Image",
+    "insertConditional": "Conditional",
+    "insertSignature": "Signature",
+    "insertTable": "Table",
+    "sender": "Sender",
+    "recipient": "Recipient",
+    "undefined": "Undefined",
+    "autoSave": {
+      "saved": "Saved",
+      "pending": "Unsaved...",
+      "saving": "Saving...",
+      "error": "Save error",
+      "justNow": "just now",
+      "secondsAgo": "{{count}}s ago",
+      "minutesAgo": "{{count}}m ago"
+    },
+    "pageSettings": {
+      "title": "Page Settings",
+      "description": "Adjust page size and margins.",
+      "pageSize": "Page Size",
+      "pageSizePlaceholder": "Select a size",
+      "margins": "Margins (px)",
+      "marginTop": "Top",
+      "marginBottom": "Bottom",
+      "marginLeft": "Left",
+      "marginRight": "Right",
+      "reset": "Reset",
+      "applyMargins": "Apply Margins"
     },
     "preview": {
-      "title": "Generate Preview",
-      "tooltip": "PDF Preview",
-      "generate": "Generate",
-      "generateAll": "Generate all",
-      "generateTestData": "Generate test data",
-      "generateRandom": "Generate random value",
+      "title": "Preview Document",
+      "description": "Enter values to generate the document preview.",
+      "systemVariables": "System Variables",
+      "systemVariablesHelp": "These values are calculated automatically. You can modify them if needed.",
+      "standardVariables": "Document Variables",
+      "roleVariables": "Signer Variables",
+      "generate": "Generate Preview",
       "generating": "Generating...",
+      "generateAnyway": "Generate Anyway",
       "cancel": "Cancel",
       "close": "Close",
-      "download": "Download PDF",
-      "standardVariables": "Document Variables",
-      "roleVariables": "Role Variables",
-      "systemVariables": "System Variables",
-      "systemVariablesHelp": "These values are calculated automatically but you can modify them if you wish.",
-      "auto": "Auto",
-      "reset": "Reset",
+      "download": "Download",
+      "noVariables": "This document has no variables. Generate preview with default values?",
+      "generateTestData": "Generate Test Data",
+      "generateRandom": "Generate random value",
       "resetToEmulated": "Reset to automatic value",
-      "noVariables": "No variables defined in this document.",
-      "generateAnyway": "Generate anyway",
+      "auto": "Auto",
       "errors": {
         "invalidNumber": "Must be a valid number",
         "invalidDate": "Invalid date format",
-        "invalidEmail": "Invalid email"
+        "invalidEmail": "Invalid email format",
+        "apiError": "Error generating preview",
+        "invalidData": "Invalid data. Check the entered values.",
+        "notFound": "Template or version not found.",
+        "serverError": "Server error. Please try again."
       },
       "pdfModal": {
         "title": "Document Preview",
         "loading": "Loading PDF...",
-        "browserNotSupported": "Your browser cannot display the PDF. Please download it to view.",
         "error": "Error loading PDF",
-        "pageInfo": "Page {{current}} of {{total}}",
         "page": "Page",
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
-        "zoomReset": "Reset zoom",
-        "fitToWidth": "Fit to width"
+        "zoomReset": "Reset zoom"
       }
     },
     "workflow": {
@@ -271,279 +627,454 @@
       "activeCount": "{{count}} active",
       "notConfigured": "Not configured"
     },
-    "autoSave": {
-      "saved": "Saved",
-      "saving": "Saving...",
-      "pending": "Unsaved...",
-      "error": "Save failed",
-      "justNow": "just now",
-      "secondsAgo": "{{n}}s ago",
-      "minutesAgo": "{{n}}m ago"
+    "signature": {
+      "title": "Signature",
+      "edit": "Edit",
+      "delete": "Delete",
+      "configureBlock": "Configure Signature Block",
+      "signatureCount": "Number of signatures",
+      "layout": "Layout",
+      "lineWidth": "Line width",
+      "signatureN": "Signature {{n}}",
+      "label": "Label",
+      "labelPlaceholder": "Ex: Client Signature",
+      "subtitleOptional": "Subtitle (optional)",
+      "subtitlePlaceholder": "Ex: Legal Representative",
+      "cancel": "Cancel",
+      "saveChanges": "Save changes",
+      "roleAssigned": "Assigned role",
+      "noRolesAvailable": "No roles available",
+      "defineRoles": "Define roles in the right panel",
+      "unassigned": "Unassigned",
+      "selectRole": "Select role",
+      "inUse": "(in use)",
+      "allRolesAssigned": "All roles are assigned",
+      "roleDeleted": "Role deleted",
+      "lineWidths": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "layouts": {
+        "left": "Left",
+        "leftDesc": "Signature aligned to the left",
+        "center": "Center",
+        "centerDesc": "Centered signature",
+        "right": "Right",
+        "rightDesc": "Signature aligned to the right",
+        "sides": "Sides",
+        "sidesDesc": "One signature on each side",
+        "stackedCenter": "Stacked Center",
+        "stackedCenterDesc": "Both signatures centered and stacked",
+        "stackedLeft": "Stacked Left",
+        "stackedLeftDesc": "Both signatures on the left",
+        "stackedRight": "Stacked Right",
+        "stackedRightDesc": "Both signatures on the right",
+        "row": "Row",
+        "rowDesc": "Three signatures in a row",
+        "invertedPyramid": "Inverted Pyramid",
+        "invertedPyramidDesc": "Two above, one centered below",
+        "pyramid": "Pyramid",
+        "pyramidDesc": "One centered above, two below",
+        "grid": "Grid",
+        "gridDesc": "Four signatures in 2x2 grid",
+        "threePlusOne": "Three + One",
+        "threePlusOneDesc": "Three above, one centered below",
+        "onePlusThree": "One + Three",
+        "onePlusThreeDesc": "One centered above, three below"
+      },
+      "image": {
+        "title": "Signature image",
+        "preview": "Signature preview",
+        "editImage": "Edit image",
+        "deleteImage": "Delete image",
+        "opacity": "Opacity",
+        "upload": "Upload image",
+        "uploadHelp": "PNG, JPG, GIF or WebP. Max 2MB.",
+        "unsupportedType": "Unsupported file type. Use PNG, JPG, GIF or WebP.",
+        "fileTooLarge": "File is too large. Max 2MB.",
+        "cropTitle": "Edit Signature Image",
+        "reset": "Reset",
+        "apply": "Apply"
+      }
     },
-    "roleInjectables": {
-      "title": "Signer Roles",
-      "name": "name",
-      "email": "email",
-      "noRoles": "No roles defined",
-      "addRoleFirst": "Add roles in the right panel"
+    "conditional": {
+      "title": "Conditional",
+      "configure": "Configure",
+      "delete": "Delete",
+      "logicBuilder": "Logic Builder",
+      "logicBuilderDesc": "Drag variables and configure display rules.",
+      "cancel": "Cancel",
+      "saveConfig": "Save Configuration",
+      "incomplete": "(Incomplete)",
+      "alwaysVisibleEmpty": "Always visible (Empty group)",
+      "alwaysVisibleNoConditions": "Always visible (no conditions)",
+      "variables": "Variables",
+      "search": "Search...",
+      "loading": "Loading...",
+      "noVariablesFound": "No variables found.",
+      "emptyGroup": "Empty group - add a rule or group",
+      "rule": "Rule",
+      "group": "Group",
+      "dragVariable": "Drag variable",
+      "value": "Value",
+      "select": "Select",
+      "true": "True",
+      "false": "False",
+      "switchToVariable": "Switch to variable",
+      "switchToLiteral": "Switch to literal text",
+      "selectVariable": "Select variable",
+      "noVariablesOfType": "No variables of type {{type}}",
+      "empty": "(empty)",
+      "formula": "Formula",
+      "configureLogic": "Configure logic",
+      "operators": {
+        "equals": "equals (=)",
+        "notEquals": "not equals (≠)",
+        "isEmpty": "is empty",
+        "isNotEmpty": "is not empty",
+        "contains": "contains",
+        "startsWith": "starts with",
+        "endsWith": "ends with",
+        "greaterThan": "greater than (>)",
+        "lessThan": "less than (<)",
+        "greaterOrEqual": "≥ or equal",
+        "lessOrEqual": "≤ or equal",
+        "isBefore": "before",
+        "isAfter": "after",
+        "isTrue": "is true",
+        "isFalse": "is false"
+      }
     },
-    "signerRoles": {
-      "deleteConfirmation": {
-        "title": "Delete Role",
-        "message": "The role \"{{roleName}}\" has {{count}} variable(s) inserted in the document. If you delete this role, they will also be removed from the document.",
-        "confirm": "Delete role and variables"
+    "image": {
+      "title": "Image",
+      "insertImage": "Insert image",
+      "square": "Square",
+      "circle": "Circular",
+      "editImage": "Edit image",
+      "deleteImage": "Delete image",
+      "alignments": {
+        "blockLeft": "Block left",
+        "blockCenter": "Block center",
+        "blockRight": "Block right"
+      },
+      "modal": {
+        "title": "Insert image",
+        "description": "Add an image from URL or gallery",
+        "gallery": "Gallery",
+        "cancel": "Cancel",
+        "insert": "Insert image",
+        "urlLabel": "Image URL",
+        "urlPlaceholder": "https://example.com/image.jpg",
+        "invalidUrl": "Invalid URL. Must start with http:// or https://",
+        "loadError": "Could not load image. Check the URL.",
+        "testImage": "Test image",
+        "loading": "Loading image...",
+        "enterUrl": "Enter a URL to see preview",
+        "preview": "Preview",
+        "cropImage": "Crop image"
+      },
+      "gallery": {
+        "title": "Image gallery",
+        "comingSoon": "This feature will be available soon. For now, you can insert images using a URL."
+      },
+      "cropper": {
+        "title": "Crop image",
+        "description": "Adjust the crop area",
+        "shape": "Shape:",
+        "reset": "Reset",
+        "cancel": "Cancel",
+        "apply": "Apply crop"
+      }
+    },
+    "slashCommands": {
+      "text": "Text",
+      "textDesc": "Normal text paragraph",
+      "heading1": "Heading 1",
+      "heading1Desc": "Large heading",
+      "heading2": "Heading 2",
+      "heading2Desc": "Medium heading",
+      "heading3": "Heading 3",
+      "heading3Desc": "Small heading",
+      "bulletList": "List",
+      "bulletListDesc": "Bullet list",
+      "orderedList": "Numbered list",
+      "orderedListDesc": "Numbered list",
+      "blockquote": "Quote",
+      "blockquoteDesc": "Quote block",
+      "codeBlock": "Code",
+      "codeBlockDesc": "Code block",
+      "divider": "Divider",
+      "dividerDesc": "Horizontal line",
+      "pageBreak": "Page break",
+      "pageBreakDesc": "Insert page break",
+      "image": "Image",
+      "imageDesc": "Insert image",
+      "signature": "Signature",
+      "signatureDesc": "Configurable signature block",
+      "conditional": "Conditional",
+      "conditionalDesc": "Conditional content",
+      "variable": "Variable",
+      "variableDesc": "Insert variable",
+      "noCommandsFound": "No commands found",
+      "groups": {
+        "basic": "Basic",
+        "lists": "Lists",
+        "blocks": "Blocks",
+        "media": "Media",
+        "documents": "Documents"
+      }
+    },
+    "inconsistencies": {
+      "count": "{{count}} INCONSISTENCIES",
+      "count_one": "{{count}} INCONSISTENCY",
+      "position": "{{current}} OF {{total}}",
+      "clickToNavigate": "Click to navigate to inconsistencies",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "injectable": {
+      "errors": {
+        "roleDeleted": "The associated role was deleted"
       }
     }
   },
-  "templates": {
-    "title": "Templates",
-    "subtitle": "Manage contract templates and versions",
-    "new": "New Template",
-    "noTemplates": "No templates found",
-    "noTemplatesDescription": "Create your first template to get started",
-    "searchPlaceholder": "Search templates...",
-    "filterByTags": "Filter by tags",
-    "filterByStatus": "Filter by status",
-    "clearFilters": "Clear filters",
-    "allStatuses": "All statuses",
-    "withPublished": "With published version",
-    "withoutPublished": "Without published version",
-    "template": "Template",
-    "version": "Version",
-    "versions": "Versions",
-    "tags": {
-      "label": "Tags",
-      "edit": "Edit tags",
-      "editTitle": "Manage Tags",
-      "noTagsAssigned": "No tags assigned",
-      "searchOrCreate": "Search or create tag...",
-      "createNew": "Create tag",
-      "willBeCreatedAs": "Will be created as",
-      "noMatchingTags": "No matching tags"
-    },
-    "noTags": "No tags",
-    "folder": "Folder",
-    "rootFolder": "Root",
-    "modified": "Modified",
-    "created": "Created",
-    "status": {
-      "all": "All",
-      "draft": "Draft",
-      "published": "Published",
-      "archived": "Archived"
-    },
-    "actions": {
-      "edit": "Edit",
-      "clone": "Clone",
-      "move": "Move to folder",
-      "delete": "Delete",
-      "viewVersions": "View versions"
-    },
-    "create": {
-      "title": "New Template",
-      "titleLabel": "Title",
-      "titlePlaceholder": "e.g., Employment Contract",
-      "folderLabel": "Folder",
-      "folderPlaceholder": "Select folder (optional)",
-      "tagsLabel": "Tags",
-      "tagsPlaceholder": "Select tags (optional)",
-      "button": "Create Template",
-      "success": "Template created successfully",
-      "error": "Error creating template"
-    },
-    "edit": {
-      "title": "Edit Template",
-      "button": "Save Changes",
-      "success": "Template updated successfully",
-      "error": "Error updating template"
-    },
-    "rename": {
-      "title": "Rename Template",
-      "titleLabel": "Template name",
-      "button": "Save",
-      "success": "Template renamed successfully",
-      "error": "Error renaming template",
-      "duplicateName": "A template with this name already exists"
-    },
-    "clone": {
-      "title": "Clone Template",
-      "newTitleLabel": "New title",
-      "newTitlePlaceholder": "e.g., Employment Contract (Copy)",
-      "targetFolderLabel": "Target folder",
-      "button": "Clone Template",
-      "success": "Template cloned successfully",
-      "error": "Error cloning template"
-    },
-    "delete": {
-      "title": "Delete Template",
-      "message": "Are you sure you want to delete this template? This action cannot be undone.",
-      "button": "Delete",
-      "success": "Template deleted successfully",
-      "error": "Error deleting template"
-    },
-    "detail": {
-      "title": "Template Details",
-      "info": "Information",
-      "versionsTitle": "Versions",
-      "noVersions": "No versions yet",
-      "createVersion": "Create Version",
-      "latestVersion": "Latest"
-    },
-    "primaryAction": {
-      "editContract": "Edit Contract",
-      "viewContract": "View Contract"
-    },
-    "dates": {
-      "created": "Created",
-      "updated": "Updated"
-    },
-    "versionActions": {
-      "publish": "Publish",
-      "archive": "Archive",
-      "schedulePublish": "Schedule Publish",
-      "scheduleArchive": "Schedule Archive",
-      "cancelSchedule": "Cancel Schedule",
-      "createFromThis": "Create from this version",
-      "delete": "Delete Version"
-    },
-    "versionCreate": {
-      "title": "New Version",
-      "nameLabel": "Version name",
-      "namePlaceholder": "e.g., v2.0 - Updated clauses",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "What changed in this version?",
-      "button": "Create Version",
-      "success": "Version created successfully",
-      "error": "Error creating version"
-    },
-    "validation": {
-      "title": "Validation Required",
-      "fixErrors": "Please fix the following issues before publishing:",
-      "noContent": "Template must have content before publishing",
-      "invalidInjectables": "All injectables must be properly configured",
-      "noSignerRoles": "At least one signer role must be defined",
-      "invalidTransition": "This status transition is not allowed"
-    },
-    "publish": {
-      "title": "Publish Version",
-      "confirmMessage": "Are you sure you want to publish version {{version}}? Once published, this version will be available for document generation.",
-      "button": "Publish",
-      "success": "Version published successfully",
-      "error": "Failed to publish version"
-    },
-    "archive": {
-      "title": "Archive Version",
-      "confirmMessage": "Are you sure you want to archive version {{version}}? Archived versions cannot be used for new documents.",
-      "button": "Archive",
-      "success": "Version archived successfully",
-      "error": "Failed to archive version"
-    },
-    "delete": {
-      "title": "Delete Version",
-      "confirmMessage": "Are you sure you want to delete version {{version}}? This action cannot be undone.",
-      "button": "Delete",
-      "success": "Version deleted successfully",
-      "error": "Failed to delete version"
-    },
-    "schedule": {
-      "publishTitle": "Schedule Publication",
-      "archiveTitle": "Schedule Archival",
-      "publishDescription": "Schedule version {{version}} to be published automatically at the specified date and time.",
-      "archiveDescription": "Schedule version {{version}} to be archived automatically at the specified date and time.",
-      "dateLabel": "Schedule date and time",
-      "dateRequired": "Please select a date and time",
-      "minDateError": "Scheduled date must be in the future",
-      "button": "Schedule",
-      "publishError": "Failed to schedule publication",
-      "archiveError": "Failed to schedule archival",
-      "cancelTitle": "Cancel Schedule",
-      "cancelMessage": "Are you sure you want to cancel the scheduled {{action}} for version {{version}}? It was scheduled for {{date}}.",
-      "cancelButton": "Cancel Schedule",
-      "cancelError": "Failed to cancel schedule",
-      "cancelSuccess": "Schedule cancelled",
-      "scheduledFor": "Scheduled for"
-    },
-    "sorting": {
-      "sortBy": "Sort by",
-      "versionNewest": "Version (Newest First)",
-      "versionOldest": "Version (Oldest First)",
-      "modifiedNewest": "Last Modified (Newest)",
-      "modifiedOldest": "Last Modified (Oldest)"
+  "settings": {
+    "title": "Workspace Configuration",
+    "header": "Configuration",
+    "description": "Manage environment variables, access controls, and global settings for this workspace.",
+    "workspaceType": "Workspace Type",
+    "development": "Development",
+    "developmentDesc": "Sandbox & Testing",
+    "production": "Production",
+    "productionDesc": "Live Deployment",
+    "memberManagement": "Member Management",
+    "allowGuests": "Allow Guest Access",
+    "adminContact": "Primary Admin Contact",
+    "globalInjectables": "Global Injectables",
+    "addVariable": "Inject new variable",
+    "unsavedChanges": "You have unsaved changes",
+    "reset": "Reset",
+    "applyConfig": "Apply Config",
+    "sandbox": {
+      "title": "Sandbox Mode",
+      "description": "Test templates and documents in an isolated environment without affecting production data.",
+      "active": "Sandbox Active",
+      "inactive": "Production Mode",
+      "activeDesc": "Changes are isolated and will not affect production",
+      "inactiveDesc": "All changes will be applied to production data",
+      "warning": "Sandbox data is workspace-specific and may be reset periodically. Use production mode for permanent changes.",
+      "dialog": {
+        "enableTitle": "Enter Sandbox Mode",
+        "disableTitle": "Exit Sandbox Mode",
+        "enableDesc": "Switch to an isolated testing environment",
+        "disableDesc": "Return to production mode",
+        "enableWarning": "In sandbox mode, your changes will be isolated from production. You can exit sandbox mode at any time from the sidebar.",
+        "disableWarning": "Returning to production mode. Your sandbox changes will remain available if you re-enter sandbox mode.",
+        "enableConfirm": "Enter Sandbox",
+        "disableConfirm": "Exit Sandbox"
+      }
     }
   },
-  "folders": {
-    "title": "Folders",
-    "new": "New Folder",
-    "newSubfolder": "New Subfolder",
-    "root": "Root",
-    "noFolders": "No folders",
-    "create": {
-      "title": "New Folder",
-      "nameLabel": "Folder name",
-      "namePlaceholder": "e.g., Contracts",
-      "parentLabel": "Parent folder",
-      "parentPlaceholder": "Select parent (optional)",
-      "button": "Create Folder",
-      "success": "Folder created successfully",
-      "error": "Error creating folder",
-      "duplicateName": "A folder with this name already exists"
+  "sandbox": {
+    "label": "Sandbox",
+    "exit": "Exit Sandbox"
+  },
+  "variables": {
+    "title": "Variables",
+    "header": "Workspace",
+    "create": "CREATE VARIABLE",
+    "empty": "No variables defined yet",
+    "emptyHint": "Create your first variable to use in templates",
+    "columns": {
+      "key": "Variable Key",
+      "label": "Display Label",
+      "description": "Description",
+      "defaultValue": "Default Value",
+      "status": "Status",
+      "action": "Action"
     },
-    "edit": {
-      "title": "Rename Folder",
-      "button": "Save",
-      "success": "Folder renamed successfully",
-      "error": "Error renaming folder"
+    "key": "Variable Key",
+    "keyPlaceholder": "e.g., company_name",
+    "keyHint": "Use snake_case format (letters, numbers, underscores)",
+    "label": "Display Label",
+    "labelPlaceholder": "e.g., Company Name",
+    "description": "Description",
+    "descriptionPlaceholder": "Brief description of the variable",
+    "defaultValue": "Default Value",
+    "defaultValuePlaceholder": "e.g., Acme Corporation",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "createDialog": {
+      "title": "New Variable",
+      "description": "Create a new variable to use in templates",
+      "submit": "Create Variable"
     },
-    "move": {
-      "title": "Move Folder",
-      "confirmTitle": "Confirm Move",
-      "confirmMessage": "Move '{{source}}' to '{{target}}'?",
-      "moving": "Moving folder",
-      "targetLabel": "Move to",
-      "toRoot": "Root (no parent)",
-      "sameLocation": "Folder is already in this location",
-      "button": "Move",
-      "success": "Folder moved successfully",
-      "error": "Error moving folder"
+    "editDialog": {
+      "title": "Edit Variable",
+      "description": "Update the variable properties"
     },
-    "delete": {
-      "title": "Delete Folder",
-      "message": "Are you sure you want to delete this folder? The folder must be empty.",
-      "button": "Delete",
-      "success": "Folder deleted successfully",
-      "error": "Error deleting folder. Make sure it's empty."
+    "deleteDialog": {
+      "title": "Delete Variable",
+      "message": "Are you sure you want to delete the variable \"{{name}}\"? This action cannot be undone."
+    },
+    "sandboxWarning": "Variables are shared between sandbox mode and production mode. Changes you make here will affect both modes."
+  },
+  "pagination": {
+    "prev": "Previous",
+    "next": "Next",
+    "page": "Page"
+  },
+  "administration": {
+    "label": "System",
+    "title": "Administration",
+    "tabs": {
+      "tenants": "Tenants",
+      "users": "Users",
+      "injectables": "Injectables",
+      "audit": "Audit"
+    },
+    "tenants": {
+      "description": "Manage tenant organizations and their configurations.",
+      "searchPlaceholder": "Search tenants...",
+      "loadError": "Failed to load tenants",
+      "noResults": "No tenants match your search",
+      "empty": "No tenants found",
+      "columns": {
+        "name": "Name",
+        "code": "Code",
+        "status": "Status",
+        "users": "Users",
+        "created": "Created"
+      }
+    },
+    "users": {
+      "description": "Manage system users and their roles.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status"
+      }
+    },
+    "audit": {
+      "description": "View system activity and security logs.",
+      "columns": {
+        "action": "Action",
+        "user": "User",
+        "details": "Details",
+        "timestamp": "Timestamp"
+      }
     }
   },
-  "tagManager": {
-    "title": "Manage Tags",
-    "new": "New Tag",
-    "noTags": "No tags yet",
-    "noTagsDescription": "Create tags to organize your templates",
-    "searchPlaceholder": "Search tags...",
-    "templatesCount": "{{count}} templates",
-    "create": {
-      "title": "New Tag",
-      "nameLabel": "Tag name",
-      "namePlaceholder": "e.g., Legal",
-      "colorLabel": "Color",
-      "button": "Create Tag",
-      "success": "Tag created successfully",
-      "error": "Error creating tag"
+  "systemInjectables": {
+    "description": "Manage system-level injectable functions and their availability scopes.",
+    "readOnlyWarning": "You have read-only access. Only SUPERADMIN can modify settings.",
+    "loadError": "Failed to load system injectables",
+    "empty": "No system injectables configured",
+    "scopeAssignments": "Scope Assignments",
+    "addScope": "Add",
+    "globalAvailability": "Available globally to all workspaces",
+    "globalHint": "Add assignments to restrict availability to specific scopes",
+    "tenantScope": "Tenant",
+    "workspaceScope": "Workspace",
+    "included": "Included",
+    "excluded": "Excluded",
+    "include": "Include",
+    "exclude": "Exclude",
+    "includeDesc": "Make available in scope",
+    "excludeDesc": "Restrict access in scope",
+    "createAssignment": "Create Assignment",
+    "createAssignmentDesc": "Assign this injectable to a specific scope",
+    "addInclusion": "Add Inclusion",
+    "addExclusion": "Add Exclusion",
+    "scopeType": "Scope Type",
+    "public": "Public",
+    "publicDesc": "Global",
+    "tenant": "Tenant",
+    "tenantDesc": "Organization",
+    "workspace": "Workspace",
+    "workspaceDesc": "Specific",
+    "tenantId": "Tenant ID",
+    "workspaceId": "Workspace ID",
+    "selectTenant": "Select Tenant",
+    "selectWorkspace": "Select Workspace",
+    "assignmentMode": "Assignment Mode",
+    "searchTenants": "Search organizations...",
+    "searchWorkspaces": "Search workspaces...",
+    "noTenants": "No organizations found",
+    "noWorkspaces": "No workspaces found",
+    "minChars": "Type at least 3 characters",
+    "noResults": "No injectables match your filters",
+    "filters": {
+      "searchPlaceholder": "Search by name...",
+      "status": "Status",
+      "statusAll": "All",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "sortBy": "Sort",
+      "sortName": "Name",
+      "sortStatus": "Status",
+      "sortType": "Type"
     },
-    "edit": {
-      "title": "Edit Tag",
-      "button": "Save",
-      "success": "Tag updated successfully",
-      "error": "Error updating tag"
+    "visibility": {
+      "public": "Public",
+      "scoped": "Scoped"
     },
-    "delete": {
-      "title": "Delete Tag",
-      "message": "Are you sure you want to delete this tag? It will be removed from all templates.",
-      "button": "Delete",
-      "success": "Tag deleted successfully",
-      "error": "Error deleting tag"
+    "loadingMore": "Loading more...",
+    "showingOf": "Showing {{visible}} of {{total}}",
+    "filterPlaceholder": "Filter by name...",
+    "noRule": "No rule",
+    "workspaces": "workspaces",
+    "workspace": "workspace",
+    "noMatchingAssignments": "No assignments match your search",
+    "inheritedFromGlobal": "Inherited from global",
+    "selectOrganization": "Select Organization",
+    "stepOf": "Step {{current}} of {{total}}",
+    "change": "Change",
+    "selectMode": "Select",
+    "bulk": {
+      "selected": "selected",
+      "makePublic": "Make Public",
+      "removePublic": "Remove Public",
+      "confirmMakePublic": "Make Injectables Public",
+      "confirmRemovePublic": "Remove Public Access",
+      "confirmMakePublicDescription": "The following {{count}} injectables will be made PUBLIC:",
+      "confirmRemovePublicDescription": "PUBLIC access will be removed from the following {{count}} injectables:",
+      "warningMakePublic": "PUBLIC injectables are available to ALL workspaces without explicit assignments.",
+      "warningRemovePublic": "Removing PUBLIC access will restrict these injectables to their scoped assignments only.",
+      "success": "Bulk operation completed",
+      "successDescription": "{{count}} injectables updated",
+      "partialSuccess": "Operation partially completed",
+      "error": "Failed to execute bulk operation"
     }
   },
-  "errors": {
+  "status": {
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "scheduled": "Scheduled",
+    "finalized": "Finalized",
+    "signed": "Signed",
+    "actionRequired": "Action Required"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hour ago",
+    "hoursAgo_plural": "{{count}} hours ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_plural": "{{count}} days ago",
+    "weeksAgo": "{{count}} week ago",
+    "weeksAgo_plural": "{{count}} weeks ago",
+    "today": "Today"
+  },
+  "version": {
+    "label": "v{{version}}"
+  },
+  "footer": {
+    "secureEnvironment": "Secure Environment"
   }
 }

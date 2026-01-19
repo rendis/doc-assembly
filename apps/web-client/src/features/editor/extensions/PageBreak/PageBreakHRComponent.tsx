@@ -1,20 +1,18 @@
-import { useState } from 'react';
-import { NodeViewWrapper } from '@tiptap/react';
-// @ts-expect-error - NodeViewProps is not exported in type definitions
-import type { NodeViewProps } from '@tiptap/react';
-import { Scissors } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu';
+import { useState } from 'react'
+import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
+import { Scissors } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { EditorNodeContextMenu } from '../../components/EditorNodeContextMenu'
 
 export const PageBreakHRComponent = (props: NodeViewProps) => {
-  const { selected, deleteNode } = props;
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const { selected, deleteNode } = props
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  };
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }
 
   return (
     <NodeViewWrapper>
@@ -24,7 +22,7 @@ export const PageBreakHRComponent = (props: NodeViewProps) => {
         onContextMenu={handleContextMenu}
         className={cn(
           'page-break-node cursor-grab select-none my-6',
-          selected && 'outline outline-2 outline-primary outline-offset-2'
+          selected && 'outline outline-2 outline-muted-foreground outline-offset-2'
         )}
         style={{
           WebkitUserSelect: 'none',
@@ -37,7 +35,7 @@ export const PageBreakHRComponent = (props: NodeViewProps) => {
           <div
             className={cn(
               'flex-1 border-t-2 border-dashed transition-colors',
-              selected ? 'border-primary' : 'border-border'
+              selected ? 'border-muted-foreground' : 'border-border'
             )}
           />
 
@@ -46,7 +44,7 @@ export const PageBreakHRComponent = (props: NodeViewProps) => {
             <Scissors
               className={cn(
                 'w-4 h-4 transition-colors',
-                selected ? 'text-primary' : 'text-muted-foreground'
+                selected ? 'text-foreground' : 'text-muted-foreground'
               )}
             />
           </div>
@@ -55,7 +53,7 @@ export const PageBreakHRComponent = (props: NodeViewProps) => {
           <div
             className={cn(
               'flex-1 border-t-2 border-dashed transition-colors',
-              selected ? 'border-primary' : 'border-border'
+              selected ? 'border-muted-foreground' : 'border-border'
             )}
           />
         </div>
@@ -71,5 +69,5 @@ export const PageBreakHRComponent = (props: NodeViewProps) => {
         />
       )}
     </NodeViewWrapper>
-  );
-};
+  )
+}

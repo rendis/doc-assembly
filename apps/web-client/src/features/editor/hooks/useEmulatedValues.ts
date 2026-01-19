@@ -1,58 +1,64 @@
-import { useCallback } from 'react';
-import { emulateValue, hasEmulator } from '../services/injectable-emulator';
-import type { Variable } from '../data/variables';
+import { useCallback, useMemo } from 'react'
+import { emulateValue, hasEmulator } from '../services/injectable-emulator'
+import {
+  INTERNAL_INJECTABLE_KEYS,
+  isInternalInjectable,
+  type Injectable,
+} from '../types/injectable'
+import type { InjectableFormValues } from '../types/preview'
 
 interface UseEmulatedValuesReturn {
   /**
-   * Obtiene el valor emulado para un variableId
+   * Obtiene el valor emulado para una variable de sistema
    */
-  getEmulatedValue: (variableId: string) => any | null;
-
+  getEmulatedValue: (key: string) => unknown | null
   /**
-   * Verifica si un variableId tiene emulador disponible
+   * Verifica si una key tiene emulador disponible
    */
-  isEmulated: (variableId: string) => boolean;
-
+  canEmulate: (key: string) => boolean
   /**
-   * Popula valores emulados para un array de variables
-   * Solo incluye variables que tienen emulador disponible
+   * Genera valores emulados para todas las variables de sistema
    */
-  populateEmulatedValues: (variables: Variable[]) => Record<string, any>;
+  generateSystemValues: (injectables: Injectable[]) => InjectableFormValues
+  /**
+   * Lista de keys de sistema disponibles
+   */
+  systemKeys: readonly string[]
 }
 
 /**
- * Hook para trabajar con valores emulados de inyectables de sistema
- *
- * Proporciona funciones para:
- * - Obtener valores emulados individuales
- * - Verificar si un injectable tiene emulador
- * - Poblar un objeto con todos los valores emulados de un conjunto de variables
+ * Hook para manejar valores emulados de variables de sistema
  */
 export function useEmulatedValues(): UseEmulatedValuesReturn {
-  const getEmulatedValue = useCallback((variableId: string) => {
-    return emulateValue(variableId);
-  }, []);
+  const getEmulatedValue = useCallback((key: string): unknown | null => {
+    return emulateValue(key)
+  }, [])
 
-  const isEmulated = useCallback((variableId: string) => {
-    return hasEmulator(variableId);
-  }, []);
+  const canEmulate = useCallback((key: string): boolean => {
+    return hasEmulator(key)
+  }, [])
 
-  const populateEmulatedValues = useCallback((variables: Variable[]) => {
-    const values: Record<string, any> = {};
+  const generateSystemValues = useCallback(
+    (injectables: Injectable[]): InjectableFormValues => {
+      const values: InjectableFormValues = {}
 
-    variables.forEach((variable) => {
-      const emulatedValue = emulateValue(variable.variableId);
-      if (emulatedValue !== null) {
-        values[variable.variableId] = emulatedValue;
+      for (const injectable of injectables) {
+        if (isInternalInjectable(injectable) && hasEmulator(injectable.key)) {
+          values[injectable.key] = emulateValue(injectable.key)
+        }
       }
-    });
 
-    return values;
-  }, []);
+      return values
+    },
+    []
+  )
+
+  const systemKeys = useMemo(() => INTERNAL_INJECTABLE_KEYS, [])
 
   return {
     getEmulatedValue,
-    isEmulated,
-    populateEmulatedValues,
-  };
+    canEmulate,
+    generateSystemValues,
+    systemKeys,
+  }
 }
