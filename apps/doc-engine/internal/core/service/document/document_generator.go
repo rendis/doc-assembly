@@ -60,6 +60,18 @@ func NewDocumentGenerator(
 	}
 }
 
+// generationContext holds intermediate state during document generation.
+type generationContext struct {
+	workspaceID     string
+	injectables     []*entity.InjectableDefinition
+	version         *entity.TemplateVersionWithDetails
+	portableDoc     *portable_doc.Document
+	referencedCodes []string
+	payload         any
+	resolvedValues  map[string]any
+	recipients      []*entity.DocumentRecipient
+}
+
 // GenerateDocument is the centralized method for document generation.
 // It handles the complete flow from template lookup through document creation.
 // Note: PDF rendering and signing provider upload are NOT handled here.
@@ -68,61 +80,102 @@ func (g *DocumentGenerator) GenerateDocument(
 	ctx context.Context,
 	mapCtx *port.MapperContext,
 ) (*DocumentGenerationResult, error) {
-	workspaceID, err := g.findWorkspaceID(ctx, mapCtx.TemplateID)
+	genCtx, err := g.prepareGenerationContext(ctx, mapCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	availableInjectables, err := g.fetchAvailableInjectables(ctx, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-
-	version, err := g.findPublishedVersion(ctx, mapCtx.TemplateID)
-	if err != nil {
-		return nil, err
-	}
-
-	portableDoc, err := g.parseContentStructure(version.ContentStructure)
-	if err != nil {
-		return nil, fmt.Errorf("parsing content structure: %w", err)
-	}
-
-	referencedCodes := g.collectReferencedCodes(version.Injectables, portableDoc.SignerRoles)
-	slog.DebugContext(ctx, "collected referenced codes", "codes", referencedCodes)
-
-	if err := g.validateRequiredInjectables(ctx, referencedCodes, availableInjectables); err != nil {
-		return nil, err
-	}
-
-	payload, err := g.executeMapper(ctx, mapCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	resolvedValues, err := g.resolveInjectables(ctx, mapCtx, payload, referencedCodes)
-	if err != nil {
-		return nil, err
-	}
-
-	recipients, err := g.buildRecipientsFromSignerRoles(ctx, portableDoc.SignerRoles, version.SignerRoles, resolvedValues)
-	if err != nil {
-		slog.ErrorContext(ctx, "recipient validation failed", "error", err)
-		return nil, err
-	}
-
-	doc, err := g.persistDocumentAndRecipients(ctx, workspaceID, version.ID, mapCtx, resolvedValues, recipients)
+	doc, err := g.persistDocumentAndRecipients(ctx, genCtx.workspaceID, genCtx.version.ID, mapCtx, genCtx.resolvedValues, genCtx.recipients)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DocumentGenerationResult{
 		Document:       doc,
-		Recipients:     recipients,
-		Version:        version,
-		PortableDoc:    portableDoc,
-		ResolvedValues: resolvedValues,
+		Recipients:     genCtx.recipients,
+		Version:        genCtx.version,
+		PortableDoc:    genCtx.portableDoc,
+		ResolvedValues: genCtx.resolvedValues,
 	}, nil
+}
+
+// prepareGenerationContext fetches all required data and resolves injectables.
+func (g *DocumentGenerator) prepareGenerationContext(
+	ctx context.Context,
+	mapCtx *port.MapperContext,
+) (*generationContext, error) {
+	genCtx, err := g.fetchTemplateData(ctx, mapCtx.TemplateID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := g.resolveAndBuildRecipients(ctx, mapCtx, genCtx); err != nil {
+		return nil, err
+	}
+
+	return genCtx, nil
+}
+
+// fetchTemplateData fetches workspace, injectables, version, and parses the portable document.
+func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID string) (*generationContext, error) {
+	genCtx := &generationContext{}
+	var err error
+
+	genCtx.workspaceID, err = g.findWorkspaceID(ctx, templateID)
+	if err != nil {
+		return nil, err
+	}
+
+	genCtx.injectables, err = g.fetchAvailableInjectables(ctx, genCtx.workspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	genCtx.version, err = g.findPublishedVersion(ctx, templateID)
+	if err != nil {
+		return nil, err
+	}
+
+	genCtx.portableDoc, err = g.parseContentStructure(genCtx.version.ContentStructure)
+	if err != nil {
+		return nil, fmt.Errorf("parsing content structure: %w", err)
+	}
+
+	genCtx.referencedCodes = g.collectReferencedCodes(genCtx.version.Injectables, genCtx.portableDoc.SignerRoles)
+	slog.DebugContext(ctx, "collected referenced codes", "codes", genCtx.referencedCodes)
+
+	if err := g.validateRequiredInjectables(ctx, genCtx.referencedCodes, genCtx.injectables); err != nil {
+		return nil, err
+	}
+
+	return genCtx, nil
+}
+
+// resolveAndBuildRecipients executes the mapper, resolves injectables, and builds recipients.
+func (g *DocumentGenerator) resolveAndBuildRecipients(
+	ctx context.Context,
+	mapCtx *port.MapperContext,
+	genCtx *generationContext,
+) error {
+	var err error
+
+	genCtx.payload, err = g.executeMapper(ctx, mapCtx)
+	if err != nil {
+		return err
+	}
+
+	genCtx.resolvedValues, err = g.resolveInjectables(ctx, mapCtx, genCtx.payload, genCtx.referencedCodes)
+	if err != nil {
+		return err
+	}
+
+	genCtx.recipients, err = g.buildRecipientsFromSignerRoles(ctx, genCtx.portableDoc.SignerRoles, genCtx.version.SignerRoles, genCtx.resolvedValues)
+	if err != nil {
+		slog.ErrorContext(ctx, "recipient validation failed", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 // findWorkspaceID retrieves the workspace ID from the template.

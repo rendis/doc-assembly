@@ -45,3 +45,11 @@ storage:
 logging:
   level: info   # debug, info, warn, error
   format: json  # json, text
+
+# Chrome browser pool configuration for PDF rendering
+chrome:
+  timeout_seconds: 30  # DOC_ENGINE_CHROME_TIMEOUT_SECONDS - Max time per PDF generation
+  pool_size: 10        # DOC_ENGINE_CHROME_POOL_SIZE - Number of browser instances in pool
+  headless: true       # DOC_ENGINE_CHROME_HEADLESS - Run in headless mode
+  disable_gpu: true    # DOC_ENGINE_CHROME_DISABLE_GPU - Disable GPU acceleration
+  no_sandbox: true     # DOC_ENGINE_CHROME_NO_SANDBOX - Disable sandbox (for Docker)

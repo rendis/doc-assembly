@@ -78,6 +78,13 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "json")
 
+	// Chrome defaults
+	v.SetDefault("chrome.timeout_seconds", 30)
+	v.SetDefault("chrome.pool_size", 10)
+	v.SetDefault("chrome.headless", true)
+	v.SetDefault("chrome.disable_gpu", true)
+	v.SetDefault("chrome.no_sandbox", true)
+
 	// Environment default
 	v.SetDefault("environment", "development")
 }

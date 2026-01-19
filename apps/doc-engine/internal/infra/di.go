@@ -120,6 +120,7 @@ var ProviderSet = wire.NewSet(
 	ProvideContentValidator,
 
 	// PDF Renderer
+	ProvideChromeConfig,
 	ProvidePDFRenderer,
 
 	// Extensibility - Registries and Resolver
@@ -184,9 +185,20 @@ func ProvideContentValidator(injectableUC injectableuc.InjectableUseCase) port.C
 	return contentvalidator.New(injectableUC)
 }
 
-// ProvidePDFRenderer creates the PDF renderer service.
-func ProvidePDFRenderer() (port.PDFRenderer, error) {
-	opts := pdfrenderer.DefaultChromeOptions()
+// ProvideChromeConfig extracts chrome config from the main config.
+func ProvideChromeConfig(cfg *config.Config) *config.ChromeConfig {
+	return &cfg.Chrome
+}
+
+// ProvidePDFRenderer creates the PDF renderer service with browser pool.
+func ProvidePDFRenderer(chromeCfg *config.ChromeConfig) (port.PDFRenderer, error) {
+	opts := pdfrenderer.ChromeOptions{
+		Timeout:    chromeCfg.TimeoutDuration(),
+		PoolSize:   chromeCfg.PoolSize,
+		Headless:   chromeCfg.Headless,
+		DisableGPU: chromeCfg.DisableGPU,
+		NoSandbox:  chromeCfg.NoSandbox,
+	}
 	return pdfrenderer.NewService(opts)
 }
 

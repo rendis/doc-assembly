@@ -93,7 +93,8 @@ func InitializeApp() (*infra.Initializer, error) {
 	templateVersionSignerRoleRepository := templateversionsignerrolerepo.New(pool)
 	contentValidator := infra.ProvideContentValidator(injectableUseCase)
 	templateVersionUseCase := template.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, templateTagRepository, contentValidator, workspaceRepository)
-	pdfRenderer, err := infra.ProvidePDFRenderer()
+	chromeConfig := infra.ProvideChromeConfig(configConfig)
+	pdfRenderer, err := infra.ProvidePDFRenderer(chromeConfig)
 	if err != nil {
 		return nil, err
 	}

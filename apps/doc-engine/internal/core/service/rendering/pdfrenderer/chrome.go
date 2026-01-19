@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"sync"
 	"time"
 
 	"github.com/chromedp/cdproto/page"
@@ -13,18 +12,22 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 )
 
-// ChromeRenderer handles PDF generation using headless Chrome.
+// pixelsPerInch is the standard CSS pixel density (96 DPI).
+const pixelsPerInch = 96.0
+
+// ChromeRenderer handles PDF generation using headless Chrome with a browser pool.
 type ChromeRenderer struct {
-	allocCtx    context.Context
-	allocCancel context.CancelFunc
-	mu          sync.Mutex
-	opts        ChromeOptions
+	pool *BrowserPool
+	opts ChromeOptions
 }
 
 // ChromeOptions configures the Chrome renderer.
 type ChromeOptions struct {
 	// Timeout is the maximum time to wait for PDF generation.
 	Timeout time.Duration
+
+	// PoolSize is the number of browser instances to maintain in the pool.
+	PoolSize int
 
 	// Headless runs Chrome in headless mode (default: true).
 	Headless bool
@@ -40,42 +43,39 @@ type ChromeOptions struct {
 func DefaultChromeOptions() ChromeOptions {
 	return ChromeOptions{
 		Timeout:    30 * time.Second,
+		PoolSize:   10,
 		Headless:   true,
 		DisableGPU: true,
 		NoSandbox:  true,
 	}
 }
 
-// NewChromeRenderer creates a new Chrome-based PDF renderer.
+// NewChromeRenderer creates a new Chrome-based PDF renderer with a browser pool.
 func NewChromeRenderer(opts ChromeOptions) (*ChromeRenderer, error) {
-	chromedpOpts := []chromedp.ExecAllocatorOption{
-		chromedp.Headless,
-		chromedp.DisableGPU,
+	pool, err := NewBrowserPool(opts)
+	if err != nil {
+		return nil, fmt.Errorf("creating browser pool: %w", err)
 	}
-
-	if opts.NoSandbox {
-		chromedpOpts = append(chromedpOpts, chromedp.NoSandbox)
-	}
-
-	// Add default options
-	chromedpOpts = append(chromedp.DefaultExecAllocatorOptions[:], chromedpOpts...)
-
-	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), chromedpOpts...)
 
 	return &ChromeRenderer{
-		allocCtx:    allocCtx,
-		allocCancel: allocCancel,
-		opts:        opts,
+		pool: pool,
+		opts: opts,
 	}, nil
 }
 
 // GeneratePDF converts HTML to PDF using the given page configuration.
+// It acquires a browser from the pool, creates a new tab, generates the PDF,
+// and returns the browser to the pool for reuse.
 func (r *ChromeRenderer) GeneratePDF(ctx context.Context, html string, pageConfig portabledoc.PageConfig) ([]byte, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	// Acquire a browser from the pool
+	browser, err := r.pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("acquiring browser from pool: %w", err)
+	}
+	defer r.pool.Release(browser)
 
-	// Create a new browser context for this request
-	taskCtx, cancel := chromedp.NewContext(r.allocCtx)
+	// Create a new tab context in the acquired browser
+	taskCtx, cancel := chromedp.NewContext(browser.allocCtx)
 	defer cancel()
 
 	// Apply timeout
@@ -89,7 +89,7 @@ func (r *ChromeRenderer) GeneratePDF(ctx context.Context, html string, pageConfi
 	var pdfBuf []byte
 
 	// Navigate to the HTML content and print to PDF
-	err := chromedp.Run(taskCtx,
+	err = chromedp.Run(taskCtx,
 		chromedp.Navigate("data:text/html;charset=utf-8,"+url.PathEscape(html)),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var err error
@@ -108,7 +108,7 @@ func (r *ChromeRenderer) GeneratePDF(ctx context.Context, html string, pageConfi
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate PDF: %w", err)
+		return nil, fmt.Errorf("generating PDF: %w", err)
 	}
 
 	return pdfBuf, nil
@@ -116,23 +116,21 @@ func (r *ChromeRenderer) GeneratePDF(ctx context.Context, html string, pageConfi
 
 // pageSizeInches converts page config dimensions (pixels at 96 DPI) to inches.
 func (r *ChromeRenderer) pageSizeInches(config *portabledoc.PageConfig) (width, height float64) {
-	const ppi = 96.0
-	return config.Width / ppi, config.Height / ppi
+	return config.Width / pixelsPerInch, config.Height / pixelsPerInch
 }
 
 // marginsInches converts margin config (pixels at 96 DPI) to inches.
 func (r *ChromeRenderer) marginsInches(config *portabledoc.PageConfig) (top, bottom, left, right float64) {
-	const ppi = 96.0
-	return config.Margins.Top / ppi,
-		config.Margins.Bottom / ppi,
-		config.Margins.Left / ppi,
-		config.Margins.Right / ppi
+	return config.Margins.Top / pixelsPerInch,
+		config.Margins.Bottom / pixelsPerInch,
+		config.Margins.Left / pixelsPerInch,
+		config.Margins.Right / pixelsPerInch
 }
 
-// Close releases Chrome resources.
+// Close releases Chrome resources by closing the browser pool.
 func (r *ChromeRenderer) Close() error {
-	if r.allocCancel != nil {
-		r.allocCancel()
+	if r.pool != nil {
+		return r.pool.Close()
 	}
 	return nil
 }

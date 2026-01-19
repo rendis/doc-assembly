@@ -12,6 +12,7 @@ type Config struct {
 	Documenso   DocumensoConfig   `mapstructure:"documenso"`
 	Storage     StorageConfig     `mapstructure:"storage"`
 	Logging     LoggingConfig     `mapstructure:"logging"`
+	Chrome      ChromeConfig      `mapstructure:"chrome"`
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -86,4 +87,18 @@ type StorageConfig struct {
 type LoggingConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
+}
+
+// ChromeConfig holds Chrome browser pool configuration.
+type ChromeConfig struct {
+	TimeoutSeconds int  `mapstructure:"timeout_seconds"`
+	PoolSize       int  `mapstructure:"pool_size"`
+	Headless       bool `mapstructure:"headless"`
+	DisableGPU     bool `mapstructure:"disable_gpu"`
+	NoSandbox      bool `mapstructure:"no_sandbox"`
+}
+
+// TimeoutDuration returns the timeout as time.Duration.
+func (c ChromeConfig) TimeoutDuration() time.Duration {
+	return time.Duration(c.TimeoutSeconds) * time.Second
 }

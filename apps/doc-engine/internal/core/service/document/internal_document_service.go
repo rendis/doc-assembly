@@ -46,8 +46,7 @@ func (s *InternalDocumentService) CreateDocument(
 	ctx context.Context,
 	cmd document_uc.InternalCreateCommand,
 ) (*entity.DocumentWithRecipients, error) {
-	slog.InfoContext(ctx, "creating document via internal API",
-		"externalID", cmd.ExternalID, "templateID", cmd.TemplateID)
+	slog.InfoContext(ctx, "creating document via internal API", "externalID", cmd.ExternalID, "templateID", cmd.TemplateID)
 
 	result, err := s.generator.GenerateDocument(ctx, s.buildMapperContext(cmd))
 	if err != nil {
