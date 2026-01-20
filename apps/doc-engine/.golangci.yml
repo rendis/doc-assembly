@@ -4,6 +4,7 @@ run:
   tests: true
 linters:
   enable:
+    - depguard
     - funlen
     - gocognit
     - gocritic
@@ -15,6 +16,15 @@ linters:
     - prealloc
     - unconvert
   settings:
+    depguard:
+      rules:
+        main:
+          list-mode: lax
+          allow:
+            - log/slog
+          deny:
+            - pkg: "log"
+              desc: "Use log/slog instead of the log package"
     funlen:
       lines: 60
       statements: 40
