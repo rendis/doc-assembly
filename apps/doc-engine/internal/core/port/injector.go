@@ -46,3 +46,11 @@ type Injector interface {
 // The user defines ONE Init function that prepares shared data.
 // The result (user's custom struct) will be available via InjectorContext.InitData().
 type InitFunc func(ctx context.Context, injCtx *entity.InjectorContext) (any, error)
+
+// TableSchemaProvider is an optional interface that table injectors can implement
+// to expose their column structure at the API level.
+// This allows the frontend to know what columns a TABLE injectable will have.
+type TableSchemaProvider interface {
+	// ColumnSchema returns the column definitions for this table injector.
+	ColumnSchema() []entity.TableColumn
+}

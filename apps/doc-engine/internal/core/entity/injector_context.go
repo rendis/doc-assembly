@@ -17,16 +17,19 @@ const (
 	ValueTypeBool
 	// ValueTypeTime represents a time.Time value.
 	ValueTypeTime
+	// ValueTypeTable represents a table value with columns and rows.
+	ValueTypeTable
 )
 
 // InjectableValue is the typed value returned by an injector.
-// Only allows: string, number (float64), bool, time.Time.
+// Only allows: string, number (float64), bool, time.Time, TableValue.
 type InjectableValue struct {
-	typ     ValueType
-	strVal  string
-	numVal  float64
-	boolVal bool
-	timeVal time.Time
+	typ      ValueType
+	strVal   string
+	numVal   float64
+	boolVal  bool
+	timeVal  time.Time
+	tableVal *TableValue
 }
 
 // StringValue creates an InjectableValue of type string.
@@ -47,6 +50,11 @@ func BoolValue(b bool) InjectableValue {
 // TimeValue creates an InjectableValue of type time.
 func TimeValue(t time.Time) InjectableValue {
 	return InjectableValue{typ: ValueTypeTime, timeVal: t}
+}
+
+// TableValueData creates an InjectableValue of type table.
+func TableValueData(t *TableValue) InjectableValue {
+	return InjectableValue{typ: ValueTypeTable, tableVal: t}
 }
 
 // Type returns the type of the value.
@@ -86,6 +94,14 @@ func (v InjectableValue) Time() (time.Time, bool) {
 	return v.timeVal, true
 }
 
+// Table returns the value as *TableValue. ok=false if not a table.
+func (v InjectableValue) Table() (*TableValue, bool) {
+	if v.typ != ValueTypeTable {
+		return nil, false
+	}
+	return v.tableVal, true
+}
+
 // AsAny returns the value as any (for rendering).
 func (v InjectableValue) AsAny() any {
 	switch v.typ {
@@ -97,6 +113,8 @@ func (v InjectableValue) AsAny() any {
 		return v.boolVal
 	case ValueTypeTime:
 		return v.timeVal
+	case ValueTypeTable:
+		return v.tableVal
 	default:
 		return nil
 	}

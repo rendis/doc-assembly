@@ -13,6 +13,7 @@ import {
   PenTool,
   GitBranch,
   Variable,
+  Table2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Editor } from '@tiptap/core'
@@ -122,6 +123,17 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     groupKey: 'editor.slashCommands.groups.blocks',
     aliases: ['page', 'break', 'salto', 'pagina'],
     action: (editor) => editor.chain().focus().setPageBreak().run(),
+  },
+  {
+    id: 'table',
+    titleKey: 'editor.slashCommands.table',
+    descriptionKey: 'editor.slashCommands.tableDesc',
+    icon: Table2,
+    groupKey: 'editor.slashCommands.groups.blocks',
+    aliases: ['tabla', 'grid', 'rows', 'columns'],
+    action: (editor) => {
+      editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+    },
   },
   // Media
   {

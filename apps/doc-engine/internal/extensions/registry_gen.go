@@ -24,6 +24,7 @@ func RegisterAll(injReg port.InjectorRegistry, mapReg port.MapperRegistry, deps 
 	injReg.Register(&datetime.TimeNowInjector{})
 	injReg.Register(&datetime.YearNowInjector{})
 	injReg.Register(&injectors.ExampleInjector{})
+	injReg.Register(&injectors.ExampleTableInjector{})
 
 	// Mapper (auto-discovered via //docengine:mapper)
 	// Only ONE mapper is allowed - user handles routing internally

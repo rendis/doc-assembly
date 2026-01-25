@@ -749,3 +749,83 @@ body {
 .dark .bg-muted  {
   background: #363A46;
 }
+
+/* ============================================
+   TipTap Table Styles (Official)
+   ============================================ */
+
+/* TipTap Table CSS Variables */
+:root {
+  --tt-table-border-color: hsl(var(--border));
+  --tt-table-selected-bg: hsl(var(--primary) / 0.1);
+  --tt-table-selected-stroke: hsl(var(--primary));
+  --tt-table-column-resize-handle-bg: hsl(var(--primary));
+  --tt-table-cell-padding: 0.5rem;
+  --tt-table-handle-bg-color: hsl(var(--muted));
+}
+
+/* TipTap Table Base Styles */
+.tiptap table,
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  table-layout: fixed;
+  overflow: hidden;
+}
+
+.tiptap th,
+.tiptap td,
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid var(--tt-table-border-color);
+  padding: var(--tt-table-cell-padding);
+  text-align: left;
+  vertical-align: top;
+  position: relative;
+  min-width: 100px;
+}
+
+.tiptap th,
+.ProseMirror th {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+}
+
+/* Column resize handle */
+.tiptap .column-resize-handle,
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--tt-table-column-resize-handle-bg);
+  cursor: col-resize;
+  z-index: 20;
+}
+
+/* Selected cell highlight */
+.tiptap .selectedCell::after,
+.ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tt-table-selected-bg);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Table wrapper for overflow */
+.tiptap .tableWrapper,
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+/* Resize cursor */
+.tiptap.resize-cursor,
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}

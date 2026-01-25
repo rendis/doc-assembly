@@ -30,6 +30,20 @@ export const MentionExtension = Mention.configure({
     }) => {
       const item = props as MentionVariable
 
+      // Si es TABLE, insertar como tableInjector (block)
+      if (item.type === 'TABLE') {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setTableInjector({
+            variableId: item.id,
+            label: item.label,
+          })
+          .run()
+        return
+      }
+
       // Si es un role injectable, insertar directamente con atributos de rol
       if (item.isRoleVariable) {
         editor

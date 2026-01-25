@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
+import TextAlign from '@tiptap/extension-text-align'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   DndContext,
@@ -23,11 +24,18 @@ import { MentionExtension } from '../extensions/Mentions'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
 import { PageBreakHR } from '../extensions/PageBreak'
 import { SlashCommandsExtension, slashCommandsSuggestion } from '../extensions/SlashCommands'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TableInjectorExtension } from '../extensions/TableInjector'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { VariableFormatDialog } from './VariableFormatDialog'
 import { VariablesPanel } from './VariablesPanel'
 import { VariableDragOverlay } from './VariableDragOverlay'
 import { InconsistencyNavigator } from './InconsistencyNavigator'
+import { TableBubbleMenu } from './TableBubbleMenu'
+import { TableCornerHandle } from './TableCornerHandle'
 import { hasConfigurableOptions } from '../types/injectable'
 import { type Variable } from '../types'
 import { usePaginationStore } from '../stores'
@@ -118,6 +126,7 @@ export function DocumentEditor({
       TextStyle,
       FontFamily.configure({ types: ['textStyle'] }),
       FontSize.configure({ types: ['textStyle'] }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       InjectorExtension,
       MentionExtension,
       SignatureExtension,
@@ -127,6 +136,11 @@ export function DocumentEditor({
       SlashCommandsExtension.configure({
         suggestion: slashCommandsSuggestion,
       }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TableInjectorExtension,
     ],
     // Use stored content on recreation, initial content on first render
     // eslint-disable-next-line react-hooks/refs -- Intentional: preserve content across editor recreations
@@ -299,6 +313,16 @@ export function DocumentEditor({
 
       // Determine insertion position
       const insertPos = position ?? editor.state.selection.from
+
+      // Si es TABLE, insertar como tableInjector (block)
+      if (data.injectorType === 'TABLE') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(editor.chain().focus(insertPos) as any).setTableInjector({
+          variableId: data.variableId,
+          label: data.label,
+        }).run()
+        return
+      }
 
       // Check if variable has configurable format options
       if (hasConfigurableOptions(data.formatConfig)) {
@@ -492,7 +516,10 @@ export function DocumentEditor({
                 }}
               >
                 <EditorContent editor={editor} />
+                {editable && <TableBubbleMenu editor={editor} />}
               </div>
+              {/* Table corner handle - positioned relative to scroll container */}
+              {editable && <TableCornerHandle editor={editor} />}
             </div>
           </div>
 

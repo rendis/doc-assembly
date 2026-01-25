@@ -41,6 +41,12 @@ const (
 	NodeTypeImage       = "image"
 	NodeTypeCustomImage = "customImage"
 	NodeTypeText        = "text"
+	// Table types
+	NodeTypeTableInjector = "tableInjector" // Dynamic table from system injector
+	NodeTypeTable         = "table"         // Editable table (user-created)
+	NodeTypeTableRow      = "tableRow"
+	NodeTypeTableCell     = "tableCell"
+	NodeTypeTableHeader   = "tableHeader"
 )
 
 // Mark type constants.

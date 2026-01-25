@@ -110,6 +110,12 @@ export function InjectableInput({
       inputType = 'text'
   }
 
+  // Override for datetime/time system variables that need text input
+  // These are mapped to DATE type but their emulated values are locale-formatted strings
+  if (variableId === 'date_time_now' || variableId === 'time_now') {
+    inputType = 'text'
+  }
+
   // Calcular cantidad de iconos suffix
   const hasSuffixIcons = onGenerate || (isEmulated && onResetToEmulated)
   const suffixCount =
@@ -140,7 +146,7 @@ export function InjectableInput({
           onChange={(e) => handleChange(e.target.value)}
           disabled={disabled}
           className={cn(
-            'dark:[color-scheme:dark]',
+            '[color-scheme:light] dark:[color-scheme:dark]',
             inputPrefix && 'pl-8',
             hasSuffixIcons && suffixCount === 1 && 'pr-10',
             hasSuffixIcons && suffixCount === 2 && 'pr-20',

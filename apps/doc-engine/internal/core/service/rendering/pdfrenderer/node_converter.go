@@ -6,18 +6,21 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
 
 // NodeConverter converts ProseMirror/TipTap nodes to HTML.
 type NodeConverter struct {
-	injectables        map[string]any
-	injectableDefaults map[string]string
-	signerRoleValues   map[string]port.SignerRoleValue
-	signerRoles        map[string]portabledoc.SignerRole // roleID -> SignerRole
-	currentPage        int                               // 1-indexed page tracking
-	signatureFields    []port.SignatureField             // collected signature fields
+	injectables              map[string]any
+	injectableDefaults       map[string]string
+	signerRoleValues         map[string]port.SignerRoleValue
+	signerRoles              map[string]portabledoc.SignerRole // roleID -> SignerRole
+	currentPage              int                               // 1-indexed page tracking
+	signatureFields          []port.SignatureField             // collected signature fields
+	currentTableHeaderStyles *entity.TableStyles               // current table header styles (for child access)
+	currentTableBodyStyles   *entity.TableStyles               // current table body styles (for child access)
 }
 
 // NewNodeConverter creates a new node converter with the given injectable values.
@@ -63,42 +66,52 @@ func (c *NodeConverter) ConvertNodes(nodes []portabledoc.Node) string {
 
 // ConvertNode converts a single node to HTML.
 func (c *NodeConverter) ConvertNode(node portabledoc.Node) string {
-	switch node.Type {
-	case portabledoc.NodeTypeParagraph:
-		return c.paragraph(node)
-	case portabledoc.NodeTypeHeading:
-		return c.heading(node)
-	case portabledoc.NodeTypeBlockquote:
-		return c.blockquote(node)
-	case portabledoc.NodeTypeCodeBlock:
-		return c.codeBlock(node)
-	case portabledoc.NodeTypeHR:
-		return c.horizontalRule(node)
-	case portabledoc.NodeTypeBulletList:
-		return c.bulletList(node)
-	case portabledoc.NodeTypeOrderedList:
-		return c.orderedList(node)
-	case portabledoc.NodeTypeTaskList:
-		return c.taskList(node)
-	case portabledoc.NodeTypeListItem:
-		return c.listItem(node)
-	case portabledoc.NodeTypeTaskItem:
-		return c.taskItem(node)
-	case portabledoc.NodeTypeInjector:
-		return c.injector(node)
-	case portabledoc.NodeTypeConditional:
-		return c.conditional(node)
-	case portabledoc.NodeTypeSignature:
-		return c.signature(node)
-	case portabledoc.NodeTypePageBreak:
-		return c.pageBreak(node)
-	case portabledoc.NodeTypeImage, portabledoc.NodeTypeCustomImage:
-		return c.image(node)
-	case portabledoc.NodeTypeText:
-		return c.text(node)
-	default:
-		return c.handleUnknownNode(node)
+	if handler := c.getNodeHandler(node.Type); handler != nil {
+		return handler(node)
 	}
+	return c.handleUnknownNode(node)
+}
+
+// nodeHandler is a function that converts a node to HTML.
+type nodeHandler func(node portabledoc.Node) string
+
+// getNodeHandler returns the handler function for a given node type.
+func (c *NodeConverter) getNodeHandler(nodeType string) nodeHandler {
+	handlers := map[string]nodeHandler{
+		portabledoc.NodeTypeParagraph:     c.paragraph,
+		portabledoc.NodeTypeHeading:       c.heading,
+		portabledoc.NodeTypeBlockquote:    c.blockquote,
+		portabledoc.NodeTypeCodeBlock:     c.codeBlock,
+		portabledoc.NodeTypeHR:            c.horizontalRule,
+		portabledoc.NodeTypeBulletList:    c.bulletList,
+		portabledoc.NodeTypeOrderedList:   c.orderedList,
+		portabledoc.NodeTypeTaskList:      c.taskList,
+		portabledoc.NodeTypeListItem:      c.listItem,
+		portabledoc.NodeTypeTaskItem:      c.taskItem,
+		portabledoc.NodeTypeInjector:      c.injector,
+		portabledoc.NodeTypeConditional:   c.conditional,
+		portabledoc.NodeTypeSignature:     c.signature,
+		portabledoc.NodeTypePageBreak:     c.pageBreak,
+		portabledoc.NodeTypeImage:         c.image,
+		portabledoc.NodeTypeCustomImage:   c.image,
+		portabledoc.NodeTypeText:          c.text,
+		portabledoc.NodeTypeTableInjector: c.tableInjector,
+		portabledoc.NodeTypeTable:         c.table,
+		portabledoc.NodeTypeTableRow:      c.tableRow,
+		portabledoc.NodeTypeTableCell:     c.tableCellData,
+		portabledoc.NodeTypeTableHeader:   c.tableCellHeader,
+	}
+	return handlers[nodeType]
+}
+
+// tableCellData renders a data cell.
+func (c *NodeConverter) tableCellData(node portabledoc.Node) string {
+	return c.tableCell(node, false)
+}
+
+// tableCellHeader renders a header cell.
+func (c *NodeConverter) tableCellHeader(node portabledoc.Node) string {
+	return c.tableCell(node, true)
 }
 
 func (c *NodeConverter) handleUnknownNode(node portabledoc.Node) string {
@@ -774,6 +787,328 @@ func (c *NodeConverter) applyLinkMark(text string, mark portabledoc.Mark) string
 		return fmt.Sprintf("<a href=\"%s\" target=\"%s\">%s</a>", html.EscapeString(href), html.EscapeString(target), text)
 	}
 	return fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(href), text)
+}
+
+// --- Table Rendering ---
+
+// tableInjector renders a dynamic table from a system injector (tableInjector node).
+func (c *NodeConverter) tableInjector(node portabledoc.Node) string {
+	variableID, _ := node.Attrs["variableId"].(string)
+	lang, _ := node.Attrs["lang"].(string)
+	if lang == "" {
+		lang = "en"
+	}
+
+	// Try to resolve table value from injectables
+	tableData := c.resolveTableValue(variableID)
+	if tableData == nil {
+		// Return placeholder if table not found
+		label, _ := node.Attrs["label"].(string)
+		if label == "" {
+			label = variableID
+		}
+		return fmt.Sprintf("<div class=\"table-placeholder\">[Table: %s]</div>\n", html.EscapeString(label))
+	}
+
+	// Override styles from node attrs if provided
+	headerStyles := c.parseTableStylesFromAttrs(node.Attrs, "header")
+	bodyStyles := c.parseTableStylesFromAttrs(node.Attrs, "body")
+
+	// Merge with table's own styles (node attrs take precedence)
+	if tableData.HeaderStyles != nil {
+		headerStyles = c.mergeTableStyles(tableData.HeaderStyles, headerStyles)
+	}
+	if tableData.BodyStyles != nil {
+		bodyStyles = c.mergeTableStyles(tableData.BodyStyles, bodyStyles)
+	}
+
+	return c.renderTableHTML(tableData, lang, headerStyles, bodyStyles)
+}
+
+// resolveTableValue gets a TableValue from the injectables map.
+func (c *NodeConverter) resolveTableValue(variableID string) *entity.TableValue {
+	if v, ok := c.injectables[variableID]; ok {
+		if tableVal, ok := v.(*entity.TableValue); ok {
+			return tableVal
+		}
+	}
+	return nil
+}
+
+// renderTableHTML generates HTML for a TableValue.
+func (c *NodeConverter) renderTableHTML(tableData *entity.TableValue, lang string, headerStyles, bodyStyles *entity.TableStyles) string {
+	var sb strings.Builder
+	sb.WriteString("<table class=\"document-table\">\n")
+
+	// Render header row
+	sb.WriteString("  <thead>\n    <tr>\n")
+	for _, col := range tableData.Columns {
+		label := c.getColumnLabel(col, lang)
+		styleAttr := c.buildTableStyleAttr(headerStyles, true)
+		widthAttr := ""
+		if col.Width != nil {
+			widthAttr = fmt.Sprintf(" width=\"%s\"", html.EscapeString(*col.Width))
+		}
+		sb.WriteString(fmt.Sprintf("      <th%s%s>%s</th>\n", styleAttr, widthAttr, html.EscapeString(label)))
+	}
+	sb.WriteString("    </tr>\n  </thead>\n")
+
+	// Render body rows
+	sb.WriteString("  <tbody>\n")
+	for _, row := range tableData.Rows {
+		sb.WriteString("    <tr>\n")
+		for i, cell := range row.Cells {
+			// Skip empty cells (merged cell placeholders)
+			if cell.Value == nil && cell.Colspan == 0 && cell.Rowspan == 0 {
+				continue
+			}
+
+			styleAttr := c.buildTableStyleAttr(bodyStyles, false)
+			spanAttrs := c.buildSpanAttrs(cell.Colspan, cell.Rowspan)
+
+			// Get format from column if available
+			var format string
+			if i < len(tableData.Columns) && tableData.Columns[i].Format != nil {
+				format = *tableData.Columns[i].Format
+			}
+
+			cellContent := c.formatCellValue(cell.Value, format)
+			sb.WriteString(fmt.Sprintf("      <td%s%s>%s</td>\n", styleAttr, spanAttrs, cellContent))
+		}
+		sb.WriteString("    </tr>\n")
+	}
+	sb.WriteString("  </tbody>\n")
+
+	sb.WriteString("</table>\n")
+	return sb.String()
+}
+
+// getColumnLabel returns the label for a column in the specified language.
+func (c *NodeConverter) getColumnLabel(col entity.TableColumn, lang string) string {
+	if label, ok := col.Labels[lang]; ok {
+		return label
+	}
+	// Fallback to English, then first available, then key
+	if label, ok := col.Labels["en"]; ok {
+		return label
+	}
+	for _, label := range col.Labels {
+		return label
+	}
+	return col.Key
+}
+
+// formatCellValue formats an InjectableValue for display in a table cell.
+func (c *NodeConverter) formatCellValue(value *entity.InjectableValue, format string) string {
+	if value == nil {
+		return ""
+	}
+
+	switch value.Type() {
+	case entity.ValueTypeString:
+		s, _ := value.String()
+		return html.EscapeString(s)
+	case entity.ValueTypeNumber:
+		n, _ := value.Number()
+		if format != "" {
+			return fmt.Sprintf(format, n)
+		}
+		if n == float64(int64(n)) {
+			return strconv.FormatInt(int64(n), 10)
+		}
+		return strconv.FormatFloat(n, 'f', 2, 64)
+	case entity.ValueTypeBool:
+		b, _ := value.Bool()
+		if b {
+			return "Yes"
+		}
+		return "No"
+	case entity.ValueTypeTime:
+		t, _ := value.Time()
+		if format != "" {
+			return t.Format(format)
+		}
+		return t.Format("2006-01-02")
+	default:
+		return ""
+	}
+}
+
+// table renders an editable table (user-created with TipTap).
+func (c *NodeConverter) table(node portabledoc.Node) string {
+	// Parse table styles from attrs
+	headerStyles := c.parseTableStylesFromAttrs(node.Attrs, "header")
+	bodyStyles := c.parseTableStylesFromAttrs(node.Attrs, "body")
+
+	var sb strings.Builder
+	sb.WriteString("<table class=\"document-table\">\n")
+
+	// Store styles for child nodes to access
+	c.currentTableHeaderStyles = headerStyles
+	c.currentTableBodyStyles = bodyStyles
+
+	// Render children (tableRow nodes)
+	for _, child := range node.Content {
+		sb.WriteString(c.ConvertNode(child))
+	}
+
+	// Clear stored styles
+	c.currentTableHeaderStyles = nil
+	c.currentTableBodyStyles = nil
+
+	sb.WriteString("</table>\n")
+	return sb.String()
+}
+
+// tableRow renders a table row.
+func (c *NodeConverter) tableRow(node portabledoc.Node) string {
+	var sb strings.Builder
+	sb.WriteString("  <tr>\n")
+	for _, child := range node.Content {
+		sb.WriteString(c.ConvertNode(child))
+	}
+	sb.WriteString("  </tr>\n")
+	return sb.String()
+}
+
+// tableCell renders a table cell (header or data).
+func (c *NodeConverter) tableCell(node portabledoc.Node, isHeader bool) string {
+	tag := "td"
+	styles := c.currentTableBodyStyles
+	if isHeader {
+		tag = "th"
+		styles = c.currentTableHeaderStyles
+	}
+
+	styleAttr := c.buildTableStyleAttr(styles, isHeader)
+
+	// Handle colspan and rowspan
+	colspan := getIntAttr(node.Attrs, "colspan", 1)
+	rowspan := getIntAttr(node.Attrs, "rowspan", 1)
+	spanAttrs := c.buildSpanAttrs(colspan, rowspan)
+
+	// Render cell content (may contain inline injectors)
+	content := c.ConvertNodes(node.Content)
+	if content == "" {
+		content = "&nbsp;"
+	}
+
+	return fmt.Sprintf("    <%s%s%s>%s</%s>\n", tag, styleAttr, spanAttrs, content, tag)
+}
+
+// parseTableStylesFromAttrs extracts table styles from node attributes.
+func (c *NodeConverter) parseTableStylesFromAttrs(attrs map[string]any, prefix string) *entity.TableStyles {
+	styles := &entity.TableStyles{}
+	hasStyles := false
+
+	if v, ok := attrs[prefix+"FontFamily"].(string); ok && v != "" {
+		styles.FontFamily = &v
+		hasStyles = true
+	}
+	if v, ok := attrs[prefix+"FontSize"].(float64); ok && v > 0 {
+		i := int(v)
+		styles.FontSize = &i
+		hasStyles = true
+	}
+	if v, ok := attrs[prefix+"FontWeight"].(string); ok && v != "" {
+		styles.FontWeight = &v
+		hasStyles = true
+	}
+	if v, ok := attrs[prefix+"TextColor"].(string); ok && v != "" {
+		styles.TextColor = &v
+		hasStyles = true
+	}
+	if v, ok := attrs[prefix+"TextAlign"].(string); ok && v != "" {
+		styles.TextAlign = &v
+		hasStyles = true
+	}
+	if v, ok := attrs[prefix+"Background"].(string); ok && v != "" {
+		styles.Background = &v
+		hasStyles = true
+	}
+
+	if !hasStyles {
+		return nil
+	}
+	return styles
+}
+
+// mergeTableStyles merges base styles with override styles (override takes precedence).
+func (c *NodeConverter) mergeTableStyles(base, override *entity.TableStyles) *entity.TableStyles {
+	if base == nil {
+		return override
+	}
+	if override == nil {
+		return base
+	}
+
+	result := *base
+	if override.FontFamily != nil {
+		result.FontFamily = override.FontFamily
+	}
+	if override.FontSize != nil {
+		result.FontSize = override.FontSize
+	}
+	if override.FontWeight != nil {
+		result.FontWeight = override.FontWeight
+	}
+	if override.TextColor != nil {
+		result.TextColor = override.TextColor
+	}
+	if override.TextAlign != nil {
+		result.TextAlign = override.TextAlign
+	}
+	if override.Background != nil {
+		result.Background = override.Background
+	}
+	return &result
+}
+
+// buildTableStyleAttr builds an inline style attribute from TableStyles.
+func (c *NodeConverter) buildTableStyleAttr(styles *entity.TableStyles, isHeader bool) string {
+	if styles == nil {
+		return ""
+	}
+
+	var parts []string
+	if styles.FontFamily != nil {
+		parts = append(parts, fmt.Sprintf("font-family:%s", *styles.FontFamily))
+	}
+	if styles.FontSize != nil {
+		parts = append(parts, fmt.Sprintf("font-size:%dpx", *styles.FontSize))
+	}
+	if styles.FontWeight != nil {
+		parts = append(parts, fmt.Sprintf("font-weight:%s", *styles.FontWeight))
+	}
+	if styles.TextColor != nil {
+		parts = append(parts, fmt.Sprintf("color:%s", *styles.TextColor))
+	}
+	if styles.TextAlign != nil {
+		parts = append(parts, fmt.Sprintf("text-align:%s", *styles.TextAlign))
+	}
+	if styles.Background != nil {
+		parts = append(parts, fmt.Sprintf("background-color:%s", *styles.Background))
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(" style=\"%s\"", strings.Join(parts, ";"))
+}
+
+// buildSpanAttrs builds colspan and rowspan attributes.
+func (c *NodeConverter) buildSpanAttrs(colspan, rowspan int) string {
+	var attrs []string
+	if colspan > 1 {
+		attrs = append(attrs, fmt.Sprintf("colspan=\"%d\"", colspan))
+	}
+	if rowspan > 1 {
+		attrs = append(attrs, fmt.Sprintf("rowspan=\"%d\"", rowspan))
+	}
+	if len(attrs) == 0 {
+		return ""
+	}
+	return " " + strings.Join(attrs, " ")
 }
 
 // Helper functions for attribute parsing

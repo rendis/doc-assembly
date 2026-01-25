@@ -110,6 +110,17 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 		}
 	}
 
+	// Build metadata - for TABLE types, include column schema if available
+	var metadata map[string]any
+	if tableProvider, ok := inj.(port.TableSchemaProvider); ok {
+		columns := tableProvider.ColumnSchema()
+		if len(columns) > 0 {
+			metadata = map[string]any{
+				"columns": columns,
+			}
+		}
+	}
+
 	return &entity.InjectableDefinition{
 		ID:           code, // Same as key
 		WorkspaceID:  nil,  // Global (extension injectors are system-wide)
@@ -118,7 +129,7 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 		Description:  description,
 		DataType:     dataType,
 		SourceType:   entity.InjectableSourceTypeExternal, // Extensions are EXTERNAL
-		Metadata:     nil,
+		Metadata:     metadata,
 		FormatConfig: formatConfig,
 		DefaultValue: defaultValue,
 		IsActive:     true,
@@ -139,6 +150,8 @@ func convertValueTypeToDataType(vt entity.ValueType) entity.InjectableDataType {
 		return entity.InjectableDataTypeBoolean
 	case entity.ValueTypeTime:
 		return entity.InjectableDataTypeDate
+	case entity.ValueTypeTable:
+		return entity.InjectableDataTypeTable
 	default:
 		return entity.InjectableDataTypeText
 	}

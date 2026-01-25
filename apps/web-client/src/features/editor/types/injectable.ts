@@ -89,6 +89,7 @@ export interface Injectable {
   isGlobal: boolean
   sourceType: 'INTERNAL' | 'EXTERNAL'
   formatConfig?: FormatConfig
+  metadata?: Record<string, unknown>
   createdAt: string
   updatedAt?: string
 }
@@ -113,6 +114,7 @@ export function mapInjectableToVariable(injectable: Injectable): Variable {
     description: injectable.description,
     formatConfig: injectable.formatConfig,
     sourceType: injectable.sourceType,
+    metadata: injectable.metadata,
   }
 }
 

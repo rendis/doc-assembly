@@ -68,3 +68,15 @@ day_now:
   description:
     en: "Day of month at document generation"
     es: "Día del mes al momento de generar el documento"
+
+# ============================================================================
+# Table Injectors (Examples)
+# ============================================================================
+
+example_table:
+  name:
+    en: "[EXAMPLE] Demo Table"
+    es: "[EJEMPLO] Tabla Demo"
+  description:
+    en: "Example table injector. For development/demonstration only."
+    es: "Inyector de tabla de ejemplo. Solo para desarrollo/demostración."

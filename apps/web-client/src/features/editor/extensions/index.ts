@@ -13,6 +13,17 @@ export {
   groupCommands,
 } from './SlashCommands'
 
+// Table extensions
+export {
+  TableExtension,
+  TableRowExtension,
+  TableHeaderExtension,
+  TableCellExtension,
+  getTableExtensions,
+  TableStylesPanel,
+} from './Table'
+export { TableInjectorExtension, TableInjectorComponent } from './TableInjector'
+
 // Re-export types
 export type {
   SignatureBlockAttrs,
@@ -35,3 +46,5 @@ export type {
   ImageAlignOption,
 } from './Image'
 export type { SlashCommand, SlashCommandsOptions } from './SlashCommands'
+export type { TableStylesAttrs, TableAttrs, TableCellAttrs } from './Table'
+export type { TableInjectorAttrs, TableInjectorOptions } from './TableInjector'

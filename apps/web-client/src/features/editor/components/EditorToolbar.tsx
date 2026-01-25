@@ -22,6 +22,10 @@ import {
   Bold,
   Italic,
   Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
   List,
   ListOrdered,
   Quote,
@@ -34,6 +38,7 @@ import {
   PenLine,
   GitBranch,
   ImageIcon,
+  Table2,
   Download,
   Upload,
   ChevronLeft,
@@ -241,6 +246,38 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
+          {/* Text alignment */}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            isActive={editor.isActive({ textAlign: 'left' })}
+            tooltip={t('editor.toolbar.alignLeft')}
+          >
+            <AlignLeft className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            isActive={editor.isActive({ textAlign: 'center' })}
+            tooltip={t('editor.toolbar.alignCenter')}
+          >
+            <AlignCenter className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            isActive={editor.isActive({ textAlign: 'right' })}
+            tooltip={t('editor.toolbar.alignRight')}
+          >
+            <AlignRight className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+            isActive={editor.isActive({ textAlign: 'justify' })}
+            tooltip={t('editor.toolbar.alignJustify')}
+          >
+            <AlignJustify className="h-4 w-4" />
+          </ToolbarButton>
+
+          <Separator orientation="vertical" className="h-6 mx-1" />
+
           {/* Lists */}
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -304,6 +341,12 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               tooltip={t('editor.toolbar.conditionalBlock')}
             >
               <GitBranch className="h-4 w-4 text-warning-foreground dark:text-warning" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              tooltip={t('editor.insertTable')}
+            >
+              <Table2 className="h-4 w-4 text-primary" />
             </ToolbarButton>
           </div>
 
@@ -446,6 +489,41 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
 
               <DropdownMenuSeparator />
 
+              {/* Text alignment */}
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                {t('editor.toolbar.alignment')}
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                className={cn(editor.isActive({ textAlign: 'left' }) && 'bg-accent')}
+              >
+                <AlignLeft className="mr-2 h-4 w-4" />
+                {t('editor.toolbar.alignLeft')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                className={cn(editor.isActive({ textAlign: 'center' }) && 'bg-accent')}
+              >
+                <AlignCenter className="mr-2 h-4 w-4" />
+                {t('editor.toolbar.alignCenter')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                className={cn(editor.isActive({ textAlign: 'right' }) && 'bg-accent')}
+              >
+                <AlignRight className="mr-2 h-4 w-4" />
+                {t('editor.toolbar.alignRight')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                className={cn(editor.isActive({ textAlign: 'justify' }) && 'bg-accent')}
+              >
+                <AlignJustify className="mr-2 h-4 w-4" />
+                {t('editor.toolbar.alignJustify')}
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
               {/* Lists */}
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                 {t('editor.toolbar.lists')}
@@ -505,6 +583,12 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               >
                 <GitBranch className="mr-2 h-4 w-4 text-warning-foreground dark:text-warning" />
                 {t('editor.toolbar.conditionalBlock')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              >
+                <Table2 className="mr-2 h-4 w-4 text-primary" />
+                {t('editor.insertTable')}
               </DropdownMenuItem>
 
               {/* Export/Import/Preview */}

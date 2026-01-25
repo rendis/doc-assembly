@@ -15,6 +15,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    include: [
+      '@tiptap/extension-table',
+      '@tiptap/extension-table-row',
+      '@tiptap/extension-table-header',
+      '@tiptap/extension-table-cell',
+    ],
+  },
   server: {
     port: 3000,
     host: true,

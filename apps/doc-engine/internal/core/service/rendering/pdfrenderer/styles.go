@@ -150,6 +150,45 @@ func DefaultStyles() string {
       font-style: italic;
     }
 
+    /* Tables */
+    .document-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+      font-size: 10pt;
+    }
+
+    .document-table th,
+    .document-table td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .document-table th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+    }
+
+    .document-table tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+
+    .document-table tr:hover {
+      background-color: #f0f0f0;
+    }
+
+    .table-placeholder {
+      padding: 1em;
+      background: #fff3cd;
+      border: 1px dashed #ffc107;
+      color: #856404;
+      text-align: center;
+      font-style: italic;
+      margin: 1em 0;
+    }
+
     /* Images */
     .document-image {
       margin: 1em 0;
