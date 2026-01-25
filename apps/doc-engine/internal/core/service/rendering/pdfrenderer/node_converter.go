@@ -5,6 +5,7 @@ import (
 	"html"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
@@ -826,13 +827,185 @@ func (c *NodeConverter) tableInjector(node portabledoc.Node) string {
 }
 
 // resolveTableValue gets a TableValue from the injectables map.
+// Supports both direct *entity.TableValue and map[string]any from JSON.
 func (c *NodeConverter) resolveTableValue(variableID string) *entity.TableValue {
 	if v, ok := c.injectables[variableID]; ok {
+		// Direct TableValue pointer (from backend injector resolution)
 		if tableVal, ok := v.(*entity.TableValue); ok {
 			return tableVal
 		}
+		// JSON-decoded map (from frontend preview request)
+		if mapVal, ok := v.(map[string]any); ok {
+			return c.parseTableFromMap(mapVal)
+		}
 	}
 	return nil
+}
+
+// parseTableFromMap converts a JSON-decoded map to *entity.TableValue.
+// This is used when receiving table data from the frontend preview request.
+func (c *NodeConverter) parseTableFromMap(m map[string]any) *entity.TableValue {
+	table := entity.NewTableValue()
+	c.parseColumnsFromMap(m, table)
+	c.parseRowsFromMap(m, table)
+	return table
+}
+
+// parseColumnsFromMap extracts columns from a JSON map and adds them to the table.
+func (c *NodeConverter) parseColumnsFromMap(m map[string]any, table *entity.TableValue) {
+	cols, ok := m["columns"].([]any)
+	if !ok {
+		return
+	}
+	for _, colAny := range cols {
+		col, ok := colAny.(map[string]any)
+		if !ok {
+			continue
+		}
+		c.addColumnFromMap(col, table)
+	}
+}
+
+// addColumnFromMap parses a single column map and adds it to the table.
+func (c *NodeConverter) addColumnFromMap(col map[string]any, table *entity.TableValue) {
+	key, _ := col["key"].(string)
+	dataTypeStr, _ := col["dataType"].(string)
+	labels := c.parseLabelsFromMap(col)
+	dataType := c.parseDataType(dataTypeStr)
+
+	if width, ok := col["width"].(string); ok && width != "" {
+		table.AddColumnWithWidth(key, labels, dataType, width)
+	} else {
+		table.AddColumn(key, labels, dataType)
+	}
+}
+
+// parseLabelsFromMap extracts i18n labels from a column map.
+func (c *NodeConverter) parseLabelsFromMap(col map[string]any) map[string]string {
+	labels := make(map[string]string)
+	labelsMap, ok := col["labels"].(map[string]any)
+	if !ok {
+		return labels
+	}
+	for lang, label := range labelsMap {
+		if labelStr, ok := label.(string); ok {
+			labels[lang] = labelStr
+		}
+	}
+	return labels
+}
+
+// parseRowsFromMap extracts rows from a JSON map and adds them to the table.
+func (c *NodeConverter) parseRowsFromMap(m map[string]any, table *entity.TableValue) {
+	rows, ok := m["rows"].([]any)
+	if !ok {
+		return
+	}
+	for _, rowAny := range rows {
+		row, ok := rowAny.(map[string]any)
+		if !ok {
+			continue
+		}
+		cells := c.parseCellsFromRow(row)
+		if len(cells) > 0 {
+			table.AddRow(cells...)
+		}
+	}
+}
+
+// parseCellsFromRow extracts cells from a row map.
+func (c *NodeConverter) parseCellsFromRow(row map[string]any) []entity.TableCell {
+	cellsAny, ok := row["cells"].([]any)
+	if !ok {
+		return nil
+	}
+	cells := make([]entity.TableCell, 0, len(cellsAny))
+	for _, cellAny := range cellsAny {
+		if cell, ok := cellAny.(map[string]any); ok {
+			cells = append(cells, c.parseCellFromMap(cell))
+		}
+	}
+	return cells
+}
+
+// parseCellFromMap converts a JSON cell map to entity.TableCell.
+func (c *NodeConverter) parseCellFromMap(cell map[string]any) entity.TableCell {
+	valueMap, ok := cell["value"].(map[string]any)
+	if !ok || valueMap == nil {
+		return entity.EmptyCell()
+	}
+	return c.parseInjectableValue(valueMap)
+}
+
+// parseInjectableValue converts a value map to a TableCell with the appropriate type.
+func (c *NodeConverter) parseInjectableValue(valueMap map[string]any) entity.TableCell {
+	typeStr, _ := valueMap["type"].(string)
+
+	switch typeStr {
+	case "STRING":
+		return c.parseStringCell(valueMap)
+	case "NUMBER":
+		return c.parseNumberCell(valueMap)
+	case "BOOLEAN":
+		return c.parseBoolCell(valueMap)
+	case "DATE":
+		return c.parseDateCell(valueMap)
+	default:
+		return entity.EmptyCell()
+	}
+}
+
+func (c *NodeConverter) parseStringCell(valueMap map[string]any) entity.TableCell {
+	if strVal, ok := valueMap["strVal"].(string); ok {
+		return entity.Cell(entity.StringValue(strVal))
+	}
+	return entity.EmptyCell()
+}
+
+func (c *NodeConverter) parseNumberCell(valueMap map[string]any) entity.TableCell {
+	if numVal, ok := valueMap["numVal"].(float64); ok {
+		return entity.Cell(entity.NumberValue(numVal))
+	}
+	return entity.EmptyCell()
+}
+
+func (c *NodeConverter) parseBoolCell(valueMap map[string]any) entity.TableCell {
+	if boolVal, ok := valueMap["boolVal"].(bool); ok {
+		return entity.Cell(entity.BoolValue(boolVal))
+	}
+	return entity.EmptyCell()
+}
+
+func (c *NodeConverter) parseDateCell(valueMap map[string]any) entity.TableCell {
+	timeStr, ok := valueMap["timeVal"].(string)
+	if !ok || timeStr == "" {
+		return entity.EmptyCell()
+	}
+
+	layouts := []string{"2006-01-02", "2006-01-02T15:04:05Z07:00", "2006-01-02T15:04:05"}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, timeStr); err == nil {
+			return entity.Cell(entity.TimeValue(t))
+		}
+	}
+	// Fallback to string if date parsing fails
+	return entity.Cell(entity.StringValue(timeStr))
+}
+
+// parseDataType converts a string dataType to entity.ValueType.
+func (c *NodeConverter) parseDataType(s string) entity.ValueType {
+	switch s {
+	case "NUMBER", "CURRENCY":
+		return entity.ValueTypeNumber
+	case "BOOLEAN":
+		return entity.ValueTypeBool
+	case "DATE":
+		return entity.ValueTypeTime
+	case "TABLE":
+		return entity.ValueTypeTable
+	default:
+		return entity.ValueTypeString
+	}
 }
 
 // renderTableHTML generates HTML for a TableValue.

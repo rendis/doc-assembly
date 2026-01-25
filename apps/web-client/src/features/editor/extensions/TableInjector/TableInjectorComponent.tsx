@@ -16,7 +16,7 @@ import {
   selectVariableByVariableId,
 } from '../../stores/injectables-store'
 
-export function TableInjectorComponent({ node, editor, selected, deleteNode }: NodeViewProps) {
+export function TableInjectorComponent({ node, editor, selected, deleteNode, updateAttributes }: NodeViewProps) {
   const { t, i18n } = useTranslation()
   const [stylesOpen, setStylesOpen] = useState(false)
   const attrs = node.attrs as TableInjectorAttrs
@@ -139,6 +139,9 @@ export function TableInjectorComponent({ node, editor, selected, deleteNode }: N
         editor={editor}
         open={stylesOpen}
         onOpenChange={setStylesOpen}
+        nodeType="tableInjector"
+        initialStyles={node.attrs}
+        onApplyStyles={updateAttributes}
       />
     </NodeViewWrapper>
   )

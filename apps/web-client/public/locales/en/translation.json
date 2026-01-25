@@ -634,7 +634,11 @@
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
         "zoomReset": "Reset zoom"
-      }
+      },
+      "tableSection": "Table Data",
+      "addRow": "Add Row",
+      "deleteRow": "Delete Row",
+      "emptyTable": "No rows. Click 'Add Row' to add data."
     },
     "workflow": {
       "title": "Signing configuration",

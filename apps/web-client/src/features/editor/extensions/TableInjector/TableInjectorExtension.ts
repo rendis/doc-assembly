@@ -2,6 +2,7 @@ import { mergeAttributes, Node } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { TableInjectorComponent } from './TableInjectorComponent'
 import type { TableInjectorOptions } from './types'
+import type { TableStylesAttrs } from '../Table/types'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -10,6 +11,10 @@ declare module '@tiptap/core' {
        * Insert a table injector
        */
       setTableInjector: (options: TableInjectorOptions) => ReturnType
+      /**
+       * Update table injector styles
+       */
+      setTableInjectorStyles: (styles: Partial<TableStylesAttrs>) => ReturnType
     }
   }
 }
@@ -82,6 +87,11 @@ export const TableInjectorExtension = Node.create({
               lang: options.lang || 'en',
             },
           })
+        },
+      setTableInjectorStyles:
+        (styles: Partial<TableStylesAttrs>) =>
+        ({ commands }) => {
+          return commands.updateAttributes('tableInjector', styles)
         },
     }
   },

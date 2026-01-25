@@ -13,7 +13,10 @@ import { generateConsistentRoleValues } from '../../services/role-injectable-gen
 import { StandardInjectablesSection } from './StandardInjectablesSection'
 import { RoleInjectablesSection } from './RoleInjectablesSection'
 import { SystemInjectablesSection } from './SystemInjectablesSection'
+import { TableInjectablesSection } from './TableInjectablesSection'
 import { PDFPreviewModal } from './PDFPreviewModal'
+import type { TableInputValue } from '../../types/table-input'
+import { toTableValuePayload } from '../../types/table-input'
 import { INTERNAL_INJECTABLE_KEYS } from '../../types/injectable'
 import type {
   InjectableFormValues,
@@ -83,11 +86,24 @@ export function InjectablesFormModal({
     [standardVariables]
   )
 
-  // Variables del documento (excluyendo las de sistema)
+  // Variables del documento (excluyendo las de sistema y TABLE type)
   const documentVariables = useMemo(
     () =>
       standardVariables.filter(
         (v) =>
+          !INTERNAL_INJECTABLE_KEYS.includes(
+            v.variableId as (typeof INTERNAL_INJECTABLE_KEYS)[number]
+          ) && v.type !== 'TABLE'
+      ),
+    [standardVariables]
+  )
+
+  // TABLE type variables (handled by TableInjectablesSection)
+  const tableVariables = useMemo(
+    () =>
+      standardVariables.filter(
+        (v) =>
+          v.type === 'TABLE' &&
           !INTERNAL_INJECTABLE_KEYS.includes(
             v.variableId as (typeof INTERNAL_INJECTABLE_KEYS)[number]
           )
@@ -95,7 +111,7 @@ export function InjectablesFormModal({
     [standardVariables]
   )
 
-  const hasVariables = standardVariables.length > 0 || roleInjectables.length > 0
+  const hasVariables = standardVariables.length > 0 || roleInjectables.length > 0 || tableVariables.length > 0
 
   // Auto-completar valores emulados al abrir el modal
   useEffect(() => {
@@ -227,8 +243,17 @@ export function InjectablesFormModal({
       return
     }
 
-    await generatePreview(values)
-  }, [validateForm, generatePreview, values])
+    // Transform table values to backend format
+    const transformedValues = { ...values }
+    tableVariables.forEach((variable) => {
+      const tableValue = values[variable.variableId] as TableInputValue | undefined
+      if (tableValue) {
+        transformedValues[variable.variableId] = toTableValuePayload(tableValue)
+      }
+    })
+
+    await generatePreview(transformedValues)
+  }, [validateForm, generatePreview, values, tableVariables])
 
   const handlePDFModalClose = useCallback(() => {
     setShowPDFModal(false)
@@ -374,10 +399,27 @@ export function InjectablesFormModal({
                   </div>
                 )}
 
-                {roleInjectables.length > 0 && (
+                {tableVariables.length > 0 && (
                   <>
                     {(systemVariables.length > 0 ||
                       documentVariables.length > 0) && (
+                      <div className="border-t border-border my-4" />
+                    )}
+
+                    <TableInjectablesSection
+                      variables={tableVariables}
+                      values={values}
+                      onChange={handleChange}
+                      disabled={isGenerating}
+                    />
+                  </>
+                )}
+
+                {roleInjectables.length > 0 && (
+                  <>
+                    {(systemVariables.length > 0 ||
+                      documentVariables.length > 0 ||
+                      tableVariables.length > 0) && (
                       <div className="border-t border-border my-4" />
                     )}
 

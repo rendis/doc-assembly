@@ -42,6 +42,11 @@ export function InjectableInput({
     onChange(newValue)
   }
 
+  // TABLE type is handled by TableDataInput component
+  if (type === 'TABLE') {
+    return null
+  }
+
   // BOOLEAN type
   if (type === 'BOOLEAN') {
     return (

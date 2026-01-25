@@ -25,9 +25,15 @@ interface TableStylesPanelProps {
   editor: Editor
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Node type to edit styles for. Defaults to 'table' */
+  nodeType?: 'table' | 'tableInjector'
+  /** Initial styles to load when opening. If not provided, uses editor.getAttributes() */
+  initialStyles?: Partial<TableStylesAttrs>
+  /** Direct update callback (from NodeView's updateAttributes). Bypasses editor commands. */
+  onApplyStyles?: (attrs: Record<string, unknown>) => void
 }
 
-export function TableStylesPanel({ editor, open, onOpenChange }: TableStylesPanelProps) {
+export function TableStylesPanel({ editor, open, onOpenChange, nodeType = 'table', initialStyles, onApplyStyles }: TableStylesPanelProps) {
   const { t } = useTranslation()
   const [styles, setStyles] = useState<TableStylesAttrs>({})
 
@@ -35,7 +41,7 @@ export function TableStylesPanel({ editor, open, onOpenChange }: TableStylesPane
   useEffect(() => {
     if (!open || !editor) return
 
-    const attrs = editor.getAttributes('table')
+    const attrs = initialStyles ?? editor.getAttributes(nodeType)
     setStyles({
       headerFontFamily: attrs.headerFontFamily || 'inherit',
       headerFontSize: attrs.headerFontSize || 12,
@@ -49,7 +55,7 @@ export function TableStylesPanel({ editor, open, onOpenChange }: TableStylesPane
       bodyTextColor: attrs.bodyTextColor || '#333333',
       bodyTextAlign: attrs.bodyTextAlign || 'left',
     })
-  }, [open, editor])
+  }, [open, editor, nodeType, initialStyles])
 
   const handleApply = useCallback(() => {
     if (!editor) return
@@ -62,11 +68,18 @@ export function TableStylesPanel({ editor, open, onOpenChange }: TableStylesPane
       ])
     )
 
-    // Use type assertion to bypass TipTap type limitations
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(editor.commands as any).setTableStyles(cleanStyles)
+    if (onApplyStyles) {
+      // Direct update via NodeView's updateAttributes
+      onApplyStyles(cleanStyles)
+    } else if (nodeType === 'tableInjector') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(editor.commands as any).setTableInjectorStyles(cleanStyles)
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(editor.commands as any).setTableStyles(cleanStyles)
+    }
     onOpenChange(false)
-  }, [editor, styles, onOpenChange])
+  }, [editor, styles, onOpenChange, nodeType, onApplyStyles])
 
   const updateStyle = useCallback(
     <K extends keyof TableStylesAttrs>(key: K, value: TableStylesAttrs[K]) => {
@@ -80,6 +93,7 @@ export function TableStylesPanel({ editor, open, onOpenChange }: TableStylesPane
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
+          aria-describedby={undefined}
           className={cn(
             'fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
             'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
