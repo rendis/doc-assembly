@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useEffect } from 'react'
+
+const LG_BREAKPOINT = 1024
 
 /**
  * Sidebar store state
@@ -63,3 +66,26 @@ export const useSidebarStore = create<SidebarState>()(
     }
   )
 )
+
+/**
+ * Hook to sync mobile sidebar state on window resize
+ * Closes mobile sidebar when crossing lg breakpoint to desktop
+ */
+export function useSidebarResizeSync() {
+  const closeMobile = useSidebarStore((state) => state.closeMobile)
+  const isMobileOpen = useSidebarStore((state) => state.isMobileOpen)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleResize = () => {
+      // Close mobile sidebar when resizing to desktop
+      if (window.innerWidth >= LG_BREAKPOINT && isMobileOpen) {
+        closeMobile()
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [closeMobile, isMobileOpen])
+}

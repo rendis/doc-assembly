@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { AppSidebar } from './AppSidebar'
 import { MobileSidebar } from './MobileSidebar'
 import { AppHeader } from './AppHeader'
-import { useSidebarStore } from '@/stores/sidebar-store'
+import { useSidebarStore, useSidebarResizeSync } from '@/stores/sidebar-store'
 
 // Variantes de animación - sidebar aparece inmediatamente
 const sidebarVariants = {
@@ -15,6 +15,9 @@ const sidebarVariants = {
 export function AppLayout() {
   const { toggleMobileOpen, isPinned, setHovering } = useSidebarStore()
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync mobile sidebar state on resize (close when crossing to desktop)
+  useSidebarResizeSync()
 
   const handleMouseEnter = useCallback(() => {
     if (isPinned) return
