@@ -36,6 +36,26 @@ type CloneTemplateCommand struct {
 	ClonedBy         string
 }
 
+// AssignDocumentTypeCommand represents the command to assign/unassign a document type.
+type AssignDocumentTypeCommand struct {
+	TemplateID     string
+	WorkspaceID    string  // For conflict checking
+	DocumentTypeID *string // nil to unassign
+	Force          bool    // true = reassign even if type is used by another template
+}
+
+// AssignDocumentTypeResult represents the result of assigning a document type.
+type AssignDocumentTypeResult struct {
+	Template *entity.Template
+	Conflict *TemplateConflictInfo // Non-nil if there's a conflict and Force=false
+}
+
+// TemplateConflictInfo represents info about a conflicting template.
+type TemplateConflictInfo struct {
+	ID    string
+	Title string
+}
+
 // TemplateUseCase defines the input port for template operations.
 type TemplateUseCase interface {
 	// CreateTemplate creates a new template with an initial draft version.
@@ -73,4 +93,12 @@ type TemplateUseCase interface {
 
 	// RemoveTag removes a tag from a template.
 	RemoveTag(ctx context.Context, templateID, tagID string) error
+
+	// AssignDocumentType assigns or unassigns a document type to a template.
+	// If the type is already assigned to another template in the workspace and Force=false,
+	// returns conflict info without making changes.
+	AssignDocumentType(ctx context.Context, cmd AssignDocumentTypeCommand) (*AssignDocumentTypeResult, error)
+
+	// FindByDocumentTypeCode finds templates by document type code across a tenant.
+	FindByDocumentTypeCode(ctx context.Context, tenantID, code string) ([]*entity.TemplateListItem, error)
 }

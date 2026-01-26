@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
-import { X, Link, Images } from 'lucide-react'
+import { X, Link, Images, Database } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageUrlTab } from './ImageUrlTab'
 import { ImageGalleryTab } from './ImageGalleryTab'
+import { ImageVariableTab } from './ImageVariableTab'
 import { ImageCropper } from './ImageCropper'
 import type { ImageInsertModalProps, ImageInsertResult, ImageInsertTab } from './types'
 import type { ImageShape } from '../../extensions/Image/types'
@@ -14,6 +15,7 @@ export function ImageInsertModal({
   onOpenChange,
   onInsert,
   initialShape = 'square',
+  initialImage,
 }: ImageInsertModalProps) {
   const [activeTab, setActiveTab] = useState<ImageInsertTab>('url')
   const [currentImage, setCurrentImage] = useState<ImageInsertResult | null>(null)
@@ -24,12 +26,22 @@ export function ImageInsertModal({
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset on dialog open
-      setCurrentImage(null)
+      if (initialImage) {
+        setCurrentImage(initialImage)
+        // Select tab based on image type
+        if (initialImage.injectableId) {
+          setActiveTab('variable')
+        } else {
+          setActiveTab('url')
+        }
+      } else {
+        setCurrentImage(null)
+        setActiveTab('url')
+      }
       setImageToCrop(null)
       setCropperOpen(false)
-      setActiveTab('url')
     }
-  }, [open])
+  }, [open, initialImage])
 
   const handleOpenCropper = useCallback((imageSrc: string) => {
     setImageToCrop(imageSrc)
@@ -63,6 +75,16 @@ export function ImageInsertModal({
     setCurrentImage(result)
   }, [])
 
+  const handleVariableSelect = useCallback((result: ImageInsertResult) => {
+    setCurrentImage(result)
+  }, [])
+
+  const handleTabChange = useCallback((tab: ImageInsertTab) => {
+    setActiveTab(tab)
+    // Don't clear currentImage - preserve selection when navigating between tabs
+    // Selection only changes when user makes a new selection in a tab
+  }, [])
+
   return (
     <>
       <DialogPrimitive.Root open={open} onOpenChange={handleClose}>
@@ -92,8 +114,8 @@ export function ImageInsertModal({
 
             {/* Content */}
             <div className="p-6">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ImageInsertTab)}>
-                <TabsList className="grid w-full grid-cols-2 rounded-none">
+              <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as ImageInsertTab)}>
+                <TabsList className="grid w-full grid-cols-3 rounded-none">
                   <TabsTrigger value="url" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
                     <Link className="h-4 w-4" />
                     URL
@@ -101,6 +123,10 @@ export function ImageInsertModal({
                   <TabsTrigger value="gallery" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
                     <Images className="h-4 w-4" />
                     Galería
+                  </TabsTrigger>
+                  <TabsTrigger value="variable" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
+                    <Database className="h-4 w-4" />
+                    Variable
                   </TabsTrigger>
                 </TabsList>
 
@@ -114,6 +140,14 @@ export function ImageInsertModal({
 
                 <TabsContent value="gallery" className="mt-4">
                   <ImageGalleryTab onSelect={handleGallerySelect} />
+                </TabsContent>
+
+                <TabsContent value="variable" className="mt-4">
+                  <ImageVariableTab
+                    onSelect={handleVariableSelect}
+                    currentSelection={currentImage?.injectableId}
+                    hasUrlSelection={Boolean(currentImage && !currentImage.injectableId)}
+                  />
                 </TabsContent>
               </Tabs>
             </div>

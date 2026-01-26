@@ -9,6 +9,7 @@ type Template struct {
 	ID              string     `json:"id"`
 	WorkspaceID     string     `json:"workspaceId"`
 	FolderID        *string    `json:"folderId,omitempty"`
+	DocumentTypeID  *string    `json:"documentTypeId,omitempty"`
 	Title           string     `json:"title"`
 	IsPublicLibrary bool       `json:"isPublicLibrary"`
 	CreatedAt       time.Time  `json:"createdAt"`
@@ -51,6 +52,8 @@ type TemplateListItem struct {
 	ID                     string     `json:"id"`
 	WorkspaceID            string     `json:"workspaceId"`
 	FolderID               *string    `json:"folderId,omitempty"`
+	DocumentTypeID         *string    `json:"documentTypeId,omitempty"`
+	DocumentTypeCode       *string    `json:"documentTypeCode,omitempty"`
 	Title                  string     `json:"title"`
 	IsPublicLibrary        bool       `json:"isPublicLibrary"`
 	Tags                   []*Tag     `json:"tags"`

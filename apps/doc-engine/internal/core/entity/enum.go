@@ -351,6 +351,8 @@ type DocumentStatus string
 const (
 	// DocumentStatusDraft - document created, not yet sent for signing.
 	DocumentStatusDraft DocumentStatus = "DRAFT"
+	// DocumentStatusPendingProvider - PDF ready, waiting for worker to upload to provider.
+	DocumentStatusPendingProvider DocumentStatus = "PENDING_PROVIDER"
 	// DocumentStatusPending - document sent to signing provider, awaiting action.
 	DocumentStatusPending DocumentStatus = "PENDING"
 	// DocumentStatusInProgress - at least one recipient has interacted with the document.
@@ -370,9 +372,9 @@ const (
 // IsValid checks if the document status is valid.
 func (d DocumentStatus) IsValid() bool {
 	switch d {
-	case DocumentStatusDraft, DocumentStatusPending, DocumentStatusInProgress,
-		DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusVoided,
-		DocumentStatusExpired, DocumentStatusError:
+	case DocumentStatusDraft, DocumentStatusPendingProvider, DocumentStatusPending,
+		DocumentStatusInProgress, DocumentStatusCompleted, DocumentStatusDeclined,
+		DocumentStatusVoided, DocumentStatusExpired, DocumentStatusError:
 		return true
 	}
 	return false
@@ -395,8 +397,13 @@ func (d DocumentStatus) IsTerminal() bool {
 // validStatusTransitions defines allowed document status transitions.
 var validStatusTransitions = map[DocumentStatus]map[DocumentStatus]bool{
 	DocumentStatusDraft: {
-		DocumentStatusPending: true,
-		DocumentStatusError:   true,
+		DocumentStatusPendingProvider: true, // Worker flow: PDF saved, waiting for upload
+		DocumentStatusPending:         true, // Direct flow: immediate provider upload
+		DocumentStatusError:           true,
+	},
+	DocumentStatusPendingProvider: {
+		DocumentStatusPending: true, // Worker completed upload to provider
+		DocumentStatusError:   true, // Error during upload
 	},
 	DocumentStatusPending: {
 		DocumentStatusInProgress: true,

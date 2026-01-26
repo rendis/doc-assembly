@@ -115,9 +115,20 @@ func (d *Document) SetCompletedPDFURL(url string) {
 	d.touch()
 }
 
+// MarkAsPendingProvider transitions the document to PENDING_PROVIDER status.
+// This means the PDF is saved and waiting for the worker to upload to the signing provider.
+func (d *Document) MarkAsPendingProvider() error {
+	if d.Status != DocumentStatusDraft {
+		return ErrInvalidDocumentStatusTransition
+	}
+	d.Status = DocumentStatusPendingProvider
+	d.touch()
+	return nil
+}
+
 // MarkAsPending transitions the document to PENDING status (sent to provider).
 func (d *Document) MarkAsPending() error {
-	if d.Status != DocumentStatusDraft {
+	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusPendingProvider {
 		return ErrInvalidDocumentStatusTransition
 	}
 	d.Status = DocumentStatusPending
@@ -195,6 +206,11 @@ func (d *Document) UpdateStatus(newStatus DocumentStatus) error {
 // IsDraft returns true if the document is in draft status.
 func (d *Document) IsDraft() bool {
 	return d.Status == DocumentStatusDraft
+}
+
+// IsPendingProvider returns true if the document is waiting for worker upload.
+func (d *Document) IsPendingProvider() bool {
+	return d.Status == DocumentStatusPendingProvider
 }
 
 // IsPending returns true if the document is pending signature.

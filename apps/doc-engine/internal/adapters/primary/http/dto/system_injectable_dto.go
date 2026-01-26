@@ -12,6 +12,7 @@ type SystemInjectableResponse struct {
 	Label       map[string]string `json:"label"`
 	Description map[string]string `json:"description"`
 	DataType    string            `json:"dataType"`
+	Group       *string           `json:"group,omitempty"`
 	IsActive    bool              `json:"isActive"`
 	IsPublic    bool              `json:"isPublic"`
 }
@@ -53,6 +54,7 @@ func ToSystemInjectableResponse(info *entity.SystemInjectableInfo) SystemInjecta
 		Label:       info.Label,
 		Description: info.Description,
 		DataType:    string(info.DataType),
+		Group:       info.Group,
 		IsActive:    info.IsActive,
 		IsPublic:    info.IsPublic,
 	}

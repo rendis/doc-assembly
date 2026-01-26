@@ -4,13 +4,13 @@ package templaterepo
 const (
 	queryCreate = `
 		INSERT INTO content.templates (
-			workspace_id, folder_id, title, is_public_library, created_at
+			workspace_id, folder_id, document_type_id, title, is_public_library, created_at
 		)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id`
 
 	queryFindByID = `
-		SELECT id, workspace_id, folder_id, title, is_public_library, created_at, updated_at
+		SELECT id, workspace_id, folder_id, document_type_id, title, is_public_library, created_at, updated_at
 		FROM content.templates
 		WHERE id = $1`
 
@@ -58,7 +58,9 @@ const (
 
 	queryFindByWorkspaceBase = `
 		SELECT
-			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
+			t.id, t.workspace_id, t.folder_id, t.document_type_id,
+			(SELECT dt.code FROM content.document_types dt WHERE dt.id = t.document_type_id) as document_type_code,
+			t.title, t.is_public_library,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
@@ -70,7 +72,9 @@ const (
 
 	queryFindByFolder = `
 		SELECT
-			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
+			t.id, t.workspace_id, t.folder_id, t.document_type_id,
+			(SELECT dt.code FROM content.document_types dt WHERE dt.id = t.document_type_id) as document_type_code,
+			t.title, t.is_public_library,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
@@ -82,7 +86,9 @@ const (
 
 	queryFindPublicLibrary = `
 		SELECT
-			t.id, t.workspace_id, t.folder_id, t.title, t.is_public_library,
+			t.id, t.workspace_id, t.folder_id, t.document_type_id,
+			(SELECT dt.code FROM content.document_types dt WHERE dt.id = t.document_type_id) as document_type_code,
+			t.title, t.is_public_library,
 			t.created_at, t.updated_at,
 			true as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
@@ -95,7 +101,7 @@ const (
 
 	queryUpdate = `
 		UPDATE content.templates
-		SET title = $2, folder_id = $3, is_public_library = $4, updated_at = $5
+		SET title = $2, folder_id = $3, document_type_id = $4, is_public_library = $5, updated_at = $6
 		WHERE id = $1`
 
 	queryDelete = `DELETE FROM content.templates WHERE id = $1`
@@ -112,4 +118,30 @@ const (
 		JOIN organizer.tags t ON t.id = tt.tag_id
 		WHERE tt.template_id = ANY($1)
 		ORDER BY t.name`
+
+	// Document Type queries
+	queryFindByDocumentType = `
+		SELECT id, workspace_id, folder_id, document_type_id, title, is_public_library, created_at, updated_at
+		FROM content.templates
+		WHERE workspace_id = $1 AND document_type_id = $2`
+
+	queryFindByDocumentTypeCode = `
+		SELECT
+			t.id, t.workspace_id, t.folder_id, t.document_type_id, dt.code as document_type_code,
+			t.title, t.is_public_library,
+			t.created_at, t.updated_at,
+			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
+			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
+			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status = 'SCHEDULED') as scheduled_version_count,
+			(SELECT version_number FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED' LIMIT 1) as published_version_number
+		FROM content.templates t
+		JOIN content.document_types dt ON t.document_type_id = dt.id
+		JOIN tenancy.workspaces w ON t.workspace_id = w.id
+		WHERE w.tenant_id = $1 AND dt.code = $2
+		ORDER BY t.title`
+
+	queryUpdateDocumentType = `
+		UPDATE content.templates
+		SET document_type_id = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1`
 )

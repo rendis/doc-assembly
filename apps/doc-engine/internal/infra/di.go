@@ -12,6 +12,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres"
 	documentrecipientrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	documentrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
+	documenttyperepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_type_repo"
 	folderrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	systeminjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
@@ -29,7 +30,7 @@ import (
 	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
-	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/opensign"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	accesssvc "github.com/doc-assembly/doc-engine/internal/core/service/access"
 	catalogsvc "github.com/doc-assembly/doc-engine/internal/core/service/catalog"
@@ -78,13 +79,14 @@ var ProviderSet = wire.NewSet(
 	templateversionrepo.New,
 	templateversioninjectablerepo.New,
 	templateversionsignerrolerepo.New,
+	documenttyperepo.New,
 
 	// Repositories - Execution
 	documentrepo.New,
 	documentrecipientrepo.New,
 
 	// Signing Provider
-	ProvideDocumensoConfig,
+	ProvideSigningConfig,
 	ProvideSigningProvider,
 	ProvideWebhookHandlers,
 
@@ -97,6 +99,7 @@ var ProviderSet = wire.NewSet(
 	// Services - Catalog
 	catalogsvc.NewFolderService,
 	catalogsvc.NewTagService,
+	catalogsvc.NewDocumentTypeService,
 
 	// Services - Access
 	accesssvc.NewSystemRoleService,
@@ -152,6 +155,7 @@ var ProviderSet = wire.NewSet(
 	controller.NewDocumentController,
 	controller.NewWebhookController,
 	controller.NewInternalDocumentController,
+	controller.NewDocumentTypeController,
 
 	// HTTP Server
 	server.NewHTTPServer,
@@ -202,29 +206,29 @@ func ProvidePDFRenderer(chromeCfg *config.ChromeConfig) (port.PDFRenderer, error
 	return pdfrenderer.NewService(opts)
 }
 
-// ProvideDocumensoConfig extracts Documenso config from the main config.
-func ProvideDocumensoConfig(cfg *config.Config) *documenso.Config {
-	return &documenso.Config{
-		APIKey:        cfg.Documenso.APIKey,
-		BaseURL:       cfg.Documenso.APIURL,
-		WebhookSecret: cfg.Documenso.WebhookSecret,
+// ProvideSigningConfig extracts signing config from the main config.
+func ProvideSigningConfig(cfg *config.Config) *opensign.Config {
+	return &opensign.Config{
+		APIKey:        cfg.Signing.APIKey,
+		BaseURL:       cfg.Signing.BaseURL,
+		WebhookSecret: cfg.Signing.WebhookSecret,
 	}
 }
 
-// ProvideSigningProvider creates the signing provider (Documenso adapter).
-func ProvideSigningProvider(cfg *documenso.Config) (port.SigningProvider, error) {
-	return documenso.New(cfg)
+// ProvideSigningProvider creates the signing provider (OpenSign adapter).
+func ProvideSigningProvider(cfg *opensign.Config) (port.SigningProvider, error) {
+	return opensign.New(cfg)
 }
 
 // ProvideWebhookHandlers creates the map of webhook handlers by provider name.
-func ProvideWebhookHandlers(cfg *documenso.Config) (map[string]port.WebhookHandler, error) {
-	documensoAdapter, err := documenso.New(cfg)
+func ProvideWebhookHandlers(cfg *opensign.Config) (map[string]port.WebhookHandler, error) {
+	opensignAdapter, err := opensign.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return map[string]port.WebhookHandler{
-		"documenso": documensoAdapter,
+		"opensign": opensignAdapter,
 	}, nil
 }
 

@@ -104,4 +104,45 @@
         <rollback>DROP TRIGGER IF EXISTS trigger_templates_updated_at ON content.templates;</rollback>
     </changeSet>
 
+    <!-- ========== DOCUMENT TYPE RELATIONSHIP ========== -->
+
+    <changeSet id="templates:add_column:document_type_id" author="doc-assembly">
+        <comment>Add optional document type classification</comment>
+        <addColumn schemaName="content" tableName="templates">
+            <column name="document_type_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="templates:add_fk_constraint:document_type_id" author="doc-assembly">
+        <comment>FK to document_types</comment>
+        <addForeignKeyConstraint
+            baseTableSchemaName="content"
+            baseTableName="templates"
+            baseColumnNames="document_type_id"
+            constraintName="fk_templates_document_type_id"
+            referencedTableSchemaName="content"
+            referencedTableName="document_types"
+            referencedColumnNames="id"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+    <changeSet id="templates:unique_partial_index:workspace_document_type" author="doc-assembly">
+        <comment>Unique constraint: one template per document type per workspace</comment>
+        <sql>
+            CREATE UNIQUE INDEX idx_templates_workspace_document_type
+            ON content.templates (workspace_id, document_type_id)
+            WHERE document_type_id IS NOT NULL;
+        </sql>
+        <rollback>DROP INDEX IF EXISTS content.idx_templates_workspace_document_type;</rollback>
+    </changeSet>
+
+    <changeSet id="templates:index_creation:document_type_id" author="doc-assembly">
+        <comment>Index for document type lookups</comment>
+        <createIndex indexName="idx_templates_document_type_id" tableName="templates" schemaName="content">
+            <column name="document_type_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

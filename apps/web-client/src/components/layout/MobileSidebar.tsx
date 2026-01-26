@@ -5,6 +5,9 @@ import { SidebarContent } from './SidebarContent'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
 } from '@/components/ui/sheet'
 
 export function MobileSidebar() {
@@ -20,6 +23,10 @@ export function MobileSidebar() {
           isSandboxActive && 'border-l-2 border-l-sandbox'
         )}
       >
+        <SheetHeader className="sr-only">
+          <SheetTitle>Navigation Menu</SheetTitle>
+          <SheetDescription>Main navigation sidebar</SheetDescription>
+        </SheetHeader>
         <SidebarContent
           isExpanded={true}
           onNavigate={closeMobile}

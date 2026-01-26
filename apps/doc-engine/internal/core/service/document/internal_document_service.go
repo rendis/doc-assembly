@@ -13,7 +13,7 @@ import (
 
 // InternalDocumentService implements usecase.InternalDocumentUseCase.
 // It uses DocumentGenerator for the core document generation logic
-// and handles PDF rendering and signing provider upload.
+// and handles PDF rendering with direct upload to the signing provider.
 type InternalDocumentService struct {
 	generator       *DocumentGenerator
 	documentRepo    port.DocumentRepository
@@ -41,7 +41,7 @@ func NewInternalDocumentService(
 
 // CreateDocument implements usecase.InternalDocumentUseCase.
 // It creates a document using the extension system, renders the PDF,
-// and sends it to the signing provider.
+// and uploads directly to the signing provider returning signing URLs.
 func (s *InternalDocumentService) CreateDocument(
 	ctx context.Context,
 	cmd document_uc.InternalCreateCommand,
@@ -58,12 +58,14 @@ func (s *InternalDocumentService) CreateDocument(
 		return s.buildResponse(result), nil
 	}
 
-	if err := s.renderAndSendForSigning(ctx, result); err != nil {
+	if err := s.renderAndUploadToProvider(ctx, result); err != nil {
 		return nil, err
 	}
 
-	slog.InfoContext(ctx, "document sent for signing",
-		"documentID", result.Document.ID, "provider", *result.Document.SignerProvider)
+	slog.InfoContext(ctx, "document uploaded to signing provider",
+		"documentID", result.Document.ID,
+		"provider", s.signingProvider.ProviderName(),
+		"signerDocID", *result.Document.SignerDocumentID)
 
 	return s.buildResponse(result), nil
 }
@@ -88,8 +90,8 @@ func (s *InternalDocumentService) buildResponse(result *DocumentGenerationResult
 	}
 }
 
-// renderAndSendForSigning renders the PDF and sends it to the signing provider.
-func (s *InternalDocumentService) renderAndSendForSigning(
+// renderAndUploadToProvider renders the PDF and uploads directly to the signing provider.
+func (s *InternalDocumentService) renderAndUploadToProvider(
 	ctx context.Context,
 	result *DocumentGenerationResult,
 ) error {
@@ -99,9 +101,151 @@ func (s *InternalDocumentService) renderAndSendForSigning(
 		return err
 	}
 
-	if err := s.sendToSigningProvider(ctx, result, renderResult); err != nil {
+	if err := s.uploadToSigningProvider(ctx, result, renderResult); err != nil {
 		slog.ErrorContext(ctx, "signing provider upload failed", "error", err, "documentID", result.Document.ID)
 		return err
+	}
+
+	return nil
+}
+
+// uploadToSigningProvider uploads the PDF directly to the signing provider and updates document/recipients.
+func (s *InternalDocumentService) uploadToSigningProvider(
+	ctx context.Context,
+	result *DocumentGenerationResult,
+	renderResult *port.RenderPreviewResult,
+) error {
+	// Build upload request
+	uploadReq := s.buildUploadRequest(result, renderResult)
+
+	// Upload to signing provider
+	uploadResult, err := s.signingProvider.UploadDocument(ctx, uploadReq)
+	if err != nil {
+		_ = result.Document.MarkAsError()
+		_ = s.documentRepo.Update(ctx, result.Document)
+		return fmt.Errorf("uploading to signing provider: %w", err)
+	}
+
+	// Update document with provider info
+	result.Document.SetSignerInfo(uploadResult.ProviderName, uploadResult.ProviderDocumentID)
+	if err := result.Document.MarkAsPending(); err != nil {
+		return fmt.Errorf("marking document as pending: %w", err)
+	}
+	if err := s.documentRepo.Update(ctx, result.Document); err != nil {
+		return fmt.Errorf("updating document: %w", err)
+	}
+
+	// Update recipients with signing URLs
+	if err := s.updateRecipientsWithSigningURLs(ctx, result.Recipients, uploadResult.Recipients); err != nil {
+		return fmt.Errorf("updating recipients: %w", err)
+	}
+
+	slog.InfoContext(ctx, "document uploaded to signing provider",
+		"documentID", result.Document.ID,
+		"providerDocID", uploadResult.ProviderDocumentID,
+		"recipientCount", len(uploadResult.Recipients),
+	)
+
+	return nil
+}
+
+// buildUploadRequest constructs the signing provider upload request.
+func (s *InternalDocumentService) buildUploadRequest(
+	result *DocumentGenerationResult,
+	renderResult *port.RenderPreviewResult,
+) *port.UploadDocumentRequest {
+	title := result.Document.ID
+	if result.Document.Title != nil {
+		title = *result.Document.Title
+	}
+
+	// Build recipients for signing provider
+	recipients := make([]port.SigningRecipient, len(result.Recipients))
+	for i, r := range result.Recipients {
+		recipients[i] = port.SigningRecipient{
+			Email:       r.Email,
+			Name:        r.Name,
+			RoleID:      r.TemplateVersionRoleID,
+			SignerOrder: i + 1,
+		}
+	}
+
+	// Map portable doc role IDs to DB role IDs for signature fields
+	signatureFields := s.mapSignatureFields(result, renderResult.SignatureFields)
+
+	return &port.UploadDocumentRequest{
+		PDF:             renderResult.PDF,
+		Title:           title,
+		Recipients:      recipients,
+		SignatureFields: signatureFields,
+	}
+}
+
+// mapSignatureFields converts SignatureFields from portable doc role IDs to DB role IDs.
+func (s *InternalDocumentService) mapSignatureFields(
+	result *DocumentGenerationResult,
+	fields []port.SignatureField,
+) []port.SignatureFieldPosition {
+	// Build map: anchor string -> DB role ID
+	anchorToDBRoleID := make(map[string]string, len(result.Version.SignerRoles))
+	for _, role := range result.Version.SignerRoles {
+		anchorToDBRoleID[role.AnchorString] = role.ID
+	}
+
+	// Build map: portable doc role ID -> anchor string
+	portableIDToAnchor := make(map[string]string, len(result.PortableDoc.SignerRoles))
+	for _, role := range result.PortableDoc.SignerRoles {
+		anchor := portable_doc.GenerateAnchorString(role.Label)
+		portableIDToAnchor[role.ID] = anchor
+	}
+
+	// Convert fields
+	positions := make([]port.SignatureFieldPosition, 0, len(fields))
+	for _, f := range fields {
+		anchor := portableIDToAnchor[f.RoleID]
+		dbRoleID := anchorToDBRoleID[anchor]
+		if dbRoleID == "" {
+			continue
+		}
+
+		positions = append(positions, port.SignatureFieldPosition{
+			RoleID:    dbRoleID,
+			Page:      f.Page,
+			PositionX: f.PositionX,
+			PositionY: f.PositionY,
+			Width:     f.Width,
+			Height:    f.Height,
+		})
+	}
+
+	return positions
+}
+
+// updateRecipientsWithSigningURLs updates recipients with provider IDs and signing URLs.
+func (s *InternalDocumentService) updateRecipientsWithSigningURLs(
+	ctx context.Context,
+	recipients []*entity.DocumentRecipient,
+	providerResults []port.RecipientResult,
+) error {
+	// Build map: role ID -> provider result
+	resultByRoleID := make(map[string]port.RecipientResult, len(providerResults))
+	for _, r := range providerResults {
+		resultByRoleID[r.RoleID] = r
+	}
+
+	// Update each recipient
+	for _, recipient := range recipients {
+		providerResult, ok := resultByRoleID[recipient.TemplateVersionRoleID]
+		if !ok {
+			continue
+		}
+
+		recipient.SetSignerRecipientID(providerResult.ProviderRecipientID)
+		recipient.SetSigningURL(providerResult.SigningURL)
+
+		if err := s.recipientRepo.Update(ctx, recipient); err != nil {
+			return fmt.Errorf("updating recipient %s: %w", recipient.ID, err)
+		}
 	}
 
 	return nil
@@ -171,193 +315,4 @@ func (s *InternalDocumentService) buildSignerRoleValues(
 		}
 	}
 	return values
-}
-
-// sendToSigningProvider uploads the document to the signing provider and updates statuses.
-func (s *InternalDocumentService) sendToSigningProvider(
-	ctx context.Context,
-	result *DocumentGenerationResult,
-	renderResult *port.RenderPreviewResult,
-) error {
-	signingRecipients := s.buildSigningRecipients(result.Recipients, result.Version.SignerRoles)
-	signatureFields := s.buildSignatureFieldPositions(renderResult.SignatureFields, result.Recipients, result.Version.SignerRoles)
-
-	s.logSignatureFieldDebug(ctx, renderResult.SignatureFields, signatureFields, result.Version.SignerRoles)
-
-	uploadReq := &port.UploadDocumentRequest{
-		PDF:             renderResult.PDF,
-		Title:           s.buildDocumentTitle(result),
-		Recipients:      signingRecipients,
-		ExternalRef:     result.Document.ID,
-		SignatureFields: signatureFields,
-	}
-
-	if result.Document.ClientExternalReferenceID != nil {
-		uploadReq.ExternalRef = *result.Document.ClientExternalReferenceID
-	}
-
-	uploadResult, err := s.signingProvider.UploadDocument(ctx, uploadReq)
-	if err != nil {
-		_ = result.Document.MarkAsError()
-		_ = s.documentRepo.Update(ctx, result.Document)
-		return fmt.Errorf("uploading to signing provider: %w", err)
-	}
-
-	result.Document.SetSignerInfo(uploadResult.ProviderName, uploadResult.ProviderDocumentID)
-	if err := result.Document.MarkAsPending(); err != nil {
-		return fmt.Errorf("marking document as pending: %w", err)
-	}
-
-	if err := s.documentRepo.Update(ctx, result.Document); err != nil {
-		return fmt.Errorf("updating document: %w", err)
-	}
-
-	s.updateRecipientsWithProviderIDs(ctx, result.Recipients, uploadResult.Recipients)
-
-	return nil
-}
-
-// buildSignatureFieldPositions converts render signature fields to signing provider format.
-// Maps portable doc role IDs to DB role IDs for the signing provider.
-func (s *InternalDocumentService) buildSignatureFieldPositions(
-	signatureFields []port.SignatureField,
-	recipients []*entity.DocumentRecipient,
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-) []port.SignatureFieldPosition {
-	if len(signatureFields) == 0 {
-		return nil
-	}
-
-	anchorToDBRoleID := s.buildAnchorToRoleMap(dbSignerRoles)
-	recipientRoleSet := s.buildRecipientRoleSet(recipients)
-
-	positions := make([]port.SignatureFieldPosition, 0, len(signatureFields))
-	for _, sf := range signatureFields {
-		dbRoleID, ok := anchorToDBRoleID[sf.AnchorString]
-		if !ok || !recipientRoleSet[dbRoleID] {
-			continue
-		}
-
-		positions = append(positions, port.SignatureFieldPosition{
-			RoleID:    dbRoleID,
-			Page:      sf.Page,
-			PositionX: sf.PositionX,
-			PositionY: sf.PositionY,
-			Width:     sf.Width,
-			Height:    sf.Height,
-		})
-	}
-	return positions
-}
-
-// buildAnchorToRoleMap creates anchor string -> DB role ID mapping.
-func (s *InternalDocumentService) buildAnchorToRoleMap(
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-) map[string]string {
-	m := make(map[string]string, len(dbSignerRoles))
-	for _, role := range dbSignerRoles {
-		m[role.AnchorString] = role.ID
-	}
-	return m
-}
-
-// buildRecipientRoleSet creates a set of role IDs that have recipients.
-func (s *InternalDocumentService) buildRecipientRoleSet(
-	recipients []*entity.DocumentRecipient,
-) map[string]bool {
-	set := make(map[string]bool, len(recipients))
-	for _, r := range recipients {
-		set[r.TemplateVersionRoleID] = true
-	}
-	return set
-}
-
-// buildSigningRecipients converts recipients to signing provider format.
-func (s *InternalDocumentService) buildSigningRecipients(
-	recipients []*entity.DocumentRecipient,
-	signerRoles []*entity.TemplateVersionSignerRole,
-) []port.SigningRecipient {
-	roleMap := make(map[string]*entity.TemplateVersionSignerRole, len(signerRoles))
-	for _, role := range signerRoles {
-		roleMap[role.ID] = role
-	}
-
-	signingRecipients := make([]port.SigningRecipient, 0, len(recipients))
-	for _, r := range recipients {
-		role, ok := roleMap[r.TemplateVersionRoleID]
-		if !ok {
-			continue
-		}
-
-		signingRecipients = append(signingRecipients, port.SigningRecipient{
-			Email:       r.Email,
-			Name:        r.Name,
-			RoleID:      r.TemplateVersionRoleID,
-			SignerOrder: role.SignerOrder,
-		})
-	}
-
-	return signingRecipients
-}
-
-// buildDocumentTitle creates a title for the document.
-func (s *InternalDocumentService) buildDocumentTitle(result *DocumentGenerationResult) string {
-	if result.Document.Title != nil && *result.Document.Title != "" {
-		return *result.Document.Title
-	}
-	return fmt.Sprintf("Document %s", result.Document.ID[:8])
-}
-
-// updateRecipientsWithProviderIDs updates recipients with their provider-assigned IDs and signing URLs.
-func (s *InternalDocumentService) updateRecipientsWithProviderIDs(
-	ctx context.Context,
-	recipients []*entity.DocumentRecipient,
-	providerRecipients []port.RecipientResult,
-) {
-	// Build map for O(n) lookup instead of O(n²) nested loops
-	recipientByRoleID := make(map[string]*entity.DocumentRecipient, len(recipients))
-	for _, r := range recipients {
-		recipientByRoleID[r.TemplateVersionRoleID] = r
-	}
-
-	for _, pr := range providerRecipients {
-		recipient, ok := recipientByRoleID[pr.RoleID]
-		if !ok {
-			continue
-		}
-		s.updateRecipientFromProvider(ctx, recipient, pr)
-	}
-}
-
-// updateRecipientFromProvider applies provider data to a single recipient.
-func (s *InternalDocumentService) updateRecipientFromProvider(
-	ctx context.Context,
-	recipient *entity.DocumentRecipient,
-	pr port.RecipientResult,
-) {
-	recipient.SetSignerRecipientID(pr.ProviderRecipientID)
-	if pr.SigningURL != "" {
-		recipient.SetSigningURL(pr.SigningURL)
-	}
-
-	if err := recipient.MarkAsSent(); err != nil {
-		slog.WarnContext(ctx, "failed to mark recipient as sent", "error", err, "recipientID", recipient.ID)
-	}
-	if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-		slog.WarnContext(ctx, "failed to update recipient", "error", err, "recipientID", recipient.ID)
-	}
-}
-
-// logSignatureFieldDebug logs summary of signature field mapping for troubleshooting.
-func (s *InternalDocumentService) logSignatureFieldDebug(
-	ctx context.Context,
-	renderFields []port.SignatureField,
-	mappedFields []port.SignatureFieldPosition,
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-) {
-	slog.DebugContext(ctx, "signature field mapping",
-		"renderCount", len(renderFields),
-		"mappedCount", len(mappedFields),
-		"rolesCount", len(dbSignerRoles),
-	)
 }

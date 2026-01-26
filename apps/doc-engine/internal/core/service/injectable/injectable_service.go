@@ -156,6 +156,8 @@ func convertValueTypeToDataType(vt entity.ValueType) entity.InjectableDataType {
 		return entity.InjectableDataTypeDate
 	case entity.ValueTypeTable:
 		return entity.InjectableDataTypeTable
+	case entity.ValueTypeImage:
+		return entity.InjectableDataTypeImage
 	default:
 		return entity.InjectableDataTypeText
 	}

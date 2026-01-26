@@ -1,12 +1,14 @@
 import type { ImageShape } from '../../extensions/Image/types';
 
-export type ImageInsertTab = 'url' | 'gallery';
+export type ImageInsertTab = 'url' | 'gallery' | 'variable';
 
 export interface ImageInsertResult {
   src: string;
   alt?: string;
   isBase64: boolean;
   shape?: ImageShape;
+  injectableId?: string;
+  injectableLabel?: string;
 }
 
 export interface ImagePreviewState {
@@ -21,6 +23,7 @@ export interface ImageInsertModalProps {
   onOpenChange: (open: boolean) => void;
   onInsert: (result: ImageInsertResult) => void;
   initialShape?: ImageShape;
+  initialImage?: ImageInsertResult;
 }
 
 export interface ImageUrlTabProps {
@@ -41,4 +44,10 @@ export interface ImageCropperProps {
 
 export interface ImageGalleryTabProps {
   onSelect: (result: ImageInsertResult) => void;
+}
+
+export interface ImageVariableTabProps {
+  onSelect: (result: ImageInsertResult) => void;
+  currentSelection?: string;
+  hasUrlSelection?: boolean;  // True when user selected a URL (to reset variable selection)
 }

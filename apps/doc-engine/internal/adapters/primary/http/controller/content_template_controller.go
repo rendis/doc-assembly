@@ -56,6 +56,9 @@ func (c *ContentTemplateController) RegisterRoutes(rg *gin.RouterGroup, middlewa
 			templates.POST("/:templateId/tags", middleware.RequireEditor(), c.AddTemplateTags)            // EDITOR+
 			templates.DELETE("/:templateId/tags/:tagId", middleware.RequireEditor(), c.RemoveTemplateTag) // EDITOR+
 
+			// Document type assignment
+			templates.PUT("/:templateId/document-type", middleware.RequireEditor(), c.AssignDocumentType) // EDITOR+
+
 			// Version routes (nested under templates)
 			c.versionController.RegisterRoutes(templates)
 		}
@@ -323,4 +326,39 @@ func (c *ContentTemplateController) RemoveTemplateTag(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// AssignDocumentType assigns or unassigns a document type to a template.
+// @Summary Assign document type to template
+// @Description Assigns a document type to a template. If the type is already assigned to another template in the workspace and force=false, returns conflict info. Use force=true to reassign the type (previous template will have its type unassigned).
+// @Tags Templates
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
+// @Param templateId path string true "Template ID"
+// @Param request body dto.AssignDocumentTypeRequest true "Document type assignment data"
+// @Success 200 {object} dto.AssignDocumentTypeResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
+// @Router /api/v1/content/templates/{templateId}/document-type [put]
+func (c *ContentTemplateController) AssignDocumentType(ctx *gin.Context) {
+	templateID := ctx.Param("templateId")
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	var req dto.AssignDocumentTypeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := mapper.AssignDocumentTypeRequestToCommand(templateID, workspaceID, req)
+	result, err := c.templateUC.AssignDocumentType(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.AssignResultToResponse(result, c.templateMapper))
 }

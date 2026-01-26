@@ -39,4 +39,5 @@ export interface Variable {
   formatConfig?: FormatConfig
   sourceType: 'INTERNAL' | 'EXTERNAL'
   metadata?: Record<string, unknown>
+  group?: string
 }

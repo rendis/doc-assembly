@@ -9,7 +9,7 @@ type Config struct {
 	Database    DatabaseConfig    `mapstructure:"database"`
 	Auth        AuthConfig        `mapstructure:"auth"`
 	InternalAPI InternalAPIConfig `mapstructure:"internal_api"`
-	Documenso   DocumensoConfig   `mapstructure:"documenso"`
+	Signing     SigningConfig     `mapstructure:"signing"`
 	Storage     StorageConfig     `mapstructure:"storage"`
 	Logging     LoggingConfig     `mapstructure:"logging"`
 	Chrome      ChromeConfig      `mapstructure:"chrome"`
@@ -69,10 +69,11 @@ type InternalAPIConfig struct {
 	APIKey  string `mapstructure:"api_key"`
 }
 
-// DocumensoConfig holds Documenso API configuration.
-type DocumensoConfig struct {
-	APIURL        string `mapstructure:"api_url"`
+// SigningConfig holds signing provider configuration.
+type SigningConfig struct {
+	Provider      string `mapstructure:"provider"` // docuseal, docusign, pandadoc
 	APIKey        string `mapstructure:"api_key"`
+	BaseURL       string `mapstructure:"base_url"`
 	WebhookSecret string `mapstructure:"webhook_secret"`
 }
 

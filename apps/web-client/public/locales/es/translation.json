@@ -640,7 +640,11 @@
       "tableSection": "Datos de Tabla",
       "addRow": "Agregar Fila",
       "deleteRow": "Eliminar Fila",
-      "emptyTable": "Sin filas. Haz clic en 'Agregar Fila' para agregar datos."
+      "emptyTable": "Sin filas. Haz clic en 'Agregar Fila' para agregar datos.",
+      "imageVariables": "Variables de Imagen",
+      "generateRandomImage": "Generar imagen aleatoria",
+      "invalidUrl": "URL no válida",
+      "imageLoadError": "No se pudo cargar la imagen"
     },
     "workflow": {
       "title": "Configuración de firma",
@@ -801,6 +805,12 @@
       "circle": "Circular",
       "editImage": "Editar imagen",
       "deleteImage": "Eliminar imagen",
+      "configure": "Configurar imagen",
+      "noImageVariables": "No hay variables de imagen disponibles",
+      "selectVariable": "Seleccionar variable de imagen",
+      "placeholder": "Imagen de prueba",
+      "generatePlaceholder": "Generar imagen de prueba",
+      "placeholderHint": "Esta imagen es solo un marcador. La imagen real se cargará al generar el documento.",
       "alignments": {
         "blockLeft": "Bloque izquierda",
         "blockCenter": "Bloque centro",

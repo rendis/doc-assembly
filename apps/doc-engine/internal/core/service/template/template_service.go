@@ -334,3 +334,83 @@ func (s *TemplateService) RemoveTag(ctx context.Context, templateID, tagID strin
 
 	return nil
 }
+
+// AssignDocumentType assigns or unassigns a document type to a template.
+func (s *TemplateService) AssignDocumentType(ctx context.Context, cmd templateuc.AssignDocumentTypeCommand) (*templateuc.AssignDocumentTypeResult, error) {
+	// Get the template
+	template, err := s.templateRepo.FindByID(ctx, cmd.TemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("finding template: %w", err)
+	}
+
+	// If unassigning (nil), just clear and return
+	if cmd.DocumentTypeID == nil {
+		if err := s.templateRepo.UpdateDocumentType(ctx, cmd.TemplateID, nil); err != nil {
+			return nil, fmt.Errorf("clearing document type: %w", err)
+		}
+		template.DocumentTypeID = nil
+		now := time.Now().UTC()
+		template.UpdatedAt = &now
+
+		slog.InfoContext(ctx, "document type unassigned from template",
+			slog.String("template_id", template.ID),
+		)
+
+		return &templateuc.AssignDocumentTypeResult{Template: template}, nil
+	}
+
+	// Check if another template in the same workspace has this type
+	existingTemplate, err := s.templateRepo.FindByDocumentType(ctx, cmd.WorkspaceID, *cmd.DocumentTypeID)
+	if err != nil {
+		return nil, fmt.Errorf("checking existing document type assignment: %w", err)
+	}
+
+	// If there's a conflict with a different template
+	if existingTemplate != nil && existingTemplate.ID != cmd.TemplateID {
+		if !cmd.Force {
+			// Return conflict info without making changes
+			return &templateuc.AssignDocumentTypeResult{
+				Template: nil,
+				Conflict: &templateuc.TemplateConflictInfo{
+					ID:    existingTemplate.ID,
+					Title: existingTemplate.Title,
+				},
+			}, nil
+		}
+
+		// Force mode: clear the type from the existing template first
+		if err := s.templateRepo.UpdateDocumentType(ctx, existingTemplate.ID, nil); err != nil {
+			return nil, fmt.Errorf("clearing document type from existing template: %w", err)
+		}
+
+		slog.InfoContext(ctx, "document type forcefully reassigned",
+			slog.String("from_template_id", existingTemplate.ID),
+			slog.String("to_template_id", cmd.TemplateID),
+		)
+	}
+
+	// Assign the document type to this template
+	if err := s.templateRepo.UpdateDocumentType(ctx, cmd.TemplateID, cmd.DocumentTypeID); err != nil {
+		return nil, fmt.Errorf("assigning document type: %w", err)
+	}
+
+	template.DocumentTypeID = cmd.DocumentTypeID
+	now := time.Now().UTC()
+	template.UpdatedAt = &now
+
+	slog.InfoContext(ctx, "document type assigned to template",
+		slog.String("template_id", template.ID),
+		slog.String("document_type_id", *cmd.DocumentTypeID),
+	)
+
+	return &templateuc.AssignDocumentTypeResult{Template: template}, nil
+}
+
+// FindByDocumentTypeCode finds templates by document type code across a tenant.
+func (s *TemplateService) FindByDocumentTypeCode(ctx context.Context, tenantID, code string) ([]*entity.TemplateListItem, error) {
+	templates, err := s.templateRepo.FindByDocumentTypeCode(ctx, tenantID, code)
+	if err != nil {
+		return nil, fmt.Errorf("finding templates by document type code: %w", err)
+	}
+	return templates, nil
+}

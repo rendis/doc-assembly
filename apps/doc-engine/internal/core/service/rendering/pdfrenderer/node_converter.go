@@ -685,6 +685,16 @@ func (c *NodeConverter) pageBreak(_ portabledoc.Node) string {
 
 func (c *NodeConverter) image(node portabledoc.Node) string {
 	src, _ := node.Attrs["src"].(string)
+
+	// Check for injectable binding - resolve URL from injectables if bound
+	if injectableId, ok := node.Attrs["injectableId"].(string); ok && injectableId != "" {
+		if resolved, exists := c.injectables[injectableId]; exists {
+			src = fmt.Sprintf("%v", resolved)
+		} else if defaultVal, exists := c.injectableDefaults[injectableId]; exists {
+			src = defaultVal
+		}
+	}
+
 	if src == "" {
 		return ""
 	}

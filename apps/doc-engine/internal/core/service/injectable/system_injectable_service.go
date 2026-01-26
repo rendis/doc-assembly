@@ -57,6 +57,7 @@ func (s *SystemInjectableService) ListAll(ctx context.Context) ([]*entity.System
 			Label:       s.registry.GetAllNames(code),
 			Description: s.registry.GetAllDescriptions(code),
 			DataType:    convertValueTypeToDataType(inj.DataType()),
+			Group:       s.registry.GetGroup(code),
 			IsActive:    isActive,
 			IsPublic:    isPublic,
 		})

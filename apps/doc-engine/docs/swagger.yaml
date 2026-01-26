@@ -34,6 +34,22 @@ definitions:
     required:
     - injectableDefinitionId
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeRequest:
+    properties:
+      documentTypeId:
+        description: nil to unassign
+        type: string
+      force:
+        description: true = reassign even if type is used by another template
+        type: boolean
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeResponse:
+    properties:
+      conflict:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateConflictInfo'
+      template:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse'
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignSystemRoleRequest:
     properties:
       role:
@@ -121,6 +137,24 @@ definitions:
     - recipients
     - templateVersionId
     - title
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentTypeRequest:
+    properties:
+      code:
+        maxLength: 50
+        minLength: 1
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - code
+    - name
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateFolderRequest:
     properties:
@@ -260,6 +294,28 @@ definitions:
     - name
     - type
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeRequest:
+    properties:
+      force:
+        description: Delete even if templates are assigned
+        type: boolean
+      replaceWithId:
+        description: Replace with another type before deleting
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeResponse:
+    properties:
+      canReplace:
+        description: True if replacement is possible
+        type: boolean
+      deleted:
+        type: boolean
+      templates:
+        description: Templates using this type (if not deleted)
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse'
+        type: array
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentListResponse:
     properties:
       clientExternalReferenceId:
@@ -306,6 +362,61 @@ definitions:
       updatedAt:
         type: string
       workspaceId:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeListItemResponse:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      name:
+        additionalProperties:
+          type: string
+        type: object
+      templatesCount:
+        type: integer
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      name:
+        additionalProperties:
+          type: string
+        type: object
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      workspaceId:
+        type: string
+      workspaceName:
         type: string
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse:
@@ -364,6 +475,17 @@ definitions:
           type: string
         type: array
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GroupResponse:
+    properties:
+      icon:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse:
     properties:
       createdAt:
@@ -374,6 +496,8 @@ definitions:
         type: string
       formatConfig:
         $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse'
+      group:
+        type: string
       id:
         type: string
       isGlobal:
@@ -463,6 +587,10 @@ definitions:
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListInjectablesResponse:
     properties:
+      groups:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GroupResponse'
+        type: array
       items:
         items:
           $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse'
@@ -592,6 +720,15 @@ definitions:
         items:
           $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry'
         type: array
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedDocumentTypesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeListItemResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginationMeta'
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsResponse:
     properties:
@@ -775,6 +912,8 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      group:
+        type: string
       isActive:
         type: boolean
       isPublic:
@@ -853,6 +992,13 @@ definitions:
       updatedAt:
         type: string
       workspaceId:
+        type: string
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateConflictInfo:
+    properties:
+      id:
+        type: string
+      title:
         type: string
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateCreateResponse:
@@ -1177,6 +1323,19 @@ definitions:
       updatedAt:
         type: string
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateDocumentTypeRequest:
+    properties:
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - name
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateFolderRequest:
     properties:
       name:
@@ -1383,6 +1542,10 @@ paths:
         in: header
         name: X-Workspace-ID
         required: true
+        type: string
+      - description: 'Locale for translations (default: es)'
+        in: query
+        name: locale
         type: string
       produces:
       - application/json
@@ -1705,6 +1868,57 @@ paths:
           schema:
             $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
       summary: Clone template from specific version
+      tags:
+      - Templates
+  /api/v1/content/templates/{templateId}/document-type:
+    put:
+      consumes:
+      - application/json
+      description: Assigns a document type to a template. If the type is already assigned
+        to another template in the workspace and force=false, returns conflict info.
+        Use force=true to reassign the type (previous template will have its type
+        unassigned).
+      parameters:
+      - description: Workspace ID
+        in: header
+        name: X-Workspace-ID
+        required: true
+        type: string
+      - description: Enable sandbox mode (operates on sandbox workspace)
+        in: header
+        name: X-Sandbox-Mode
+        type: string
+      - description: Template ID
+        in: path
+        name: templateId
+        required: true
+        type: string
+      - description: Document type assignment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      summary: Assign document type to template
       tags:
       - Templates
   /api/v1/content/templates/{templateId}/tags:
@@ -3617,6 +3831,305 @@ paths:
       summary: Update current tenant
       tags:
       - Tenant
+  /api/v1/tenant/document-types:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - description: Search query for document type name or code
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedDocumentTypesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List document types
+      tags:
+      - Tenant - Document Types
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Document type data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create document type
+      tags:
+      - Tenant - Document Types
+  /api/v1/tenant/document-types/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Delete options
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete document type
+      tags:
+      - Tenant - Document Types
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get document type by ID
+      tags:
+      - Tenant - Document Types
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Document type data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateDocumentTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update document type
+      tags:
+      - Tenant - Document Types
+  /api/v1/tenant/document-types/code/{code}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Document Type Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get document type by code
+      tags:
+      - Tenant - Document Types
+  /api/v1/tenant/document-types/code/{code}/templates:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Document Type Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplatesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List templates by document type code
+      tags:
+      - Tenant - Document Types
   /api/v1/tenant/members:
     get:
       consumes:

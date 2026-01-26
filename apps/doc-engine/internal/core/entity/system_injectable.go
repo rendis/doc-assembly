@@ -28,6 +28,7 @@ type SystemInjectableInfo struct {
 	Label       map[string]string  `json:"label"`
 	Description map[string]string  `json:"description"`
 	DataType    InjectableDataType `json:"dataType"`
+	Group       *string            `json:"group,omitempty"`
 	IsActive    bool               `json:"isActive"`
 	IsPublic    bool               `json:"isPublic"`
 }

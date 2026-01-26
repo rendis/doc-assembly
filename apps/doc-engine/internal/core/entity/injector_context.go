@@ -19,6 +19,8 @@ const (
 	ValueTypeTime
 	// ValueTypeTable represents a table value with columns and rows.
 	ValueTypeTable
+	// ValueTypeImage represents an image URL value.
+	ValueTypeImage
 )
 
 // InjectableValue is the typed value returned by an injector.
@@ -55,6 +57,11 @@ func TimeValue(t time.Time) InjectableValue {
 // TableValueData creates an InjectableValue of type table.
 func TableValueData(t *TableValue) InjectableValue {
 	return InjectableValue{typ: ValueTypeTable, tableVal: t}
+}
+
+// ImageValue creates an InjectableValue of type image (URL string).
+func ImageValue(url string) InjectableValue {
+	return InjectableValue{typ: ValueTypeImage, strVal: url}
 }
 
 // Type returns the type of the value.
@@ -115,6 +122,8 @@ func (v InjectableValue) AsAny() any {
 		return v.timeVal
 	case ValueTypeTable:
 		return v.tableVal
+	case ValueTypeImage:
+		return v.strVal
 	default:
 		return nil
 	}

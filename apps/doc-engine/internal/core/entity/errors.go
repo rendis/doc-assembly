@@ -158,6 +158,15 @@ func (e *RecipientValidationError) Error() string {
 	return fmt.Sprintf("recipient validation failed: %s", strings.Join(e.Errors, "; "))
 }
 
+// Document Type errors.
+var (
+	ErrDocumentTypeNotFound        = errors.New("document type not found")
+	ErrDocumentTypeCodeExists      = errors.New("document type with this code already exists")
+	ErrDocumentTypeCodeImmutable   = errors.New("document type code cannot be modified")
+	ErrDocumentTypeAlreadyAssigned = errors.New("workspace already has a template for this document type")
+	ErrDocumentTypeHasTemplates    = errors.New("document type is assigned to templates")
+)
+
 // Template errors.
 var (
 	ErrTemplateNotFound      = errors.New("template not found")

@@ -31,11 +31,12 @@ internal_api:
   enabled: true
   api_key: ""    # DOC_ENGINE_INTERNAL_API_API_KEY - API key for internal service authentication
 
-# External services (deferred - interfaces only for now)
-documenso:
-  api_url: "https://app.documenso.com/api/v1"
-  api_key: ""          # DOC_ENGINE_DOCUMENSO_API_KEY
-  webhook_secret: ""   # DOC_ENGINE_DOCUMENSO_WEBHOOK_SECRET
+# Signing provider configuration (supports: opensign, docusign, pandadoc)
+signing:
+  provider: opensign      # DOC_ENGINE_SIGNING_PROVIDER
+  api_key: ""             # DOC_ENGINE_SIGNING_API_KEY
+  base_url: ""            # DOC_ENGINE_SIGNING_BASE_URL (default: https://sandbox.opensignlabs.com/api/v1)
+  webhook_secret: ""      # DOC_ENGINE_SIGNING_WEBHOOK_SECRET
 
 storage:
   bucket: "contracts-bucket"

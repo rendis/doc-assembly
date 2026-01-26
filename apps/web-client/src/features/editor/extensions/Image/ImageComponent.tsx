@@ -4,7 +4,13 @@ import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { NodeSelection } from '@tiptap/pm/state';
 import Moveable from 'react-moveable';
 import { Button } from '@/components/ui/button';
-import { Square, Circle, Pencil, Trash2 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Square, Circle, Settings2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ImageAlignSelector } from './ImageAlignSelector';
 import type { ImageDisplayMode, ImageAlign, ImageShape } from './types';
@@ -42,7 +48,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
   // Check if editor is in editable mode (not read-only/published)
   const isEditorEditable = editor.isEditable
 
-  const { src, alt, title, width, height, displayMode, align, shape } = node.attrs as {
+  const { src, alt, title, width, height, displayMode, align, shape, injectableId, injectableLabel } = node.attrs as {
     src: string;
     alt?: string;
     title?: string;
@@ -51,6 +57,8 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     displayMode: ImageDisplayMode;
     align: ImageAlign;
     shape: ImageShape;
+    injectableId?: string;
+    injectableLabel?: string;
   };
 
   const handleAlignChange = useCallback(
@@ -75,14 +83,21 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     editor.view.dom.dispatchEvent(
       new CustomEvent('editor:edit-image', {
         bubbles: true,
-        detail: { shape },
+        detail: { src, shape, injectableId, injectableLabel },
       })
     );
-  }, [editor, shape]);
+  }, [editor, src, shape, injectableId, injectableLabel]);
 
   const handleDelete = useCallback(() => {
     deleteNode();
   }, [deleteNode]);
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isEditorEditable) return;
+    handleEdit();
+  }, [isEditorEditable, handleEdit]);
 
   // Obtener el ancho máximo disponible del contenedor del editor
   const getMaxWidth = useCallback(() => {
@@ -221,8 +236,10 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
             height: height ? `${height}px` : undefined,
           }}
           onLoad={handleImageLoad}
+          onDoubleClick={handleDoubleClick}
           draggable={false}
         />
+
 
         {isEditorEditable && isDirectlySelected && imageLoaded && (
           <>
@@ -252,15 +269,23 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
                 <Circle className="h-4 w-4" />
               </Button>
               <div className="w-px h-6 bg-border mx-1" />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleEdit}
-                title={t('editor.image.editImage')}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleEdit}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{t('editor.image.configure')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button
                 variant="ghost"
                 size="icon"

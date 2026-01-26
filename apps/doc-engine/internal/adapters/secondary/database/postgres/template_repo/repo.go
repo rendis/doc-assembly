@@ -28,6 +28,7 @@ func (r *Repository) Create(ctx context.Context, template *entity.Template) (str
 	err := r.pool.QueryRow(ctx, queryCreate,
 		template.WorkspaceID,
 		template.FolderID,
+		template.DocumentTypeID,
 		template.Title,
 		template.IsPublicLibrary,
 		template.CreatedAt,
@@ -46,6 +47,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Template,
 		&template.ID,
 		&template.WorkspaceID,
 		&template.FolderID,
+		&template.DocumentTypeID,
 		&template.Title,
 		&template.IsPublicLibrary,
 		&template.CreatedAt,
@@ -142,29 +144,9 @@ func (r *Repository) FindByFolder(ctx context.Context, folderID string) ([]*enti
 	}
 	defer rows.Close()
 
-	var templates []*entity.TemplateListItem
-	for rows.Next() {
-		item := &entity.TemplateListItem{}
-		if err := rows.Scan(
-			&item.ID,
-			&item.WorkspaceID,
-			&item.FolderID,
-			&item.Title,
-			&item.IsPublicLibrary,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.HasPublishedVersion,
-			&item.VersionCount,
-			&item.ScheduledVersionCount,
-			&item.PublishedVersionNumber,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template: %w", err)
-		}
-		templates = append(templates, item)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating templates: %w", err)
+	templates, err := scanTemplateListItems(rows)
+	if err != nil {
+		return nil, err
 	}
 
 	// Load tags in batch for all templates
@@ -183,29 +165,9 @@ func (r *Repository) FindPublicLibrary(ctx context.Context, workspaceID string) 
 	}
 	defer rows.Close()
 
-	var templates []*entity.TemplateListItem
-	for rows.Next() {
-		item := &entity.TemplateListItem{}
-		if err := rows.Scan(
-			&item.ID,
-			&item.WorkspaceID,
-			&item.FolderID,
-			&item.Title,
-			&item.IsPublicLibrary,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.HasPublishedVersion,
-			&item.VersionCount,
-			&item.ScheduledVersionCount,
-			&item.PublishedVersionNumber,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template: %w", err)
-		}
-		templates = append(templates, item)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating templates: %w", err)
+	templates, err := scanTemplateListItems(rows)
+	if err != nil {
+		return nil, err
 	}
 
 	// Load tags in batch for all templates
@@ -411,8 +373,9 @@ func scanTemplateListItems(rows pgx.Rows) ([]*entity.TemplateListItem, error) {
 	for rows.Next() {
 		item := &entity.TemplateListItem{}
 		if err := rows.Scan(
-			&item.ID, &item.WorkspaceID, &item.FolderID, &item.Title,
-			&item.IsPublicLibrary, &item.CreatedAt, &item.UpdatedAt,
+			&item.ID, &item.WorkspaceID, &item.FolderID,
+			&item.DocumentTypeID, &item.DocumentTypeCode,
+			&item.Title, &item.IsPublicLibrary, &item.CreatedAt, &item.UpdatedAt,
 			&item.HasPublishedVersion, &item.VersionCount,
 			&item.ScheduledVersionCount, &item.PublishedVersionNumber,
 		); err != nil {
@@ -478,6 +441,7 @@ func (r *Repository) Update(ctx context.Context, template *entity.Template) erro
 		template.ID,
 		template.Title,
 		template.FolderID,
+		template.DocumentTypeID,
 		template.IsPublicLibrary,
 		template.UpdatedAt,
 	)
@@ -537,4 +501,62 @@ func (r *Repository) CountByFolder(ctx context.Context, folderID string) (int, e
 	}
 
 	return count, nil
+}
+
+// FindByDocumentType finds the template assigned to a document type in a workspace.
+func (r *Repository) FindByDocumentType(ctx context.Context, workspaceID, documentTypeID string) (*entity.Template, error) {
+	template := &entity.Template{}
+	err := r.pool.QueryRow(ctx, queryFindByDocumentType, workspaceID, documentTypeID).Scan(
+		&template.ID,
+		&template.WorkspaceID,
+		&template.FolderID,
+		&template.DocumentTypeID,
+		&template.Title,
+		&template.IsPublicLibrary,
+		&template.CreatedAt,
+		&template.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // No template assigned to this type in this workspace
+		}
+		return nil, fmt.Errorf("finding template by document type: %w", err)
+	}
+
+	return template, nil
+}
+
+// FindByDocumentTypeCode finds templates by document type code across a tenant.
+func (r *Repository) FindByDocumentTypeCode(ctx context.Context, tenantID, documentTypeCode string) ([]*entity.TemplateListItem, error) {
+	rows, err := r.pool.Query(ctx, queryFindByDocumentTypeCode, tenantID, documentTypeCode)
+	if err != nil {
+		return nil, fmt.Errorf("querying templates by document type code: %w", err)
+	}
+	defer rows.Close()
+
+	templates, err := scanTemplateListItems(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load tags in batch for all templates
+	if err := r.loadTagsForTemplates(ctx, templates); err != nil {
+		return nil, err
+	}
+
+	return templates, nil
+}
+
+// UpdateDocumentType updates the document type assignment for a template.
+func (r *Repository) UpdateDocumentType(ctx context.Context, templateID string, documentTypeID *string) error {
+	result, err := r.pool.Exec(ctx, queryUpdateDocumentType, templateID, documentTypeID)
+	if err != nil {
+		return fmt.Errorf("updating template document type: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return entity.ErrTemplateNotFound
+	}
+
+	return nil
 }

@@ -15,6 +15,8 @@ declare module '@tiptap/core' {
         displayMode?: ImageDisplayMode;
         align?: ImageAlign;
         shape?: ImageShape;
+        injectableId?: string;
+        injectableLabel?: string;
       }) => ReturnType;
       setImageAlign: (options: {
         displayMode: ImageDisplayMode;
@@ -71,6 +73,20 @@ export const ImageExtension = Node.create({
           'data-shape': attributes.shape,
         }),
       },
+      injectableId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-injectable-id') || null,
+        renderHTML: (attributes) => attributes.injectableId
+          ? { 'data-injectable-id': attributes.injectableId }
+          : {},
+      },
+      injectableLabel: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-injectable-label') || null,
+        renderHTML: (attributes) => attributes.injectableLabel
+          ? { 'data-injectable-label': attributes.injectableLabel }
+          : {},
+      },
     };
   },
 
@@ -110,6 +126,8 @@ export const ImageExtension = Node.create({
               displayMode: options.displayMode || 'block',
               align: options.align || 'center',
               shape: options.shape || 'square',
+              injectableId: options.injectableId || null,
+              injectableLabel: options.injectableLabel || null,
             },
           });
         },

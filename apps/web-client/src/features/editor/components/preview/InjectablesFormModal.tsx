@@ -14,6 +14,7 @@ import { StandardInjectablesSection } from './StandardInjectablesSection'
 import { RoleInjectablesSection } from './RoleInjectablesSection'
 import { SystemInjectablesSection } from './SystemInjectablesSection'
 import { TableInjectablesSection } from './TableInjectablesSection'
+import { ImageInjectablesSection } from './ImageInjectablesSection'
 import { PDFPreviewModal } from './PDFPreviewModal'
 import type { TableInputValue } from '../../types/table-input'
 import { toTableValuePayload } from '../../types/table-input'
@@ -86,14 +87,14 @@ export function InjectablesFormModal({
     [standardVariables]
   )
 
-  // Variables del documento (excluyendo las de sistema y TABLE type)
+  // Variables del documento (excluyendo las de sistema, TABLE e IMAGE types)
   const documentVariables = useMemo(
     () =>
       standardVariables.filter(
         (v) =>
           !INTERNAL_INJECTABLE_KEYS.includes(
             v.variableId as (typeof INTERNAL_INJECTABLE_KEYS)[number]
-          ) && v.type !== 'TABLE'
+          ) && v.type !== 'TABLE' && v.type !== 'IMAGE'
       ),
     [standardVariables]
   )
@@ -111,7 +112,20 @@ export function InjectablesFormModal({
     [standardVariables]
   )
 
-  const hasVariables = standardVariables.length > 0 || roleInjectables.length > 0 || tableVariables.length > 0
+  // IMAGE type variables (handled by ImageInjectablesSection)
+  const imageVariables = useMemo(
+    () =>
+      standardVariables.filter(
+        (v) =>
+          v.type === 'IMAGE' &&
+          !INTERNAL_INJECTABLE_KEYS.includes(
+            v.variableId as (typeof INTERNAL_INJECTABLE_KEYS)[number]
+          )
+      ),
+    [standardVariables]
+  )
+
+  const hasVariables = standardVariables.length > 0 || roleInjectables.length > 0 || tableVariables.length > 0 || imageVariables.length > 0
 
   // Auto-completar valores emulados al abrir el modal
   useEffect(() => {
@@ -415,11 +429,30 @@ export function InjectablesFormModal({
                   </>
                 )}
 
-                {roleInjectables.length > 0 && (
+                {imageVariables.length > 0 && (
                   <>
                     {(systemVariables.length > 0 ||
                       documentVariables.length > 0 ||
                       tableVariables.length > 0) && (
+                      <div className="border-t border-border my-4" />
+                    )}
+
+                    <ImageInjectablesSection
+                      variables={imageVariables}
+                      values={values}
+                      errors={errors}
+                      onChange={handleChange}
+                      disabled={isGenerating}
+                    />
+                  </>
+                )}
+
+                {roleInjectables.length > 0 && (
+                  <>
+                    {(systemVariables.length > 0 ||
+                      documentVariables.length > 0 ||
+                      tableVariables.length > 0 ||
+                      imageVariables.length > 0) && (
                       <div className="border-t border-border my-4" />
                     )}
 

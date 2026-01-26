@@ -12,6 +12,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_type_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
@@ -109,18 +110,21 @@ func InitializeApp() (*infra.Initializer, error) {
 	meController := controller.NewMeController(tenantUseCase, tenantMemberRepository, workspaceMemberRepository, userAccessHistoryUseCase)
 	tenantMemberUseCase := organization.NewTenantMemberService(tenantMemberRepository, userRepository)
 	tenantController := controller.NewTenantController(tenantUseCase, workspaceUseCase, tenantMemberUseCase)
+	documentTypeRepository := documenttyperepo.New(pool)
+	documentTypeUseCase := catalog.NewDocumentTypeService(documentTypeRepository, templateRepository)
+	documentTypeController := controller.NewDocumentTypeController(documentTypeUseCase, templateUseCase, templateMapper)
 	documentRepository := documentrepo.New(pool)
 	documentRecipientRepository := documentrecipientrepo.New(pool)
 	injectableResolverService := infra.ProvideInjectableResolver(injectorRegistry)
 	documentGenerator := infra.ProvideDocumentGenerator(templateRepository, templateVersionRepository, documentRepository, documentRecipientRepository, injectableUseCase, mapperRegistry, injectableResolverService)
-	documensoConfig := infra.ProvideDocumensoConfig(configConfig)
-	signingProvider, err := infra.ProvideSigningProvider(documensoConfig)
+	opensignConfig := infra.ProvideSigningConfig(configConfig)
+	signingProvider, err := infra.ProvideSigningProvider(opensignConfig)
 	if err != nil {
 		return nil, err
 	}
 	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator, documentRepository, documentRecipientRepository, pdfRenderer, signingProvider)
 	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
-	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, internalDocumentController)
+	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, documentTypeController, internalDocumentController)
 	initializer := infra.NewInitializer(httpServer, pool)
 	return initializer, nil
 }

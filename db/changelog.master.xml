@@ -19,6 +19,9 @@
     <!-- All ENUM types used across the system -->
     <include file="src/types/enums.xml"/>
 
+    <!-- ENUM modifications -->
+    <include file="src/types/document_status_add_pending_provider.xml"/>
+
     <!-- ============================================ -->
     <!-- PHASE 2: Schema Creation                    -->
     <!-- ============================================ -->
@@ -86,6 +89,9 @@
 
     <!-- Injectable Definitions: Universe of variables -->
     <include file="src/content/injectable_definitions.xml"/>
+
+    <!-- Document Types: Tenant-scoped template classification -->
+    <include file="src/content/document_types.xml"/>
 
     <!-- Templates: Document blueprints (metadata only) -->
     <include file="src/content/templates.xml"/>

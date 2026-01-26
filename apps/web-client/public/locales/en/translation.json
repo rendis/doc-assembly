@@ -640,7 +640,11 @@
       "tableSection": "Table Data",
       "addRow": "Add Row",
       "deleteRow": "Delete Row",
-      "emptyTable": "No rows. Click 'Add Row' to add data."
+      "emptyTable": "No rows. Click 'Add Row' to add data.",
+      "imageVariables": "Image Variables",
+      "generateRandomImage": "Generate random image",
+      "invalidUrl": "Invalid URL",
+      "imageLoadError": "Could not load image"
     },
     "workflow": {
       "title": "Signing configuration",
@@ -801,6 +805,12 @@
       "circle": "Circular",
       "editImage": "Edit image",
       "deleteImage": "Delete image",
+      "configure": "Configure image",
+      "noImageVariables": "No image variables available",
+      "selectVariable": "Select image variable",
+      "placeholder": "Placeholder image",
+      "generatePlaceholder": "Generate placeholder image",
+      "placeholderHint": "This image is just a placeholder. The actual image will be loaded when generating the document.",
       "alignments": {
         "blockLeft": "Block left",
         "blockCenter": "Block center",

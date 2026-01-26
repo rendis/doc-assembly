@@ -111,3 +111,12 @@ example_table:
   description:
     en: "Example table injector. For development/demonstration only."
     es: "Inyector de tabla de ejemplo. Solo para desarrollo/demostración."
+
+example_image:
+  group: examples
+  name:
+    en: "[EXAMPLE] Demo Image"
+    es: "[EJEMPLO] Imagen Demo"
+  description:
+    en: "Example image injector. Returns a sample image URL."
+    es: "Inyector de imagen de ejemplo. Retorna una URL de imagen de muestra."

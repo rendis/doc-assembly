@@ -88,6 +88,7 @@ export function DocumentEditor({
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
+  const [editingImageData, setEditingImageData] = useState<ImageInsertResult | null>(null)
 
   // Format dialog state
   const [formatDialogOpen, setFormatDialogOpen] = useState(false)
@@ -195,8 +196,21 @@ export function DocumentEditor({
       setImageModalOpen(true)
     }
 
-    const handleEditImage = (event: CustomEvent<{ shape: ImageShape }>) => {
-      setEditingImageShape(event.detail?.shape || 'square')
+    const handleEditImage = (event: CustomEvent<{
+      src: string
+      shape: ImageShape
+      injectableId?: string
+      injectableLabel?: string
+    }>) => {
+      const { src, shape, injectableId, injectableLabel } = event.detail
+      setEditingImageShape(shape || 'square')
+      setEditingImageData({
+        src,
+        isBase64: false,
+        shape,
+        injectableId,
+        injectableLabel,
+      })
       setIsEditingImage(true)
       setImageModalOpen(true)
     }
@@ -241,13 +255,15 @@ export function DocumentEditor({
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return
 
-    const { src, shape } = result
+    const { src, shape, injectableId, injectableLabel } = result
 
     if (isEditingImage) {
       // Update existing image
       editor.chain().focus().updateAttributes('customImage', {
         src,
         shape,
+        injectableId: injectableId || null,
+        injectableLabel: injectableLabel || null,
       }).run()
     } else {
       // Insert new image
@@ -257,12 +273,15 @@ export function DocumentEditor({
       editor.chain().focus().setImage({
         src,
         shape,
+        injectableId,
+        injectableLabel,
       }).run()
     }
 
     setImageModalOpen(false)
     setIsEditingImage(false)
     setPendingImagePosition(null)
+    setEditingImageData(null)
   }, [editor, isEditingImage, pendingImagePosition])
 
   const handleImageModalClose = useCallback((open: boolean) => {
@@ -270,6 +289,7 @@ export function DocumentEditor({
       setImageModalOpen(false)
       setIsEditingImage(false)
       setPendingImagePosition(null)
+      setEditingImageData(null)
     }
   }, [])
 
@@ -553,6 +573,7 @@ export function DocumentEditor({
         onOpenChange={handleImageModalClose}
         onInsert={handleImageInsert}
         initialShape={isEditingImage ? editingImageShape : 'square'}
+        initialImage={isEditingImage ? editingImageData ?? undefined : undefined}
       />
 
       {pendingVariable && (

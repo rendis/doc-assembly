@@ -23,6 +23,7 @@ func RegisterAll(injReg port.InjectorRegistry, mapReg port.MapperRegistry, deps 
 	injReg.Register(&datetime.MonthNowInjector{})
 	injReg.Register(&datetime.TimeNowInjector{})
 	injReg.Register(&datetime.YearNowInjector{})
+	injReg.Register(&injectors.ExampleImageInjector{})
 	injReg.Register(&injectors.ExampleInjector{})
 	injReg.Register(&injectors.ExampleTableInjector{})
 

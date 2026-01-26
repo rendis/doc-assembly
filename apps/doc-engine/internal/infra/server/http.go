@@ -47,6 +47,7 @@ func NewHTTPServer(
 	adminController *controller.AdminController,
 	meController *controller.MeController,
 	tenantController *controller.TenantController,
+	documentTypeController *controller.DocumentTypeController,
 	internalDocController *controller.InternalDocumentController,
 ) *HTTPServer {
 	// Set Gin mode based on environment
@@ -107,6 +108,7 @@ func NewHTTPServer(
 		// Requires tenant roles (TENANT_OWNER or TENANT_ADMIN)
 		// =====================================================
 		tenantController.RegisterRoutes(v1, middlewareProvider)
+		documentTypeController.RegisterRoutes(v1, middlewareProvider)
 
 		// =====================================================
 		// WORKSPACE ROUTES - Requires X-Workspace-ID header

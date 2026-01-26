@@ -79,13 +79,16 @@ export function Editor({
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return
 
-    const { src, shape } = result
+    const { src, shape, injectableId, injectableLabel } = result
 
     if (isEditingImage) {
       // Update existing image
+      // If switching to URL tab (no injectable), clear injectable binding
       editor.chain().focus().updateAttributes('customImage', {
         src,
         shape,
+        injectableId: injectableId ?? null,
+        injectableLabel: injectableLabel ?? null,
       }).run()
     } else {
       // Insert new image
@@ -95,6 +98,8 @@ export function Editor({
       editor.chain().focus().setImage({
         src,
         shape,
+        injectableId,
+        injectableLabel,
       }).run()
     }
 

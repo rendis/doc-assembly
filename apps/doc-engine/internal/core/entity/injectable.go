@@ -19,6 +19,7 @@ type InjectableDefinition struct {
 	SourceType   InjectableSourceType `json:"sourceType"`             // INTERNAL (system-calculated) or EXTERNAL (user input)
 	Metadata     map[string]any       `json:"metadata"`               // Flexible configuration (format options, etc.)
 	FormatConfig *FormatConfig        `json:"formatConfig,omitempty"` // Formatting options for this injectable
+	Group        *string              `json:"group,omitempty"`        // Group key for organizing in the editor (system injectables only)
 	DefaultValue *string              `json:"defaultValue,omitempty"` // Default value for workspace injectables
 	IsActive     bool                 `json:"isActive"`               // Enable/disable injectable
 	IsDeleted    bool                 `json:"isDeleted"`              // Soft delete flag

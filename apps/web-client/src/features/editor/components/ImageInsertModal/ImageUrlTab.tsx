@@ -107,6 +107,22 @@ export function ImageUrlTab({
     };
   }, []);
 
+  // Reset URL when currentImage becomes an injector (user selected variable in other tab)
+  // Don't reset if currentImage is null or is a URL image - preserve state when navigating tabs
+  useEffect(() => {
+    if (currentImage?.injectableId) {
+      // User selected an injector in variable tab - clear URL state
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset when selection type changes
+      setUrl('');
+      setPreview({
+        src: null,
+        isLoading: false,
+        error: null,
+        isBase64: false,
+      });
+    }
+  }, [currentImage?.injectableId]);
+
   const handleCropClick = useCallback(() => {
     if (preview.src) {
       onOpenCropper(preview.src);

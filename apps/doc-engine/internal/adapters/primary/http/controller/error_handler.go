@@ -75,10 +75,13 @@ func is404Error(err error) bool {
 		errors.Is(err, entity.ErrMemberNotFound) ||
 		errors.Is(err, entity.ErrTenantNotFound) ||
 		errors.Is(err, entity.ErrTenantMemberNotFound) ||
-		errors.Is(err, entity.ErrSystemRoleNotFound)
+		errors.Is(err, entity.ErrSystemRoleNotFound) ||
+		errors.Is(err, entity.ErrDocumentTypeNotFound)
 }
 
 // is409Error returns true if the error should result in a 409 Conflict response.
+//
+//nolint:gocyclo // Simple list of error checks that grows with features
 func is409Error(err error) bool {
 	return errors.Is(err, entity.ErrInjectableAlreadyExists) ||
 		errors.Is(err, entity.ErrTemplateAlreadyExists) ||
@@ -94,7 +97,9 @@ func is409Error(err error) bool {
 		errors.Is(err, entity.ErrTenantAlreadyExists) ||
 		errors.Is(err, entity.ErrGlobalWorkspaceExists) ||
 		errors.Is(err, entity.ErrTenantMemberExists) ||
-		errors.Is(err, entity.ErrScheduledTimeConflict)
+		errors.Is(err, entity.ErrScheduledTimeConflict) ||
+		errors.Is(err, entity.ErrDocumentTypeCodeExists) ||
+		errors.Is(err, entity.ErrDocumentTypeAlreadyAssigned)
 }
 
 // is400Error returns true if the error should result in a 400 Bad Request response.
@@ -133,7 +138,9 @@ func is400Error(err error) bool {
 		errors.Is(err, entity.ErrTargetTemplateNotInWorkspace) ||
 		errors.Is(err, entity.ErrOnlyTextTypeAllowed) ||
 		errors.Is(err, entity.ErrWorkspaceIDRequired) ||
-		errors.Is(err, entity.ErrCannotModifyGlobal)
+		errors.Is(err, entity.ErrCannotModifyGlobal) ||
+		errors.Is(err, entity.ErrDocumentTypeCodeImmutable) ||
+		errors.Is(err, entity.ErrDocumentTypeHasTemplates)
 }
 
 // is403Error returns true if the error should result in a 403 Forbidden response.
