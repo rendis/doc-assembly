@@ -78,14 +78,18 @@ export function AppHeader({
           </motion.span>
         </motion.div>
 
-        {/* Context breadcrumb - only in full variant */}
-        {!isMinimal && <ContextBreadcrumb />}
+        {/* Context breadcrumb - only in full variant, hidden on mobile */}
+        {!isMinimal && (
+          <div className="hidden sm:block">
+            <ContextBreadcrumb />
+          </div>
+        )}
       </div>
 
       {/* Controles de idioma y tema con layoutId para animación */}
       <motion.div
         layoutId="app-controls"
-        className="flex items-center gap-1"
+        className="flex shrink-0 items-center gap-1"
       >
         <LanguageSelector />
         <ThemeToggle />
