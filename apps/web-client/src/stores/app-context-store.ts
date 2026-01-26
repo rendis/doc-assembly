@@ -32,6 +32,8 @@ export interface AppContextState {
 
   // Computed
   isSystemContext: () => boolean
+  isGlobalSystemWorkspace: () => boolean
+  isTenantSystemWorkspace: () => boolean
   hasTenant: () => boolean
   hasWorkspace: () => boolean
 }
@@ -74,6 +76,16 @@ export const useAppContextStore = create<AppContextState>()(
       isSystemContext: () => {
         const { currentWorkspace } = get()
         return currentWorkspace?.type === 'SYSTEM'
+      },
+
+      isGlobalSystemWorkspace: () => {
+        const { currentWorkspace, currentTenant } = get()
+        return currentWorkspace?.type === 'SYSTEM' && currentTenant?.isSystem === true
+      },
+
+      isTenantSystemWorkspace: () => {
+        const { currentWorkspace, currentTenant } = get()
+        return currentWorkspace?.type === 'SYSTEM' && currentTenant?.isSystem !== true
       },
 
       hasTenant: () => {

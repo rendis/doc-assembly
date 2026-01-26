@@ -108,6 +108,9 @@ func (r *Repository) FindByIDWithAllVersions(ctx context.Context, id string) (*e
 	if template.FolderID != nil {
 		result.Folder = r.loadFolder(ctx, *template.FolderID)
 	}
+	if template.DocumentTypeID != nil {
+		result.DocumentType = r.loadDocumentType(ctx, *template.DocumentTypeID)
+	}
 
 	return result, nil
 }
@@ -288,6 +291,20 @@ func (r *Repository) loadFolder(ctx context.Context, folderID string) *entity.Fo
 		return nil
 	}
 	return folder
+}
+
+// loadDocumentType loads a document type by ID.
+func (r *Repository) loadDocumentType(ctx context.Context, documentTypeID string) *entity.DocumentType {
+	docType := &entity.DocumentType{}
+	err := r.pool.QueryRow(ctx, queryDocumentType, documentTypeID).Scan(
+		&docType.ID, &docType.TenantID, &docType.Code,
+		&docType.Name, &docType.Description,
+		&docType.CreatedAt, &docType.UpdatedAt,
+	)
+	if err != nil {
+		return nil
+	}
+	return docType
 }
 
 // loadAllVersions loads all versions for a template.

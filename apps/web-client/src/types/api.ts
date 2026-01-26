@@ -159,12 +159,15 @@ export interface Template {
   folderId?: string
   title: string
   isPublicLibrary: boolean
+  documentTypeId?: string | null
+  documentTypeName?: Record<string, string> | null
   createdAt: string
   updatedAt?: string
 }
 
 export interface TemplateListItem extends Template {
   tags: Tag[]
+  documentTypeCode?: string
   hasPublishedVersion: boolean
   publishedVersionNumber?: number
   versionCount: number
@@ -185,6 +188,8 @@ export interface TemplateWithAllVersionsResponse {
   isPublicLibrary: boolean
   tags: Tag[]
   versions: TemplateVersionSummaryResponse[]
+  documentTypeId?: string | null
+  documentTypeName?: Record<string, string> | null
   createdAt: string
   updatedAt?: string
 }
@@ -287,6 +292,7 @@ export interface UpdateTemplateRequest {
   title?: string
   folderId?: string
   isPublicLibrary?: boolean
+  documentTypeId?: string | null
 }
 
 export interface CreateVersionRequest {

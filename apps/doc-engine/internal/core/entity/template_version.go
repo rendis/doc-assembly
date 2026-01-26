@@ -249,9 +249,10 @@ type TemplateWithDetails struct {
 // TemplateWithAllVersions represents a template with all its versions.
 type TemplateWithAllVersions struct {
 	Template
-	Versions []*TemplateVersionWithDetails `json:"versions,omitempty"`
-	Tags     []*Tag                        `json:"tags,omitempty"`
-	Folder   *Folder                       `json:"folder,omitempty"`
+	Versions     []*TemplateVersionWithDetails `json:"versions,omitempty"`
+	Tags         []*Tag                        `json:"tags,omitempty"`
+	Folder       *Folder                       `json:"folder,omitempty"`
+	DocumentType *DocumentType                 `json:"documentType,omitempty"`
 }
 
 // TemplateVersionListItem represents a template version in list views (without full content).

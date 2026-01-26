@@ -96,8 +96,15 @@ export function TemplateListRow({
             size={24}
           />
           <div>
-            <div className="mb-1 font-display text-lg font-medium text-foreground">
-              {template.title}
+            <div className="mb-1 flex items-center gap-2">
+              <span className="font-display text-lg font-medium text-foreground">
+                {template.title}
+              </span>
+              {template.documentTypeCode && (
+                <span className="shrink-0 rounded-sm border px-1 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
+                  {template.documentTypeCode}
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {template.tags.map((tag) => (

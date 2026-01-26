@@ -21,6 +21,7 @@ import {
     CheckCircle2,
     Clock,
     FileText,
+    FileType,
     FolderOpen,
     Layers,
     Pencil,
@@ -28,14 +29,16 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { PromoteVersionResponse } from '../api/templates-api'
+import { DocumentTypeConflictError, type PromoteVersionResponse } from '../api/templates-api'
 import {
     usePublishVersion,
     useSchedulePublishVersion,
     useTemplateWithVersions,
 } from '../hooks/useTemplateDetail'
-import { useUpdateTemplate } from '../hooks/useTemplates'
+import { useUpdateTemplate, useAssignDocumentType } from '../hooks/useTemplates'
+import { DocumentTypeSelector } from '@/features/administration/components/DocumentTypeSelector'
 import { ArchiveVersionDialog } from './ArchiveVersionDialog'
+import { DocumentTypeConflictDialog } from './DocumentTypeConflictDialog'
 import { CancelScheduleDialog } from './CancelScheduleDialog'
 import { CloneVersionDialog } from './CloneVersionDialog'
 import { CreateVersionDialog } from './CreateVersionDialog'
@@ -86,6 +89,11 @@ export function TemplateDetailPage() {
   const [versionToCancelSchedule, setVersionToCancelSchedule] = useState<TemplateVersionSummaryResponse | null>(null)
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false)
   const [versionToClone, setVersionToClone] = useState<TemplateVersionSummaryResponse | null>(null)
+  const [conflictDialog, setConflictDialog] = useState<{
+    open: boolean
+    conflict: { id: string; title: string } | null
+    pendingTypeId: string | null
+  }>({ open: false, conflict: null, pendingTypeId: null })
 
   // Sandbox mode and highlight
   const { isSandboxActive, disableSandbox } = useSandboxMode()
@@ -94,6 +102,7 @@ export function TemplateDetailPage() {
 
   // Template update mutation
   const updateTemplate = useUpdateTemplate()
+  const assignDocumentType = useAssignDocumentType()
 
   // Version action mutations
   const publishVersion = usePublishVersion(templateId)
@@ -104,6 +113,43 @@ export function TemplateDetailPage() {
       templateId,
       data: { title: newTitle },
     })
+  }
+
+  const handleAssignDocumentType = async (documentTypeId: string | null) => {
+    try {
+      await assignDocumentType.mutateAsync({
+        templateId,
+        data: { documentTypeId },
+      })
+    } catch (error) {
+      if (error instanceof DocumentTypeConflictError) {
+        setConflictDialog({
+          open: true,
+          conflict: error.conflict,
+          pendingTypeId: documentTypeId,
+        })
+        return
+      }
+      throw error
+    }
+  }
+
+  const handleForceAssignDocumentType = async () => {
+    if (!conflictDialog.pendingTypeId) return
+    try {
+      await assignDocumentType.mutateAsync({
+        templateId,
+        data: { documentTypeId: conflictDialog.pendingTypeId, force: true },
+      })
+      setConflictDialog({ open: false, conflict: null, pendingTypeId: null })
+    } catch (error) {
+      setConflictDialog({ open: false, conflict: null, pendingTypeId: null })
+      throw error
+    }
+  }
+
+  const handleCancelConflict = () => {
+    setConflictDialog({ open: false, conflict: null, pendingTypeId: null })
   }
 
   // Page transition state
@@ -563,6 +609,22 @@ export function TemplateDetailPage() {
                     {template.versions?.length ?? 0}
                   </dd>
                 </div>
+
+                {/* Document Type */}
+                <div>
+                  <dt className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <FileType size={12} />
+                    {t('templates.detail.documentType', 'Document Type')}
+                  </dt>
+                  <dd>
+                    <DocumentTypeSelector
+                      currentTypeId={template.documentTypeId}
+                      currentTypeName={template.documentTypeName}
+                      onAssign={handleAssignDocumentType}
+                      disabled={assignDocumentType.isPending}
+                    />
+                  </dd>
+                </div>
               </dl>
             </div>
 
@@ -854,6 +916,14 @@ export function TemplateDetailPage() {
         onOpenChange={setCloneDialogOpen}
         templateId={templateId}
         sourceVersion={versionToClone}
+      />
+
+      <DocumentTypeConflictDialog
+        open={conflictDialog.open}
+        conflictTemplate={conflictDialog.conflict}
+        onCancel={handleCancelConflict}
+        onForce={handleForceAssignDocumentType}
+        isLoading={assignDocumentType.isPending}
       />
     </motion.div>
   )

@@ -4,6 +4,7 @@ export interface Tenant {
   code: string
   description?: string
   settings?: TenantSettings
+  isSystem?: boolean
   createdAt: string
   updatedAt?: string
 }

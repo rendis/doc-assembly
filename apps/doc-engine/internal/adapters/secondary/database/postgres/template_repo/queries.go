@@ -48,6 +48,11 @@ const (
 		FROM organizer.folders
 		WHERE id = $1`
 
+	queryDocumentType = `
+		SELECT id, tenant_id, code, name, description, created_at, updated_at
+		FROM content.document_types
+		WHERE id = $1`
+
 	queryAllVersions = `
 		SELECT id, template_id, version_number, name, description, content_structure,
 			status, scheduled_publish_at, scheduled_archive_at, published_at, archived_at,

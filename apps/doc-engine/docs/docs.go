@@ -7410,6 +7410,9 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "documentTypeCode": {
+                    "type": "string"
+                },
                 "folderId": {
                     "type": "string"
                 },
@@ -7453,6 +7456,15 @@ const docTemplate = `{
             "properties": {
                 "createdAt": {
                     "type": "string"
+                },
+                "documentTypeId": {
+                    "type": "string"
+                },
+                "documentTypeName": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "folderId": {
                     "type": "string"
@@ -7709,6 +7721,15 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "documentTypeId": {
+                    "type": "string"
+                },
+                "documentTypeName": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "folder": {
                     "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
                 },
@@ -7749,6 +7770,15 @@ const docTemplate = `{
             "properties": {
                 "createdAt": {
                     "type": "string"
+                },
+                "documentTypeId": {
+                    "type": "string"
+                },
+                "documentTypeName": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "folder": {
                     "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"

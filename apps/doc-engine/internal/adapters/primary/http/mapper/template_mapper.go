@@ -33,6 +33,7 @@ func (m *TemplateMapper) ToResponse(template *entity.Template) *dto.TemplateResp
 		ID:              template.ID,
 		WorkspaceID:     template.WorkspaceID,
 		FolderID:        template.FolderID,
+		DocumentTypeID:  template.DocumentTypeID,
 		Title:           template.Title,
 		IsPublicLibrary: template.IsPublicLibrary,
 		CreatedAt:       template.CreatedAt,
@@ -50,6 +51,7 @@ func (m *TemplateMapper) ToListItemResponse(item *entity.TemplateListItem) *dto.
 		ID:                     item.ID,
 		WorkspaceID:            item.WorkspaceID,
 		FolderID:               item.FolderID,
+		DocumentTypeCode:       item.DocumentTypeCode,
 		Title:                  item.Title,
 		IsPublicLibrary:        item.IsPublicLibrary,
 		HasPublishedVersion:    item.HasPublishedVersion,
@@ -136,6 +138,10 @@ func (m *TemplateMapper) ToAllVersionsResponse(details *entity.TemplateWithAllVe
 
 	resp := &dto.TemplateWithAllVersionsResponse{
 		TemplateResponse: *m.ToResponse(&details.Template),
+	}
+
+	if details.DocumentType != nil {
+		resp.DocumentTypeName = details.DocumentType.Name
 	}
 
 	if details.Versions != nil {

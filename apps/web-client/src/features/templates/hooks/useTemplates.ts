@@ -11,10 +11,12 @@ import {
   deleteTemplate,
   addTagsToTemplate,
   removeTagFromTemplate,
+  assignDocumentType,
   type TemplatesListParams,
+  type AssignDocumentTypeRequest,
 } from '../api/templates-api'
 import { templateDetailKeys } from './useTemplateDetail'
-import type { CreateTemplateRequest } from '@/types/api'
+import type { CreateTemplateRequest, UpdateTemplateRequest } from '@/types/api'
 
 export const templateKeys = {
   all: ['templates'] as const,
@@ -52,7 +54,7 @@ export function useUpdateTemplate() {
       data,
     }: {
       templateId: string
-      data: { title?: string; folderId?: string; isPublicLibrary?: boolean }
+      data: UpdateTemplateRequest
     }) => updateTemplate(templateId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
@@ -96,6 +98,24 @@ export function useRemoveTagFromTemplate() {
   return useMutation({
     mutationFn: ({ templateId, tagId }: { templateId: string; tagId: string }) =>
       removeTagFromTemplate(templateId, tagId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })
+    },
+  })
+}
+
+export function useAssignDocumentType() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      data,
+    }: {
+      templateId: string
+      data: AssignDocumentTypeRequest
+    }) => assignDocumentType(templateId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
       queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })

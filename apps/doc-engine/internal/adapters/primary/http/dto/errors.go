@@ -25,8 +25,11 @@ var (
 	ErrNameTooShort       = errors.New("name must be at least 3 characters")
 
 	// Document Type validation errors
-	ErrCodeRequired = errors.New("code is required")
-	ErrCodeTooLong  = errors.New("code exceeds maximum length of 50 characters")
+	ErrCodeRequired         = errors.New("code is required")
+	ErrCodeTooLong          = errors.New("code exceeds maximum length of 50 characters")
+	ErrCodeInvalidFormat    = errors.New("code must contain only uppercase letters, numbers, and underscores")
+	ErrCodeConsecutiveUnder = errors.New("code cannot contain consecutive underscores")
+	ErrCodeStartEndUnder    = errors.New("code cannot start or end with an underscore")
 
 	// Access History validation errors
 	ErrInvalidEntityType = errors.New("entityType must be TENANT or WORKSPACE")

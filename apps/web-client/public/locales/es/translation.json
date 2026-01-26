@@ -222,7 +222,16 @@
         "scheduled": "Agendadas",
         "draft": "Borradores",
         "archived": "Archivadas"
-      }
+      },
+      "documentType": "Tipo de Documento",
+      "noDocumentType": "Sin tipo asignado",
+      "selectDocumentType": "Seleccionar tipo",
+      "noDocumentTypesAvailable": "No hay tipos de documento disponibles"
+    },
+    "documentType": {
+      "conflictTitle": "Tipo de documento en uso",
+      "conflictDescription": "Este tipo de documento ya está asignado a \"{{title}}\". ¿Deseas reemplazarlo? El tipo será removido de la otra plantilla.",
+      "replace": "Reemplazar"
     },
     "editTagsDialog": {
       "title": "Editar Etiquetas",
@@ -989,12 +998,62 @@
   },
   "administration": {
     "label": "Sistema",
+    "labelTenant": "Tenant",
     "title": "Administración",
     "tabs": {
       "tenants": "Tenants",
       "users": "Usuarios",
       "injectables": "Inyectables",
-      "audit": "Auditoría"
+      "audit": "Auditoría",
+      "documentTypes": "Tipos de Documento"
+    },
+    "documentTypes": {
+      "description": "Gestiona los tipos de documento y sus configuraciones.",
+      "searchPlaceholder": "Buscar tipos de documento...",
+      "loadError": "Error al cargar tipos de documento",
+      "noResults": "No se encontraron tipos de documento",
+      "empty": "No hay tipos de documento",
+      "create": "Crear Tipo",
+      "columns": {
+        "code": "Código",
+        "name": "Nombre",
+        "templates": "Plantillas",
+        "actions": "Acciones"
+      },
+      "form": {
+        "createTitle": "Crear Tipo de Documento",
+        "editTitle": "Editar Tipo de Documento",
+        "createDescription": "Agrega un nuevo tipo de documento para organizar plantillas.",
+        "editDescription": "Actualiza los detalles del tipo de documento.",
+        "code": "Código",
+        "codePlaceholder": "CONTRACT_TYPE",
+        "codeHint": "Solo mayúsculas, números y guiones bajos",
+        "codeRequired": "El código es requerido",
+        "codeTooLong": "El código debe tener 50 caracteres o menos",
+        "codeInvalid": "El código debe empezar con letra y contener solo mayúsculas, números y guiones bajos",
+        "codeExists": "Ya existe un tipo de documento con este código",
+        "name": "Nombre",
+        "namePlaceholder": "Nombre del tipo",
+        "nameRequired": "El nombre en español es requerido",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción opcional",
+        "createSuccess": "Tipo de documento creado",
+        "updateSuccess": "Tipo de documento actualizado",
+        "saveError": "Error al guardar el tipo de documento"
+      },
+      "delete": {
+        "title": "Eliminar Tipo de Documento",
+        "confirm": "¿Estás seguro de eliminar \"{{name}}\"?",
+        "hasTemplates": "Este tipo está asignado a {{count}} plantilla(s)",
+        "hasTemplatesDescription": "Este tipo de documento está en uso. Elige cómo proceder.",
+        "forceOption": "Quitar tipo de todas las plantillas",
+        "forceHint": "Las plantillas quedarán sin tipo de documento asignado",
+        "replaceOption": "Reemplazar con otro tipo",
+        "noOtherTypes": "No hay otros tipos de documento disponibles",
+        "selectReplacement": "Selecciona el tipo de reemplazo...",
+        "success": "Tipo de documento eliminado",
+        "error": "Error al eliminar el tipo de documento"
+      }
     },
     "tenants": {
       "description": "Gestiona las organizaciones tenant y sus configuraciones.",

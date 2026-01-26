@@ -1012,6 +1012,8 @@ definitions:
     properties:
       createdAt:
         type: string
+      documentTypeCode:
+        type: string
       folderId:
         type: string
       hasPublishedVersion:
@@ -1041,6 +1043,12 @@ definitions:
     properties:
       createdAt:
         type: string
+      documentTypeId:
+        type: string
+      documentTypeName:
+        additionalProperties:
+          type: string
+        type: object
       folderId:
         type: string
       id:
@@ -1209,6 +1217,12 @@ definitions:
     properties:
       createdAt:
         type: string
+      documentTypeId:
+        type: string
+      documentTypeName:
+        additionalProperties:
+          type: string
+        type: object
       folder:
         $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse'
       folderId:
@@ -1236,6 +1250,12 @@ definitions:
     properties:
       createdAt:
         type: string
+      documentTypeId:
+        type: string
+      documentTypeName:
+        additionalProperties:
+          type: string
+        type: object
       folder:
         $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse'
       folderId:

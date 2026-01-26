@@ -7,6 +7,7 @@ import type {
     TemplateListItem,
     TemplateVersionResponse,
     TemplateWithAllVersionsResponse,
+    UpdateTemplateRequest,
 } from '@/types/api'
 // Version types (from local types)
 import type {
@@ -77,7 +78,7 @@ export async function addTagsToTemplate(
 
 export async function updateTemplate(
   templateId: string,
-  data: { title?: string; folderId?: string; isPublicLibrary?: boolean }
+  data: UpdateTemplateRequest
 ): Promise<void> {
   await apiClient.put<void>(`/content/templates/${templateId}`, data)
 }
@@ -91,6 +92,54 @@ export async function removeTagFromTemplate(
   tagId: string
 ): Promise<void> {
   await apiClient.delete<void>(`/content/templates/${templateId}/tags/${tagId}`)
+}
+
+export interface AssignDocumentTypeRequest {
+  documentTypeId: string | null
+  force?: boolean
+}
+
+export interface DocumentTypeConflict {
+  id: string
+  title: string
+}
+
+export interface AssignDocumentTypeResponse {
+  template?: {
+    id: string
+    title: string
+    workspaceId: string
+    folderId?: string
+    isPublicLibrary: boolean
+    createdAt: string
+    updatedAt?: string
+  }
+  conflict?: DocumentTypeConflict
+}
+
+export class DocumentTypeConflictError extends Error {
+  conflict: DocumentTypeConflict
+
+  constructor(conflict: DocumentTypeConflict) {
+    super('Document type is already assigned to another template')
+    this.name = 'DocumentTypeConflictError'
+    this.conflict = conflict
+  }
+}
+
+export async function assignDocumentType(
+  templateId: string,
+  data: AssignDocumentTypeRequest
+): Promise<AssignDocumentTypeResponse> {
+  const response = await apiClient.put<AssignDocumentTypeResponse>(
+    `/content/templates/${templateId}/document-type`,
+    data
+  )
+  // If response has conflict and no template, throw a conflict error
+  if (response.data.conflict && !response.data.template) {
+    throw new DocumentTypeConflictError(response.data.conflict)
+  }
+  return response.data
 }
 
 // ============================================

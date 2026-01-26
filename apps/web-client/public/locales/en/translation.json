@@ -222,7 +222,16 @@
         "scheduled": "Scheduled",
         "draft": "Drafts",
         "archived": "Archived"
-      }
+      },
+      "documentType": "Document Type",
+      "noDocumentType": "No type assigned",
+      "selectDocumentType": "Select type",
+      "noDocumentTypesAvailable": "No document types available"
+    },
+    "documentType": {
+      "conflictTitle": "Document type in use",
+      "conflictDescription": "This document type is already assigned to \"{{title}}\". Do you want to replace it? The type will be removed from the other template.",
+      "replace": "Replace"
     },
     "editTagsDialog": {
       "title": "Edit Tags",
@@ -989,12 +998,62 @@
   },
   "administration": {
     "label": "System",
+    "labelTenant": "Tenant",
     "title": "Administration",
     "tabs": {
       "tenants": "Tenants",
       "users": "Users",
       "injectables": "Injectables",
-      "audit": "Audit"
+      "audit": "Audit",
+      "documentTypes": "Document Types"
+    },
+    "documentTypes": {
+      "description": "Manage document types and their configurations.",
+      "searchPlaceholder": "Search document types...",
+      "loadError": "Failed to load document types",
+      "noResults": "No document types match your search",
+      "empty": "No document types found",
+      "create": "Create Type",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "templates": "Templates",
+        "actions": "Actions"
+      },
+      "form": {
+        "createTitle": "Create Document Type",
+        "editTitle": "Edit Document Type",
+        "createDescription": "Add a new document type to organize templates.",
+        "editDescription": "Update document type details.",
+        "code": "Code",
+        "codePlaceholder": "CONTRACT_TYPE",
+        "codeHint": "Only uppercase letters, numbers, and underscores",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be 50 characters or less",
+        "codeInvalid": "Code must start with a letter and contain only uppercase letters, numbers, and underscores",
+        "codeExists": "A document type with this code already exists",
+        "name": "Name",
+        "namePlaceholder": "Type name",
+        "nameRequired": "Spanish name is required",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description",
+        "createSuccess": "Document type created",
+        "updateSuccess": "Document type updated",
+        "saveError": "Failed to save document type"
+      },
+      "delete": {
+        "title": "Delete Document Type",
+        "confirm": "Are you sure you want to delete \"{{name}}\"?",
+        "hasTemplates": "This document type is used by {{count}} template(s)",
+        "hasTemplatesDescription": "This document type is being used. Choose how to proceed.",
+        "forceOption": "Remove type from all templates",
+        "forceHint": "Templates will have no document type assigned",
+        "replaceOption": "Replace with another type",
+        "noOtherTypes": "No other document types available",
+        "selectReplacement": "Select replacement type...",
+        "success": "Document type deleted",
+        "error": "Failed to delete document type"
+      }
     },
     "tenants": {
       "description": "Manage tenant organizations and their configurations.",

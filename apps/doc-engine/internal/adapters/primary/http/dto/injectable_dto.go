@@ -86,13 +86,15 @@ type UpdateWorkspaceInjectableRequest struct {
 
 // TemplateResponse represents a template in API responses (metadata only).
 type TemplateResponse struct {
-	ID              string     `json:"id"`
-	WorkspaceID     string     `json:"workspaceId"`
-	FolderID        *string    `json:"folderId,omitempty"`
-	Title           string     `json:"title"`
-	IsPublicLibrary bool       `json:"isPublicLibrary"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	UpdatedAt       *time.Time `json:"updatedAt,omitempty"`
+	ID               string            `json:"id"`
+	WorkspaceID      string            `json:"workspaceId"`
+	FolderID         *string           `json:"folderId,omitempty"`
+	DocumentTypeID   *string           `json:"documentTypeId,omitempty"`
+	DocumentTypeName map[string]string `json:"documentTypeName,omitempty"`
+	Title            string            `json:"title"`
+	IsPublicLibrary  bool              `json:"isPublicLibrary"`
+	CreatedAt        time.Time         `json:"createdAt"`
+	UpdatedAt        *time.Time        `json:"updatedAt,omitempty"`
 }
 
 // TagSimpleResponse represents a simplified tag for list views.
@@ -107,6 +109,7 @@ type TemplateListItemResponse struct {
 	ID                     string               `json:"id"`
 	WorkspaceID            string               `json:"workspaceId"`
 	FolderID               *string              `json:"folderId,omitempty"`
+	DocumentTypeCode       *string              `json:"documentTypeCode,omitempty"`
 	Title                  string               `json:"title"`
 	IsPublicLibrary        bool                 `json:"isPublicLibrary"`
 	HasPublishedVersion    bool                 `json:"hasPublishedVersion"`
