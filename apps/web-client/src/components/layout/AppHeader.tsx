@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Box, Menu, X } from 'lucide-react'
+import { Box, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { LanguageSelector } from '@/components/common/LanguageSelector'
@@ -11,7 +11,6 @@ interface AppHeaderProps {
   variant?: 'minimal' | 'full'
   className?: string
   showMobileMenu?: boolean
-  isMobileMenuOpen?: boolean
   onMobileMenuToggle?: () => void
 }
 
@@ -19,7 +18,6 @@ export function AppHeader({
   variant = 'minimal',
   className,
   showMobileMenu = false,
-  isMobileMenuOpen = false,
   onMobileMenuToggle
 }: AppHeaderProps) {
   const isMinimal = variant === 'minimal'
@@ -29,12 +27,25 @@ export function AppHeader({
     <motion.header
       className={cn(
         'fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between bg-background',
-        isMinimal ? 'px-6 md:px-12 lg:px-32' : 'px-6',
+        isMinimal ? 'px-6 md:px-12 lg:px-32' : 'px-4 sm:px-6',
         className
       )}
     >
       {/* Logo and context breadcrumb */}
       <div className="flex items-center gap-3">
+        {/* Mobile menu button - left side for standard UX */}
+        {showMobileMenu && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMobileMenuToggle}
+            className="shrink-0 lg:hidden"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+
         {/* Logo grande con layoutId para animación */}
         <motion.div
           layoutId="app-logo"
@@ -78,18 +89,6 @@ export function AppHeader({
       >
         <LanguageSelector />
         <ThemeToggle />
-
-        {/* Mobile menu button - only visible on mobile when showMobileMenu is true */}
-        {showMobileMenu && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMobileMenuToggle}
-            className="lg:hidden"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        )}
       </motion.div>
 
       {/* Línea del borde - slide desde izquierda */}
