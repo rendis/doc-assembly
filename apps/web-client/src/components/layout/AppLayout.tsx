@@ -1,8 +1,8 @@
 import { Outlet } from '@tanstack/react-router'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useCallback, useEffect, useRef } from 'react'
-import { cn } from '@/lib/utils'
 import { AppSidebar } from './AppSidebar'
+import { MobileSidebar } from './MobileSidebar'
 import { AppHeader } from './AppHeader'
 import { useSidebarStore } from '@/stores/sidebar-store'
 
@@ -12,15 +12,8 @@ const sidebarVariants = {
   animate: { opacity: 1 },
 }
 
-const overlayVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-}
-
 export function AppLayout() {
-  const { isMobileOpen, toggleMobileOpen, closeMobile, isPinned, setHovering } =
-    useSidebarStore()
+  const { toggleMobileOpen, isPinned, setHovering } = useSidebarStore()
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleMouseEnter = useCallback(() => {
@@ -52,37 +45,22 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Header completo con border y botón de menú móvil integrado */}
+      {/* Header con botón de menú móvil integrado */}
       <AppHeader
         variant="full"
         showMobileMenu={true}
-        isMobileMenuOpen={isMobileOpen}
         onMobileMenuToggle={toggleMobileOpen}
       />
 
-      {/* Mobile overlay */}
-      <AnimatePresence>
-        {isMobileOpen && (
-          <motion.div
-            variants={overlayVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-            onClick={closeMobile}
-          />
-        )}
-      </AnimatePresence>
+      {/* Mobile sidebar - Sheet based, only renders on mobile */}
+      <MobileSidebar />
 
-      {/* Sidebar con animación de entrada */}
+      {/* Desktop sidebar - hidden on mobile */}
       <motion.div
         variants={sidebarVariants}
         initial="initial"
         animate="animate"
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 pt-16 lg:relative lg:pt-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        )}
+        className="hidden lg:block lg:relative"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
