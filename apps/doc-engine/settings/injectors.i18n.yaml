@@ -9,7 +9,31 @@
 #   2. Agregar entrada aquí con el mismo code
 #   3. Ejecutar: make gen
 
+# ============================================================================
+# Group Definitions
+# ============================================================================
+# Define injectable groups with i18n names and icons.
+# Groups allow organizing injectables in the editor panel.
+# Order is determined by position in this array (first = order 0).
+
+groups:
+  - key: datetime
+    name:
+      en: "Date/Time"
+      es: "Fecha/Hora"
+    icon: "calendar"
+  - key: examples
+    name:
+      en: "Examples"
+      es: "Ejemplos"
+    icon: "folder"
+
+# ============================================================================
+# Ungrouped Injectors
+# ============================================================================
+
 example_value:
+  group: examples
   name:
     en: "Example Value"
     es: "Valor de Ejemplo"
@@ -22,6 +46,7 @@ example_value:
 # ============================================================================
 
 date_time_now:
+  group: datetime
   name:
     en: "Current Date and Time"
     es: "Fecha y Hora Actual"
@@ -30,6 +55,7 @@ date_time_now:
     es: "Fecha y hora al momento de generar el documento"
 
 date_now:
+  group: datetime
   name:
     en: "Current Date"
     es: "Fecha Actual"
@@ -38,6 +64,7 @@ date_now:
     es: "Fecha al momento de generar el documento"
 
 time_now:
+  group: datetime
   name:
     en: "Current Time"
     es: "Hora Actual"
@@ -46,6 +73,7 @@ time_now:
     es: "Hora al momento de generar el documento"
 
 year_now:
+  group: datetime
   name:
     en: "Current Year"
     es: "Año Actual"
@@ -54,6 +82,7 @@ year_now:
     es: "Año al momento de generar el documento"
 
 month_now:
+  group: datetime
   name:
     en: "Current Month"
     es: "Mes Actual"
@@ -62,6 +91,7 @@ month_now:
     es: "Mes al momento de generar el documento"
 
 day_now:
+  group: datetime
   name:
     en: "Current Day"
     es: "Día Actual"
@@ -74,6 +104,7 @@ day_now:
 # ============================================================================
 
 example_table:
+  group: examples
   name:
     en: "[EXAMPLE] Demo Table"
     es: "[EJEMPLO] Tabla Demo"

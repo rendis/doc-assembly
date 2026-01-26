@@ -10,6 +10,9 @@ import (
 	injectableuc "github.com/doc-assembly/doc-engine/internal/core/usecase/injectable"
 )
 
+// Ensure InjectableService implements InjectableUseCase.
+var _ injectableuc.InjectableUseCase = (*InjectableService)(nil)
+
 // NewInjectableService creates a new injectable service.
 func NewInjectableService(
 	injectableRepo port.InjectableRepository,
@@ -128,9 +131,10 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 		Label:        label,
 		Description:  description,
 		DataType:     dataType,
-		SourceType:   entity.InjectableSourceTypeExternal, // Extensions are EXTERNAL
+		SourceType:   entity.InjectableSourceTypeInternal, // System injectors are auto-calculated
 		Metadata:     metadata,
 		FormatConfig: formatConfig,
+		Group:        s.injectorRegistry.GetGroup(code),
 		DefaultValue: defaultValue,
 		IsActive:     true,
 		IsDeleted:    false,
@@ -178,4 +182,12 @@ func (s *InjectableService) mergeInjectables(db, ext []*entity.InjectableDefinit
 	}
 
 	return result
+}
+
+// GetGroups returns all groups translated to the specified locale.
+func (s *InjectableService) GetGroups(locale string) []port.GroupConfig {
+	if s.injectorRegistry == nil {
+		return nil
+	}
+	return s.injectorRegistry.GetGroups(locale)
 }

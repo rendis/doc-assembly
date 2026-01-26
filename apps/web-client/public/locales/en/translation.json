@@ -410,6 +410,8 @@
     },
     "variablesPanel": {
       "header": "Variables",
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all",
       "collapse": {
         "expand": "Expand panel",
         "collapse": "Collapse panel"

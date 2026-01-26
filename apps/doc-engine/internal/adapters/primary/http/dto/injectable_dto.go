@@ -22,15 +22,25 @@ type InjectableResponse struct {
 	SourceType   string                `json:"sourceType"`
 	Metadata     map[string]any        `json:"metadata,omitempty"`
 	FormatConfig *FormatConfigResponse `json:"formatConfig,omitempty"`
+	Group        *string               `json:"group,omitempty"`
 	IsGlobal     bool                  `json:"isGlobal"`
 	CreatedAt    time.Time             `json:"createdAt"`
 	UpdatedAt    *time.Time            `json:"updatedAt,omitempty"`
 }
 
+// GroupResponse represents an injectable group in API responses.
+type GroupResponse struct {
+	Key   string `json:"key"`
+	Name  string `json:"name"`
+	Icon  string `json:"icon"`
+	Order int    `json:"order"`
+}
+
 // ListInjectablesResponse represents the list of injectables.
 type ListInjectablesResponse struct {
-	Items []*InjectableResponse `json:"items"`
-	Total int                   `json:"total"`
+	Items  []*InjectableResponse `json:"items"`
+	Groups []*GroupResponse      `json:"groups"`
+	Total  int                   `json:"total"`
 }
 
 // WorkspaceInjectableResponse represents a workspace-owned injectable in API responses.

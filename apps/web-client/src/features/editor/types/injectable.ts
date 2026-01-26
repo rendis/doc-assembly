@@ -1,4 +1,5 @@
 import type { InjectorType, Variable } from './variables'
+import type { InjectableGroup } from './injectable-group'
 
 // ============================================
 // Internal Injectable Constants
@@ -90,6 +91,7 @@ export interface Injectable {
   sourceType: 'INTERNAL' | 'EXTERNAL'
   formatConfig?: FormatConfig
   metadata?: Record<string, unknown>
+  group?: string
   createdAt: string
   updatedAt?: string
 }
@@ -99,6 +101,7 @@ export interface Injectable {
  */
 export interface InjectablesListResponse {
   items: Injectable[]
+  groups: InjectableGroup[]
   total: number
 }
 
@@ -115,6 +118,7 @@ export function mapInjectableToVariable(injectable: Injectable): Variable {
     formatConfig: injectable.formatConfig,
     sourceType: injectable.sourceType,
     metadata: injectable.metadata,
+    group: injectable.group,
   }
 }
 

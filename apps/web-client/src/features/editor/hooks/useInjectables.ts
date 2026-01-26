@@ -1,18 +1,23 @@
 import { useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { useInjectablesStore } from '../stores/injectables-store'
 import { fetchInjectables } from '../api/injectables-api'
 import type { Variable } from '../types/variables'
+import type { InjectableGroup } from '../types/injectable-group'
 
 // Module-level deduplication (persists across StrictMode remounts)
 let inFlightFetch: Promise<void> | null = null
 let lastFetchedWorkspaceId: string | null = null
+let lastFetchedLocale: string | null = null
 
 export interface UseInjectablesReturn {
   /** List of variables (mapped from injectables) */
   variables: Variable[]
   /** Raw injectables from API */
   injectables: ReturnType<typeof useInjectablesStore.getState>['injectables']
+  /** Injectable groups for visual organization */
+  groups: InjectableGroup[]
   /** Loading state */
   isLoading: boolean
   /** Error message, if any */
@@ -41,9 +46,11 @@ export interface UseInjectablesReturn {
  * ```
  */
 export function useInjectables(): UseInjectablesReturn {
+  const { i18n } = useTranslation()
   const currentWorkspace = useAppContextStore((state) => state.currentWorkspace)
 
-  const { setInjectables, setLoading, setError } = useInjectablesStore()
+  const { setFromResponse, setInjectables, setLoading, setError } = useInjectablesStore()
+  const locale = i18n.language.split('-')[0] // "en-US" -> "en"
 
   const loadInjectables = useCallback(async () => {
     const workspaceId = currentWorkspace?.id
@@ -54,8 +61,8 @@ export function useInjectables(): UseInjectablesReturn {
       return
     }
 
-    // Skip if already loaded for this workspace (module-level check)
-    if (lastFetchedWorkspaceId === workspaceId) {
+    // Skip if already loaded for this workspace and locale (module-level check)
+    if (lastFetchedWorkspaceId === workspaceId && lastFetchedLocale === locale) {
       return
     }
 
@@ -71,9 +78,10 @@ export function useInjectables(): UseInjectablesReturn {
       setError(null)
 
       try {
-        const response = await fetchInjectables()
-        setInjectables(response.items)
+        const response = await fetchInjectables(locale)
+        setFromResponse(response)
         lastFetchedWorkspaceId = workspaceId
+        lastFetchedLocale = locale
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to load injectables'
@@ -86,7 +94,7 @@ export function useInjectables(): UseInjectablesReturn {
     })()
 
     await inFlightFetch
-  }, [currentWorkspace?.id, setInjectables, setLoading, setError])
+  }, [currentWorkspace?.id, setFromResponse, setInjectables, setLoading, setError, locale])
 
   // Load on mount and when workspace changes
   useEffect(() => {
@@ -99,6 +107,7 @@ export function useInjectables(): UseInjectablesReturn {
   return {
     variables: store.variables,
     injectables: store.injectables,
+    groups: store.groups,
     isLoading: store.isLoading,
     error: store.error,
     refetch: loadInjectables,

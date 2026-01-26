@@ -2,8 +2,8 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion, type Transition } from 'framer-motion'
-import { ChevronRight, Clock, Database, Loader2, Search, Users, Variable as VariableIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock, Database, Loader2, Search, Users, Variable as VariableIcon, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRoleInjectables } from '../hooks/useRoleInjectables'
 import { useInjectablesStore } from '../stores/injectables-store'
@@ -12,6 +12,7 @@ import type { VariableDragData } from '../types/drag'
 import type { RoleInjectable } from '../types/role-injectable'
 import type { Variable } from '../types/variables'
 import { DraggableVariable } from './DraggableVariable'
+import { VariableGroup } from './VariableGroup'
 
 const COLLAPSE_TRANSITION: Transition = { duration: 0.2, ease: [0.4, 0, 0.2, 1] }
 
@@ -70,21 +71,107 @@ export function VariablesPanel({
   const toggleCollapsed = useVariablesPanelStore((state) => state.toggleCollapsed)
 
   // Get variables from stores
-  const { variables: globalVariables, isLoading } = useInjectablesStore()
+  const { variables: globalVariables, groups, isLoading } = useInjectablesStore()
   const { roleInjectables } = useRoleInjectables()
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Collapsible sections state
-  const [rolesSectionOpen, setRolesSectionOpen] = useState(true)
+  // Collapsible sections state - all collapsed by default
+  const [rolesSectionOpen, setRolesSectionOpen] = useState(false)
 
   // Filter state for variables by source type
   const [variablesFilter, setVariablesFilter] = useState<'all' | 'internal' | 'external'>('all')
 
-  // Collapsible sections state for internal/external variables
-  const [internalSectionOpen, setInternalSectionOpen] = useState(true)
-  const [externalSectionOpen, setExternalSectionOpen] = useState(true)
+  // Collapsible sections state for internal/external variables - collapsed by default
+  const [internalSectionOpen, setInternalSectionOpen] = useState(false)
+  const [externalSectionOpen, setExternalSectionOpen] = useState(false)
+
+  // State for grouped variable sections (controlled mode)
+  const [groupOpenStates, setGroupOpenStates] = useState<Record<string, boolean>>({})
+
+  // Track if all sections are expanded (for toggle button)
+  const allSectionsExpanded = useMemo(() => {
+    const hasRoles = roleInjectables.length > 0
+    const hasExternal = globalVariables.some(v => v.sourceType === 'EXTERNAL')
+    const hasUngroupedInternal = globalVariables.some(v => v.sourceType === 'INTERNAL' && !v.group)
+    const groupKeys = groups.map(g => g.key)
+
+    const sectionsOpen = [
+      !hasRoles || rolesSectionOpen,
+      !hasExternal || externalSectionOpen,
+      !hasUngroupedInternal || internalSectionOpen,
+      ...groupKeys.map(key => groupOpenStates[key] ?? false),
+    ]
+
+    return sectionsOpen.every(Boolean)
+  }, [rolesSectionOpen, externalSectionOpen, internalSectionOpen, groupOpenStates, roleInjectables, globalVariables, groups])
+
+  // Expand all sections when searching
+  const isSearching = searchQuery.trim().length > 0
+
+  useEffect(() => {
+    if (isSearching) {
+      // Expand all sections when searching
+      setRolesSectionOpen(true)
+      setExternalSectionOpen(true)
+      setInternalSectionOpen(true)
+      setGroupOpenStates(prev => {
+        const newStates = { ...prev }
+        for (const group of groups) {
+          newStates[group.key] = true
+        }
+        return newStates
+      })
+    }
+  }, [isSearching, groups])
+
+  // Toggle all sections expand/collapse
+  const toggleAllSections = useCallback(() => {
+    const newState = !allSectionsExpanded
+    setRolesSectionOpen(newState)
+    setExternalSectionOpen(newState)
+    setInternalSectionOpen(newState)
+    setGroupOpenStates(prev => {
+      const newStates = { ...prev }
+      for (const group of groups) {
+        newStates[group.key] = newState
+      }
+      return newStates
+    })
+  }, [allSectionsExpanded, groups])
+
+  // Handler for individual group open state changes
+  const handleGroupOpenChange = useCallback((groupKey: string, isOpen: boolean) => {
+    setGroupOpenStates(prev => ({ ...prev, [groupKey]: isOpen }))
+  }, [])
+
+  // Collapse all sections
+  const collapseAllSections = useCallback(() => {
+    setRolesSectionOpen(false)
+    setExternalSectionOpen(false)
+    setInternalSectionOpen(false)
+    setGroupOpenStates({})
+  }, [])
+
+  // Clear search and collapse all
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('')
+    collapseAllSections()
+  }, [collapseAllSections])
+
+  // Handle search input change - collapse all when manually cleared
+  const handleSearchChange = useCallback((value: string) => {
+    const wasSearching = searchQuery.trim().length > 0
+    const willBeEmpty = value.trim().length === 0
+
+    setSearchQuery(value)
+
+    // If user manually clears the search, collapse all
+    if (wasSearching && willBeEmpty) {
+      collapseAllSections()
+    }
+  }, [searchQuery, collapseAllSections])
 
   const lowerSearchQuery = searchQuery.toLowerCase().trim()
 
@@ -98,7 +185,8 @@ export function VariablesPanel({
     )
   }, [roleInjectables, lowerSearchQuery])
 
-  const { internalVariables, externalVariables } = useMemo(() => {
+  const { groupedInternalVariables, ungroupedInternalVariables, externalVariables } = useMemo(() => {
+    // Filter variables by source type and search query
     const filterBySourceType = (sourceType: 'INTERNAL' | 'EXTERNAL', excludeFilter: 'internal' | 'external'): Variable[] => {
       if (variablesFilter === excludeFilter) return []
       const filtered = globalVariables.filter(v => v.sourceType === sourceType)
@@ -110,11 +198,35 @@ export function VariablesPanel({
       )
     }
 
+    const internalVars = filterBySourceType('INTERNAL', 'external')
+
+    // Separate grouped and ungrouped internal variables
+    const grouped = new Map<string, Variable[]>()
+    const ungrouped: Variable[] = []
+
+    for (const variable of internalVars) {
+      if (variable.group) {
+        const existing = grouped.get(variable.group) || []
+        grouped.set(variable.group, [...existing, variable])
+      } else {
+        ungrouped.push(variable)
+      }
+    }
+
+    // Sort groups by their order
+    const sortedGrouped = Array.from(grouped.entries())
+      .sort((a, b) => {
+        const groupA = groups.find(g => g.key === a[0])
+        const groupB = groups.find(g => g.key === b[0])
+        return (groupA?.order ?? 99) - (groupB?.order ?? 99)
+      })
+
     return {
-      internalVariables: filterBySourceType('INTERNAL', 'external'),
+      groupedInternalVariables: sortedGrouped,
+      ungroupedInternalVariables: ungrouped,
       externalVariables: filterBySourceType('EXTERNAL', 'internal'),
     }
-  }, [globalVariables, variablesFilter, lowerSearchQuery])
+  }, [globalVariables, groups, variablesFilter, lowerSearchQuery])
 
   // Convert Variable to VariableDragData
   const mapVariableToDragData = (v: Variable): VariableDragData => ({
@@ -142,7 +254,8 @@ export function VariablesPanel({
   })
 
   // Total count for badge
-  const totalCount = filteredRoleInjectables.length + internalVariables.length + externalVariables.length
+  const totalInternalGrouped = groupedInternalVariables.reduce((acc, [, vars]) => acc + vars.length, 0)
+  const totalCount = filteredRoleInjectables.length + totalInternalGrouped + ungroupedInternalVariables.length + externalVariables.length
 
   return (
     <motion.aside
@@ -184,10 +297,30 @@ export function VariablesPanel({
           {totalCount}
         </motion.span>
 
+        {/* Expand/Collapse all button - hide when collapsed */}
+        <motion.button
+          initial={false}
+          animate={{
+            opacity: isCollapsed ? 0 : 1,
+            width: isCollapsed ? 0 : 'auto',
+          }}
+          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          onClick={toggleAllSections}
+          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1 overflow-hidden"
+          aria-label={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
+          title={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
+        >
+          {allSectionsExpanded ? (
+            <ChevronsDownUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </motion.button>
+
         {/* Collapse button - always visible */}
         <button
           onClick={toggleCollapsed}
-          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-2"
+          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1"
           aria-label={isCollapsed ? t('editor.variablesPanel.collapse.expand') : t('editor.variablesPanel.collapse.collapse')}
         >
           <motion.div
@@ -232,10 +365,26 @@ export function VariablesPanel({
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('editor.variablesPanel.search.placeholder')}
-                  className="pl-8 h-9"
+                  className="pl-8 pr-8 h-9"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
+                {/* Clear button - appears when there's text */}
+                <AnimatePresence>
+                  {searchQuery.length > 0 && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={handleClearSearch}
+                      className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={t('common.clear')}
+                    >
+                      <X className="h-4 w-4" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -301,7 +450,8 @@ export function VariablesPanel({
                  {/* Empty state */}
                  {!isLoading &&
                    filteredRoleInjectables.length === 0 &&
-                   internalVariables.length === 0 &&
+                   groupedInternalVariables.length === 0 &&
+                   ungroupedInternalVariables.length === 0 &&
                    externalVariables.length === 0 && (
                      <div className="flex flex-col items-center justify-center py-8 text-center">
                        <VariableIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
@@ -316,7 +466,7 @@ export function VariablesPanel({
                     </div>
                   )}
 
-                {/* Role Injectables Section - PRIMERO (con animación) */}
+                {/* 1. Role Injectables Section */}
                 {!isLoading && filteredRoleInjectables.length > 0 && (
                   <div className="space-y-2 min-w-0">
                     <button
@@ -375,53 +525,7 @@ export function VariablesPanel({
                   </div>
                 )}
 
-                  {/* Internal Variables Section */}
-                  {!isLoading && internalVariables.length > 0 && (
-                    <div className="space-y-2 min-w-0">
-                      <button
-                        onClick={() => setInternalSectionOpen(!internalSectionOpen)}
-                        className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
-                      >
-                        <motion.div
-                          animate={{ rotate: internalSectionOpen ? 90 : 0 }}
-                          transition={COLLAPSE_TRANSITION}
-                        >
-                          <ChevronRight className="h-3 w-3" />
-                        </motion.div>
-                        <Clock className="h-3 w-3" />
-                        <span>{t('editor.variablesPanel.sections.internalVariables')}</span>
-                        <span className="ml-auto text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
-                          {internalVariables.length}
-                        </span>
-                      </button>
-
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          height: internalSectionOpen ? 'auto' : 0,
-                          opacity: internalSectionOpen ? 1 : 0,
-                        }}
-                        transition={{
-                          duration: 0.2,
-                          ease: [0.4, 0, 0.2, 1],
-                        }}
-                        style={{ overflow: 'hidden' }}
-                      >
-                        <div className="space-y-2 pt-2 min-w-0">
-                          {internalVariables.map((v) => (
-                            <DraggableVariable
-                              key={v.variableId}
-                              data={mapVariableToDragData(v)}
-                              onClick={onVariableClick}
-                              isDragging={draggingIds.includes(v.variableId)}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* External Variables Section */}
+                  {/* 2. External Variables Section (user-defined) */}
                   {!isLoading && externalVariables.length > 0 && (
                     <div className="space-y-2 min-w-0">
                       <button
@@ -466,6 +570,70 @@ export function VariablesPanel({
                       </motion.div>
                     </div>
                   )}
+
+                  {/* 3. Ungrouped Internal Variables Section (system without group) */}
+                  {!isLoading && ungroupedInternalVariables.length > 0 && (
+                    <div className="space-y-2 min-w-0">
+                      <button
+                        onClick={() => setInternalSectionOpen(!internalSectionOpen)}
+                        className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
+                      >
+                        <motion.div
+                          animate={{ rotate: internalSectionOpen ? 90 : 0 }}
+                          transition={COLLAPSE_TRANSITION}
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                        </motion.div>
+                        <Clock className="h-3 w-3" />
+                        <span>{t('editor.variablesPanel.sections.internalVariables')}</span>
+                        <span className="ml-auto text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
+                          {ungroupedInternalVariables.length}
+                        </span>
+                      </button>
+
+                      <motion.div
+                        initial={false}
+                        animate={{
+                          height: internalSectionOpen ? 'auto' : 0,
+                          opacity: internalSectionOpen ? 1 : 0,
+                        }}
+                        transition={{
+                          duration: 0.2,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div className="space-y-2 pt-2 min-w-0">
+                          {ungroupedInternalVariables.map((v) => (
+                            <DraggableVariable
+                              key={v.variableId}
+                              data={mapVariableToDragData(v)}
+                              onClick={onVariableClick}
+                              isDragging={draggingIds.includes(v.variableId)}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
+
+                  {/* 4. Grouped Internal Variables - Each group as its own collapsible section (system with group) */}
+                  {!isLoading && groupedInternalVariables.map(([groupKey, variables]) => {
+                    const group = groups.find(g => g.key === groupKey)
+                    if (!group) return null
+
+                    return (
+                      <VariableGroup
+                        key={groupKey}
+                        group={group}
+                        variables={variables}
+                        onVariableClick={onVariableClick}
+                        draggingIds={draggingIds}
+                        isOpen={groupOpenStates[groupKey] ?? false}
+                        onOpenChange={(open) => handleGroupOpenChange(groupKey, open)}
+                      />
+                    )
+                  })}
                 </div>
               </ScrollArea>
 

@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/dto"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
 
 // InjectableMapper handles mapping between injectable entities and DTOs.
@@ -40,6 +41,7 @@ func (m *InjectableMapper) ToResponse(injectable *entity.InjectableDefinition) *
 		SourceType:   string(injectable.SourceType),
 		Metadata:     injectable.Metadata,
 		FormatConfig: mapFormatConfig(injectable.FormatConfig),
+		Group:        injectable.Group,
 		IsGlobal:     injectable.IsGlobal(),
 		CreatedAt:    injectable.CreatedAt,
 		UpdatedAt:    injectable.UpdatedAt,
@@ -60,12 +62,32 @@ func (m *InjectableMapper) ToResponseList(injectables []*entity.InjectableDefini
 }
 
 // ToListResponse converts a list of injectable entities to a list response DTO.
-func (m *InjectableMapper) ToListResponse(injectables []*entity.InjectableDefinition) *dto.ListInjectablesResponse {
+func (m *InjectableMapper) ToListResponse(injectables []*entity.InjectableDefinition, groups []port.GroupConfig) *dto.ListInjectablesResponse {
 	items := m.ToResponseList(injectables)
+	groupResponses := m.ToGroupResponseList(groups)
 	return &dto.ListInjectablesResponse{
-		Items: items,
-		Total: len(items),
+		Items:  items,
+		Groups: groupResponses,
+		Total:  len(items),
 	}
+}
+
+// ToGroupResponseList converts a list of GroupConfig to GroupResponse DTOs.
+func (m *InjectableMapper) ToGroupResponseList(groups []port.GroupConfig) []*dto.GroupResponse {
+	if groups == nil {
+		return []*dto.GroupResponse{}
+	}
+
+	responses := make([]*dto.GroupResponse, len(groups))
+	for i, g := range groups {
+		responses[i] = &dto.GroupResponse{
+			Key:   g.Key,
+			Name:  g.Name,
+			Icon:  g.Icon,
+			Order: g.Order,
+		}
+	}
+	return responses
 }
 
 // VersionInjectableToResponse converts a version injectable with definition to a response DTO.

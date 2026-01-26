@@ -1,5 +1,13 @@
 package port
 
+// GroupConfig represents a resolved group with localized name.
+type GroupConfig struct {
+	Key   string
+	Name  string
+	Icon  string
+	Order int
+}
+
 // InjectorRegistry gestiona el registro de inyectores.
 type InjectorRegistry interface {
 	// Register registra un inyector en el registry.
@@ -27,6 +35,13 @@ type InjectorRegistry interface {
 
 	// GetAllDescriptions retorna todas las traducciones de la descripción para un code.
 	GetAllDescriptions(code string) map[string]string
+
+	// GetGroup retorna el grupo al que pertenece un inyector.
+	// Retorna nil si el inyector no tiene grupo asignado.
+	GetGroup(code string) *string
+
+	// GetGroups retorna todos los grupos traducidos al locale especificado.
+	GetGroups(locale string) []GroupConfig
 
 	// SetInitFunc registra la función de inicialización GLOBAL.
 	// Se ejecuta UNA vez antes de todos los inyectores.

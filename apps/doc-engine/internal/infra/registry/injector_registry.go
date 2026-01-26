@@ -107,6 +107,15 @@ func (r *injectorRegistry) GetAllDescriptions(code string) map[string]string {
 	return r.i18n.GetAllDescriptions(code)
 }
 
+// GetGroup returns the group the injector belongs to.
+// Returns nil if the injector has no group assigned.
+func (r *injectorRegistry) GetGroup(code string) *string {
+	if r.i18n == nil {
+		return nil
+	}
+	return r.i18n.GetGroup(code)
+}
+
 // SetInitFunc registers the GLOBAL initialization function.
 func (r *injectorRegistry) SetInitFunc(fn port.InitFunc) {
 	r.mu.Lock()
@@ -119,6 +128,24 @@ func (r *injectorRegistry) GetInitFunc() port.InitFunc {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.initFunc
+}
+
+// GetGroups returns all groups translated to the specified locale.
+func (r *injectorRegistry) GetGroups(locale string) []port.GroupConfig {
+	if r.i18n == nil {
+		return nil
+	}
+	configGroups := r.i18n.GetGroups(locale)
+	result := make([]port.GroupConfig, len(configGroups))
+	for i, g := range configGroups {
+		result[i] = port.GroupConfig{
+			Key:   g.Key,
+			Name:  g.Name,
+			Icon:  g.Icon,
+			Order: g.Order,
+		}
+	}
+	return result
 }
 
 // Ensure InjectorRegistry implements port.InjectorRegistry.

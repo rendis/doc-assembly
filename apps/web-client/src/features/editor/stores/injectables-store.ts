@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 import type { Variable } from '../types/variables'
-import type { Injectable } from '../types/injectable'
+import type { Injectable, InjectablesListResponse } from '../types/injectable'
 import { mapInjectablesToVariables } from '../types/injectable'
+import type { InjectableGroup } from '../types/injectable-group'
 
 interface InjectablesState {
   // State
   variables: Variable[]
   injectables: Injectable[]
+  groups: InjectableGroup[]
   isLoading: boolean
   error: string | null
   // Deduplication tracking
@@ -14,8 +16,10 @@ interface InjectablesState {
   fetchPromise: Promise<void> | null
 
   // Actions
+  setFromResponse: (response: InjectablesListResponse) => void
   setInjectables: (injectables: Injectable[]) => void
   setVariables: (variables: Variable[]) => void
+  setGroups: (groups: InjectableGroup[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   setLastFetchedWorkspaceId: (id: string | null) => void
@@ -26,6 +30,7 @@ interface InjectablesState {
 const initialState = {
   variables: [] as Variable[],
   injectables: [] as Injectable[],
+  groups: [] as InjectableGroup[],
   isLoading: false,
   error: null as string | null,
   lastFetchedWorkspaceId: null as string | null,
@@ -35,6 +40,13 @@ const initialState = {
 export const useInjectablesStore = create<InjectablesState>()((set) => ({
   ...initialState,
 
+  setFromResponse: (response) => {
+    const variables = mapInjectablesToVariables(response.items)
+    // Groups come directly from API, already resolved for locale
+    const groups = (response.groups ?? []).sort((a, b) => a.order - b.order)
+    set({ injectables: response.items, variables, groups })
+  },
+
   setInjectables: (injectables) => {
     const variables = mapInjectablesToVariables(injectables)
     set({ injectables, variables })
@@ -42,6 +54,10 @@ export const useInjectablesStore = create<InjectablesState>()((set) => ({
 
   setVariables: (variables) => {
     set({ variables })
+  },
+
+  setGroups: (groups) => {
+    set({ groups })
   },
 
   setLoading: (isLoading) => {
