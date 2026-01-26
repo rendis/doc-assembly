@@ -118,8 +118,9 @@ export function TableCornerHandle({ editor }: TableCornerHandleProps) {
       const containerRect = editorContainer.getBoundingClientRect()
 
       // Calculate position relative to the scrollable container
+      // Position handle close to table (compensate for CSS margin on table)
       setPosition({
-        top: tableRect.top - containerRect.top + editorContainer.scrollTop - HANDLE_HEIGHT - 4,
+        top: tableRect.top - containerRect.top + editorContainer.scrollTop - HANDLE_HEIGHT + 12,
         left: tableRect.left - containerRect.left + editorContainer.scrollLeft,
       })
     }
