@@ -1313,11 +1313,15 @@ definitions:
         type: string
       id:
         type: string
+      isSystem:
+        type: boolean
       name:
         type: string
       settings:
         additionalProperties: true
         type: object
+      status:
+        type: string
       updatedAt:
         type: string
     type: object
@@ -1342,6 +1346,8 @@ definitions:
       settings:
         additionalProperties: true
         type: object
+      status:
+        type: string
       updatedAt:
         type: string
     type: object
@@ -1419,6 +1425,17 @@ definitions:
         type: object
     required:
     - name
+    type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantStatusRequest:
+    properties:
+      status:
+        enum:
+        - ACTIVE
+        - SUSPENDED
+        - ARCHIVED
+        type: string
+    required:
+    - status
     type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionRequest:
     properties:
@@ -3627,6 +3644,50 @@ paths:
       security:
       - BearerAuth: []
       summary: Update tenant
+      tags:
+      - System - Tenants
+  /api/v1/system/tenants/{tenantId}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Status data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update tenant status
       tags:
       - System - Tenants
   /api/v1/system/tenants/{tenantId}/workspaces:

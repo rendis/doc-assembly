@@ -39,7 +39,7 @@ type TenantService struct {
 	accessHistoryRepo port.UserAccessHistoryRepository
 }
 
-// CreateTenant creates a new tenant with its system workspace.
+// CreateTenant creates a new tenant. System workspace is auto-created via DB trigger.
 func (s *TenantService) CreateTenant(ctx context.Context, cmd organizationuc.CreateTenantCommand) (*entity.Tenant, error) {
 	// Check if tenant code already exists
 	exists, err := s.tenantRepo.ExistsByCode(ctx, cmd.Code)
@@ -55,6 +55,7 @@ func (s *TenantService) CreateTenant(ctx context.Context, cmd organizationuc.Cre
 		Name:        cmd.Name,
 		Code:        cmd.Code,
 		Description: cmd.Description,
+		Status:      entity.TenantStatusActive,
 		Settings:    entity.TenantSettings{},
 		CreatedAt:   time.Now().UTC(),
 	}
@@ -205,6 +206,39 @@ func (s *TenantService) UpdateTenant(ctx context.Context, cmd organizationuc.Upd
 	slog.InfoContext(ctx, "tenant updated",
 		slog.String("tenant_id", tenant.ID),
 		slog.String("name", tenant.Name),
+	)
+
+	return tenant, nil
+}
+
+// UpdateTenantStatus updates a tenant's status (ACTIVE, SUSPENDED, ARCHIVED).
+func (s *TenantService) UpdateTenantStatus(ctx context.Context, cmd organizationuc.UpdateTenantStatusCommand) (*entity.Tenant, error) {
+	tenant, err := s.tenantRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("finding tenant: %w", err)
+	}
+
+	// System tenant cannot have its status changed
+	if tenant.IsSystem {
+		return nil, entity.ErrCannotModifySystemTenant
+	}
+
+	// Validate status
+	if !cmd.Status.IsValid() {
+		return nil, entity.ErrInvalidTenantStatus
+	}
+
+	now := time.Now().UTC()
+	if err := s.tenantRepo.UpdateStatus(ctx, cmd.ID, cmd.Status, &now); err != nil {
+		return nil, fmt.Errorf("updating tenant status: %w", err)
+	}
+
+	tenant.Status = cmd.Status
+	tenant.UpdatedAt = &now
+
+	slog.InfoContext(ctx, "tenant status updated",
+		slog.String("tenant_id", tenant.ID),
+		slog.String("status", string(cmd.Status)),
 	)
 
 	return tenant, nil

@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"time"
 
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 )
@@ -36,6 +37,9 @@ type TenantRepository interface {
 
 	// Update updates a tenant.
 	Update(ctx context.Context, tenant *entity.Tenant) error
+
+	// UpdateStatus updates a tenant's status.
+	UpdateStatus(ctx context.Context, id string, status entity.TenantStatus, updatedAt *time.Time) error
 
 	// Delete deletes a tenant.
 	Delete(ctx context.Context, id string) error

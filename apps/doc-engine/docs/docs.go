@@ -3167,6 +3167,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/system/tenants/{tenantId}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System - Tenants"
+                ],
+                "summary": "Update tenant status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/system/tenants/{tenantId}/workspaces": {
             "get": {
                 "security": [
@@ -7867,12 +7936,18 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "isSystem": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
                 "settings": {
                     "type": "object",
                     "additionalProperties": true
+                },
+                "status": {
+                    "type": "string"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -7909,6 +7984,9 @@ const docTemplate = `{
                 "settings": {
                     "type": "object",
                     "additionalProperties": true
+                },
+                "status": {
+                    "type": "string"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -8022,6 +8100,22 @@ const docTemplate = `{
                 "settings": {
                     "type": "object",
                     "additionalProperties": true
+                }
+            }
+        },
+        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "ACTIVE",
+                        "SUSPENDED",
+                        "ARCHIVED"
+                    ]
                 }
             }
         },

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,6 +31,7 @@ func (r *Repository) Create(ctx context.Context, tenant *entity.Tenant) (string,
 		tenant.Code,
 		tenant.Name,
 		tenant.Description,
+		tenant.Status,
 		tenant.Settings,
 		tenant.CreatedAt,
 	).Scan(&id)
@@ -49,6 +51,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Tenant, e
 		&tenant.Name,
 		&tenant.Description,
 		&tenant.IsSystem,
+		&tenant.Status,
 		&tenant.Settings,
 		&tenant.CreatedAt,
 		&tenant.UpdatedAt,
@@ -72,6 +75,7 @@ func (r *Repository) FindByCode(ctx context.Context, code string) (*entity.Tenan
 		&tenant.Name,
 		&tenant.Description,
 		&tenant.IsSystem,
+		&tenant.Status,
 		&tenant.Settings,
 		&tenant.CreatedAt,
 		&tenant.UpdatedAt,
@@ -103,6 +107,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]*entity.Tenant, error) {
 			&tenant.Name,
 			&tenant.Description,
 			&tenant.IsSystem,
+			&tenant.Status,
 			&tenant.Settings,
 			&tenant.CreatedAt,
 			&tenant.UpdatedAt,
@@ -166,6 +171,7 @@ func (r *Repository) FindSystemTenant(ctx context.Context) (*entity.Tenant, erro
 		&tenant.Name,
 		&tenant.Description,
 		&tenant.IsSystem,
+		&tenant.Status,
 		&tenant.Settings,
 		&tenant.CreatedAt,
 		&tenant.UpdatedAt,
@@ -216,6 +222,7 @@ func (r *Repository) FindAllPaginated(ctx context.Context, filters port.TenantFi
 			&tenant.Name,
 			&tenant.Description,
 			&tenant.IsSystem,
+			&tenant.Status,
 			&tenant.Settings,
 			&tenant.CreatedAt,
 			&tenant.UpdatedAt,
@@ -246,6 +253,7 @@ func (r *Repository) SearchByNameOrCode(ctx context.Context, query string, limit
 			&tenant.Name,
 			&tenant.Description,
 			&tenant.IsSystem,
+			&tenant.Status,
 			&tenant.Settings,
 			&tenant.CreatedAt,
 			&tenant.UpdatedAt,
@@ -257,4 +265,18 @@ func (r *Repository) SearchByNameOrCode(ctx context.Context, query string, limit
 	}
 
 	return result, rows.Err()
+}
+
+// UpdateStatus updates a tenant's status (cannot update system tenant status).
+func (r *Repository) UpdateStatus(ctx context.Context, id string, status entity.TenantStatus, updatedAt *time.Time) error {
+	result, err := r.pool.Exec(ctx, queryUpdateStatus, id, status, updatedAt)
+	if err != nil {
+		return fmt.Errorf("updating tenant status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return entity.ErrTenantNotFound
+	}
+
+	return nil
 }

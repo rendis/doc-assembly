@@ -10,6 +10,7 @@
     "saving": "Guardando...",
     "delete": "Eliminar",
     "deleting": "Eliminando...",
+    "archive": "Archivar",
     "archiving": "Archivando...",
     "cancelling": "Cancelando...",
     "edit": "Editar",
@@ -1061,12 +1062,52 @@
       "loadError": "Error al cargar los tenants",
       "noResults": "No hay tenants que coincidan con tu búsqueda",
       "empty": "No se encontraron tenants",
+      "addTenant": "Agregar Tenant",
+      "system": "Sistema",
+      "statusUpdated": "Estado del tenant actualizado",
+      "statusError": "Error al actualizar el estado del tenant",
       "columns": {
         "name": "Nombre",
         "code": "Código",
         "status": "Estado",
         "users": "Usuarios",
-        "created": "Creado"
+        "created": "Creado",
+        "actions": "Acciones"
+      },
+      "form": {
+        "createTitle": "Nuevo Tenant",
+        "editTitle": "Editar Tenant",
+        "createDescription": "Crear una nueva organización tenant.",
+        "editDescription": "Actualizar los detalles del tenant.",
+        "name": "Nombre",
+        "namePlaceholder": "Nombre del tenant",
+        "nameRequired": "El nombre es requerido",
+        "nameTooLong": "El nombre debe tener 100 caracteres o menos",
+        "code": "Código",
+        "codePlaceholder": "TENANT_CODE",
+        "codeRequired": "El código es requerido",
+        "codeLength": "El código debe tener entre 2 y 10 caracteres",
+        "codeInvalid": "El código solo puede contener letras, números y guiones bajos",
+        "codeHint": "2-10 caracteres en mayúsculas",
+        "codeExists": "Ya existe un tenant con este código",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción opcional",
+        "createSuccess": "Tenant creado",
+        "updateSuccess": "Tenant actualizado",
+        "saveError": "Error al guardar el tenant"
+      },
+      "actions": {
+        "edit": "Editar",
+        "suspend": "Suspender",
+        "activate": "Activar",
+        "archive": "Archivar"
+      },
+      "archive": {
+        "title": "Archivar Tenant",
+        "confirm": "¿Estás seguro de que deseas archivar \"{{name}}\"?",
+        "description": "Esto ocultará el tenant de todos los usuarios. Los datos se conservarán y pueden ser restaurados por un administrador.",
+        "success": "Tenant archivado",
+        "error": "Error al archivar el tenant"
       }
     },
     "users": {

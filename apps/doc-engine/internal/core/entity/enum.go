@@ -1,5 +1,23 @@
 package entity
 
+// TenantStatus represents the status of a tenant.
+type TenantStatus string
+
+const (
+	TenantStatusActive    TenantStatus = "ACTIVE"
+	TenantStatusSuspended TenantStatus = "SUSPENDED"
+	TenantStatusArchived  TenantStatus = "ARCHIVED"
+)
+
+// IsValid checks if the tenant status is valid.
+func (t TenantStatus) IsValid() bool {
+	switch t {
+	case TenantStatusActive, TenantStatusSuspended, TenantStatusArchived:
+		return true
+	}
+	return false
+}
+
 // WorkspaceType represents the type of workspace.
 type WorkspaceType string
 

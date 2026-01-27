@@ -121,6 +121,64 @@
         <rollback>DROP TRIGGER IF EXISTS trigger_protect_system_tenant ON tenancy.tenants;</rollback>
     </changeSet>
 
+    <changeSet id="tenants:function:auto_create_system_workspace" author="doc-assembly">
+        <comment>Auto-create SYSTEM workspace when tenant is created</comment>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION tenancy.auto_create_system_workspace()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                -- Skip for system tenant (workspace created via seed)
+                IF NEW.is_system = FALSE THEN
+                    INSERT INTO tenancy.workspaces (id, tenant_id, name, type, status)
+                    VALUES (
+                        gen_random_uuid(),
+                        NEW.id,
+                        NEW.name || ':System',
+                        'SYSTEM',
+                        'ACTIVE'
+                    );
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>DROP FUNCTION IF EXISTS tenancy.auto_create_system_workspace();</rollback>
+    </changeSet>
+
+    <changeSet id="tenants:trigger:auto_create_system_workspace" author="doc-assembly">
+        <comment>Trigger to auto-create SYSTEM workspace on tenant insert</comment>
+        <sql>
+            CREATE TRIGGER trigger_auto_create_system_workspace
+            AFTER INSERT ON tenancy.tenants
+            FOR EACH ROW EXECUTE FUNCTION tenancy.auto_create_system_workspace();
+        </sql>
+        <rollback>DROP TRIGGER IF EXISTS trigger_auto_create_system_workspace ON tenancy.tenants;</rollback>
+    </changeSet>
+
+    <!-- ========== STATUS ENUM AND COLUMN ========== -->
+
+    <changeSet id="tenants:enum:tenant_status" author="doc-assembly">
+        <comment>Create tenant status enum type</comment>
+        <sql>CREATE TYPE tenancy.tenant_status AS ENUM ('ACTIVE', 'SUSPENDED', 'ARCHIVED');</sql>
+        <rollback>DROP TYPE IF EXISTS tenancy.tenant_status;</rollback>
+    </changeSet>
+
+    <changeSet id="tenants:add_column:status" author="doc-assembly">
+        <comment>Add status column to tenants table</comment>
+        <sql>
+            ALTER TABLE tenancy.tenants
+            ADD COLUMN status tenancy.tenant_status NOT NULL DEFAULT 'ACTIVE';
+        </sql>
+        <rollback>ALTER TABLE tenancy.tenants DROP COLUMN IF EXISTS status;</rollback>
+    </changeSet>
+
+    <changeSet id="tenants:index:status" author="doc-assembly">
+        <comment>Index for filtering tenants by status</comment>
+        <createIndex indexName="idx_tenants_status" tableName="tenants" schemaName="tenancy">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
     <!-- ========== SEED DATA ========== -->
 
     <changeSet id="tenants:seed:system_tenant" author="doc-assembly">

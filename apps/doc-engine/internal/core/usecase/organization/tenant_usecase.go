@@ -22,6 +22,12 @@ type UpdateTenantCommand struct {
 	Settings    map[string]any
 }
 
+// UpdateTenantStatusCommand represents the command to update a tenant's status.
+type UpdateTenantStatusCommand struct {
+	ID     string
+	Status entity.TenantStatus
+}
+
 // TenantUseCase defines the input port for tenant operations.
 type TenantUseCase interface {
 	// CreateTenant creates a new tenant with its system workspace.
@@ -51,6 +57,9 @@ type TenantUseCase interface {
 
 	// UpdateTenant updates a tenant's details.
 	UpdateTenant(ctx context.Context, cmd UpdateTenantCommand) (*entity.Tenant, error)
+
+	// UpdateTenantStatus updates a tenant's status (ACTIVE, SUSPENDED, ARCHIVED).
+	UpdateTenantStatus(ctx context.Context, cmd UpdateTenantStatusCommand) (*entity.Tenant, error)
 
 	// DeleteTenant deletes a tenant and all its data.
 	DeleteTenant(ctx context.Context, id string) error

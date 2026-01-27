@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 // TenantResponse represents a tenant in API responses.
 type TenantResponse struct {
@@ -8,6 +11,8 @@ type TenantResponse struct {
 	Name        string                 `json:"name"`
 	Code        string                 `json:"code"`
 	Description string                 `json:"description,omitempty"`
+	IsSystem    bool                   `json:"isSystem"`
+	Status      string                 `json:"status"`
 	Settings    map[string]interface{} `json:"settings,omitempty"`
 	CreatedAt   time.Time              `json:"createdAt"`
 	UpdatedAt   *time.Time             `json:"updatedAt,omitempty"`
@@ -20,6 +25,7 @@ type TenantWithRoleResponse struct {
 	Code           string                 `json:"code"`
 	Description    string                 `json:"description,omitempty"`
 	IsSystem       bool                   `json:"isSystem"`
+	Status         string                 `json:"status"`
 	Role           string                 `json:"role"`
 	Settings       map[string]interface{} `json:"settings,omitempty"`
 	CreatedAt      time.Time              `json:"createdAt"`
@@ -87,3 +93,21 @@ type PaginatedTenantsWithRoleResponse struct {
 	Data       []*TenantWithRoleResponse `json:"data"`
 	Pagination PaginationMeta            `json:"pagination"`
 }
+
+// UpdateTenantStatusRequest represents a request to update a tenant's status.
+type UpdateTenantStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=ACTIVE SUSPENDED ARCHIVED"`
+}
+
+// Validate validates the UpdateTenantStatusRequest.
+func (r *UpdateTenantStatusRequest) Validate() error {
+	switch r.Status {
+	case "ACTIVE", "SUSPENDED", "ARCHIVED":
+		return nil
+	default:
+		return ErrInvalidTenantStatus
+	}
+}
+
+// ErrInvalidTenantStatus is returned when the tenant status is invalid.
+var ErrInvalidTenantStatus = errors.New("status must be ACTIVE, SUSPENDED, or ARCHIVED")

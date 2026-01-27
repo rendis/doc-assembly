@@ -50,9 +50,11 @@ var (
 
 // Tenant errors.
 var (
-	ErrTenantNotFound      = errors.New("tenant not found")
-	ErrTenantAlreadyExists = errors.New("tenant already exists")
-	ErrInvalidTenantCode   = errors.New("invalid tenant code")
+	ErrTenantNotFound           = errors.New("tenant not found")
+	ErrTenantAlreadyExists      = errors.New("tenant already exists")
+	ErrInvalidTenantCode        = errors.New("invalid tenant code")
+	ErrInvalidTenantStatus      = errors.New("invalid tenant status")
+	ErrCannotModifySystemTenant = errors.New("cannot modify system tenant")
 )
 
 // Workspace errors.

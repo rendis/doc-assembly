@@ -48,6 +48,7 @@ func (c *AdminController) RegisterRoutes(rg *gin.RouterGroup) {
 		system.POST("/tenants", middleware.RequireSuperAdmin(), c.CreateTenant)
 		system.GET("/tenants/:tenantId", c.GetTenant)
 		system.PUT("/tenants/:tenantId", c.UpdateTenant)
+		system.PATCH("/tenants/:tenantId/status", middleware.RequireSuperAdmin(), c.UpdateTenantStatus)
 		system.DELETE("/tenants/:tenantId", middleware.RequireSuperAdmin(), c.DeleteTenant)
 		system.GET("/tenants/:tenantId/workspaces", c.ListTenantWorkspaces)
 
@@ -199,6 +200,48 @@ func (c *AdminController) UpdateTenant(ctx *gin.Context) {
 
 	cmd := mapper.UpdateTenantRequestToCommand(tenantID, req)
 	tenant, err := c.tenantUC.UpdateTenant(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.TenantToResponse(tenant))
+}
+
+// UpdateTenantStatus updates a tenant's status.
+// Requires SUPERADMIN role.
+// @Summary Update tenant status
+// @Tags System - Tenants
+// @Accept json
+// @Produce json
+// @Param tenantId path string true "Tenant ID"
+// @Param request body dto.UpdateTenantStatusRequest true "Status data"
+// @Success 200 {object} dto.TenantResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/system/tenants/{tenantId}/status [patch]
+// @Security BearerAuth
+func (c *AdminController) UpdateTenantStatus(ctx *gin.Context) {
+	tenantID := ctx.Param("tenantId")
+
+	var req dto.UpdateTenantStatusRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := organizationuc.UpdateTenantStatusCommand{
+		ID:     tenantID,
+		Status: entity.TenantStatus(req.Status),
+	}
+	tenant, err := c.tenantUC.UpdateTenantStatus(ctx.Request.Context(), cmd)
 	if err != nil {
 		HandleError(ctx, err)
 		return

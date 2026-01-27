@@ -10,6 +10,7 @@
     "saving": "Saving...",
     "delete": "Delete",
     "deleting": "Deleting...",
+    "archive": "Archive",
     "archiving": "Archiving...",
     "cancelling": "Cancelling...",
     "edit": "Edit",
@@ -1061,12 +1062,52 @@
       "loadError": "Failed to load tenants",
       "noResults": "No tenants match your search",
       "empty": "No tenants found",
+      "addTenant": "Add Tenant",
+      "system": "System",
+      "statusUpdated": "Tenant status updated",
+      "statusError": "Failed to update tenant status",
       "columns": {
         "name": "Name",
         "code": "Code",
         "status": "Status",
         "users": "Users",
-        "created": "Created"
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "form": {
+        "createTitle": "New Tenant",
+        "editTitle": "Edit Tenant",
+        "createDescription": "Create a new tenant organization.",
+        "editDescription": "Update tenant details.",
+        "name": "Name",
+        "namePlaceholder": "Tenant name",
+        "nameRequired": "Name is required",
+        "nameTooLong": "Name must be 100 characters or less",
+        "code": "Code",
+        "codePlaceholder": "TENANT_CODE",
+        "codeRequired": "Code is required",
+        "codeLength": "Code must be 2-10 characters",
+        "codeInvalid": "Code must contain only letters, numbers, and underscores",
+        "codeHint": "2-10 uppercase characters",
+        "codeExists": "A tenant with this code already exists",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description",
+        "createSuccess": "Tenant created",
+        "updateSuccess": "Tenant updated",
+        "saveError": "Failed to save tenant"
+      },
+      "actions": {
+        "edit": "Edit",
+        "suspend": "Suspend",
+        "activate": "Activate",
+        "archive": "Archive"
+      },
+      "archive": {
+        "title": "Archive Tenant",
+        "confirm": "Are you sure you want to archive \"{{name}}\"?",
+        "description": "This will hide the tenant from all users. The data will be preserved and can be restored by an administrator.",
+        "success": "Tenant archived",
+        "error": "Failed to archive tenant"
       }
     },
     "users": {

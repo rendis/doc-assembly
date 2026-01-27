@@ -11,6 +11,7 @@ type Tenant struct {
 	Code        string         `json:"code"`
 	Description string         `json:"description,omitempty"`
 	IsSystem    bool           `json:"isSystem"`
+	Status      TenantStatus   `json:"status"`
 	Settings    TenantSettings `json:"settings"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   *time.Time     `json:"updatedAt,omitempty"`
@@ -30,6 +31,7 @@ func NewTenant(name, code, description string, settings TenantSettings) *Tenant 
 		Name:        name,
 		Code:        code,
 		Description: description,
+		Status:      TenantStatusActive,
 		Settings:    settings,
 		CreatedAt:   time.Now().UTC(),
 	}

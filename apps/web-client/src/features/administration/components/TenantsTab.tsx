@@ -1,9 +1,34 @@
 import { Paginator } from '@/components/ui/paginator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useSystemTenants } from '@/features/system-injectables/hooks/useSystemTenants'
-import { AlertTriangle, Building2, Search } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useToast } from '@/components/ui/use-toast'
+import type { SystemTenant, TenantStatus } from '@/features/system-injectables/api/system-tenants-api'
+import {
+  useSystemTenants,
+  useUpdateTenantStatus,
+} from '@/features/system-injectables/hooks/useSystemTenants'
+import {
+  AlertTriangle,
+  Archive,
+  Building2,
+  MoreHorizontal,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Search,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TenantFormDialog } from './TenantFormDialog'
+import { TenantStatusBadge } from './TenantStatusBadge'
+import { ArchiveTenantDialog } from './ArchiveTenantDialog'
 
 const TH_CLASS =
   'p-4 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground'
@@ -21,10 +46,19 @@ function formatDate(isoDate: string): string {
 
 export function TenantsTab(): React.ReactElement {
   const { t } = useTranslation()
+  const { toast } = useToast()
 
   const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+
+  // Dialog states
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
+  const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+
+  const updateStatusMutation = useUpdateTenantStatus()
 
   // Debounce search query
   useEffect(() => {
@@ -48,6 +82,64 @@ export function TenantsTab(): React.ReactElement {
   const tenants = data?.data ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
 
+  const handleCreate = () => {
+    setSelectedTenant(null)
+    setFormMode('create')
+    setFormOpen(true)
+  }
+
+  const handleEdit = (tenant: SystemTenant) => {
+    setSelectedTenant(tenant)
+    setFormMode('edit')
+    setFormOpen(true)
+  }
+
+  const handleStatusChange = async (tenant: SystemTenant, newStatus: TenantStatus) => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: tenant.id,
+        status: newStatus,
+      })
+      toast({
+        title: t('administration.tenants.statusUpdated', 'Status updated'),
+      })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error', 'Error'),
+        description: t('administration.tenants.statusError', 'Failed to update status'),
+      })
+    }
+  }
+
+  const handleArchive = (tenant: SystemTenant) => {
+    setSelectedTenant(tenant)
+    setArchiveOpen(true)
+  }
+
+  const getStatusAction = (tenant: SystemTenant) => {
+    if (tenant.status === 'ACTIVE') {
+      return {
+        label: t('administration.tenants.actions.suspend', 'Suspend'),
+        icon: Pause,
+        onClick: () => handleStatusChange(tenant, 'SUSPENDED'),
+      }
+    }
+    if (tenant.status === 'SUSPENDED') {
+      return {
+        label: t('administration.tenants.actions.activate', 'Activate'),
+        icon: Play,
+        onClick: () => handleStatusChange(tenant, 'ACTIVE'),
+      }
+    }
+    // ARCHIVED
+    return {
+      label: t('administration.tenants.actions.activate', 'Activate'),
+      icon: Play,
+      onClick: () => handleStatusChange(tenant, 'ACTIVE'),
+    }
+  }
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
@@ -57,19 +149,29 @@ export function TenantsTab(): React.ReactElement {
         )}
       </p>
 
-      {/* Search */}
-      <div className="group relative w-full md:max-w-xs">
-        <Search
-          className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-foreground"
-          size={18}
-        />
-        <input
-          type="text"
-          placeholder={t('administration.tenants.searchPlaceholder', 'Search tenants...')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-7 pr-4 text-sm font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
-        />
+      {/* Search and Add button */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="group relative w-full md:max-w-xs">
+          <Search
+            className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-foreground"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder={t('administration.tenants.searchPlaceholder', 'Search tenants...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-7 pr-4 text-sm font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
+          />
+        </div>
+
+        <button
+          onClick={handleCreate}
+          className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90"
+        >
+          <Plus size={14} />
+          {t('administration.tenants.addTenant', 'Add Tenant')}
+        </button>
       </div>
 
       <div className="rounded-sm border">
@@ -79,6 +181,7 @@ export function TenantsTab(): React.ReactElement {
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-4 p-4">
                 <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-28" />
               </div>
@@ -113,28 +216,86 @@ export function TenantsTab(): React.ReactElement {
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className={TH_CLASS}>
+                <th className={`${TH_CLASS} w-[35%]`}>
                   {t('administration.tenants.columns.name', 'Name')}
                 </th>
-                <th className={TH_CLASS}>
+                <th className={`${TH_CLASS} w-[15%]`}>
                   {t('administration.tenants.columns.code', 'Code')}
                 </th>
-                <th className={TH_CLASS}>
+                <th className={`${TH_CLASS} w-[15%]`}>
+                  {t('administration.tenants.columns.status', 'Status')}
+                </th>
+                <th className={`${TH_CLASS} w-[20%]`}>
                   {t('administration.tenants.columns.created', 'Created')}
                 </th>
+                <th className={`${TH_CLASS} w-[15%]`}></th>
               </tr>
             </thead>
             <tbody className={isFetching ? 'opacity-50' : undefined}>
               {tenants.map((tenant) => (
-                <tr key={tenant.id} className="border-b last:border-0 hover:bg-muted/50">
-                  <td className="p-4 font-medium">{tenant.name}</td>
+                <tr
+                  key={tenant.id}
+                  className="border-b last:border-0 hover:bg-muted/50"
+                >
+                  <td className="p-4">
+                    <span className="font-medium">{tenant.name}</span>
+                    {tenant.isSystem && (
+                      <span className="ml-2 rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+                        {t('administration.tenants.system', 'System')}
+                      </span>
+                    )}
+                  </td>
                   <td className="p-4">
                     <span className="inline-flex items-center rounded-sm border px-2 py-0.5 font-mono text-xs uppercase">
                       {tenant.code}
                     </span>
                   </td>
-                  <td className="p-4 font-mono text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap p-4">
+                    <TenantStatusBadge status={tenant.status} />
+                  </td>
+                  <td className="whitespace-nowrap p-4 font-mono text-sm text-muted-foreground">
                     {formatDate(tenant.createdAt)}
+                  </td>
+                  <td className="p-4">
+                    {!tenant.isSystem && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="rounded-sm p-1 hover:bg-muted">
+                            <MoreHorizontal size={16} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(tenant)}>
+                            <Pencil size={14} className="mr-2" />
+                            {t('administration.tenants.actions.edit', 'Edit')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={getStatusAction(tenant).onClick}>
+                            {(() => {
+                              const action = getStatusAction(tenant)
+                              const Icon = action.icon
+                              return (
+                                <>
+                                  <Icon size={14} className="mr-2" />
+                                  {action.label}
+                                </>
+                              )
+                            })()}
+                          </DropdownMenuItem>
+                          {tenant.status !== 'ARCHIVED' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleArchive(tenant)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Archive size={14} className="mr-2" />
+                                {t('administration.tenants.actions.archive', 'Archive')}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -153,6 +314,20 @@ export function TenantsTab(): React.ReactElement {
           className="py-2"
         />
       )}
+
+      {/* Dialogs */}
+      <TenantFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+        tenant={selectedTenant}
+      />
+
+      <ArchiveTenantDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        tenant={selectedTenant}
+      />
     </div>
   )
 }
