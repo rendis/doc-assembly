@@ -9,7 +9,7 @@ import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from 
 import { useWorkspaceTransitionStore } from '@/stores/workspace-transition-store'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Box, Plus, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Box, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -479,22 +479,7 @@ function SelectTenantPage() {
               onPageChange={setWorkspacePage}
               className="py-6"
             />
-          )}
-
-          {/* Join new organization button - only shown when no tenant selected */}
-          {!selectedTenant && (
-            <div className="mt-12 border-t border-border pt-8">
-              <button className="group flex w-full items-center gap-4 rounded-sm border border-dashed border-border px-6 py-4 opacity-60 outline-none transition-all duration-200 hover:border-foreground hover:bg-accent hover:opacity-100">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground pb-0.5 text-lg font-light transition-colors group-hover:border-foreground">
-                  <Plus size={14} />
-                </div>
-                <span className="font-display text-lg font-medium tracking-tight text-muted-foreground transition-colors group-hover:text-foreground">
-                  {t('selectTenant.join', 'Join New Organization')}
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
+          )}        </div>
       </motion.div>
     </div>
   )

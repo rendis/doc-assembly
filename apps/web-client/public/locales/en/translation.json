@@ -102,8 +102,7 @@
     "description": "Choose a tenant environment to access your document templates and assembly tools.",
     "back": "Back to login",
     "filter": "Filter by organization...",
-    "minChars": "Type at least 3 characters to search",
-    "join": "Join New Organization"
+    "minChars": "Type at least 3 characters to search"
   },
   "workspace": {
     "current": "Current Workspace",
