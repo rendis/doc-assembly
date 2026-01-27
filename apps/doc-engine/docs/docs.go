@@ -7894,6 +7894,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "isSystem": {
+                    "type": "boolean"
+                },
                 "lastAccessedAt": {
                     "type": "string"
                 },

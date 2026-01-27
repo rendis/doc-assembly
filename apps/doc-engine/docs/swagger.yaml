@@ -1331,6 +1331,8 @@ definitions:
         type: string
       id:
         type: string
+      isSystem:
+        type: boolean
       lastAccessedAt:
         type: string
       name:

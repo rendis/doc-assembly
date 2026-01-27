@@ -19,6 +19,7 @@ type TenantWithRoleResponse struct {
 	Name           string                 `json:"name"`
 	Code           string                 `json:"code"`
 	Description    string                 `json:"description,omitempty"`
+	IsSystem       bool                   `json:"isSystem"`
 	Role           string                 `json:"role"`
 	Settings       map[string]interface{} `json:"settings,omitempty"`
 	CreatedAt      time.Time              `json:"createdAt"`

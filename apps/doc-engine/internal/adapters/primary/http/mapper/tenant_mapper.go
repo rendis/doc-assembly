@@ -90,6 +90,7 @@ func TenantWithRoleToResponse(t *entity.TenantWithRole) *dto.TenantWithRoleRespo
 		Name:           t.Tenant.Name,
 		Code:           t.Tenant.Code,
 		Description:    t.Tenant.Description,
+		IsSystem:       t.Tenant.IsSystem,
 		Role:           string(t.Role),
 		Settings:       settings,
 		CreatedAt:      t.Tenant.CreatedAt,
