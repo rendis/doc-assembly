@@ -34,6 +34,7 @@ const (
 		  AND ($3 = '' OR w.name ILIKE '%' || $3 || '%')
 		  AND ($6 = '' OR w.status = $6::workspace_status)
 		ORDER BY
+			(w.type = 'SYSTEM') DESC,
 			CASE WHEN $3 != '' THEN similarity(w.name, $3) ELSE 0 END DESC,
 			CASE WHEN $3 = '' THEN h.accessed_at END DESC NULLS LAST,
 			w.name ASC

@@ -56,6 +56,7 @@ const (
 		WHERE t.status = 'ACTIVE'
 			AND ($2 = '' OR t.name ILIKE '%' || $2 || '%' OR t.code ILIKE '%' || $2 || '%')
 		ORDER BY
+			t.is_system DESC,
 			CASE WHEN $2 != '' THEN GREATEST(similarity(t.name, $2), similarity(t.code, $2)) ELSE 0 END DESC,
 			CASE WHEN $2 = '' THEN h.accessed_at END DESC NULLS LAST,
 			t.name ASC
