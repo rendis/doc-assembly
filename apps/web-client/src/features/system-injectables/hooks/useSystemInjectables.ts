@@ -73,34 +73,47 @@ export function useCreateAssignment(injectableKey: string) {
     mutationFn: (data: CreateAssignmentRequest) => createAssignment(injectableKey, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: systemInjectableKeys.assignments(injectableKey) })
+      queryClient.invalidateQueries({ queryKey: systemInjectableKeys.lists() })
     },
   })
 }
 
 // Mutation: Delete an assignment
 export function useDeleteAssignment(injectableKey: string) {
-  const onSuccess = useInvalidateAssignments(injectableKey)
+  const invalidateAssignments = useInvalidateAssignments(injectableKey)
+  const invalidateInjectables = useInvalidateInjectables()
   return useMutation({
     mutationFn: (assignmentId: string) => deleteAssignment(injectableKey, assignmentId),
-    onSuccess,
+    onSuccess: () => {
+      invalidateAssignments()
+      invalidateInjectables()
+    },
   })
 }
 
 // Mutation: Exclude an assignment (is_active = false)
 export function useExcludeAssignment(injectableKey: string) {
-  const onSuccess = useInvalidateAssignments(injectableKey)
+  const invalidateAssignments = useInvalidateAssignments(injectableKey)
+  const invalidateInjectables = useInvalidateInjectables()
   return useMutation({
     mutationFn: (assignmentId: string) => excludeAssignment(injectableKey, assignmentId),
-    onSuccess,
+    onSuccess: () => {
+      invalidateAssignments()
+      invalidateInjectables()
+    },
   })
 }
 
 // Mutation: Include an assignment (is_active = true)
 export function useIncludeAssignment(injectableKey: string) {
-  const onSuccess = useInvalidateAssignments(injectableKey)
+  const invalidateAssignments = useInvalidateAssignments(injectableKey)
+  const invalidateInjectables = useInvalidateInjectables()
   return useMutation({
     mutationFn: (assignmentId: string) => includeAssignment(injectableKey, assignmentId),
-    onSuccess,
+    onSuccess: () => {
+      invalidateAssignments()
+      invalidateInjectables()
+    },
   })
 }
 
