@@ -6,6 +6,7 @@ import { AuditTab } from './AuditTab'
 import { DocumentTypesTab } from './DocumentTypesTab'
 import { TenantsTab } from './TenantsTab'
 import { UsersTab } from './UsersTab'
+import { WorkspacesTab } from './WorkspacesTab'
 
 const TAB_TRIGGER_CLASS = 'font-mono text-xs uppercase tracking-widest'
 
@@ -71,10 +72,17 @@ export function AdministrationPage(): React.ReactElement {
               <TabsTrigger value="document-types" className={TAB_TRIGGER_CLASS}>
                 {t('administration.tabs.documentTypes', 'Document Types')}
               </TabsTrigger>
+              <TabsTrigger value="workspaces" className={TAB_TRIGGER_CLASS}>
+                {t('administration.tabs.workspaces', 'Workspaces')}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="document-types">
               <DocumentTypesTab />
+            </TabsContent>
+
+            <TabsContent value="workspaces">
+              <WorkspacesTab />
             </TabsContent>
           </Tabs>
         )}

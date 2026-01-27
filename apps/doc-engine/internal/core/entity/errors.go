@@ -59,19 +59,20 @@ var (
 
 // Workspace errors.
 var (
-	ErrWorkspaceNotFound      = errors.New("workspace not found")
-	ErrWorkspaceAlreadyExists = errors.New("workspace already exists")
-	ErrWorkspaceAccessDenied  = errors.New("workspace access denied")
-	ErrWorkspaceSuspended     = errors.New("workspace is suspended")
-	ErrWorkspaceArchived      = errors.New("workspace is archived")
-	ErrSystemWorkspaceExists  = errors.New("system workspace already exists for this tenant")
-	ErrGlobalWorkspaceExists  = errors.New("global system workspace already exists")
-	ErrInvalidWorkspaceType   = errors.New("invalid workspace type")
-	ErrInvalidWorkspaceStatus = errors.New("invalid workspace status")
-	ErrCannotArchiveSystem    = errors.New("cannot archive system workspace")
-	ErrSandboxNotFound        = errors.New("sandbox workspace not found")
-	ErrSandboxNotSupported    = errors.New("this workspace type does not support sandbox mode")
-	ErrCannotPromoteToSandbox = errors.New("cannot promote to a sandbox workspace")
+	ErrWorkspaceNotFound           = errors.New("workspace not found")
+	ErrWorkspaceAlreadyExists      = errors.New("workspace already exists")
+	ErrWorkspaceAccessDenied       = errors.New("workspace access denied")
+	ErrWorkspaceSuspended          = errors.New("workspace is suspended")
+	ErrWorkspaceArchived           = errors.New("workspace is archived")
+	ErrSystemWorkspaceExists       = errors.New("system workspace already exists for this tenant")
+	ErrGlobalWorkspaceExists       = errors.New("global system workspace already exists")
+	ErrInvalidWorkspaceType        = errors.New("invalid workspace type")
+	ErrInvalidWorkspaceStatus      = errors.New("invalid workspace status")
+	ErrCannotArchiveSystem         = errors.New("cannot archive system workspace")
+	ErrCannotModifySystemWorkspace = errors.New("cannot modify system workspace status")
+	ErrSandboxNotFound             = errors.New("sandbox workspace not found")
+	ErrSandboxNotSupported         = errors.New("this workspace type does not support sandbox mode")
+	ErrCannotPromoteToSandbox      = errors.New("cannot promote to a sandbox workspace")
 )
 
 // User errors.

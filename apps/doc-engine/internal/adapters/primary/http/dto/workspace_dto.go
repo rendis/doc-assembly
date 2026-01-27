@@ -61,11 +61,27 @@ func (r *UpdateWorkspaceRequest) Validate() error {
 type WorkspaceListRequest struct {
 	Page    int    `form:"page,default=1"`
 	PerPage int    `form:"perPage,default=10"`
-	Query   string `form:"q"` // Optional search filter for name
+	Query   string `form:"q"`      // Optional search filter for name
+	Status  string `form:"status"` // Optional status filter (ACTIVE, SUSPENDED, ARCHIVED)
 }
 
 // PaginatedWorkspacesResponse represents a paginated list of workspaces.
 type PaginatedWorkspacesResponse struct {
 	Data       []*WorkspaceResponse `json:"data"`
 	Pagination PaginationMeta       `json:"pagination"`
+}
+
+// UpdateWorkspaceStatusRequest represents a request to update a workspace's status.
+type UpdateWorkspaceStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=ACTIVE SUSPENDED ARCHIVED"`
+}
+
+// Validate validates the UpdateWorkspaceStatusRequest.
+func (r *UpdateWorkspaceStatusRequest) Validate() error {
+	switch r.Status {
+	case "ACTIVE", "SUSPENDED", "ARCHIVED":
+		return nil
+	default:
+		return ErrInvalidWorkspaceStatus
+	}
 }

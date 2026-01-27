@@ -189,6 +189,34 @@ func (s *WorkspaceService) GetSystemWorkspace(ctx context.Context, tenantID *str
 	return workspace, nil
 }
 
+// UpdateWorkspaceStatus updates a workspace's status (ACTIVE, SUSPENDED, ARCHIVED).
+func (s *WorkspaceService) UpdateWorkspaceStatus(ctx context.Context, cmd organizationuc.UpdateWorkspaceStatusCommand) (*entity.Workspace, error) {
+	workspace, err := s.workspaceRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("finding workspace: %w", err)
+	}
+
+	// Cannot change status of SYSTEM workspace
+	if workspace.Type == entity.WorkspaceTypeSystem {
+		return nil, entity.ErrCannotModifySystemWorkspace
+	}
+
+	if err := s.workspaceRepo.UpdateStatus(ctx, cmd.ID, cmd.Status); err != nil {
+		return nil, fmt.Errorf("updating workspace status: %w", err)
+	}
+
+	workspace.Status = cmd.Status
+	now := time.Now().UTC()
+	workspace.UpdatedAt = &now
+
+	slog.InfoContext(ctx, "workspace status updated",
+		slog.String("workspace_id", cmd.ID),
+		slog.String("status", string(cmd.Status)),
+	)
+
+	return workspace, nil
+}
+
 // enrichWorkspacesWithAccessHistory adds LastAccessedAt to workspaces.
 func (s *WorkspaceService) enrichWorkspacesWithAccessHistory(ctx context.Context, userID string, workspaces []*entity.Workspace) error {
 	if len(workspaces) == 0 {

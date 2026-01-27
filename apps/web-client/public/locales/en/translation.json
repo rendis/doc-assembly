@@ -24,6 +24,7 @@
     "previous": "Previous",
     "next": "Next",
     "search": "Search",
+    "searchMinChars": "Type at least 3 characters to search",
     "filter": "Filter",
     "sort": "Sort",
     "noResults": "No results found",
@@ -1006,7 +1007,8 @@
       "users": "Users",
       "injectables": "Injectables",
       "audit": "Audit",
-      "documentTypes": "Document Types"
+      "documentTypes": "Document Types",
+      "workspaces": "Workspaces"
     },
     "documentTypes": {
       "description": "Manage document types and their configurations.",
@@ -1108,6 +1110,62 @@
         "description": "This will hide the tenant from all users. The data will be preserved and can be restored by an administrator.",
         "success": "Tenant archived",
         "error": "Failed to archive tenant"
+      }
+    },
+    "workspaces": {
+      "description": "Manage workspaces for this tenant.",
+      "searchPlaceholder": "Search workspaces...",
+      "loadError": "Failed to load workspaces",
+      "noResults": "No workspaces match your search",
+      "empty": "No workspaces found",
+      "addWorkspace": "Add Workspace",
+      "statusUpdated": "Status updated",
+      "statusError": "Failed to update status",
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "created": "Created"
+      },
+      "form": {
+        "createTitle": "Create Workspace",
+        "editTitle": "Edit Workspace",
+        "createDescription": "Create a new workspace for this tenant.",
+        "editDescription": "Update workspace details.",
+        "name": "Name",
+        "namePlaceholder": "Workspace name",
+        "nameRequired": "Name is required",
+        "nameTooLong": "Name must be 255 characters or less",
+        "settings": "Settings (Optional)",
+        "theme": "Theme",
+        "themePlaceholder": "e.g., light, dark",
+        "logoUrl": "Logo URL",
+        "logoUrlPlaceholder": "https://example.com/logo.png",
+        "primaryColor": "Primary Color",
+        "primaryColorPlaceholder": "#3B82F6",
+        "createSuccess": "Workspace created",
+        "updateSuccess": "Workspace updated",
+        "saveError": "Failed to save workspace",
+        "editContextError": "Cannot edit workspace outside its context"
+      },
+      "actions": {
+        "edit": "Edit",
+        "suspend": "Suspend",
+        "activate": "Activate",
+        "archive": "Archive"
+      },
+      "archive": {
+        "title": "Archive Workspace",
+        "confirm": "Are you sure you want to archive \"{{name}}\"?",
+        "warning": "This workspace may contain templates and documents that will become inaccessible.",
+        "description": "Archiving will hide this workspace from all users. The data will be preserved and can be restored by an administrator.",
+        "success": "Workspace archived",
+        "error": "Failed to archive workspace"
+      },
+      "filter": {
+        "allStatuses": "All Statuses",
+        "active": "Active",
+        "suspended": "Suspended",
+        "archived": "Archived"
       }
     },
     "users": {

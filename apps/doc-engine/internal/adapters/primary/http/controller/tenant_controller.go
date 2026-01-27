@@ -46,6 +46,7 @@ func (c *TenantController) RegisterRoutes(rg *gin.RouterGroup, middlewareProvide
 		// Workspace routes within tenant
 		tenant.GET("/workspaces", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.ListWorkspaces)
 		tenant.POST("/workspaces", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.CreateWorkspace)
+		tenant.PATCH("/workspaces/:workspaceId/status", middleware.AuthorizeTenantRole(entity.TenantRoleAdmin), c.UpdateWorkspaceStatus)
 		tenant.DELETE("/workspaces/:workspaceId", middleware.AuthorizeTenantRole(entity.TenantRoleOwner), c.DeleteWorkspace)
 
 		// Tenant member routes
@@ -136,6 +137,7 @@ func (c *TenantController) UpdateCurrentTenant(ctx *gin.Context) {
 // @Param page query int false "Page number" default(1)
 // @Param perPage query int false "Items per page" default(10)
 // @Param q query string false "Search query for workspace name"
+// @Param status query string false "Filter by status (ACTIVE, SUSPENDED, ARCHIVED)"
 // @Success 200 {object} dto.PaginatedWorkspacesResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
@@ -217,6 +219,48 @@ func (c *TenantController) CreateWorkspace(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, mapper.WorkspaceToResponse(workspace))
+}
+
+// UpdateWorkspaceStatus updates a workspace's status in the current tenant.
+// @Summary Update workspace status
+// @Tags Tenant - Workspaces
+// @Accept json
+// @Produce json
+// @Param X-Tenant-ID header string true "Tenant ID"
+// @Param workspaceId path string true "Workspace ID"
+// @Param request body dto.UpdateWorkspaceStatusRequest true "Status data"
+// @Success 200 {object} dto.WorkspaceResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/tenant/workspaces/{workspaceId}/status [patch]
+// @Security BearerAuth
+func (c *TenantController) UpdateWorkspaceStatus(ctx *gin.Context) {
+	workspaceID := ctx.Param("workspaceId")
+
+	var req dto.UpdateWorkspaceStatusRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
+		return
+	}
+
+	cmd := organizationuc.UpdateWorkspaceStatusCommand{
+		ID:     workspaceID,
+		Status: entity.WorkspaceStatus(req.Status),
+	}
+	workspace, err := c.workspaceUC.UpdateWorkspaceStatus(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.WorkspaceToResponse(workspace))
 }
 
 // DeleteWorkspace deletes a workspace from the current tenant.

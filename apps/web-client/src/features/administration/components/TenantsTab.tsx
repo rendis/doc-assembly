@@ -163,6 +163,9 @@ export function TenantsTab(): React.ReactElement {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-7 pr-4 text-sm font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
           />
+          <p className={`absolute left-0 top-full pt-1 text-xs text-muted-foreground transition-opacity duration-200 ${searchQuery.length > 0 && searchQuery.length < 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            {t('common.searchMinChars', 'Type at least 3 characters to search')}
+          </p>
         </div>
 
         <button

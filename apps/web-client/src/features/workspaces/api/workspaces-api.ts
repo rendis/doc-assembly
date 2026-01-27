@@ -4,6 +4,7 @@ import type {
   WorkspaceWithRole,
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
+  UpdateWorkspaceStatusRequest,
 } from '../types'
 
 /**
@@ -12,11 +13,12 @@ import type {
 export async function getWorkspaces(
   page = 1,
   perPage = 20,
-  query?: string
+  query?: string,
+  status?: string
 ): Promise<PaginatedResponse<WorkspaceWithRole>> {
   const response = await apiClient.get<PaginatedResponse<WorkspaceWithRole>>(
     '/tenant/workspaces',
-    { params: { page, perPage, ...(query && { q: query }) } }
+    { params: { page, perPage, ...(query && { q: query }), ...(status && { status }) } }
   )
   return response.data
 }
@@ -61,4 +63,18 @@ export async function updateCurrentWorkspace(
  */
 export async function archiveCurrentWorkspace(): Promise<void> {
   await apiClient.delete('/workspace')
+}
+
+/**
+ * Update workspace status
+ */
+export async function updateWorkspaceStatus(
+  workspaceId: string,
+  data: UpdateWorkspaceStatusRequest
+): Promise<Workspace> {
+  const response = await apiClient.patch<Workspace>(
+    `/tenant/workspaces/${workspaceId}/status`,
+    data
+  )
+  return response.data
 }

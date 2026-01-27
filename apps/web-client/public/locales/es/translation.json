@@ -24,6 +24,7 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "search": "Buscar",
+    "searchMinChars": "Escribe al menos 3 caracteres para buscar",
     "filter": "Filtrar",
     "sort": "Ordenar",
     "noResults": "No se encontraron resultados",
@@ -1006,7 +1007,8 @@
       "users": "Usuarios",
       "injectables": "Inyectables",
       "audit": "Auditoría",
-      "documentTypes": "Tipos de Documento"
+      "documentTypes": "Tipos de Documento",
+      "workspaces": "Workspaces"
     },
     "documentTypes": {
       "description": "Gestiona los tipos de documento y sus configuraciones.",
@@ -1108,6 +1110,62 @@
         "description": "Esto ocultará el tenant de todos los usuarios. Los datos se conservarán y pueden ser restaurados por un administrador.",
         "success": "Tenant archivado",
         "error": "Error al archivar el tenant"
+      }
+    },
+    "workspaces": {
+      "description": "Gestiona los workspaces de este tenant.",
+      "searchPlaceholder": "Buscar workspaces...",
+      "loadError": "Error al cargar los workspaces",
+      "noResults": "No hay workspaces que coincidan con tu búsqueda",
+      "empty": "No se encontraron workspaces",
+      "addWorkspace": "Agregar Workspace",
+      "statusUpdated": "Estado del workspace actualizado",
+      "statusError": "Error al actualizar el estado del workspace",
+      "columns": {
+        "name": "Nombre",
+        "status": "Estado",
+        "created": "Creado"
+      },
+      "form": {
+        "createTitle": "Crear Workspace",
+        "editTitle": "Editar Workspace",
+        "createDescription": "Crear un nuevo workspace para este tenant.",
+        "editDescription": "Actualizar los detalles del workspace.",
+        "name": "Nombre",
+        "namePlaceholder": "Nombre del workspace",
+        "nameRequired": "El nombre es requerido",
+        "nameTooLong": "El nombre debe tener 255 caracteres o menos",
+        "settings": "Configuración (Opcional)",
+        "theme": "Tema",
+        "themePlaceholder": "ej., light, dark",
+        "logoUrl": "URL del Logo",
+        "logoUrlPlaceholder": "https://ejemplo.com/logo.png",
+        "primaryColor": "Color Primario",
+        "primaryColorPlaceholder": "#3B82F6",
+        "createSuccess": "Workspace creado",
+        "updateSuccess": "Workspace actualizado",
+        "saveError": "Error al guardar el workspace",
+        "editContextError": "No se puede editar el workspace fuera de su contexto"
+      },
+      "actions": {
+        "edit": "Editar",
+        "suspend": "Suspender",
+        "activate": "Activar",
+        "archive": "Archivar"
+      },
+      "archive": {
+        "title": "Archivar Workspace",
+        "confirm": "¿Estás seguro de que deseas archivar \"{{name}}\"?",
+        "warning": "Este workspace puede contener plantillas y documentos que quedarán inaccesibles.",
+        "description": "Archivar ocultará este workspace de todos los usuarios. Los datos se conservarán y pueden ser restaurados por un administrador.",
+        "success": "Workspace archivado",
+        "error": "Error al archivar el workspace"
+      },
+      "filter": {
+        "allStatuses": "Todos los Estados",
+        "active": "Activo",
+        "suspended": "Suspendido",
+        "archived": "Archivado"
       }
     },
     "users": {

@@ -1480,6 +1480,17 @@ definitions:
     required:
     - name
     type: object
+  github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceStatusRequest:
+    properties:
+      status:
+        enum:
+        - ACTIVE
+        - SUSPENDED
+        - ARCHIVED
+        type: string
+    required:
+    - status
+    type: object
   github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UserBriefResponse:
     properties:
       email:
@@ -4437,6 +4448,10 @@ paths:
         in: query
         name: q
         type: string
+      - description: Filter by status (ACTIVE, SUSPENDED, ARCHIVED)
+        in: query
+        name: status
+        type: string
       produces:
       - application/json
       responses:
@@ -4531,6 +4546,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete workspace from tenant
+      tags:
+      - Tenant - Workspaces
+  /api/v1/tenant/workspaces/{workspaceId}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Workspace ID
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Status data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update workspace status
       tags:
       - Tenant - Workspaces
   /api/v1/workspace:

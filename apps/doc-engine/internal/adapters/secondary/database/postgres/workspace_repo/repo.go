@@ -96,13 +96,13 @@ func (r *Repository) FindSandboxByParentID(ctx context.Context, parentID string)
 func (r *Repository) FindByTenantPaginated(ctx context.Context, tenantID string, filters port.WorkspaceFilters) ([]*entity.Workspace, int64, error) {
 	var total int64
 
-	// Get total count with search filter
-	if err := r.pool.QueryRow(ctx, queryCountByTenant, tenantID, filters.Query).Scan(&total); err != nil {
+	// Get total count with search and status filter
+	if err := r.pool.QueryRow(ctx, queryCountByTenant, tenantID, filters.Query, filters.Status).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("counting workspaces: %w", err)
 	}
 
 	// Query with unified ordering (similarity when Query provided, access history otherwise)
-	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.UserID, filters.Query, filters.Limit, filters.Offset)
+	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.UserID, filters.Query, filters.Limit, filters.Offset, filters.Status)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying workspaces: %w", err)
 	}

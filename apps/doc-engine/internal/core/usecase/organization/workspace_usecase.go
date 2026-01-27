@@ -23,6 +23,12 @@ type UpdateWorkspaceCommand struct {
 	Settings entity.WorkspaceSettings
 }
 
+// UpdateWorkspaceStatusCommand represents the command to update a workspace's status.
+type UpdateWorkspaceStatusCommand struct {
+	ID     string
+	Status entity.WorkspaceStatus
+}
+
 // WorkspaceUseCase defines the input port for workspace operations.
 type WorkspaceUseCase interface {
 	// CreateWorkspace creates a new workspace.
@@ -46,6 +52,9 @@ type WorkspaceUseCase interface {
 
 	// ActivateWorkspace activates a workspace.
 	ActivateWorkspace(ctx context.Context, id string) error
+
+	// UpdateWorkspaceStatus updates a workspace's status (ACTIVE, SUSPENDED, ARCHIVED).
+	UpdateWorkspaceStatus(ctx context.Context, cmd UpdateWorkspaceStatusCommand) (*entity.Workspace, error)
 
 	// GetSystemWorkspace retrieves the system workspace for a tenant.
 	GetSystemWorkspace(ctx context.Context, tenantID *string) (*entity.Workspace, error)

@@ -32,3 +32,7 @@ export interface UpdateWorkspaceRequest {
   name?: string
   settings?: WorkspaceSettings
 }
+
+export interface UpdateWorkspaceStatusRequest {
+  status: WorkspaceStatus
+}

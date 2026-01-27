@@ -32,6 +32,7 @@ const (
 			AND h.user_id = $2
 		WHERE w.tenant_id = $1 AND w.is_sandbox = FALSE
 		  AND ($3 = '' OR w.name ILIKE '%' || $3 || '%')
+		  AND ($6 = '' OR w.status = $6::workspace_status)
 		ORDER BY
 			CASE WHEN $3 != '' THEN similarity(w.name, $3) ELSE 0 END DESC,
 			CASE WHEN $3 = '' THEN h.accessed_at END DESC NULLS LAST,
@@ -41,7 +42,8 @@ const (
 	queryCountByTenant = `
 		SELECT COUNT(*) FROM tenancy.workspaces
 		WHERE tenant_id = $1 AND is_sandbox = FALSE
-		  AND ($2 = '' OR name ILIKE '%' || $2 || '%')`
+		  AND ($2 = '' OR name ILIKE '%' || $2 || '%')
+		  AND ($3 = '' OR status = $3::workspace_status)`
 
 	queryFindByUser = `
 		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'),

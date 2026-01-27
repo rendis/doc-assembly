@@ -10,7 +10,8 @@ var (
 	ErrIDRequired   = errors.New("id is required")
 
 	// Workspace validation errors
-	ErrInvalidWorkspaceType = errors.New("type must be REGULAR or SYSTEM")
+	ErrInvalidWorkspaceType   = errors.New("type must be REGULAR or SYSTEM")
+	ErrInvalidWorkspaceStatus = errors.New("status must be ACTIVE, SUSPENDED, or ARCHIVED")
 
 	// Member validation errors
 	ErrEmailRequired     = errors.New("email is required")

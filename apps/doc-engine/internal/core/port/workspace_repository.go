@@ -12,6 +12,7 @@ type WorkspaceFilters struct {
 	Offset int
 	UserID string // Used for access-based sorting
 	Query  string // Optional search filter for name
+	Status string // Optional status filter (ACTIVE, SUSPENDED, ARCHIVED)
 }
 
 // WorkspaceRepository defines the interface for workspace data access.
