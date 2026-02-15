@@ -12,6 +12,8 @@ server:
   swagger_ui: false   # DOC_ENGINE_SERVER_SWAGGER_UI - Enable Swagger UI at /swagger/
   cors:
     allowed_origins: []  # Empty = allow all origins (*)
+    # allowed_headers:       # Extra headers for CORS preflight (appended to built-in list)
+    #   - X-Custom-Header
 
 database:
   host: localhost             # Override via DOC_ENGINE_DATABASE_HOST

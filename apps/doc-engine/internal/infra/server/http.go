@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -338,6 +339,14 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 		wildcard = true
 	}
 
+	baseHeaders := []string{
+		"Origin", "Content-Type", "Accept", "Authorization",
+		"Cache-Control", "Pragma",
+		"X-Workspace-ID", "X-Tenant-ID", "X-Tenant-Code", "X-Sandbox-Mode", "X-API-Key",
+		"X-External-ID", "X-Template-ID", "X-Transactional-ID",
+	}
+	allowedHeaders := strings.Join(append(baseHeaders, corsCfg.AllowedHeaders...), ", ")
+
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 
@@ -349,7 +358,7 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 		}
 
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, Cache-Control, Pragma, X-Workspace-ID, X-Tenant-ID, X-Sandbox-Mode, X-API-Key, X-External-ID, X-Template-ID, X-Transactional-ID")
+		c.Header("Access-Control-Allow-Headers", allowedHeaders)
 		c.Header("Access-Control-Expose-Headers", "Content-Length")
 		c.Header("Access-Control-Allow-Credentials", "true")
 
