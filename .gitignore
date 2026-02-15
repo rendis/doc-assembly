@@ -149,3 +149,6 @@ secrets/
 CLAUDE.md
 GEMINI.md
 apps/doc-engine/tmp
+
+# Worktrees
+.worktrees/
