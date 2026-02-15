@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 /**
  * Hook to detect if a media query matches
@@ -6,28 +6,22 @@ import { useState, useEffect } from 'react'
  * @returns boolean indicating if the query matches
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia(query).matches
-    }
-    return false
-  })
+  const subscribe = useCallback(
+    (callback: () => void) => {
+      const mediaQuery = window.matchMedia(query)
+      mediaQuery.addEventListener('change', callback)
+      return () => mediaQuery.removeEventListener('change', callback)
+    },
+    [query]
+  )
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const mediaQuery = window.matchMedia(query)
-    setMatches(mediaQuery.matches)
-
-    const handler = (event: MediaQueryListEvent) => {
-      setMatches(event.matches)
-    }
-
-    mediaQuery.addEventListener('change', handler)
-    return () => mediaQuery.removeEventListener('change', handler)
+  const getSnapshot = useCallback(() => {
+    return window.matchMedia(query).matches
   }, [query])
 
-  return matches
+  const getServerSnapshot = useCallback(() => false, [])
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
 // Tailwind breakpoints

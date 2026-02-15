@@ -2,6 +2,8 @@ package infra
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,7 +32,7 @@ import (
 	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
-	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/opensign"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	accesssvc "github.com/doc-assembly/doc-engine/internal/core/service/access"
 	catalogsvc "github.com/doc-assembly/doc-engine/internal/core/service/catalog"
@@ -52,7 +54,6 @@ import (
 var ProviderSet = wire.NewSet(
 	// Configuration
 	config.Load,
-	ProvideDatabaseConfig,
 	ProvideServerConfig,
 	ProvideAuthConfig,
 
@@ -123,7 +124,7 @@ var ProviderSet = wire.NewSet(
 	ProvideContentValidator,
 
 	// PDF Renderer
-	ProvideChromeConfig,
+	ProvideTypstConfig,
 	ProvidePDFRenderer,
 
 	// Extensibility - Registries and Resolver
@@ -157,17 +158,18 @@ var ProviderSet = wire.NewSet(
 	controller.NewInternalDocumentController,
 	controller.NewDocumentTypeController,
 
+	// Render Authenticator (nil = use OIDC)
+	ProvideRenderAuthenticator,
+
+	// Workspace Injectable Provider (nil = no custom provider)
+	ProvideWorkspaceInjectableProvider,
+
 	// HTTP Server
 	server.NewHTTPServer,
 
 	// Initializer
 	NewInitializer,
 )
-
-// ProvideDatabaseConfig extracts database config from the main config.
-func ProvideDatabaseConfig(cfg *config.Config) *config.DatabaseConfig {
-	return &cfg.Database
-}
 
 // ProvideServerConfig extracts server config from the main config.
 func ProvideServerConfig(cfg *config.Config) *config.ServerConfig {
@@ -179,9 +181,67 @@ func ProvideAuthConfig(cfg *config.Config) *config.AuthConfig {
 	return &cfg.Auth
 }
 
+// ProvideRenderAuthenticator returns nil (no custom render auth in base doc-assembly).
+// Override via Wire to provide a custom RenderAuthenticator implementation.
+func ProvideRenderAuthenticator() port.RenderAuthenticator {
+	return nil
+}
+
+// ProvideWorkspaceInjectableProvider returns nil (no custom provider in base doc-assembly).
+// Override via Wire to provide a custom WorkspaceInjectableProvider implementation.
+func ProvideWorkspaceInjectableProvider() port.WorkspaceInjectableProvider {
+	return nil
+}
+
 // ProvideDBPool creates the database connection pool.
-func ProvideDBPool(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
-	return postgres.NewPool(context.Background(), cfg)
+// In dummy auth mode, seeds the default admin user and SUPERADMIN role.
+func ProvideDBPool(cfg *config.Config) (*pgxpool.Pool, error) {
+	pool, err := postgres.NewPool(context.Background(), &cfg.Database)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Auth.IsDummyAuth() {
+		userID, seedErr := seedDummyUser(context.Background(), pool)
+		if seedErr != nil {
+			return nil, fmt.Errorf("seeding dummy user: %w", seedErr)
+		}
+		cfg.DummyAuthUserID = userID
+		slog.InfoContext(context.Background(), "dummy auth user seeded", slog.String("user_id", userID))
+	}
+
+	return pool, nil
+}
+
+// seedDummyUser ensures a default admin user and SUPERADMIN role exist in the DB.
+func seedDummyUser(ctx context.Context, pool *pgxpool.Pool) (string, error) {
+	const (
+		email      = "admin@docengine.local"
+		fullName   = "Doc Engine Admin"
+		externalID = "00000000-0000-0000-0000-000000000001"
+	)
+
+	var userID string
+	err := pool.QueryRow(ctx, `
+		INSERT INTO identity.users (email, external_identity_id, full_name, status)
+		VALUES ($1, $2, $3, 'ACTIVE')
+		ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name
+		RETURNING id
+	`, email, externalID, fullName).Scan(&userID)
+	if err != nil {
+		return "", fmt.Errorf("upserting dummy user: %w", err)
+	}
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO identity.system_roles (user_id, role)
+		VALUES ($1, 'SUPERADMIN')
+		ON CONFLICT (user_id) DO NOTHING
+	`, userID)
+	if err != nil {
+		return "", fmt.Errorf("upserting dummy system role: %w", err)
+	}
+
+	return userID, nil
 }
 
 // ProvideContentValidator creates the content validator service.
@@ -189,46 +249,68 @@ func ProvideContentValidator(injectableUC injectableuc.InjectableUseCase) port.C
 	return contentvalidator.New(injectableUC)
 }
 
-// ProvideChromeConfig extracts chrome config from the main config.
-func ProvideChromeConfig(cfg *config.Config) *config.ChromeConfig {
-	return &cfg.Chrome
+// ProvideTypstConfig extracts Typst config from the main config.
+func ProvideTypstConfig(cfg *config.Config) *config.TypstConfig {
+	return &cfg.Typst
 }
 
-// ProvidePDFRenderer creates the PDF renderer service with browser pool.
-func ProvidePDFRenderer(chromeCfg *config.ChromeConfig) (port.PDFRenderer, error) {
-	opts := pdfrenderer.ChromeOptions{
-		Timeout:    chromeCfg.TimeoutDuration(),
-		PoolSize:   chromeCfg.PoolSize,
-		Headless:   chromeCfg.Headless,
-		DisableGPU: chromeCfg.DisableGPU,
-		NoSandbox:  chromeCfg.NoSandbox,
+// ProvidePDFRenderer creates the Typst-based PDF renderer service.
+func ProvidePDFRenderer(typstCfg *config.TypstConfig) (port.PDFRenderer, error) {
+	opts := pdfrenderer.TypstOptions{
+		BinPath:        typstCfg.BinPath,
+		Timeout:        typstCfg.TimeoutDuration(),
+		FontDirs:       typstCfg.FontDirs,
+		MaxConcurrent:  typstCfg.MaxConcurrent,
+		AcquireTimeout: typstCfg.AcquireTimeoutDuration(),
 	}
-	return pdfrenderer.NewService(opts)
+
+	var imageCache *pdfrenderer.ImageCache
+	if typstCfg.ImageCacheDir != "" || typstCfg.ImageCacheMaxAgeSeconds > 0 {
+		var err error
+		imageCache, err = pdfrenderer.NewImageCache(pdfrenderer.ImageCacheOptions{
+			Dir:             typstCfg.ImageCacheDir,
+			MaxAge:          typstCfg.ImageCacheMaxAgeDuration(),
+			CleanupInterval: typstCfg.ImageCacheCleanupIntervalDuration(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create image cache: %w", err)
+		}
+	}
+
+	// Design tokens for Typst rendering.
+	tokens := pdfrenderer.DefaultDesignTokens()
+
+	// Converter factory: creates a real Typst converter for node-by-node conversion.
+	factory := pdfrenderer.NewTypstConverterFactory(tokens)
+
+	return pdfrenderer.NewService(opts, imageCache, factory, tokens)
 }
 
 // ProvideSigningConfig extracts signing config from the main config.
-func ProvideSigningConfig(cfg *config.Config) *opensign.Config {
-	return &opensign.Config{
-		APIKey:        cfg.Signing.APIKey,
-		BaseURL:       cfg.Signing.BaseURL,
-		WebhookSecret: cfg.Signing.WebhookSecret,
+func ProvideSigningConfig(cfg *config.Config) *documenso.Config {
+	return &documenso.Config{
+		APIKey:         cfg.Signing.APIKey,
+		BaseURL:        cfg.Signing.BaseURL,
+		SigningBaseURL: cfg.Signing.SigningBaseURL,
+		WebhookSecret:  cfg.Signing.WebhookSecret,
+		WebhookURL:     cfg.Signing.WebhookURL,
 	}
 }
 
-// ProvideSigningProvider creates the signing provider (OpenSign adapter).
-func ProvideSigningProvider(cfg *opensign.Config) (port.SigningProvider, error) {
-	return opensign.New(cfg)
+// ProvideSigningProvider creates the signing provider (Documenso adapter).
+func ProvideSigningProvider(cfg *documenso.Config) (port.SigningProvider, error) {
+	return documenso.New(cfg)
 }
 
 // ProvideWebhookHandlers creates the map of webhook handlers by provider name.
-func ProvideWebhookHandlers(cfg *opensign.Config) (map[string]port.WebhookHandler, error) {
-	opensignAdapter, err := opensign.New(cfg)
+func ProvideWebhookHandlers(cfg *documenso.Config) (map[string]port.WebhookHandler, error) {
+	documensoAdapter, err := documenso.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return map[string]port.WebhookHandler{
-		"opensign": opensignAdapter,
+		"documenso": documensoAdapter,
 	}, nil
 }
 

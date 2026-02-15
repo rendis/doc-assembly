@@ -22,10 +22,10 @@ type groupI18n struct {
 	Icon string            `yaml:"icon"`
 }
 
-// GroupConfig represents a resolved group with localized name.
+// GroupConfig represents a group with all locale translations.
 type GroupConfig struct {
 	Key   string
-	Name  string
+	Names map[string]string
 	Icon  string
 	Order int
 }
@@ -47,6 +47,15 @@ var configPaths = []string{
 // rawI18nConfig represents the raw YAML structure with groups as array.
 type rawI18nConfig struct {
 	Groups []groupI18n `yaml:"groups"`
+}
+
+// LoadInjectorI18nFromFile loads injector translations from a specific file path.
+func LoadInjectorI18nFromFile(filePath string) (*InjectorI18nConfig, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return parseI18nData(data)
 }
 
 // LoadInjectorI18n carga traducciones desde settings/injectors.i18n.yaml.
@@ -74,6 +83,11 @@ func LoadInjectorI18n() (*InjectorI18nConfig, error) {
 		}, nil
 	}
 
+	return parseI18nData(data)
+}
+
+// parseI18nData parses raw YAML bytes into InjectorI18nConfig.
+func parseI18nData(data []byte) (*InjectorI18nConfig, error) {
 	// First pass: extract groups section
 	var rawConfig rawI18nConfig
 	if err := yaml.Unmarshal(data, &rawConfig); err != nil {
@@ -90,18 +104,17 @@ func LoadInjectorI18n() (*InjectorI18nConfig, error) {
 	entries := make(map[string]injectorI18n)
 	for key, value := range rawMap {
 		if key == "groups" {
-			continue // Skip groups, already parsed
+			continue
 		}
 
-		// Re-marshal and unmarshal to convert to injectorI18n
 		valueBytes, err := yaml.Marshal(value)
 		if err != nil {
-			continue // Skip invalid entries
+			continue
 		}
 
 		var entry injectorI18n
 		if err := yaml.Unmarshal(valueBytes, &entry); err != nil {
-			continue // Skip invalid entries
+			continue
 		}
 
 		entries[key] = entry
@@ -228,30 +241,52 @@ func (c *InjectorI18nConfig) GetGroup(code string) *string {
 	return &entry.Group
 }
 
-// GetGroups retorna todos los grupos traducidos al locale especificado.
+// GetAllGroups retorna todos los grupos con todas las traducciones.
 // El orden se determina por la posición en el array YAML (índice = orden).
-func (c *InjectorI18nConfig) GetGroups(locale string) []GroupConfig {
+func (c *InjectorI18nConfig) GetAllGroups() []GroupConfig {
 	if c == nil || c.groups == nil {
 		return nil
 	}
 
 	result := make([]GroupConfig, 0, len(c.groups))
 	for i, group := range c.groups {
-		name := group.Name[locale]
-		if name == "" {
-			name = group.Name["en"]
-		}
-		if name == "" {
-			name = group.Key
+		names := group.Name
+		if names == nil {
+			names = map[string]string{"en": group.Key}
 		}
 
 		result = append(result, GroupConfig{
 			Key:   group.Key,
-			Name:  name,
+			Names: names,
 			Icon:  group.Icon,
-			Order: i, // Order is determined by position in YAML array
+			Order: i,
 		})
 	}
 
 	return result
+}
+
+// Merge combines another config into this one. The other config's entries
+// override this config's entries for the same code. Groups from other are
+// appended after this config's groups.
+func (c *InjectorI18nConfig) Merge(other *InjectorI18nConfig) {
+	if other == nil {
+		return
+	}
+	if c.entries == nil {
+		c.entries = make(map[string]injectorI18n)
+	}
+	for code, entry := range other.entries {
+		c.entries[code] = entry
+	}
+	// Append new groups (avoid duplicates by key)
+	existingKeys := make(map[string]bool)
+	for _, g := range c.groups {
+		existingKeys[g.Key] = true
+	}
+	for _, g := range other.groups {
+		if !existingKeys[g.Key] {
+			c.groups = append(c.groups, g)
+		}
+	}
 }

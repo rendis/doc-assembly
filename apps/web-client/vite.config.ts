@@ -27,11 +27,20 @@ export default defineConfig({
     port: 3000,
     host: true,
     allowedHosts: true,
-    cors: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': '*',
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:8080',
+      },
+      '/ready': {
+        target: 'http://localhost:8080',
+      },
+      '/swagger': {
+        target: 'http://localhost:8080',
+      },
     },
   },
 })

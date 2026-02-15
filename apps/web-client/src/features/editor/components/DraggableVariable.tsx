@@ -26,6 +26,11 @@ interface DraggableVariableProps {
    * Whether the variable is currently being dragged
    */
   isDragging?: boolean
+
+  /**
+   * Hide the drag handle icon (for modal/click-only contexts)
+   */
+  hideDragHandle?: boolean
 }
 
 const SOURCE_TYPE_STYLES: Record<'INTERNAL' | 'EXTERNAL' | 'default', string> = {
@@ -65,6 +70,7 @@ export function DraggableVariable({
   data,
   onClick,
   isDragging = false,
+  hideDragHandle = false,
 }: DraggableVariableProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: data.id,
@@ -100,14 +106,16 @@ export function DraggableVariable({
       )}
     >
       {/* Drag handle */}
-      <GripVertical
-        className={cn(
-          'h-3.5 w-3.5 shrink-0',
-          isRole
-            ? 'text-role-foreground/70 group-hover:text-role-foreground'
-            : getSourceTypeIconColor(data.sourceType)
-        )}
-      />
+      {!hideDragHandle && (
+        <GripVertical
+          className={cn(
+            'h-3.5 w-3.5 shrink-0',
+            isRole
+              ? 'text-role-foreground/70 group-hover:text-role-foreground'
+              : getSourceTypeIconColor(data.sourceType)
+          )}
+        />
+      )}
 
       {/* Type icon */}
       <Icon

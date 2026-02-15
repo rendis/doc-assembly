@@ -9,10 +9,10 @@ import (
 )
 
 func TestRenderPreview_Basic(t *testing.T) {
-	// Skip if Chrome is not available (CI environments)
-	service, err := NewService(DefaultChromeOptions())
+	// Skip if Typst is not available (CI environments)
+	service, err := NewService(DefaultTypstOptions(), nil, NewTypstConverterFactory(DefaultDesignTokens()), DefaultDesignTokens())
 	if err != nil {
-		t.Skipf("Chrome not available, skipping test: %v", err)
+		t.Skipf("Typst not available, skipping test: %v", err)
 	}
 	defer service.Close()
 
@@ -100,7 +100,7 @@ func TestRenderPreview_Basic(t *testing.T) {
 	req := &port.RenderPreviewRequest{
 		Document: doc,
 		Injectables: map[string]any{
-			"client_name":   "Juan Pérez García",
+			"client_name":   "Juan Perez Garcia",
 			"contract_date": "2025-01-15",
 		},
 	}
@@ -133,9 +133,9 @@ func TestRenderPreview_Basic(t *testing.T) {
 }
 
 func TestRenderPreview_EmptyInjectables(t *testing.T) {
-	service, err := NewService(DefaultChromeOptions())
+	service, err := NewService(DefaultTypstOptions(), nil, NewTypstConverterFactory(DefaultDesignTokens()), DefaultDesignTokens())
 	if err != nil {
-		t.Skipf("Chrome not available, skipping test: %v", err)
+		t.Skipf("Typst not available, skipping test: %v", err)
 	}
 	defer service.Close()
 
@@ -183,12 +183,9 @@ func TestRenderPreview_EmptyInjectables(t *testing.T) {
 }
 
 func TestRenderPreview_RoleVariableFromInjectables(t *testing.T) {
-	// Test that verifies ROLE variables are resolved from injectables
-	// when SignerRole.email.type = "text" with empty value
-	// and the injector node has isRoleVariable = true
-	service, err := NewService(DefaultChromeOptions())
+	service, err := NewService(DefaultTypstOptions(), nil, NewTypstConverterFactory(DefaultDesignTokens()), DefaultDesignTokens())
 	if err != nil {
-		t.Skipf("Chrome not available, skipping test: %v", err)
+		t.Skipf("Typst not available, skipping test: %v", err)
 	}
 	defer service.Close()
 
@@ -209,8 +206,8 @@ func TestRenderPreview_RoleVariableFromInjectables(t *testing.T) {
 			{
 				ID:    "role_1",
 				Label: "Rol_1",
-				Name:  portabledoc.FieldValue{Type: "text", Value: ""}, // Empty text type
-				Email: portabledoc.FieldValue{Type: "text", Value: ""}, // Empty text type
+				Name:  portabledoc.FieldValue{Type: "text", Value: ""},
+				Email: portabledoc.FieldValue{Type: "text", Value: ""},
 				Order: 1,
 			},
 		},
@@ -257,7 +254,6 @@ func TestRenderPreview_RoleVariableFromInjectables(t *testing.T) {
 		},
 	}
 
-	// Pass ROLE variables directly in injectables (not through SignerRole.Email.Type="injectable")
 	req := &port.RenderPreviewRequest{
 		Document: doc,
 		Injectables: map[string]any{

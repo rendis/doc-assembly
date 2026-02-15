@@ -4,10 +4,12 @@ import { useNavigate } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { useCreateTemplate } from '../hooks/useTemplates'
-import { addTagsToTemplate } from '../api/templates-api'
+import { useCreateTemplate, useAssignDocumentType } from '../hooks/useTemplates'
+import { addTagsToTemplate, DocumentTypeConflictError } from '../api/templates-api'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { TagSelector } from './TagSelector'
+import { DocumentTypeSelector } from '@/features/administration/components/DocumentTypeSelector'
+import { DocumentTypeConflictDialog } from './DocumentTypeConflictDialog'
 
 interface CreateTemplateDialogProps {
   open: boolean
@@ -25,18 +27,42 @@ export function CreateTemplateDialog({
   const { currentWorkspace } = useAppContextStore()
   const [title, setTitle] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [selectedDocumentTypeId, setSelectedDocumentTypeId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [conflictDialog, setConflictDialog] = useState<{
+    open: boolean
+    conflict: { id: string; title: string } | null
+    pendingTemplateId: string | null
+    pendingVersionId: string | null
+  }>({ open: false, conflict: null, pendingTemplateId: null, pendingVersionId: null })
   const createTemplate = useCreateTemplate()
+  const assignDocumentType = useAssignDocumentType()
 
   // Handle dialog open state change and reset form
   const handleOpenChange = useCallback((isOpen: boolean) => {
     if (isOpen) {
       setTitle('')
       setSelectedTagIds([])
+      setSelectedDocumentTypeId(null)
       setIsSubmitting(false)
+      setConflictDialog({ open: false, conflict: null, pendingTemplateId: null, pendingVersionId: null })
     }
     onOpenChange(isOpen)
   }, [onOpenChange])
+
+  const navigateToTemplate = (templateId: string, versionId: string) => {
+    if (!currentWorkspace) return
+    onOpenChange(false)
+    navigate({
+      to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
+      params: {
+        workspaceId: currentWorkspace.id,
+        templateId,
+        versionId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
+      } as any,
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,24 +83,54 @@ export function CreateTemplateDialog({
         await addTagsToTemplate(response.template.id, selectedTagIds)
       }
 
-      // 3. Close dialog and navigate
-      onOpenChange(false)
-      navigate({
-        to: '/workspace/$workspaceId/editor/$templateId/version/$versionId',
-        params: {
-          workspaceId: currentWorkspace.id,
-          templateId: response.template.id,
-          versionId: response.initialVersion.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
-        } as any,
-      })
+      // 3. Assign document type (if selected)
+      if (selectedDocumentTypeId) {
+        try {
+          await assignDocumentType.mutateAsync({
+            templateId: response.template.id,
+            data: { documentTypeId: selectedDocumentTypeId },
+          })
+        } catch (error) {
+          if (error instanceof DocumentTypeConflictError) {
+            setConflictDialog({
+              open: true,
+              conflict: error.conflict,
+              pendingTemplateId: response.template.id,
+              pendingVersionId: response.initialVersion.id,
+            })
+            setIsSubmitting(false)
+            return
+          }
+          throw error
+        }
+      }
+
+      // 4. Navigate
+      navigateToTemplate(response.template.id, response.initialVersion.id)
     } catch {
       // Error is handled by mutation
       setIsSubmitting(false)
     }
   }
 
+  const handleForceAssignDocumentType = async () => {
+    if (!conflictDialog.pendingTemplateId || !conflictDialog.pendingVersionId || !selectedDocumentTypeId) return
+    setIsSubmitting(true)
+    try {
+      await assignDocumentType.mutateAsync({
+        templateId: conflictDialog.pendingTemplateId,
+        data: { documentTypeId: selectedDocumentTypeId, force: true },
+      })
+      setConflictDialog({ open: false, conflict: null, pendingTemplateId: null, pendingVersionId: null })
+      navigateToTemplate(conflictDialog.pendingTemplateId, conflictDialog.pendingVersionId)
+    } catch {
+      setConflictDialog({ open: false, conflict: null, pendingTemplateId: null, pendingVersionId: null })
+      setIsSubmitting(false)
+    }
+  }
+
   return (
+    <>
     <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
@@ -129,6 +185,19 @@ export function CreateTemplateDialog({
                 />
               </div>
 
+              {/* Document Type field */}
+              <div>
+                <label className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  {t('templates.createDialog.documentTypeLabel', 'Document Type')}
+                </label>
+                <DocumentTypeSelector
+                  currentTypeId={selectedDocumentTypeId}
+                  currentTypeName={null}
+                  onAssign={async (id) => setSelectedDocumentTypeId(id)}
+                  disabled={isSubmitting}
+                />
+              </div>
+
               {/* Tags field */}
               <div>
                 <label className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
@@ -165,5 +234,17 @@ export function CreateTemplateDialog({
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+
+    <DocumentTypeConflictDialog
+      open={conflictDialog.open}
+      conflictTemplate={conflictDialog.conflict}
+      onCancel={() => {
+        setConflictDialog({ open: false, conflict: null, pendingTemplateId: null, pendingVersionId: null })
+        setIsSubmitting(false)
+      }}
+      onForce={handleForceAssignDocumentType}
+      isLoading={assignDocumentType.isPending}
+    />
+    </>
   )
 }

@@ -18,11 +18,17 @@ func NewInjectableService(
 	injectableRepo port.InjectableRepository,
 	systemInjectableRepo port.SystemInjectableRepository,
 	injectorRegistry port.InjectorRegistry,
+	workspaceRepo port.WorkspaceRepository,
+	tenantRepo port.TenantRepository,
+	workspaceProvider port.WorkspaceInjectableProvider, // can be nil
 ) injectableuc.InjectableUseCase {
 	return &InjectableService{
 		injectableRepo:       injectableRepo,
 		systemInjectableRepo: systemInjectableRepo,
 		injectorRegistry:     injectorRegistry,
+		workspaceRepo:        workspaceRepo,
+		tenantRepo:           tenantRepo,
+		workspaceProvider:    workspaceProvider,
 	}
 }
 
@@ -32,6 +38,9 @@ type InjectableService struct {
 	injectableRepo       port.InjectableRepository
 	systemInjectableRepo port.SystemInjectableRepository
 	injectorRegistry     port.InjectorRegistry
+	workspaceRepo        port.WorkspaceRepository
+	tenantRepo           port.TenantRepository
+	workspaceProvider    port.WorkspaceInjectableProvider // can be nil
 }
 
 // GetInjectable retrieves an injectable definition by ID.
@@ -43,23 +52,75 @@ func (s *InjectableService) GetInjectable(ctx context.Context, id string) (*enti
 	return injectable, nil
 }
 
-// ListInjectables lists all injectable definitions for a workspace (including global and system).
-func (s *InjectableService) ListInjectables(ctx context.Context, workspaceID string) ([]*entity.InjectableDefinition, error) {
-	dbInjectables, err := s.injectableRepo.FindByWorkspace(ctx, workspaceID)
+// ListInjectables lists all injectable definitions for a workspace (including global, system, and provider).
+func (s *InjectableService) ListInjectables(
+	ctx context.Context, req *injectableuc.ListInjectablesRequest,
+) (*injectableuc.ListInjectablesResult, error) {
+	dbInjectables, err := s.injectableRepo.FindByWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("listing injectables: %w", err)
 	}
 
-	systemInjectables, err := s.getSystemInjectables(ctx, workspaceID)
+	systemInjectables, err := s.getSystemInjectables(ctx, req.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("listing system injectables: %w", err)
 	}
 
-	return s.mergeInjectables(dbInjectables, systemInjectables), nil
+	// Get provider injectables if provider is registered
+	providerInjectables, providerGroups, err := s.getProviderInjectablesAndGroups(ctx, req.WorkspaceID, dbInjectables, systemInjectables)
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge all injectables
+	allInjectables := s.mergeInjectables(dbInjectables, systemInjectables)
+	allInjectables = append(allInjectables, providerInjectables...)
+
+	// Merge groups (registry groups + provider groups)
+	registryGroups := s.injectorRegistry.GetAllGroups()
+	allGroups := make([]port.GroupConfig, 0, len(registryGroups)+len(providerGroups))
+	allGroups = append(allGroups, registryGroups...)
+	allGroups = append(allGroups, providerGroups...)
+
+	return &injectableuc.ListInjectablesResult{
+		Injectables: allInjectables,
+		Groups:      allGroups,
+	}, nil
+}
+
+// getProviderInjectablesAndGroups fetches and validates provider injectables and groups.
+func (s *InjectableService) getProviderInjectablesAndGroups(
+	ctx context.Context,
+	workspaceID string,
+	dbInjectables, systemInjectables []*entity.InjectableDefinition,
+) ([]*entity.InjectableDefinition, []port.GroupConfig, error) {
+	if s.workspaceProvider == nil {
+		return nil, nil, nil
+	}
+
+	providerResult, err := s.fetchProviderResult(ctx, workspaceID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting provider injectables: %w", err)
+	}
+
+	if providerResult == nil {
+		return nil, nil, nil
+	}
+
+	providerInjectables := s.convertProviderInjectables(providerResult.Injectables)
+	providerGroups := convertProviderGroups(providerResult.Groups)
+
+	if err := validateNoDuplicateCodes(dbInjectables, systemInjectables, providerInjectables); err != nil {
+		return nil, nil, err
+	}
+
+	return providerInjectables, providerGroups, nil
 }
 
 // getSystemInjectables returns system injectables filtered by active assignments for the workspace.
-func (s *InjectableService) getSystemInjectables(ctx context.Context, workspaceID string) ([]*entity.InjectableDefinition, error) {
+func (s *InjectableService) getSystemInjectables(
+	ctx context.Context, workspaceID string,
+) ([]*entity.InjectableDefinition, error) {
 	if s.injectorRegistry == nil || s.systemInjectableRepo == nil {
 		return nil, nil
 	}
@@ -89,9 +150,8 @@ func (s *InjectableService) getSystemInjectables(ctx context.Context, workspaceI
 func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.InjectableDefinition {
 	code := inj.Code()
 
-	// Get translations (default to "es" locale, fallback to code)
-	label := s.injectorRegistry.GetName(code, "es")
-	description := s.injectorRegistry.GetDescription(code, "es")
+	labels := s.injectorRegistry.GetAllNames(code)
+	descriptions := s.injectorRegistry.GetAllDescriptions(code)
 
 	// Convert DataType
 	dataType := convertValueTypeToDataType(inj.DataType())
@@ -113,8 +173,32 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 		}
 	}
 
-	// Build metadata - for TABLE types, include column schema if available
+	// Build metadata - for TABLE types, include column schema; for LIST types, include list schema
+	metadata := buildInjectorMetadata(inj)
+
+	return &entity.InjectableDefinition{
+		ID:           code,
+		WorkspaceID:  nil,
+		Key:          code,
+		Labels:       labels,
+		Descriptions: descriptions,
+		DataType:     dataType,
+		SourceType:   entity.InjectableSourceTypeInternal,
+		Metadata:     metadata,
+		FormatConfig: formatConfig,
+		Group:        s.injectorRegistry.GetGroup(code),
+		DefaultValue: defaultValue,
+		IsActive:     true,
+		IsDeleted:    false,
+		CreatedAt:    time.Time{},
+		UpdatedAt:    nil,
+	}
+}
+
+// buildInjectorMetadata builds metadata for table and list schema providers.
+func buildInjectorMetadata(inj port.Injector) map[string]any {
 	var metadata map[string]any
+
 	if tableProvider, ok := inj.(port.TableSchemaProvider); ok {
 		columns := tableProvider.ColumnSchema()
 		if len(columns) > 0 {
@@ -124,23 +208,15 @@ func (s *InjectableService) injectorToDefinition(inj port.Injector) *entity.Inje
 		}
 	}
 
-	return &entity.InjectableDefinition{
-		ID:           code, // Same as key
-		WorkspaceID:  nil,  // Global (extension injectors are system-wide)
-		Key:          code,
-		Label:        label,
-		Description:  description,
-		DataType:     dataType,
-		SourceType:   entity.InjectableSourceTypeInternal, // System injectors are auto-calculated
-		Metadata:     metadata,
-		FormatConfig: formatConfig,
-		Group:        s.injectorRegistry.GetGroup(code),
-		DefaultValue: defaultValue,
-		IsActive:     true,
-		IsDeleted:    false,
-		CreatedAt:    time.Time{}, // Extensions don't have creation time
-		UpdatedAt:    nil,
+	if listProvider, ok := inj.(port.ListSchemaProvider); ok {
+		schema := listProvider.ListSchema()
+		if metadata == nil {
+			metadata = make(map[string]any)
+		}
+		metadata["listSchema"] = schema
 	}
+
+	return metadata
 }
 
 // convertValueTypeToDataType converts entity.ValueType to entity.InjectableDataType.
@@ -158,6 +234,8 @@ func convertValueTypeToDataType(vt entity.ValueType) entity.InjectableDataType {
 		return entity.InjectableDataTypeTable
 	case entity.ValueTypeImage:
 		return entity.InjectableDataTypeImage
+	case entity.ValueTypeList:
+		return entity.InjectableDataTypeList
 	default:
 		return entity.InjectableDataTypeText
 	}
@@ -186,10 +264,109 @@ func (s *InjectableService) mergeInjectables(db, ext []*entity.InjectableDefinit
 	return result
 }
 
-// GetGroups returns all groups translated to the specified locale.
-func (s *InjectableService) GetGroups(locale string) []port.GroupConfig {
-	if s.injectorRegistry == nil {
-		return nil
+// fetchProviderResult retrieves provider injectables by resolving workspace codes.
+func (s *InjectableService) fetchProviderResult(
+	ctx context.Context, workspaceID string,
+) (*port.GetInjectablesResult, error) {
+	tenantCode, workspaceName, err := s.getWorkspaceCodes(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("getting workspace codes: %w", err)
 	}
-	return s.injectorRegistry.GetGroups(locale)
+
+	injCtx := entity.NewInjectorContextWithCodes("", "", "", "list", tenantCode, workspaceName, nil, nil)
+	return s.workspaceProvider.GetInjectables(ctx, injCtx)
+}
+
+// getWorkspaceCodes retrieves tenant code and workspace name from workspace ID.
+func (s *InjectableService) getWorkspaceCodes(
+	ctx context.Context, workspaceID string,
+) (tenantCode, workspaceName string, err error) {
+	workspace, err := s.workspaceRepo.FindByID(ctx, workspaceID)
+	if err != nil {
+		return "", "", fmt.Errorf("finding workspace: %w", err)
+	}
+	workspaceName = workspace.Name
+
+	if workspace.TenantID != nil {
+		tenant, err := s.tenantRepo.FindByID(ctx, *workspace.TenantID)
+		if err != nil {
+			return "", "", fmt.Errorf("finding tenant: %w", err)
+		}
+		tenantCode = tenant.Code
+	}
+
+	return tenantCode, workspaceName, nil
+}
+
+// convertProviderInjectables converts provider injectables to entity definitions.
+func (s *InjectableService) convertProviderInjectables(
+	injectables []port.ProviderInjectable,
+) []*entity.InjectableDefinition {
+	result := make([]*entity.InjectableDefinition, 0, len(injectables))
+	for _, inj := range injectables {
+		def := &entity.InjectableDefinition{
+			ID:           inj.Code,
+			WorkspaceID:  nil,
+			Key:          inj.Code,
+			Labels:       inj.Label,
+			Descriptions: inj.Description,
+			DataType:     inj.DataType,
+			SourceType:   entity.InjectableSourceTypeExternal,
+			Metadata:     nil,
+			IsActive:     true,
+			IsDeleted:    false,
+			CreatedAt:    time.Time{},
+		}
+		if inj.GroupKey != "" {
+			def.Group = &inj.GroupKey
+		}
+		if len(inj.Formats) > 0 {
+			options := make([]string, len(inj.Formats))
+			for i, f := range inj.Formats {
+				options[i] = f.Key
+			}
+			def.FormatConfig = &entity.FormatConfig{
+				Default: inj.Formats[0].Key,
+				Options: options,
+			}
+		}
+		result = append(result, def)
+	}
+	return result
+}
+
+// convertProviderGroups converts provider groups to GroupConfig.
+func convertProviderGroups(groups []port.ProviderGroup) []port.GroupConfig {
+	result := make([]port.GroupConfig, 0, len(groups))
+	for i, g := range groups {
+		names := g.Name
+		if names == nil {
+			names = map[string]string{"en": g.Key}
+		}
+		result = append(result, port.GroupConfig{
+			Key:   g.Key,
+			Names: names,
+			Icon:  g.Icon,
+			Order: 1000 + i,
+		})
+	}
+	return result
+}
+
+// validateNoDuplicateCodes checks that provider codes don't conflict with existing codes.
+func validateNoDuplicateCodes(db, system, provider []*entity.InjectableDefinition) error {
+	existingCodes := make(map[string]bool)
+	for _, inj := range db {
+		existingCodes[inj.Key] = true
+	}
+	for _, inj := range system {
+		existingCodes[inj.Key] = true
+	}
+
+	for _, inj := range provider {
+		if existingCodes[inj.Key] {
+			return fmt.Errorf("provider injectable code %q conflicts with existing injectable", inj.Key)
+		}
+	}
+	return nil
 }

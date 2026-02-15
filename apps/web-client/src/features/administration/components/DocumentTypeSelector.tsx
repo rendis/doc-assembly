@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { Check, ChevronDown, Loader2, X } from 'lucide-react'
+import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDocumentTypes } from '../hooks/useDocumentTypes'

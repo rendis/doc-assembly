@@ -4,13 +4,6 @@ import type { Editor } from '@tiptap/react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -44,6 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  Paintbrush,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -52,18 +46,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { PreviewButton } from './preview'
+import { TextColorPicker } from './TextColorPicker'
+import { FontFamilyPicker } from './FontFamilyPicker'
+import { FontSizePicker } from './FontSizePicker'
 import { useOverflowScroll } from '@/hooks/use-overflow-scroll'
 import { cn } from '@/lib/utils'
-
-const FONT_FAMILIES = [
-  { label: 'Inter', value: 'Inter' },
-  { label: 'Arial', value: 'Arial, sans-serif' },
-  { label: 'Times New Roman', value: 'Times New Roman, serif' },
-  { label: 'Georgia', value: 'Georgia, serif' },
-  { label: 'Courier New', value: 'Courier New, monospace' },
-]
-
-const FONT_SIZES = ['10', '12', '14', '16', '18', '24', '36']
 
 interface EditorToolbarProps {
   editor: Editor | null
@@ -153,46 +140,10 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <Separator orientation="vertical" className="h-6 mx-1" />
 
           {/* Font Family */}
-          <Select
-            value={editor.getAttributes('textStyle').fontFamily || 'Inter'}
-            onValueChange={(value) => {
-              editor.chain().focus().setFontFamily(value).run()
-            }}
-          >
-            <SelectTrigger className="h-8 w-[110px] text-xs">
-              <SelectValue placeholder={t('editor.toolbar.fontFamily')} />
-            </SelectTrigger>
-            <SelectContent>
-              {FONT_FAMILIES.map((font) => (
-                <SelectItem
-                  key={font.value}
-                  value={font.value}
-                  style={{ fontFamily: font.value }}
-                >
-                  {font.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FontFamilyPicker editor={editor} />
 
           {/* Font Size */}
-          <Select
-            value={editor.getAttributes('textStyle').fontSize?.replace('px', '') || '14'}
-            onValueChange={(value) => {
-              editor.chain().focus().setFontSize(`${value}px`).run()
-            }}
-          >
-            <SelectTrigger className="h-8 w-[65px] text-xs">
-              <SelectValue placeholder={t('editor.toolbar.fontSize')} />
-            </SelectTrigger>
-            <SelectContent>
-              {FONT_SIZES.map((size) => (
-                <SelectItem key={size} value={size}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FontSizePicker editor={editor} />
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
@@ -200,6 +151,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             isActive={editor.isActive('heading', { level: 1 })}
+            disabled={editor.isActive('table')}
             tooltip={t('editor.toolbar.heading1')}
           >
             <Heading1 className="h-4 w-4" />
@@ -207,6 +159,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             isActive={editor.isActive('heading', { level: 2 })}
+            disabled={editor.isActive('table')}
             tooltip={t('editor.toolbar.heading2')}
           >
             <Heading2 className="h-4 w-4" />
@@ -214,6 +167,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             isActive={editor.isActive('heading', { level: 3 })}
+            disabled={editor.isActive('table')}
             tooltip={t('editor.toolbar.heading3')}
           >
             <Heading3 className="h-4 w-4" />
@@ -243,6 +197,9 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
           >
             <Strikethrough className="h-4 w-4" />
           </ToolbarButton>
+
+          {/* Text Color */}
+          <TextColorPicker editor={editor} />
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
@@ -375,6 +332,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
                 <PreviewButton
                   templateId={templateId}
                   versionId={versionId}
+                  editor={editor}
                 />
               )}
             </>
@@ -440,6 +398,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                 className={cn(editor.isActive('heading', { level: 1 }) && 'bg-accent')}
+                disabled={editor.isActive('table')}
               >
                 <Heading1 className="mr-2 h-4 w-4" />
                 {t('editor.toolbar.heading1')}
@@ -447,6 +406,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                 className={cn(editor.isActive('heading', { level: 2 }) && 'bg-accent')}
+                disabled={editor.isActive('table')}
               >
                 <Heading2 className="mr-2 h-4 w-4" />
                 {t('editor.toolbar.heading2')}
@@ -454,6 +414,7 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                 className={cn(editor.isActive('heading', { level: 3 }) && 'bg-accent')}
+                disabled={editor.isActive('table')}
               >
                 <Heading3 className="mr-2 h-4 w-4" />
                 {t('editor.toolbar.heading3')}
@@ -485,6 +446,18 @@ export function EditorToolbar({ editor, onExport, onImport, templateId, versionI
               >
                 <Strikethrough className="mr-2 h-4 w-4" />
                 {t('editor.toolbar.strikethrough')}
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Paintbrush className="h-4 w-4" style={{ color: editor.getAttributes('textStyle').color || undefined }} />
+                  {t('editor.toolbar.textColor')}
+                  <input
+                    type="color"
+                    value={editor.getAttributes('textStyle').color || '#000000'}
+                    onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
+                    className="w-6 h-6 p-0 border border-border rounded-sm cursor-pointer ml-auto"
+                  />
+                </label>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
@@ -644,6 +617,7 @@ function ToolbarButton({
           size="sm"
           onClick={onClick}
           disabled={disabled}
+          onMouseDown={(e) => e.preventDefault()}
           className="h-8 w-8 p-0"
         >
           {children}

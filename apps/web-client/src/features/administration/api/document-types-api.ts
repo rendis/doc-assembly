@@ -7,6 +7,7 @@ export interface DocumentType {
   code: string
   name: Record<string, string>
   description: Record<string, string>
+  isGlobal: boolean
   templatesCount?: number
   createdAt: string
   updatedAt?: string

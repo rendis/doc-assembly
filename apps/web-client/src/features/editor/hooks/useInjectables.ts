@@ -79,7 +79,7 @@ export function useInjectables(): UseInjectablesReturn {
 
       try {
         const response = await fetchInjectables(locale)
-        setFromResponse(response)
+        setFromResponse(response, locale)
         lastFetchedWorkspaceId = workspaceId
         lastFetchedLocale = locale
       } catch (err) {

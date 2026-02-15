@@ -3,6 +3,7 @@ import type { Variable } from '../types/variables'
 import type { Injectable, InjectablesListResponse } from '../types/injectable'
 import { mapInjectablesToVariables } from '../types/injectable'
 import type { InjectableGroup } from '../types/injectable-group'
+import { resolveGroup } from '../types/injectable-group'
 
 interface InjectablesState {
   // State
@@ -16,8 +17,8 @@ interface InjectablesState {
   fetchPromise: Promise<void> | null
 
   // Actions
-  setFromResponse: (response: InjectablesListResponse) => void
-  setInjectables: (injectables: Injectable[]) => void
+  setFromResponse: (response: InjectablesListResponse, locale?: string) => void
+  setInjectables: (injectables: Injectable[], locale?: string) => void
   setVariables: (variables: Variable[]) => void
   setGroups: (groups: InjectableGroup[]) => void
   setLoading: (loading: boolean) => void
@@ -40,15 +41,18 @@ const initialState = {
 export const useInjectablesStore = create<InjectablesState>()((set) => ({
   ...initialState,
 
-  setFromResponse: (response) => {
-    const variables = mapInjectablesToVariables(response.items)
-    // Groups come directly from API, already resolved for locale
-    const groups = (response.groups ?? []).sort((a, b) => a.order - b.order)
+  setFromResponse: (response, locale) => {
+    const resolvedLocale = locale ?? 'en'
+    const variables = mapInjectablesToVariables(response.items, resolvedLocale)
+    // Resolve i18n group names for the current locale
+    const groups = (response.groups ?? [])
+      .map((g) => resolveGroup(g, resolvedLocale))
+      .sort((a, b) => a.order - b.order)
     set({ injectables: response.items, variables, groups })
   },
 
-  setInjectables: (injectables) => {
-    const variables = mapInjectablesToVariables(injectables)
+  setInjectables: (injectables, locale) => {
+    const variables = mapInjectablesToVariables(injectables, locale)
     set({ injectables, variables })
   },
 

@@ -14,6 +14,7 @@ var (
 	ErrTokenExpired     = errors.New("token expired")
 	ErrMissingToken     = errors.New("missing authorization token")
 	ErrInsufficientRole = errors.New("insufficient role permissions")
+	ErrUnknownIssuer    = errors.New("unknown token issuer")
 )
 
 // API Key errors (for internal service-to-service authentication).
@@ -168,6 +169,7 @@ var (
 	ErrDocumentTypeCodeImmutable   = errors.New("document type code cannot be modified")
 	ErrDocumentTypeAlreadyAssigned = errors.New("workspace already has a template for this document type")
 	ErrDocumentTypeHasTemplates    = errors.New("document type is assigned to templates")
+	ErrCannotModifyGlobalType      = errors.New("cannot modify global document type")
 )
 
 // Template errors.
@@ -258,6 +260,11 @@ var (
 // LLM Service errors.
 var (
 	ErrLLMServiceUnavailable = errors.New("AI generation service is temporarily unavailable")
+)
+
+// Renderer capacity errors.
+var (
+	ErrRendererBusy = errors.New("PDF renderer is at capacity, try again shortly")
 )
 
 // ContentValidationError wraps multiple validation errors from content validation.

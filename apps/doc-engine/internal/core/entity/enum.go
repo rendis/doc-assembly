@@ -213,6 +213,7 @@ const (
 	InjectableDataTypeBoolean  InjectableDataType = "BOOLEAN"
 	InjectableDataTypeImage    InjectableDataType = "IMAGE"
 	InjectableDataTypeTable    InjectableDataType = "TABLE"
+	InjectableDataTypeList     InjectableDataType = "LIST"
 )
 
 // IsValid checks if the injectable data type is valid.
@@ -220,7 +221,7 @@ func (i InjectableDataType) IsValid() bool {
 	switch i {
 	case InjectableDataTypeText, InjectableDataTypeNumber, InjectableDataTypeDate,
 		InjectableDataTypeCurrency, InjectableDataTypeBoolean, InjectableDataTypeImage,
-		InjectableDataTypeTable:
+		InjectableDataTypeTable, InjectableDataTypeList:
 		return true
 	}
 	return false

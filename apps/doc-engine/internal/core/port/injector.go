@@ -54,3 +54,11 @@ type TableSchemaProvider interface {
 	// ColumnSchema returns the column definitions for this table injector.
 	ColumnSchema() []entity.TableColumn
 }
+
+// ListSchemaProvider is an optional interface that list injectors can implement
+// to expose their default configuration at the API level.
+// This allows the frontend to know the symbol style and header labels.
+type ListSchemaProvider interface {
+	// ListSchema returns the list schema for this list injector.
+	ListSchema() entity.ListSchema
+}

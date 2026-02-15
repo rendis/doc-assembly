@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DocumentType } from '../api/document-types-api'
 import { useCreateDocumentType, useUpdateDocumentType } from '../hooks/useDocumentTypes'
@@ -57,14 +57,36 @@ export function DocumentTypeFormDialog({
   mode,
   documentType,
 }: DocumentTypeFormDialogProps): React.ReactElement {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && (
+        <DocumentTypeFormDialogContent
+          onOpenChange={onOpenChange}
+          mode={mode}
+          documentType={documentType}
+        />
+      )}
+    </Dialog>
+  )
+}
+
+function DocumentTypeFormDialogContent({
+  onOpenChange,
+  mode,
+  documentType,
+}: {
+  onOpenChange: (open: boolean) => void
+  mode: 'create' | 'edit'
+  documentType?: DocumentType | null
+}): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  const [code, setCode] = useState('')
-  const [nameEs, setNameEs] = useState('')
-  const [nameEn, setNameEn] = useState('')
-  const [descEs, setDescEs] = useState('')
-  const [descEn, setDescEn] = useState('')
+  const [code, setCode] = useState(mode === 'edit' && documentType ? documentType.code : '')
+  const [nameEs, setNameEs] = useState(mode === 'edit' && documentType ? (documentType.name?.es || '') : '')
+  const [nameEn, setNameEn] = useState(mode === 'edit' && documentType ? (documentType.name?.en || '') : '')
+  const [descEs, setDescEs] = useState(mode === 'edit' && documentType ? (documentType.description?.es || '') : '')
+  const [descEn, setDescEn] = useState(mode === 'edit' && documentType ? (documentType.description?.en || '') : '')
   const [activeTab, setActiveTab] = useState<'es' | 'en'>('es')
   const [codeError, setCodeError] = useState('')
   const [nameError, setNameError] = useState('')
@@ -73,28 +95,6 @@ export function DocumentTypeFormDialog({
   const updateMutation = useUpdateDocumentType()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
-
-  // Reset form when dialog opens/closes or documentType changes
-  useEffect(() => {
-    if (open) {
-      if (mode === 'edit' && documentType) {
-        setCode(documentType.code)
-        setNameEs(documentType.name?.es || '')
-        setNameEn(documentType.name?.en || '')
-        setDescEs(documentType.description?.es || '')
-        setDescEn(documentType.description?.en || '')
-      } else {
-        setCode('')
-        setNameEs('')
-        setNameEn('')
-        setDescEs('')
-        setDescEn('')
-      }
-      setActiveTab('es')
-      setCodeError('')
-      setNameError('')
-    }
-  }, [open, mode, documentType])
 
   const validateForm = (): boolean => {
     let isValid = true
@@ -187,187 +187,185 @@ export function DocumentTypeFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create'
-              ? t('administration.documentTypes.form.createTitle', 'Create Document Type')
-              : t('administration.documentTypes.form.editTitle', 'Edit Document Type')}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create'
-              ? t('administration.documentTypes.form.createDescription', 'Add a new document type to organize templates.')
-              : t('administration.documentTypes.form.editDescription', 'Update the document type details.')}
-          </DialogDescription>
-        </DialogHeader>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>
+          {mode === 'create'
+            ? t('administration.documentTypes.form.createTitle', 'Create Document Type')
+            : t('administration.documentTypes.form.editTitle', 'Edit Document Type')}
+        </DialogTitle>
+        <DialogDescription>
+          {mode === 'create'
+            ? t('administration.documentTypes.form.createDescription', 'Add a new document type to organize templates.')
+            : t('administration.documentTypes.form.editDescription', 'Update the document type details.')}
+        </DialogDescription>
+      </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Code field - only in create mode */}
-          {mode === 'create' && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.documentTypes.form.code', 'Code')} *
-              </label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => {
-                  setCode(normalizeCodeWhileTyping(e.target.value))
-                  setCodeError('')
-                }}
-                onBlur={handleCodeBlur}
-                placeholder={t('administration.documentTypes.form.codePlaceholder', 'CONTRACT_TYPE')}
-                className={cn(
-                  'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
-                  codeError ? 'border-destructive' : 'border-border'
-                )}
-                disabled={isLoading}
-              />
-              {codeError && (
-                <p className="mt-1 text-xs text-destructive">{codeError}</p>
-              )}
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t('administration.documentTypes.form.codeHint', 'Only uppercase letters, numbers, and underscores')}
-              </p>
-            </div>
-          )}
-
-          {/* Code display in edit mode */}
-          {mode === 'edit' && documentType && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.documentTypes.form.code', 'Code')}
-              </label>
-              <div className="rounded-sm border border-border bg-muted px-3 py-2">
-                <span className="font-mono text-sm uppercase">{documentType.code}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Language tabs */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Code field - only in create mode */}
+        {mode === 'create' && (
           <div>
-            <div className="flex gap-1 border-b border-border">
-              <button
-                type="button"
-                className={cn(
-                  'px-3 py-2 text-sm transition-colors',
-                  activeTab === 'es'
-                    ? 'border-b-2 border-foreground font-medium'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => setActiveTab('es')}
-              >
-                Español {!nameEs.trim() && <span className="text-destructive">*</span>}
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'px-3 py-2 text-sm transition-colors',
-                  activeTab === 'en'
-                    ? 'border-b-2 border-foreground font-medium'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => setActiveTab('en')}
-              >
-                English
-              </button>
-            </div>
-
-            {activeTab === 'es' && (
-              <div className="space-y-4 pt-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
-                    {t('administration.documentTypes.form.name', 'Name')} *
-                  </label>
-                  <input
-                    type="text"
-                    value={nameEs}
-                    onChange={(e) => {
-                      setNameEs(e.target.value)
-                      setNameError('')
-                    }}
-                    placeholder={t('administration.documentTypes.form.namePlaceholder', 'Type name')}
-                    className={cn(
-                      'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
-                      nameError ? 'border-destructive' : 'border-border'
-                    )}
-                    disabled={isLoading}
-                  />
-                  {nameError && (
-                    <p className="mt-1 text-xs text-destructive">{nameError}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
-                    {t('administration.documentTypes.form.description', 'Description')}
-                  </label>
-                  <textarea
-                    value={descEs}
-                    onChange={(e) => setDescEs(e.target.value)}
-                    placeholder={t('administration.documentTypes.form.descriptionPlaceholder', 'Optional description')}
-                    rows={3}
-                    className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
+            <label className="mb-1.5 block text-sm font-medium">
+              {t('administration.documentTypes.form.code', 'Code')} *
+            </label>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => {
+                setCode(normalizeCodeWhileTyping(e.target.value))
+                setCodeError('')
+              }}
+              onBlur={handleCodeBlur}
+              placeholder={t('administration.documentTypes.form.codePlaceholder', 'CONTRACT_TYPE')}
+              className={cn(
+                'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
+                codeError ? 'border-destructive' : 'border-border'
+              )}
+              disabled={isLoading}
+            />
+            {codeError && (
+              <p className="mt-1 text-xs text-destructive">{codeError}</p>
             )}
-
-            {activeTab === 'en' && (
-              <div className="space-y-4 pt-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
-                    {t('administration.documentTypes.form.name', 'Name')}
-                  </label>
-                  <input
-                    type="text"
-                    value={nameEn}
-                    onChange={(e) => setNameEn(e.target.value)}
-                    placeholder={t('administration.documentTypes.form.namePlaceholder', 'Type name')}
-                    className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
-                    {t('administration.documentTypes.form.description', 'Description')}
-                  </label>
-                  <textarea
-                    value={descEn}
-                    onChange={(e) => setDescEn(e.target.value)}
-                    placeholder={t('administration.documentTypes.form.descriptionPlaceholder', 'Optional description')}
-                    rows={3}
-                    className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-            )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('administration.documentTypes.form.codeHint', 'Only uppercase letters, numbers, and underscores')}
+            </p>
           </div>
+        )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+        {/* Code display in edit mode */}
+        {mode === 'edit' && documentType && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              {t('administration.documentTypes.form.code', 'Code')}
+            </label>
+            <div className="rounded-sm border border-border bg-muted px-3 py-2">
+              <span className="font-mono text-sm uppercase">{documentType.code}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Language tabs */}
+        <div>
+          <div className="flex gap-1 border-b border-border">
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
-              className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-              disabled={isLoading}
+              className={cn(
+                'px-3 py-2 text-sm transition-colors',
+                activeTab === 'es'
+                  ? 'border-b-2 border-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              onClick={() => setActiveTab('es')}
             >
-              {t('common.cancel', 'Cancel')}
+              Español {!nameEs.trim() && <span className="text-destructive">*</span>}
             </button>
             <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-              disabled={isLoading}
+              type="button"
+              className={cn(
+                'px-3 py-2 text-sm transition-colors',
+                activeTab === 'en'
+                  ? 'border-b-2 border-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              onClick={() => setActiveTab('en')}
             >
-              {isLoading && <Loader2 size={16} className="animate-spin" />}
-              {mode === 'create'
-                ? t('common.create', 'Create')
-                : t('common.save', 'Save')}
+              English
             </button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+
+          {activeTab === 'es' && (
+            <div className="space-y-4 pt-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  {t('administration.documentTypes.form.name', 'Name')} *
+                </label>
+                <input
+                  type="text"
+                  value={nameEs}
+                  onChange={(e) => {
+                    setNameEs(e.target.value)
+                    setNameError('')
+                  }}
+                  placeholder={t('administration.documentTypes.form.namePlaceholder', 'Type name')}
+                  className={cn(
+                    'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
+                    nameError ? 'border-destructive' : 'border-border'
+                  )}
+                  disabled={isLoading}
+                />
+                {nameError && (
+                  <p className="mt-1 text-xs text-destructive">{nameError}</p>
+                )}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  {t('administration.documentTypes.form.description', 'Description')}
+                </label>
+                <textarea
+                  value={descEs}
+                  onChange={(e) => setDescEs(e.target.value)}
+                  placeholder={t('administration.documentTypes.form.descriptionPlaceholder', 'Optional description')}
+                  rows={3}
+                  className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'en' && (
+            <div className="space-y-4 pt-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  {t('administration.documentTypes.form.name', 'Name')}
+                </label>
+                <input
+                  type="text"
+                  value={nameEn}
+                  onChange={(e) => setNameEn(e.target.value)}
+                  placeholder={t('administration.documentTypes.form.namePlaceholder', 'Type name')}
+                  className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  {t('administration.documentTypes.form.description', 'Description')}
+                </label>
+                <textarea
+                  value={descEn}
+                  onChange={(e) => setDescEn(e.target.value)}
+                  placeholder={t('administration.documentTypes.form.descriptionPlaceholder', 'Optional description')}
+                  rows={3}
+                  className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            disabled={isLoading}
+          >
+            {t('common.cancel', 'Cancel')}
+          </button>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 size={16} className="animate-spin" />}
+            {mode === 'create'
+              ? t('common.create', 'Create')
+              : t('common.save', 'Save')}
+          </button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   )
 }

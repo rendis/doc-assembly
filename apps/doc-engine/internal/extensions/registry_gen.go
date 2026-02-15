@@ -10,7 +10,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/extensions/mappers"
 )
 
-// RegisterAll registers all discovered injectors and mappers.
+// RegisterAll registers all discovered injectors, mappers, and extension components.
 // Note: i18n is automatically loaded from settings/injectors.i18n.yaml
 func RegisterAll(injReg port.InjectorRegistry, mapReg port.MapperRegistry, deps *InitDeps) {
 	// Global init (auto-discovered via //docengine:init)

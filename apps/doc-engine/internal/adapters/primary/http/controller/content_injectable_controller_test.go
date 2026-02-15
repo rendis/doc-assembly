@@ -173,7 +173,7 @@ func TestContentInjectableController_GetInjectable(t *testing.T) {
 
 		assert.Equal(t, injectableID, injResp.ID)
 		assert.Equal(t, "get_test_key", injResp.Key)
-		assert.Equal(t, "Get Test Injectable", injResp.Label)
+		assert.Equal(t, "Get Test Injectable", injResp.Label["_"])
 	})
 
 	t.Run("success with EDITOR", func(t *testing.T) {

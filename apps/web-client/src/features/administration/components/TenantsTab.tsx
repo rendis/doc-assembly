@@ -60,18 +60,18 @@ export function TenantsTab(): React.ReactElement {
 
   const updateStatusMutation = useUpdateTenantStatus()
 
-  // Debounce search query
+  // Debounce search query and reset page when search changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery)
+      setDebouncedQuery((prev) => {
+        if (prev !== searchQuery) {
+          setPage(1)
+        }
+        return searchQuery
+      })
     }, DEBOUNCE_MS)
     return () => clearTimeout(timer)
   }, [searchQuery])
-
-  // Reset page when search changes
-  useEffect(() => {
-    setPage(1)
-  }, [debouncedQuery])
 
   const { data, isLoading, error, isFetching } = useSystemTenants(
     page,

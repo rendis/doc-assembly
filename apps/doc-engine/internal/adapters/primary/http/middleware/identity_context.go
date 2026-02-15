@@ -23,7 +23,7 @@ const (
 )
 
 // IdentityContext creates a middleware that syncs the user from IdP and loads workspace context.
-// It requires JWTAuth middleware to be applied before this.
+// It requires MultiOIDCAuth middleware to be applied before this.
 func IdentityContext(userRepo port.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Skip for OPTIONS requests
@@ -32,7 +32,7 @@ func IdentityContext(userRepo port.UserRepository) gin.HandlerFunc {
 			return
 		}
 
-		// Get user info from JWT (set by JWTAuth middleware)
+		// Get user info from JWT (set by MultiOIDCAuth middleware)
 		email, _ := GetUserEmail(c)
 
 		// Get user from database by email

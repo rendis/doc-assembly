@@ -6,6 +6,7 @@ import {
   Database,
   Hash,
   Image as ImageIcon,
+  List,
   Table,
   Type,
   User,
@@ -50,6 +51,7 @@ export const VARIABLE_ICONS: Record<VariableType, LucideIcon> = {
   BOOLEAN: CheckSquare,
   IMAGE: ImageIcon,
   TABLE: Table,
+  LIST: List,
   ROLE_TEXT: User,
 }
 

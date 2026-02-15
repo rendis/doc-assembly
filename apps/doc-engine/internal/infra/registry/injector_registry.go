@@ -10,10 +10,11 @@ import (
 
 // injectorRegistry implements port.injectorRegistry with thread-safe support.
 type injectorRegistry struct {
-	mu        sync.RWMutex
-	injectors map[string]port.Injector
-	i18n      *config.InjectorI18nConfig
-	initFunc  port.InitFunc
+	mu                sync.RWMutex
+	injectors         map[string]port.Injector
+	i18n              *config.InjectorI18nConfig
+	initFunc          port.InitFunc
+	workspaceProvider port.WorkspaceInjectableProvider
 }
 
 // NewInjectorRegistry creates a new InjectorRegistry instance.
@@ -130,22 +131,36 @@ func (r *injectorRegistry) GetInitFunc() port.InitFunc {
 	return r.initFunc
 }
 
-// GetGroups returns all groups translated to the specified locale.
-func (r *injectorRegistry) GetGroups(locale string) []port.GroupConfig {
+// GetAllGroups returns all groups with all locale translations.
+func (r *injectorRegistry) GetAllGroups() []port.GroupConfig {
 	if r.i18n == nil {
 		return nil
 	}
-	configGroups := r.i18n.GetGroups(locale)
+	configGroups := r.i18n.GetAllGroups()
 	result := make([]port.GroupConfig, len(configGroups))
 	for i, g := range configGroups {
 		result[i] = port.GroupConfig{
 			Key:   g.Key,
-			Name:  g.Name,
+			Names: g.Names,
 			Icon:  g.Icon,
 			Order: g.Order,
 		}
 	}
 	return result
+}
+
+// SetWorkspaceInjectableProvider sets the workspace injectable provider.
+func (r *injectorRegistry) SetWorkspaceInjectableProvider(provider port.WorkspaceInjectableProvider) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.workspaceProvider = provider
+}
+
+// GetWorkspaceInjectableProvider returns the workspace injectable provider.
+func (r *injectorRegistry) GetWorkspaceInjectableProvider() port.WorkspaceInjectableProvider {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.workspaceProvider
 }
 
 // Ensure InjectorRegistry implements port.InjectorRegistry.

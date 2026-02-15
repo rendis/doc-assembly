@@ -104,7 +104,7 @@ func (g *DocumentGenerator) prepareGenerationContext(
 	ctx context.Context,
 	mapCtx *port.MapperContext,
 ) (*generationContext, error) {
-	genCtx, err := g.fetchTemplateData(ctx, mapCtx.TemplateID)
+	genCtx, err := g.fetchTemplateData(ctx, mapCtx.TemplateID, mapCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (g *DocumentGenerator) prepareGenerationContext(
 }
 
 // fetchTemplateData fetches workspace, injectables, version, and parses the portable document.
-func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID string) (*generationContext, error) {
+func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID string, mapCtx *port.MapperContext) (*generationContext, error) {
 	genCtx := &generationContext{}
 	var err error
 
@@ -126,7 +126,17 @@ func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID st
 		return nil, err
 	}
 
-	genCtx.injectables, err = g.fetchAvailableInjectables(ctx, genCtx.workspaceID)
+	// Build InjectorContext for provider integration during injectable listing
+	injCtx := entity.NewInjectorContext(
+		mapCtx.ExternalID,
+		mapCtx.TemplateID,
+		mapCtx.TransactionalID,
+		string(mapCtx.Operation),
+		mapCtx.Headers,
+		nil,
+	)
+
+	genCtx.injectables, err = g.fetchAvailableInjectables(ctx, genCtx.workspaceID, injCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -193,14 +203,17 @@ func (g *DocumentGenerator) findWorkspaceID(ctx context.Context, templateID stri
 func (g *DocumentGenerator) fetchAvailableInjectables(
 	ctx context.Context,
 	workspaceID string,
+	_ *entity.InjectorContext,
 ) ([]*entity.InjectableDefinition, error) {
-	injectables, err := g.injectableUC.ListInjectables(ctx, workspaceID)
+	result, err := g.injectableUC.ListInjectables(ctx, &injectable_uc.ListInjectablesRequest{
+		WorkspaceID: workspaceID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("listing available injectables: %w", err)
 	}
 
-	slog.DebugContext(ctx, "found available injectables", "count", len(injectables))
-	return injectables, nil
+	slog.DebugContext(ctx, "found available injectables", "count", len(result.Injectables))
+	return result.Injectables, nil
 }
 
 // findPublishedVersion retrieves the published version for the template.
@@ -327,7 +340,7 @@ func (g *DocumentGenerator) resolveInjectables(
 		mapCtx.ExternalID,
 		mapCtx.TemplateID,
 		mapCtx.TransactionalID,
-		mapCtx.Operation,
+		string(mapCtx.Operation),
 		mapCtx.Headers,
 		payload,
 	)

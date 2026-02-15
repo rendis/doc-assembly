@@ -376,6 +376,9 @@ definitions:
         type: object
       id:
         type: string
+      isGlobal:
+        description: True if from SYS tenant (read-only for other tenants)
+        type: boolean
       name:
         additionalProperties:
           type: string
@@ -399,6 +402,9 @@ definitions:
         type: object
       id:
         type: string
+      isGlobal:
+        description: True if from SYS tenant (read-only for other tenants)
+        type: boolean
       name:
         additionalProperties:
           type: string

@@ -115,13 +115,6 @@ export function ImageInjectableInput({
     }
   }, [])
 
-  // Load preview on initial value
-  useEffect(() => {
-    if (value && !preview && !isLoading) {
-      loadPreview(value)
-    }
-  }, [value, preview, isLoading, loadPreview])
-
   return (
     <div className="space-y-2">
       <Label htmlFor={`image-${variable.variableId}`}>{variable.label}</Label>

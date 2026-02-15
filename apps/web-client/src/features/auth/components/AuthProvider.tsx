@@ -1,10 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
-import {
-  refreshAccessToken,
-  getUserInfo,
-  setupTokenRefresh,
-} from '@/lib/keycloak'
+import { refreshAccessToken, getUserInfo, setupTokenRefresh } from '@/lib/keycloak'
+import { getAuthConfig } from '@/lib/auth-config'
 import { fetchMyRoles } from '@/features/auth/api/auth-api'
 import { initializeTheme } from '@/stores/theme-store'
 import { LoadingOverlay } from '@/components/common/LoadingSpinner'
@@ -14,16 +11,8 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const {
-    token,
-    refreshToken,
-    isAuthLoading,
-    setAuthLoading,
-    setUserProfile,
-    setAllRoles,
-    clearAuth,
-    isTokenExpired,
-  } = useAuthStore()
+  // Only subscribe to the one reactive value we need for rendering
+  const isAuthLoading = useAuthStore((s) => s.isAuthLoading)
 
   // Ref to prevent StrictMode double-initialization
   const initRef = useRef<{ started: boolean; promise: Promise<void> | null }>({
@@ -31,9 +20,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     promise: null,
   })
 
+  // Ref to hold token refresh cleanup (set inside init, called in effect cleanup)
+  const refreshCleanupRef = useRef<(() => void) | null>(null)
+
   useEffect(() => {
     // Initialize theme system
     const cleanupTheme = initializeTheme()
+
+    // Use getState() for all actions — stable references, no subscription
+    const { setAuthLoading, setTokens, setUserProfile, setAllRoles, clearAuth } =
+      useAuthStore.getState()
 
     // Skip if already started (prevents StrictMode double-call)
     if (initRef.current.started) {
@@ -49,10 +45,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const init = async () => {
       try {
-        // Check if we have existing tokens
+        const staleToken = useAuthStore.getState().token
+
+        // Fetch auth config from backend (runtime, not build-time)
+        const config = await getAuthConfig()
+
+        console.log(
+          `[Auth] Init: staleToken=${!!staleToken}, mode=${config.dummyAuth ? 'dummyAuth' : 'oidc'}`
+        )
+
+        if (config.dummyAuth) {
+          // Clear any stale OIDC tokens before setting fresh dummy tokens
+          if (staleToken && staleToken !== 'dummy-token') {
+            clearAuth(false)
+          }
+
+          setTokens('dummy-token', 'dummy-refresh', 86400)
+          setUserProfile({
+            id: '00000000-0000-0000-0000-000000000001',
+            email: 'admin@docengine.local',
+            firstName: 'Doc Engine',
+            lastName: 'Admin',
+            username: 'admin',
+          })
+
+          // Roles come from backend, not mocked
+          try {
+            const roles = await fetchMyRoles()
+            setAllRoles(roles)
+          } catch (error) {
+            console.warn('[Auth] Failed to fetch roles in dummyAuth:', error)
+          }
+
+          // No token refresh needed in dummyAuth mode
+          console.log('[Auth] Init complete: dummyAuth ok')
+          return
+        }
+
+        // Standard OIDC flow: check existing tokens
+        const { token, refreshToken } = useAuthStore.getState()
         if (token && refreshToken) {
           // If token is expired, try to refresh
-          if (isTokenExpired()) {
+          if (useAuthStore.getState().isTokenExpired()) {
             console.log('[Auth] Token expired, attempting refresh...')
             try {
               await refreshAccessToken()
@@ -82,28 +116,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
             console.log('[Auth] User info and roles loaded')
           } catch (error) {
             console.error('[Auth] Failed to load user info or roles:', error)
-            // Don't clear auth here - user is still authenticated
-            // Roles will be empty but user can still navigate
           }
         }
+
+        // Setup token refresh only for OIDC mode (not dummyAuth)
+        refreshCleanupRef.current = setupTokenRefresh()
+        console.log('[Auth] Init complete: oidc ok')
       } catch (error) {
-        console.error('[Auth] Initialization failed:', error)
-        clearAuth()
+        console.error('[Auth] Init complete: error', error)
+        useAuthStore.getState().clearAuth()
       } finally {
-        setAuthLoading(false)
+        useAuthStore.getState().setAuthLoading(false)
       }
     }
 
     initRef.current.promise = init()
 
-    // Setup automatic token refresh
-    const cleanupRefresh = setupTokenRefresh()
-
     return () => {
       cleanupTheme?.()
-      cleanupRefresh()
+      refreshCleanupRef.current?.()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isAuthLoading) {
     return <LoadingOverlay message="Initializing..." />

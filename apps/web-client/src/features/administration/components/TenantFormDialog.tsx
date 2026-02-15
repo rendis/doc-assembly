@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SystemTenant } from '@/features/system-injectables/api/system-tenants-api'
 import {
@@ -59,12 +59,34 @@ export function TenantFormDialog({
   mode,
   tenant,
 }: TenantFormDialogProps): React.ReactElement {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && (
+        <TenantFormDialogContent
+          onOpenChange={onOpenChange}
+          mode={mode}
+          tenant={tenant}
+        />
+      )}
+    </Dialog>
+  )
+}
+
+function TenantFormDialogContent({
+  onOpenChange,
+  mode,
+  tenant,
+}: {
+  onOpenChange: (open: boolean) => void
+  mode: 'create' | 'edit'
+  tenant?: SystemTenant | null
+}): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  const [name, setName] = useState('')
-  const [code, setCode] = useState('')
-  const [description, setDescription] = useState('')
+  const [name, setName] = useState(mode === 'edit' && tenant ? tenant.name : '')
+  const [code, setCode] = useState(mode === 'edit' && tenant ? tenant.code : '')
+  const [description, setDescription] = useState(mode === 'edit' && tenant ? (tenant.description || '') : '')
   const [nameError, setNameError] = useState('')
   const [codeError, setCodeError] = useState('')
 
@@ -72,23 +94,6 @@ export function TenantFormDialog({
   const updateMutation = useUpdateTenant()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
-
-  // Reset form when dialog opens/closes or tenant changes
-  useEffect(() => {
-    if (open) {
-      if (mode === 'edit' && tenant) {
-        setName(tenant.name)
-        setCode(tenant.code)
-        setDescription(tenant.description || '')
-      } else {
-        setName('')
-        setCode('')
-        setDescription('')
-      }
-      setNameError('')
-      setCodeError('')
-    }
-  }, [open, mode, tenant])
 
   const validateForm = (): boolean => {
     let isValid = true
@@ -176,125 +181,123 @@ export function TenantFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create'
-              ? t('administration.tenants.form.createTitle', 'Create Tenant')
-              : t('administration.tenants.form.editTitle', 'Edit Tenant')}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create'
-              ? t('administration.tenants.form.createDescription', 'Create a new tenant organization.')
-              : t('administration.tenants.form.editDescription', 'Update tenant details.')}
-          </DialogDescription>
-        </DialogHeader>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>
+          {mode === 'create'
+            ? t('administration.tenants.form.createTitle', 'Create Tenant')
+            : t('administration.tenants.form.editTitle', 'Edit Tenant')}
+        </DialogTitle>
+        <DialogDescription>
+          {mode === 'create'
+            ? t('administration.tenants.form.createDescription', 'Create a new tenant organization.')
+            : t('administration.tenants.form.editDescription', 'Update tenant details.')}
+        </DialogDescription>
+      </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name field */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name field */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            {t('administration.tenants.form.name', 'Name')} *
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+              setNameError('')
+            }}
+            placeholder={t('administration.tenants.form.namePlaceholder', 'Tenant name')}
+            className={cn(
+              'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
+              nameError ? 'border-destructive' : 'border-border'
+            )}
+            disabled={isLoading}
+          />
+          {nameError && (
+            <p className="mt-1 text-xs text-destructive">{nameError}</p>
+          )}
+        </div>
+
+        {/* Code field - only in create mode */}
+        {mode === 'create' && (
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.tenants.form.name', 'Name')} *
+              {t('administration.tenants.form.code', 'Code')} *
             </label>
             <input
               type="text"
-              value={name}
+              value={code}
               onChange={(e) => {
-                setName(e.target.value)
-                setNameError('')
+                setCode(normalizeCodeWhileTyping(e.target.value))
+                setCodeError('')
               }}
-              placeholder={t('administration.tenants.form.namePlaceholder', 'Tenant name')}
+              onBlur={handleCodeBlur}
+              placeholder={t('administration.tenants.form.codePlaceholder', 'TENANT_CODE')}
               className={cn(
-                'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
-                nameError ? 'border-destructive' : 'border-border'
+                'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
+                codeError ? 'border-destructive' : 'border-border'
               )}
               disabled={isLoading}
             />
-            {nameError && (
-              <p className="mt-1 text-xs text-destructive">{nameError}</p>
+            {codeError && (
+              <p className="mt-1 text-xs text-destructive">{codeError}</p>
             )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('administration.tenants.form.codeHint', '2-10 uppercase characters')}
+            </p>
           </div>
+        )}
 
-          {/* Code field - only in create mode */}
-          {mode === 'create' && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.tenants.form.code', 'Code')} *
-              </label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => {
-                  setCode(normalizeCodeWhileTyping(e.target.value))
-                  setCodeError('')
-                }}
-                onBlur={handleCodeBlur}
-                placeholder={t('administration.tenants.form.codePlaceholder', 'TENANT_CODE')}
-                className={cn(
-                  'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
-                  codeError ? 'border-destructive' : 'border-border'
-                )}
-                disabled={isLoading}
-              />
-              {codeError && (
-                <p className="mt-1 text-xs text-destructive">{codeError}</p>
-              )}
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t('administration.tenants.form.codeHint', '2-10 uppercase characters')}
-              </p>
-            </div>
-          )}
-
-          {/* Code display in edit mode */}
-          {mode === 'edit' && tenant && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.tenants.form.code', 'Code')}
-              </label>
-              <div className="rounded-sm border border-border bg-muted px-3 py-2">
-                <span className="font-mono text-sm uppercase">{tenant.code}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Description field */}
+        {/* Code display in edit mode */}
+        {mode === 'edit' && tenant && (
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.tenants.form.description', 'Description')}
+              {t('administration.tenants.form.code', 'Code')}
             </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('administration.tenants.form.descriptionPlaceholder', 'Optional description')}
-              rows={3}
-              className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-              disabled={isLoading}
-            />
+            <div className="rounded-sm border border-border bg-muted px-3 py-2">
+              <span className="font-mono text-sm uppercase">{tenant.code}</span>
+            </div>
           </div>
+        )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-              disabled={isLoading}
-            >
-              {t('common.cancel', 'Cancel')}
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 size={16} className="animate-spin" />}
-              {mode === 'create'
-                ? t('common.create', 'Create')
-                : t('common.save', 'Save')}
-            </button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {/* Description field */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            {t('administration.tenants.form.description', 'Description')}
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t('administration.tenants.form.descriptionPlaceholder', 'Optional description')}
+            rows={3}
+            className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+            disabled={isLoading}
+          />
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            disabled={isLoading}
+          >
+            {t('common.cancel', 'Cancel')}
+          </button>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 size={16} className="animate-spin" />}
+            {mode === 'create'
+              ? t('common.create', 'Create')
+              : t('common.save', 'Save')}
+          </button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   )
 }

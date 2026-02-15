@@ -26,7 +26,7 @@ import {
   Plus,
   Search,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { WorkspaceStatusBadge } from './WorkspaceStatusBadge'
@@ -164,8 +164,6 @@ export function WorkspacesTab(): React.ReactElement {
 
   // Animation states
   const [isEntering, setIsEntering] = useState(true)
-  const [filterAnimationKey, setFilterAnimationKey] = useState(0)
-  const prevResultsRef = useRef<string | null>(null)
 
   // Dialog states
   const [formOpen, setFormOpen] = useState(false)
@@ -183,18 +181,18 @@ export function WorkspacesTab(): React.ReactElement {
     return () => clearTimeout(timer)
   }, [])
 
-  // Debounce search query
+  // Debounce search query and reset page when search changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery)
+      setDebouncedQuery((prev) => {
+        if (prev !== searchQuery) {
+          setPage(1)
+        }
+        return searchQuery
+      })
     }, DEBOUNCE_MS)
     return () => clearTimeout(timer)
   }, [searchQuery])
-
-  // Reset page when search or status filter changes
-  useEffect(() => {
-    setPage(1)
-  }, [debouncedQuery, statusFilter])
 
   const { data, isLoading, error, isFetching } = useWorkspaces(
     currentTenant?.id ?? null,
@@ -204,25 +202,22 @@ export function WorkspacesTab(): React.ReactElement {
     statusFilter || undefined
   )
 
-  const workspaces = data?.data ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
 
   // Filter out SYSTEM workspaces - only show CLIENT workspaces
   const clientWorkspaces = useMemo(
-    () => workspaces.filter((w) => w.type === 'CLIENT'),
-    [workspaces]
+    () => (data?.data ?? []).filter((w) => w.type === 'CLIENT'),
+    [data?.data]
   )
 
-  // Detect result changes and trigger filter animation
-  useEffect(() => {
-    const currentResultsKey = clientWorkspaces.map((w) => w.id).join(',')
-    if (clientWorkspaces.length > 0 && prevResultsRef.current !== currentResultsKey) {
-      if (prevResultsRef.current !== null && !isEntering) {
-        setFilterAnimationKey((k) => k + 1)
-      }
-    }
-    prevResultsRef.current = currentResultsKey
-  }, [clientWorkspaces, isEntering])
+  // Derive a results identity string to detect changes for row animation keys
+  const resultsId = useMemo(
+    () => clientWorkspaces.map((w) => w.id).join(','),
+    [clientWorkspaces]
+  )
+
+  // After entering animation completes, subsequent result changes trigger filter animation
+  const isFilterAnimating = !isEntering
 
   const handleCreate = () => {
     setSelectedWorkspace(null)
@@ -340,6 +335,7 @@ export function WorkspacesTab(): React.ReactElement {
                       key={option.value}
                       onClick={() => {
                         setStatusFilter(option.value)
+                        setPage(1)
                         setStatusDropdownOpen(false)
                       }}
                       className={`flex w-full items-center px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
@@ -420,11 +416,11 @@ export function WorkspacesTab(): React.ReactElement {
             <tbody>
               {clientWorkspaces.map((workspace, index) => (
                 <WorkspaceRow
-                  key={`${workspace.id}-${filterAnimationKey}`}
+                  key={`${workspace.id}-${resultsId}`}
                   workspace={workspace}
                   index={index}
-                  isEntering={isEntering || filterAnimationKey > 0}
-                  isFilterAnimating={filterAnimationKey > 0}
+                  isEntering={isEntering || isFilterAnimating}
+                  isFilterAnimating={isFilterAnimating}
                   onEdit={handleEdit}
                   onArchive={handleArchive}
                   getStatusAction={getStatusAction}

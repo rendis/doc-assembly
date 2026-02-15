@@ -101,6 +101,16 @@ function extractVariablesFromConditions(
 }
 
 /**
+ * Extracts variable IDs directly from the editor instance
+ * Used by the preview modal to filter only variables actually used in the document
+ */
+export function extractVariableIdsFromEditor(editor: Editor): string[] {
+  const json = editor.getJSON() as JSONContent
+  const content = (json.content || []) as ProseMirrorNode[]
+  return Array.from(findInjectorNodes(content))
+}
+
+/**
  * Extracts unique variable IDs from the document content
  * Only returns IDs; full definitions come from the backend
  */

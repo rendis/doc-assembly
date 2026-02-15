@@ -38,6 +38,11 @@ function RootLayout() {
       console.log('[Auth Guard] Not authenticated, redirecting to login')
       navigate({ to: '/login', replace: true })
     }
+
+    // If authenticated and on login page, redirect away (handles dummy auth auto-login)
+    if (isAuthenticated && location.pathname === '/login') {
+      navigate({ to: '/select-tenant', replace: true })
+    }
   }, [isAuthenticated, isAuthLoading, location.pathname, navigate])
 
   return (

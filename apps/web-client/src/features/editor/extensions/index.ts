@@ -23,6 +23,7 @@ export {
   TableStylesPanel,
 } from './Table'
 export { TableInjectorExtension, TableInjectorComponent } from './TableInjector'
+export { ListInjectorExtension, ListInjectorComponent } from './ListInjector'
 
 // Re-export types
 export type {
@@ -48,3 +49,4 @@ export type {
 export type { SlashCommand, SlashCommandsOptions } from './SlashCommands'
 export type { TableStylesAttrs, TableAttrs, TableCellAttrs } from './Table'
 export type { TableInjectorAttrs, TableInjectorOptions } from './TableInjector'
+export type { ListInjectorAttrs, ListInjectorOptions } from './ListInjector'

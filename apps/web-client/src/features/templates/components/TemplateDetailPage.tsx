@@ -34,6 +34,7 @@ import {
     usePublishVersion,
     useSchedulePublishVersion,
     useTemplateWithVersions,
+    useUpdateVersion,
 } from '../hooks/useTemplateDetail'
 import { useUpdateTemplate, useAssignDocumentType } from '../hooks/useTemplates'
 import { DocumentTypeSelector } from '@/features/administration/components/DocumentTypeSelector'
@@ -107,6 +108,7 @@ export function TemplateDetailPage() {
   // Version action mutations
   const publishVersion = usePublishVersion(templateId)
   const schedulePublishVersion = useSchedulePublishVersion(templateId)
+  const updateVersion = useUpdateVersion(templateId)
 
   const handleTitleSave = async (newTitle: string) => {
     await updateTemplate.mutateAsync({
@@ -206,7 +208,7 @@ export function TemplateDetailPage() {
         ARCHIVED: 0,
       } as Record<VersionStatus, number>
     )
-  }, [template?.versions])
+  }, [template.versions])
 
   // User's filter toggle preferences (true = show, false = hide)
   const [userFilterToggles, setUserFilterToggles] = useState<Record<VersionStatus, boolean>>({
@@ -432,6 +434,25 @@ export function TemplateDetailPage() {
   const handleCloneClick = (version: TemplateVersionSummaryResponse) => {
     setVersionToClone(version)
     setCloneDialogOpen(true)
+  }
+
+  const handleRenameVersion = async (version: TemplateVersionSummaryResponse, newName: string) => {
+    try {
+      await updateVersion.mutateAsync({
+        versionId: version.id,
+        data: { name: newName },
+      })
+      toast({
+        title: t('templates.versions.renamed', 'Version renamed'),
+        description: newName,
+      })
+    } catch (err) {
+      const message = axios.isAxiosError(err) && err.response?.data?.error
+        ? err.response.data.error
+        : t('templates.versions.renameFailed', 'Failed to rename version')
+      toast({ title: message, variant: 'destructive' })
+      throw err
+    }
   }
 
   const handlePromoteSuccess = (response: PromoteVersionResponse) => {
@@ -806,6 +827,7 @@ export function TemplateDetailPage() {
                     onDelete={handleDelete}
                     onPromote={handlePromoteClick}
                     onClone={handleCloneClick}
+                    onRename={handleRenameVersion}
                     isSandboxMode={isSandboxActive}
                     isHighlighted={
                       highlightedTemplateId === templateId &&

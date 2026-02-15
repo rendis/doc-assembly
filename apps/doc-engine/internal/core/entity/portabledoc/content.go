@@ -41,6 +41,9 @@ const (
 	NodeTypeImage       = "image"
 	NodeTypeCustomImage = "customImage"
 	NodeTypeText        = "text"
+	NodeTypeHardBreak   = "hardBreak" // Line break within paragraph (Shift+Enter)
+	// List types
+	NodeTypeListInjector = "listInjector" // Dynamic list from system injector
 	// Table types
 	NodeTypeTableInjector = "tableInjector" // Dynamic table from system injector
 	NodeTypeTable         = "table"         // Editable table (user-created)
@@ -58,4 +61,5 @@ const (
 	MarkTypeUnderline = "underline"
 	MarkTypeHighlight = "highlight"
 	MarkTypeLink      = "link"
+	MarkTypeTextStyle = "textStyle"
 )

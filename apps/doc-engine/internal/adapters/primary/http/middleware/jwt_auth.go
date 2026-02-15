@@ -23,11 +23,56 @@ const (
 	userEmailKey = "user_email"
 	// userNameKey is the context key for the authenticated user name.
 	userNameKey = "user_name"
+	// oidcProviderKey is the context key for the matched OIDC provider name.
+	oidcProviderKey = "oidc_provider"
 )
 
-// JWTAuth creates a middleware that validates JWT tokens using JWKS from Keycloak.
-func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
-	jwks := initializeJWKS(authCfg)
+// providerKeyfunc holds a keyfunc and its associated config for one provider.
+type providerKeyfunc struct {
+	provider config.OIDCProvider
+	keyfunc  keyfunc.Keyfunc
+}
+
+// PanelAuth creates middleware for panel (login/UI) authentication.
+// Uses only the panel OIDC provider configured in auth.panel.
+func PanelAuth(cfg *config.AuthConfig) gin.HandlerFunc {
+	panel := cfg.GetPanelOIDC()
+	if panel == nil {
+		return func(c *gin.Context) {
+			slog.ErrorContext(c.Request.Context(), "no panel OIDC provider configured")
+			abortWithError(c, http.StatusInternalServerError, entity.ErrInvalidToken)
+		}
+	}
+	return MultiOIDCAuth([]config.OIDCProvider{*panel})
+}
+
+// RenderAuth creates middleware for render endpoint authentication.
+// Accepts panel provider plus any additional render-only providers.
+func RenderAuth(cfg *config.AuthConfig) gin.HandlerFunc {
+	providers := cfg.GetAllOIDCProviders()
+	if len(providers) == 0 {
+		return func(c *gin.Context) {
+			slog.ErrorContext(c.Request.Context(), "no render OIDC providers configured")
+			abortWithError(c, http.StatusInternalServerError, entity.ErrInvalidToken)
+		}
+	}
+	return MultiOIDCAuth(providers)
+}
+
+// RenderClaimsContext is a pass-through middleware for render endpoints.
+// Claims are already set by RenderAuth; this skips DB identity lookup.
+func RenderClaimsContext() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+	}
+}
+
+// MultiOIDCAuth creates middleware supporting multiple OIDC providers.
+// Matches incoming token's issuer against configured providers.
+// Returns 401 if issuer is not in the configured list.
+// When no providers have JWKS configured (dev mode), tokens are parsed without validation.
+func MultiOIDCAuth(providers []config.OIDCProvider) gin.HandlerFunc {
+	providerMap := initializeProviders(providers)
 
 	return func(c *gin.Context) {
 		// Skip auth for OPTIONS requests (CORS preflight)
@@ -42,10 +87,42 @@ func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := validateToken(tokenString, jwks, authCfg)
+		// Dev mode: no providers initialized (all JWKS URLs empty)
+		if len(providerMap) == 0 {
+			claims, parseErr := parseUnverifiedToken(tokenString)
+			if parseErr != nil {
+				abortWithError(c, http.StatusUnauthorized, parseErr)
+				return
+			}
+			storeClaims(c, claims)
+			c.Next()
+			return
+		}
+
+		// Peek at issuer WITHOUT validating signature
+		issuer, err := peekTokenIssuer(tokenString)
+		if err != nil {
+			abortWithError(c, http.StatusUnauthorized, entity.ErrInvalidToken)
+			return
+		}
+
+		// Find matching provider
+		pf, ok := providerMap[issuer]
+		if !ok {
+			slog.WarnContext(c.Request.Context(), "unknown token issuer",
+				slog.String("issuer", issuer),
+				slog.String("operation_id", GetOperationID(c)),
+			)
+			abortWithError(c, http.StatusUnauthorized, entity.ErrUnknownIssuer)
+			return
+		}
+
+		// Validate token with matched provider's JWKS
+		claims, err := validateTokenWithProvider(tokenString, pf)
 		if err != nil {
 			slog.WarnContext(c.Request.Context(), "token validation failed",
 				slog.String("error", err.Error()),
+				slog.String("provider", pf.provider.Name),
 				slog.String("operation_id", GetOperationID(c)),
 			)
 			abortWithError(c, http.StatusUnauthorized, err)
@@ -53,25 +130,93 @@ func JWTAuth(authCfg *config.AuthConfig) gin.HandlerFunc {
 		}
 
 		storeClaims(c, claims)
+		c.Set(oidcProviderKey, pf.provider.Name)
 		c.Next()
 	}
 }
 
-// initializeJWKS initializes the JWKS keyfunc from the configured URL.
-func initializeJWKS(authCfg *config.AuthConfig) keyfunc.Keyfunc {
-	if authCfg.JWKSURL == "" {
-		return nil
+// initializeProviders creates keyfuncs for each provider, keyed by issuer.
+func initializeProviders(providers []config.OIDCProvider) map[string]*providerKeyfunc {
+	result := make(map[string]*providerKeyfunc, len(providers))
+	ctx := context.Background()
+
+	for _, p := range providers {
+		if p.Issuer == "" || p.JWKSURL == "" {
+			slog.WarnContext(ctx, "skipping OIDC provider with missing issuer or jwks_url",
+				slog.String("name", p.Name))
+			continue
+		}
+
+		initCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		kf, err := keyfunc.NewDefaultCtx(initCtx, []string{p.JWKSURL})
+		cancel()
+
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to initialize JWKS for OIDC provider",
+				slog.String("name", p.Name),
+				slog.String("jwks_url", p.JWKSURL),
+				slog.String("error", err.Error()))
+			continue // Skip this provider, don't fail startup
+		}
+
+		result[p.Issuer] = &providerKeyfunc{
+			provider: p,
+			keyfunc:  kf,
+		}
+		slog.InfoContext(ctx, "initialized OIDC provider",
+			slog.String("name", p.Name),
+			slog.String("issuer", p.Issuer))
 	}
+	return result
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	jwks, err := keyfunc.NewDefaultCtx(ctx, []string{authCfg.JWKSURL})
+// peekTokenIssuer extracts issuer from JWT without signature validation.
+func peekTokenIssuer(tokenString string) (string, error) {
+	parser := jwt.NewParser()
+	token, _, err := parser.ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to initialize JWKS", slog.String("error", err.Error()))
-		return nil
+		return "", err
 	}
-	return jwks
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("invalid claims type")
+	}
+	issuer, _ := claims["iss"].(string)
+	if issuer == "" {
+		return "", fmt.Errorf("missing issuer claim")
+	}
+	return issuer, nil
+}
+
+// parseUnverifiedToken parses a JWT without signature validation (dev mode).
+func parseUnverifiedToken(tokenString string) (*OIDCClaims, error) {
+	var claims OIDCClaims
+	_, _, err := jwt.NewParser().ParseUnverified(tokenString, &claims)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", entity.ErrInvalidToken, err)
+	}
+	return &claims, nil
+}
+
+// validateTokenWithProvider validates token against a specific provider.
+func validateTokenWithProvider(tokenString string, pf *providerKeyfunc) (*OIDCClaims, error) {
+	var claims OIDCClaims
+
+	if err := parseTokenWithJWKS(tokenString, &claims, pf.keyfunc); err != nil {
+		return nil, err
+	}
+
+	// Validate issuer (must match exactly)
+	if err := validateIssuer(&claims, pf.provider.Issuer); err != nil {
+		return nil, err
+	}
+
+	// Validate audience (if configured)
+	if err := validateAudience(&claims, pf.provider.Audience); err != nil {
+		return nil, err
+	}
+
+	return &claims, nil
 }
 
 // extractBearerToken extracts the Bearer token from the Authorization header.
@@ -89,7 +234,7 @@ func extractBearerToken(c *gin.Context) (string, error) {
 }
 
 // storeClaims stores user claims in the gin context.
-func storeClaims(c *gin.Context, claims *KeycloakClaims) {
+func storeClaims(c *gin.Context, claims *OIDCClaims) {
 	c.Set(userIDKey, claims.Subject)
 	if claims.Email != "" {
 		c.Set(userEmailKey, claims.Email)
@@ -99,8 +244,8 @@ func storeClaims(c *gin.Context, claims *KeycloakClaims) {
 	}
 }
 
-// KeycloakClaims represents the JWT claims from Keycloak.
-type KeycloakClaims struct {
+// OIDCClaims represents standard OIDC JWT claims.
+type OIDCClaims struct {
 	jwt.RegisteredClaims
 	Email         string `json:"email,omitempty"`
 	EmailVerified bool   `json:"email_verified,omitempty"`
@@ -108,37 +253,8 @@ type KeycloakClaims struct {
 	PreferredUser string `json:"preferred_username,omitempty"`
 }
 
-// validateToken validates the JWT token and returns the claims.
-func validateToken(tokenString string, jwks keyfunc.Keyfunc, authCfg *config.AuthConfig) (*KeycloakClaims, error) {
-	var claims KeycloakClaims
-
-	// Dev mode: parse without validation
-	if jwks == nil {
-		_, _, err := jwt.NewParser().ParseUnverified(tokenString, &claims)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", entity.ErrInvalidToken, err)
-		}
-		return &claims, nil
-	}
-
-	// Production: parse and validate with JWKS
-	if err := parseTokenWithJWKS(tokenString, &claims, jwks); err != nil {
-		return nil, err
-	}
-
-	// Validate custom claims
-	if err := validateIssuer(&claims, authCfg.Issuer); err != nil {
-		return nil, err
-	}
-	if err := validateAudience(&claims, authCfg.Audience); err != nil {
-		return nil, err
-	}
-
-	return &claims, nil
-}
-
 // parseTokenWithJWKS parses and validates the token with JWKS.
-func parseTokenWithJWKS(tokenString string, claims *KeycloakClaims, jwks keyfunc.Keyfunc) error {
+func parseTokenWithJWKS(tokenString string, claims *OIDCClaims, jwks keyfunc.Keyfunc) error {
 	token, err := jwt.ParseWithClaims(tokenString, claims, jwks.Keyfunc,
 		jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}),
 		jwt.WithExpirationRequired(),
@@ -157,7 +273,7 @@ func parseTokenWithJWKS(tokenString string, claims *KeycloakClaims, jwks keyfunc
 }
 
 // validateIssuer checks if the token issuer matches the expected value.
-func validateIssuer(claims *KeycloakClaims, expectedIssuer string) error {
+func validateIssuer(claims *OIDCClaims, expectedIssuer string) error {
 	if expectedIssuer == "" {
 		return nil
 	}
@@ -170,7 +286,7 @@ func validateIssuer(claims *KeycloakClaims, expectedIssuer string) error {
 }
 
 // validateAudience checks if the token audience contains the expected value.
-func validateAudience(claims *KeycloakClaims, expectedAudience string) error {
+func validateAudience(claims *OIDCClaims, expectedAudience string) error {
 	if expectedAudience == "" {
 		return nil
 	}
@@ -188,31 +304,31 @@ func validateAudience(claims *KeycloakClaims, expectedAudience string) error {
 	return entity.ErrInvalidToken
 }
 
+// GetOIDCProvider retrieves the matched OIDC provider name from the Gin context.
+func GetOIDCProvider(c *gin.Context) (string, bool) {
+	return getStringFromContext(c, oidcProviderKey)
+}
+
 // GetUserID retrieves the authenticated user ID from the Gin context.
 func GetUserID(c *gin.Context) (string, bool) {
-	if val, exists := c.Get(userIDKey); exists {
-		if userID, ok := val.(string); ok && userID != "" {
-			return userID, true
-		}
-	}
-	return "", false
+	return getStringFromContext(c, userIDKey)
 }
 
 // GetUserEmail retrieves the authenticated user email from the Gin context.
 func GetUserEmail(c *gin.Context) (string, bool) {
-	if val, exists := c.Get(userEmailKey); exists {
-		if email, ok := val.(string); ok && email != "" {
-			return email, true
-		}
-	}
-	return "", false
+	return getStringFromContext(c, userEmailKey)
 }
 
 // GetUserName retrieves the authenticated user name from the Gin context.
 func GetUserName(c *gin.Context) (string, bool) {
-	if val, exists := c.Get(userNameKey); exists {
-		if name, ok := val.(string); ok && name != "" {
-			return name, true
+	return getStringFromContext(c, userNameKey)
+}
+
+// getStringFromContext retrieves a non-empty string value from the Gin context.
+func getStringFromContext(c *gin.Context, key string) (string, bool) {
+	if val, exists := c.Get(key); exists {
+		if str, ok := val.(string); ok && str != "" {
+			return str, true
 		}
 	}
 	return "", false

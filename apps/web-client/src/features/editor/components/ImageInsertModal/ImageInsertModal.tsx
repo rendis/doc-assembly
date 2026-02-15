@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { X, Link, Images, Database } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
@@ -22,13 +22,13 @@ export function ImageInsertModal({
   const [cropperOpen, setCropperOpen] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
-  // Reset form when dialog opens
-  useEffect(() => {
+  // Reset form when dialog opens (adjust state based on props)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional reset on dialog open
       if (initialImage) {
         setCurrentImage(initialImage)
-        // Select tab based on image type
         if (initialImage.injectableId) {
           setActiveTab('variable')
         } else {
@@ -41,7 +41,7 @@ export function ImageInsertModal({
       setImageToCrop(null)
       setCropperOpen(false)
     }
-  }, [open, initialImage])
+  }
 
   const handleOpenCropper = useCallback((imageSrc: string) => {
     setImageToCrop(imageSrc)

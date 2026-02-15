@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Workspace, WorkspaceSettings } from '@/features/workspaces/types'
 import {
@@ -31,38 +31,42 @@ export function WorkspaceFormDialog({
   mode,
   workspace,
 }: WorkspaceFormDialogProps): React.ReactElement {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && (
+        <WorkspaceFormDialogContent
+          onOpenChange={onOpenChange}
+          mode={mode}
+          workspace={workspace}
+        />
+      )}
+    </Dialog>
+  )
+}
+
+function WorkspaceFormDialogContent({
+  onOpenChange,
+  mode,
+  workspace,
+}: {
+  onOpenChange: (open: boolean) => void
+  mode: 'create' | 'edit'
+  workspace?: Workspace | null
+}): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
-  const { setCurrentWorkspace, currentWorkspace } = useAppContextStore()
+  const { currentWorkspace } = useAppContextStore()
 
-  const [name, setName] = useState('')
-  const [theme, setTheme] = useState('')
-  const [logoUrl, setLogoUrl] = useState('')
-  const [primaryColor, setPrimaryColor] = useState('')
+  const [name, setName] = useState(mode === 'edit' && workspace ? workspace.name : '')
+  const [theme, setTheme] = useState(mode === 'edit' && workspace ? (workspace.settings?.theme || '') : '')
+  const [logoUrl, setLogoUrl] = useState(mode === 'edit' && workspace ? (workspace.settings?.logoUrl || '') : '')
+  const [primaryColor, setPrimaryColor] = useState(mode === 'edit' && workspace ? (workspace.settings?.primaryColor || '') : '')
   const [nameError, setNameError] = useState('')
 
   const createMutation = useCreateWorkspace()
   const updateMutation = useUpdateWorkspace()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
-
-  // Reset form when dialog opens/closes or workspace changes
-  useEffect(() => {
-    if (open) {
-      if (mode === 'edit' && workspace) {
-        setName(workspace.name)
-        setTheme(workspace.settings?.theme || '')
-        setLogoUrl(workspace.settings?.logoUrl || '')
-        setPrimaryColor(workspace.settings?.primaryColor || '')
-      } else {
-        setName('')
-        setTheme('')
-        setLogoUrl('')
-        setPrimaryColor('')
-      }
-      setNameError('')
-    }
-  }, [open, mode, workspace])
 
   const validateForm = (): boolean => {
     let isValid = true
@@ -105,7 +109,6 @@ export function WorkspaceFormDialog({
       } else if (workspace) {
         // For edit, we need to temporarily switch to the workspace context
         // Store current workspace to restore later
-        const previousWorkspace = currentWorkspace
 
         // Note: The update endpoint operates on /workspace (current workspace context)
         // This is a limitation - we may need a different endpoint for admin updates
@@ -140,128 +143,126 @@ export function WorkspaceFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create'
-              ? t('administration.workspaces.form.createTitle', 'Create Workspace')
-              : t('administration.workspaces.form.editTitle', 'Edit Workspace')}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create'
-              ? t('administration.workspaces.form.createDescription', 'Create a new workspace for this tenant.')
-              : t('administration.workspaces.form.editDescription', 'Update workspace details.')}
-          </DialogDescription>
-        </DialogHeader>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>
+          {mode === 'create'
+            ? t('administration.workspaces.form.createTitle', 'Create Workspace')
+            : t('administration.workspaces.form.editTitle', 'Edit Workspace')}
+        </DialogTitle>
+        <DialogDescription>
+          {mode === 'create'
+            ? t('administration.workspaces.form.createDescription', 'Create a new workspace for this tenant.')
+            : t('administration.workspaces.form.editDescription', 'Update workspace details.')}
+        </DialogDescription>
+      </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name field */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name field */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            {t('administration.workspaces.form.name', 'Name')} *
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+              setNameError('')
+            }}
+            placeholder={t('administration.workspaces.form.namePlaceholder', 'Workspace name')}
+            className={cn(
+              'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
+              nameError ? 'border-destructive' : 'border-border'
+            )}
+            disabled={isLoading}
+          />
+          {nameError && (
+            <p className="mt-1 text-xs text-destructive">{nameError}</p>
+          )}
+        </div>
+
+        {/* Settings section - collapsible or optional */}
+        <div className="space-y-3 border-t border-border pt-4">
+          <p className="text-sm font-medium text-muted-foreground">
+            {t('administration.workspaces.form.settings', 'Settings (Optional)')}
+          </p>
+
+          {/* Theme */}
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.workspaces.form.name', 'Name')} *
+              {t('administration.workspaces.form.theme', 'Theme')}
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value)
-                setNameError('')
-              }}
-              placeholder={t('administration.workspaces.form.namePlaceholder', 'Workspace name')}
-              className={cn(
-                'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
-                nameError ? 'border-destructive' : 'border-border'
-              )}
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              placeholder={t('administration.workspaces.form.themePlaceholder', 'e.g., light, dark')}
+              className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
               disabled={isLoading}
             />
-            {nameError && (
-              <p className="mt-1 text-xs text-destructive">{nameError}</p>
-            )}
           </div>
 
-          {/* Settings section - collapsible or optional */}
-          <div className="space-y-3 border-t border-border pt-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              {t('administration.workspaces.form.settings', 'Settings (Optional)')}
-            </p>
+          {/* Logo URL */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              {t('administration.workspaces.form.logoUrl', 'Logo URL')}
+            </label>
+            <input
+              type="url"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder={t('administration.workspaces.form.logoUrlPlaceholder', 'https://example.com/logo.png')}
+              className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+              disabled={isLoading}
+            />
+          </div>
 
-            {/* Theme */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.workspaces.form.theme', 'Theme')}
-              </label>
+          {/* Primary Color */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              {t('administration.workspaces.form.primaryColor', 'Primary Color')}
+            </label>
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                placeholder={t('administration.workspaces.form.themePlaceholder', 'e.g., light, dark')}
-                className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                placeholder={t('administration.workspaces.form.primaryColorPlaceholder', '#3B82F6')}
+                className="flex-1 rounded-sm border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none transition-colors focus:border-foreground"
                 disabled={isLoading}
               />
-            </div>
-
-            {/* Logo URL */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.workspaces.form.logoUrl', 'Logo URL')}
-              </label>
-              <input
-                type="url"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder={t('administration.workspaces.form.logoUrlPlaceholder', 'https://example.com/logo.png')}
-                className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Primary Color */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('administration.workspaces.form.primaryColor', 'Primary Color')}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  placeholder={t('administration.workspaces.form.primaryColorPlaceholder', '#3B82F6')}
-                  className="flex-1 rounded-sm border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none transition-colors focus:border-foreground"
-                  disabled={isLoading}
+              {primaryColor && (
+                <div
+                  className="h-9 w-9 rounded-sm border border-border"
+                  style={{ backgroundColor: primaryColor }}
                 />
-                {primaryColor && (
-                  <div
-                    className="h-9 w-9 rounded-sm border border-border"
-                    style={{ backgroundColor: primaryColor }}
-                  />
-                )}
-              </div>
+              )}
             </div>
           </div>
+        </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-              disabled={isLoading}
-            >
-              {t('common.cancel', 'Cancel')}
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 size={16} className="animate-spin" />}
-              {mode === 'create'
-                ? t('common.create', 'Create')
-                : t('common.save', 'Save')}
-            </button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            disabled={isLoading}
+          >
+            {t('common.cancel', 'Cancel')}
+          </button>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 size={16} className="animate-spin" />}
+            {mode === 'create'
+              ? t('common.create', 'Create')
+              : t('common.save', 'Save')}
+          </button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   )
 }

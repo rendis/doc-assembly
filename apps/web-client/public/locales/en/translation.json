@@ -173,6 +173,7 @@
       "description": "Create a new document template",
       "titleLabel": "Title",
       "titlePlaceholder": "Enter template title...",
+      "documentTypeLabel": "Document Type",
       "tagsLabel": "Tags",
       "submit": "Create Template"
     },
@@ -285,7 +286,9 @@
         "archive": "Archive",
         "clone": "Clone version",
         "cancelSchedule": "Cancel Schedule"
-      }
+      },
+      "renamed": "Version renamed",
+      "renameFailed": "Failed to rename version"
     },
     "promoteDialog": {
       "title": "Promote to Production",
@@ -422,6 +425,7 @@
       "header": "Variables",
       "expandAll": "Expand all",
       "collapseAll": "Collapse all",
+      "expandModal": "Expand panel",
       "collapse": {
         "expand": "Expand panel",
         "collapse": "Collapse panel"
@@ -440,6 +444,11 @@
         "internalVariables": "System Variables",
         "externalVariables": "Custom Variables"
       }
+    },
+    "variablesModal": {
+      "title": "Variables",
+      "description": "Select variables to insert into your template",
+      "close": "Close"
     },
     "toolbar": {
       "blocks": "Blocks",
@@ -575,8 +584,40 @@
       "fontSize": "Font Size",
       "fontWeight": "Font Weight",
       "textColor": "Text Color",
+      "removeTextColor": "Remove color",
       "textAlign": "Text Align",
       "background": "Background"
+    },
+    "context_menu": {
+      "configure_label": "Configure Label...",
+      "edit": "Edit",
+      "copy": "Copy",
+      "cut": "Cut",
+      "delete": "Delete",
+      "reset_width": "Reset Width",
+      "node_types": {
+        "variable": "Variable",
+        "signature": "Signature",
+        "conditional": "Conditional",
+        "page_break": "Page Break"
+      }
+    },
+    "injector_config": {
+      "title": "Configure Variable",
+      "description": "Add labels and configure empty value behavior for this variable.",
+      "preview": "Preview",
+      "prefix": "Prefix (Left)",
+      "prefix_placeholder": "e.g., Total: ",
+      "prefix_help": "Text to display before the value",
+      "suffix": "Suffix (Right)",
+      "suffix_placeholder": "e.g.,  USD",
+      "suffix_help": "Text to display after the value",
+      "empty_value_behavior": "Empty Value Behavior",
+      "show_label_when_empty": "Show labels when value is empty",
+      "show_label_when_empty_desc": "Display prefix/suffix even if the variable has no value",
+      "default_value": "Default Value",
+      "default_value_placeholder": "e.g., N/A",
+      "default_value_desc": "Value to use when the variable is empty"
     },
     "tableInjector": {
       "dynamicTable": "Dynamic Table",
@@ -585,6 +626,21 @@
       "editStyles": "Edit Styles",
       "delete": "Delete",
       "previewHint": "Table content will be populated when the document is rendered"
+    },
+    "listInjector": {
+      "dynamicList": "Dynamic List",
+      "variable": "Variable",
+      "noVariable": "No variable assigned",
+      "editStyles": "Edit Styles",
+      "delete": "Delete",
+      "previewHint": "List content will be populated when the document is rendered",
+      "symbols": {
+        "bullet": "Bullet",
+        "number": "Numbered",
+        "dash": "Dash",
+        "roman": "Roman",
+        "letter": "Letter"
+      }
     },
     "sender": "Sender",
     "recipient": "Recipient",
@@ -654,7 +710,13 @@
       "imageVariables": "Image Variables",
       "generateRandomImage": "Generate random image",
       "invalidUrl": "Invalid URL",
-      "imageLoadError": "Could not load image"
+      "imageLoadError": "Could not load image",
+      "listSection": "Lists",
+      "listAutoPopulated": "Auto-populated at render time",
+      "listItemPlaceholder": "Item text...",
+      "subItemPlaceholder": "Sub-item text...",
+      "addListItem": "Add Item",
+      "addSubItem": "Add sub-item"
     },
     "workflow": {
       "title": "Signing configuration",
@@ -907,6 +969,27 @@
       "errors": {
         "roleDeleted": "The associated role was deleted"
       }
+    },
+    "import": {
+      "title": "Import Document",
+      "description": "Import a document from JSON file",
+      "tabs": {
+        "file": "File",
+        "paste": "Paste"
+      },
+      "fileTabDescription": "Click to select or drag file here",
+      "acceptedFormat": ".json files only",
+      "dropHere": "Drop to import",
+      "pasteLabel": "JSON Content",
+      "pastePlaceholder": "Paste your JSON document here...",
+      "pasteFromClipboard": "Paste",
+      "parseButton": "Validate JSON",
+      "invalidJson": "Invalid JSON format",
+      "invalidFileType": "Invalid file type. Only .json files are accepted",
+      "emptyContent": "No content to parse",
+      "jsonValid": "JSON is valid and ready to import",
+      "importDocument": "Import",
+      "fileSelected": "File ready to import"
     }
   },
   "settings": {
@@ -1016,6 +1099,8 @@
       "noResults": "No document types match your search",
       "empty": "No document types found",
       "create": "Create Type",
+      "global": "Global",
+      "readOnly": "Read-only",
       "columns": {
         "code": "Code",
         "name": "Name",

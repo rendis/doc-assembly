@@ -1,6 +1,7 @@
 package pdfrenderer
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -39,7 +40,11 @@ func ExtractAnchorPositions(pdfPath string, anchors []string) (map[string]Anchor
 		pageWidth := mediaBox.Index(2).Float64()
 		pageHeight := mediaBox.Index(3).Float64()
 
-		content := page.Content()
+		content, err := safePageContent(page)
+		if err != nil {
+			slog.Warn("skipping page due to content extraction error", "page", pageNum, "error", err)
+			continue
+		}
 		lines := groupTextsByLine(content.Text)
 
 		for _, line := range lines {
@@ -127,4 +132,17 @@ func (p AnchorPosition) ToDocumensoPercentage() (posX, posY float64) {
 	posX = (p.X / p.PageWidth) * 100
 	posY = 100 - ((p.Y / p.PageHeight) * 100)
 	return posX, posY
+}
+
+// safePageContent extracts page content with panic recovery.
+// Some PDF generators (e.g., Typst) produce font encodings that the dslipak/pdf
+// library cannot handle, causing panics in page.Content().
+func safePageContent(page pdf.Page) (content pdf.Content, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("pdf content extraction panicked: %v", r)
+		}
+	}()
+	content = page.Content()
+	return content, nil
 }

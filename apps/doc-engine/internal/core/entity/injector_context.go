@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"strings"
 	"sync"
 	"time"
 )
@@ -21,10 +22,12 @@ const (
 	ValueTypeTable
 	// ValueTypeImage represents an image URL value.
 	ValueTypeImage
+	// ValueTypeList represents a list value with items and styling.
+	ValueTypeList
 )
 
 // InjectableValue is the typed value returned by an injector.
-// Only allows: string, number (float64), bool, time.Time, TableValue.
+// Only allows: string, number (float64), bool, time.Time, TableValue, ListValue.
 type InjectableValue struct {
 	typ      ValueType
 	strVal   string
@@ -32,6 +35,7 @@ type InjectableValue struct {
 	boolVal  bool
 	timeVal  time.Time
 	tableVal *TableValue
+	listVal  *ListValue
 }
 
 // StringValue creates an InjectableValue of type string.
@@ -62,6 +66,11 @@ func TableValueData(t *TableValue) InjectableValue {
 // ImageValue creates an InjectableValue of type image (URL string).
 func ImageValue(url string) InjectableValue {
 	return InjectableValue{typ: ValueTypeImage, strVal: url}
+}
+
+// ListValueData creates an InjectableValue of type list.
+func ListValueData(l *ListValue) InjectableValue {
+	return InjectableValue{typ: ValueTypeList, listVal: l}
 }
 
 // Type returns the type of the value.
@@ -109,6 +118,14 @@ func (v InjectableValue) Table() (*TableValue, bool) {
 	return v.tableVal, true
 }
 
+// List returns the value as *ListValue. ok=false if not a list.
+func (v InjectableValue) List() (*ListValue, bool) {
+	if v.typ != ValueTypeList {
+		return nil, false
+	}
+	return v.listVal, true
+}
+
 // AsAny returns the value as any (for rendering).
 func (v InjectableValue) AsAny() any {
 	switch v.typ {
@@ -124,6 +141,8 @@ func (v InjectableValue) AsAny() any {
 		return v.tableVal
 	case ValueTypeImage:
 		return v.strVal
+	case ValueTypeList:
+		return v.listVal
 	default:
 		return nil
 	}
@@ -141,7 +160,9 @@ type InjectorContext struct {
 	externalID      string
 	templateID      string
 	transactionalID string
-	operation       OperationType
+	operation       string
+	tenantCode      string
+	workspaceCode   string
 	headers         map[string]string
 	resolvedValues  map[string]any
 	requestPayload  any
@@ -149,10 +170,22 @@ type InjectorContext struct {
 	selectedFormats map[string]string // injector code -> selected format
 }
 
+// normalizeHeaders converts all header keys to lowercase for case-insensitive lookup.
+func normalizeHeaders(headers map[string]string) map[string]string {
+	if headers == nil {
+		return nil
+	}
+	normalized := make(map[string]string, len(headers))
+	for k, v := range headers {
+		normalized[strings.ToLower(k)] = v
+	}
+	return normalized
+}
+
 // NewInjectorContext creates a new InjectorContext instance.
 func NewInjectorContext(
 	externalID, templateID, transactionalID string,
-	op OperationType,
+	op string,
 	headers map[string]string,
 	payload any,
 ) *InjectorContext {
@@ -161,7 +194,28 @@ func NewInjectorContext(
 		templateID:      templateID,
 		transactionalID: transactionalID,
 		operation:       op,
-		headers:         headers,
+		headers:         normalizeHeaders(headers),
+		resolvedValues:  make(map[string]any),
+		requestPayload:  payload,
+	}
+}
+
+// NewInjectorContextWithCodes creates a new InjectorContext with tenant/workspace codes.
+func NewInjectorContextWithCodes(
+	externalID, templateID, transactionalID string,
+	op string,
+	tenantCode, workspaceCode string,
+	headers map[string]string,
+	payload any,
+) *InjectorContext {
+	return &InjectorContext{
+		externalID:      externalID,
+		templateID:      templateID,
+		transactionalID: transactionalID,
+		operation:       op,
+		tenantCode:      tenantCode,
+		workspaceCode:   workspaceCode,
+		headers:         normalizeHeaders(headers),
 		resolvedValues:  make(map[string]any),
 		requestPayload:  payload,
 	}
@@ -189,20 +243,62 @@ func (c *InjectorContext) TransactionalID() string {
 }
 
 // Operation returns the operation type.
-func (c *InjectorContext) Operation() OperationType {
+func (c *InjectorContext) Operation() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.operation
 }
 
-// Header returns the value of a specific header.
+// TenantCode returns the tenant code.
+func (c *InjectorContext) TenantCode() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.tenantCode
+}
+
+// WorkspaceCode returns the workspace code.
+func (c *InjectorContext) WorkspaceCode() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.workspaceCode
+}
+
+// SetTenantCode sets the tenant code (internal use).
+func (c *InjectorContext) SetTenantCode(code string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.tenantCode = code
+}
+
+// SetWorkspaceCode sets the workspace code (internal use).
+func (c *InjectorContext) SetWorkspaceCode(code string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.workspaceCode = code
+}
+
+// Header returns the value of a specific header (case-insensitive).
 func (c *InjectorContext) Header(key string) string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.headers == nil {
 		return ""
 	}
-	return c.headers[key]
+	return c.headers[strings.ToLower(key)]
+}
+
+// GetHeaders returns a copy of all headers.
+func (c *InjectorContext) GetHeaders() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.headers == nil {
+		return nil
+	}
+	result := make(map[string]string, len(c.headers))
+	for k, v := range c.headers {
+		result[k] = v
+	}
+	return result
 }
 
 // GetResolved returns the resolved value of another injector.
@@ -257,4 +353,18 @@ func (c *InjectorContext) SetSelectedFormats(formats map[string]string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.selectedFormats = formats
+}
+
+// GetSelectedFormats returns a copy of all selected formats.
+func (c *InjectorContext) GetSelectedFormats() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.selectedFormats == nil {
+		return nil
+	}
+	result := make(map[string]string, len(c.selectedFormats))
+	for k, v := range c.selectedFormats {
+		result[k] = v
+	}
+	return result
 }

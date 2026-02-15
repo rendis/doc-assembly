@@ -15,6 +15,7 @@ import { RoleInjectablesSection } from './RoleInjectablesSection'
 import { SystemInjectablesSection } from './SystemInjectablesSection'
 import { TableInjectablesSection } from './TableInjectablesSection'
 import { ImageInjectablesSection } from './ImageInjectablesSection'
+import { ListInjectablesSection } from './ListInjectablesSection'
 import { PDFPreviewModal } from './PDFPreviewModal'
 import type { TableInputValue } from '../../types/table-input'
 import { toTableValuePayload } from '../../types/table-input'
@@ -30,6 +31,8 @@ interface InjectablesFormModalProps {
   onOpenChange: (open: boolean) => void
   templateId: string
   versionId: string
+  /** Variable IDs actually used in the document. If provided, only shows these variables */
+  usedVariableIds?: string[]
 }
 
 export function InjectablesFormModal({
@@ -37,6 +40,7 @@ export function InjectablesFormModal({
   onOpenChange,
   templateId,
   versionId,
+  usedVariableIds,
 }: InjectablesFormModalProps) {
   const { t } = useTranslation()
   const { variables, isLoading: isLoadingVariables } = useInjectables()
@@ -54,15 +58,29 @@ export function InjectablesFormModal({
   })
   const { getEmulatedValue } = useEmulatedValues()
 
+  // Filter variables by those actually used in the document
+  const filteredVariables = useMemo(() => {
+    if (usedVariableIds == null) return variables
+    const usedSet = new Set(usedVariableIds)
+    return variables.filter((v) => usedSet.has(v.variableId))
+  }, [variables, usedVariableIds])
+
+  // Filter role injectables by those actually used in the document
+  const filteredRoleInjectables = useMemo(() => {
+    if (usedVariableIds == null) return roleInjectables
+    const usedSet = new Set(usedVariableIds)
+    return roleInjectables.filter((ri) => usedSet.has(ri.variableId))
+  }, [roleInjectables, usedVariableIds])
+
   // Agrupar role injectables por roleLabel
   const roleGroups = useMemo(() => {
     const groups = new Map<string, RoleInjectable[]>()
-    roleInjectables.forEach((ri) => {
+    filteredRoleInjectables.forEach((ri) => {
       const existing = groups.get(ri.roleLabel) || []
       groups.set(ri.roleLabel, [...existing, ri])
     })
     return groups
-  }, [roleInjectables])
+  }, [filteredRoleInjectables])
 
   const [values, setValues] = useState<InjectableFormValues>({})
   const [errors, setErrors] = useState<InjectableFormErrors>({})
@@ -72,8 +90,8 @@ export function InjectablesFormModal({
 
   // Filtrar solo variables normales (no ROLE_TEXT que ya estan en roleInjectables)
   const standardVariables = useMemo(
-    () => variables.filter((v) => v.type !== 'ROLE_TEXT'),
-    [variables]
+    () => filteredVariables.filter((v) => v.type !== 'ROLE_TEXT'),
+    [filteredVariables]
   )
 
   // Separar variables de sistema de las normales
@@ -87,14 +105,14 @@ export function InjectablesFormModal({
     [standardVariables]
   )
 
-  // Variables del documento (excluyendo las de sistema, TABLE e IMAGE types)
+  // Variables del documento (excluyendo las de sistema, TABLE, IMAGE, and LIST types)
   const documentVariables = useMemo(
     () =>
       standardVariables.filter(
         (v) =>
           !INTERNAL_INJECTABLE_KEYS.includes(
             v.variableId as (typeof INTERNAL_INJECTABLE_KEYS)[number]
-          ) && v.type !== 'TABLE' && v.type !== 'IMAGE'
+          ) && v.type !== 'TABLE' && v.type !== 'IMAGE' && v.type !== 'LIST'
       ),
     [standardVariables]
   )
@@ -125,7 +143,20 @@ export function InjectablesFormModal({
     [standardVariables]
   )
 
-  const hasVariables = standardVariables.length > 0 || roleInjectables.length > 0 || tableVariables.length > 0 || imageVariables.length > 0
+  // LIST type variables (displayed as read-only info in preview, like tables)
+  const listVariables = useMemo(
+    () =>
+      standardVariables.filter(
+        (v) =>
+          v.type === 'LIST' &&
+          !INTERNAL_INJECTABLE_KEYS.includes(
+            v.variableId as (typeof INTERNAL_INJECTABLE_KEYS)[number]
+          )
+      ),
+    [standardVariables]
+  )
+
+  const hasVariables = standardVariables.length > 0 || filteredRoleInjectables.length > 0 || tableVariables.length > 0 || imageVariables.length > 0 || listVariables.length > 0
 
   // Auto-completar valores emulados al abrir el modal
   useEffect(() => {
@@ -236,7 +267,7 @@ export function InjectablesFormModal({
       }
     })
 
-    roleInjectables.forEach((ri) => {
+    filteredRoleInjectables.forEach((ri) => {
       const value = values[ri.variableId]
       if (!value || value === '') return
 
@@ -250,7 +281,7 @@ export function InjectablesFormModal({
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [standardVariables, roleInjectables, values, t])
+  }, [documentVariables, filteredRoleInjectables, values, t])
 
   const handleGenerate = useCallback(async () => {
     if (!validateForm()) {
@@ -447,7 +478,7 @@ export function InjectablesFormModal({
                   </>
                 )}
 
-                {roleInjectables.length > 0 && (
+                {listVariables.length > 0 && (
                   <>
                     {(systemVariables.length > 0 ||
                       documentVariables.length > 0 ||
@@ -456,8 +487,27 @@ export function InjectablesFormModal({
                       <div className="border-t border-border my-4" />
                     )}
 
+                    <ListInjectablesSection
+                      variables={listVariables}
+                      values={values}
+                      onChange={handleChange}
+                      disabled={isGenerating}
+                    />
+                  </>
+                )}
+
+                {filteredRoleInjectables.length > 0 && (
+                  <>
+                    {(systemVariables.length > 0 ||
+                      documentVariables.length > 0 ||
+                      tableVariables.length > 0 ||
+                      imageVariables.length > 0 ||
+                      listVariables.length > 0) && (
+                      <div className="border-t border-border my-4" />
+                    )}
+
                     <RoleInjectablesSection
-                      roleInjectables={roleInjectables}
+                      roleInjectables={filteredRoleInjectables}
                       values={values}
                       errors={errors}
                       onChange={handleChange}

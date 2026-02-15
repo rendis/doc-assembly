@@ -9,12 +9,12 @@ import (
 )
 
 // testSigningKey is used for signing test tokens.
-// Since JWKS_URL is empty in tests, the JWTAuth middleware uses ParseUnverified
+// Since no OIDC providers are configured in tests, MultiOIDCAuth uses ParseUnverified
 // which doesn't validate the signature, but we still need a valid JWT structure.
 var testSigningKey = []byte("test-secret-key-for-integration-tests")
 
 // TestClaims represents JWT claims for test tokens.
-// Matches the KeycloakClaims structure expected by the JWTAuth middleware.
+// Matches the OIDCClaims structure expected by the MultiOIDCAuth middleware.
 type TestClaims struct {
 	jwt.RegisteredClaims
 	Email         string `json:"email,omitempty"`
@@ -24,7 +24,7 @@ type TestClaims struct {
 }
 
 // GenerateTestToken creates a signed JWT token for testing.
-// The token is signed with HS256, but in test mode (empty JWKS_URL),
+// The token is signed with HS256, but in test mode (no OIDC providers),
 // the middleware uses ParseUnverified which doesn't validate the signature.
 func GenerateTestToken(email, name string) string {
 	claims := TestClaims{

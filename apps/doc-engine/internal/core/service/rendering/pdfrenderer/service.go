@@ -4,31 +4,71 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/entity/portabledoc"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 )
 
-// Service implements the PDFRenderer interface.
+// ConverterFactory creates a TypstConverter for a given render request.
+// This allows each render call to have its own converter state (page tracking, images, etc.).
+type ConverterFactory func(
+	injectables map[string]any,
+	injectableDefaults map[string]string,
+	signerRoleValues map[string]port.SignerRoleValue,
+	signerRoles []portabledoc.SignerRole,
+) TypstConverter
+
+// Service implements the PDFRenderer interface using Typst.
 type Service struct {
-	chrome *ChromeRenderer
+	typst            *TypstRenderer
+	httpClient       *http.Client
+	sem              chan struct{}
+	acquireTimeout   time.Duration
+	imageCache       *ImageCache
+	converterFactory ConverterFactory
+	tokens           TypstDesignTokens
 }
 
-// NewService creates a new PDF renderer service.
-func NewService(opts ChromeOptions) (*Service, error) {
-	chrome, err := NewChromeRenderer(opts)
+// NewService creates a new Typst-based PDF renderer service.
+func NewService(opts TypstOptions, imageCache *ImageCache, factory ConverterFactory, tokens TypstDesignTokens) (*Service, error) {
+	typst, err := NewTypstRenderer(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create chrome renderer: %w", err)
+		return nil, fmt.Errorf("failed to create typst renderer: %w", err)
 	}
 
-	return &Service{
-		chrome: chrome,
-	}, nil
+	s := &Service{
+		typst: typst,
+		httpClient: &http.Client{
+			Timeout: 15 * time.Second,
+		},
+		acquireTimeout:   opts.AcquireTimeout,
+		imageCache:       imageCache,
+		converterFactory: factory,
+		tokens:           tokens,
+	}
+
+	if opts.MaxConcurrent > 0 {
+		s.sem = make(chan struct{}, opts.MaxConcurrent)
+	}
+	if s.acquireTimeout == 0 {
+		s.acquireTimeout = 5 * time.Second
+	}
+
+	return s, nil
 }
 
 // RenderPreview generates a preview PDF with injected values.
 func (s *Service) RenderPreview(ctx context.Context, req *port.RenderPreviewRequest) (*port.RenderPreviewResult, error) {
+	if err := s.acquireSlot(ctx); err != nil {
+		return nil, err
+	}
+	defer s.releaseSlot()
+
 	if req.Document == nil {
 		return nil, fmt.Errorf("document is required")
 	}
@@ -45,16 +85,28 @@ func (s *Service) RenderPreview(ctx context.Context, req *port.RenderPreviewRequ
 		injectableDefaults = make(map[string]string)
 	}
 
-	// Build HTML from document using HTMLBuilder with signature tracking
-	builder := NewHTMLBuilder(req.Injectables, injectableDefaults, signerRoleValues, req.Document.SignerRoles)
-	htmlContent := builder.Build(req.Document)
+	// Create converter for this request
+	converter := s.converterFactory(req.Injectables, injectableDefaults, signerRoleValues, req.Document.SignerRoles)
 
-	// Get signature fields and page count from the builder
-	signatureFields := builder.GetSignatureFields()
-	pageCount := builder.GetPageCount()
+	// Build Typst document
+	builder := NewTypstBuilder(converter, s.tokens)
+	typstSource, pageCount, signatureFields := builder.Build(req.Document)
 
-	// Generate PDF using Chrome
-	pdfBytes, err := s.chrome.GeneratePDF(ctx, htmlContent, req.Document.PageConfig)
+	// Resolve remote images
+	remoteImages := builder.RemoteImages()
+	rootDir, renames, cleanup, err := s.resolveRemoteImages(ctx, remoteImages)
+	if err != nil {
+		return nil, err
+	}
+	if cleanup != nil {
+		defer cleanup()
+	}
+	for oldName, newName := range renames {
+		typstSource = strings.ReplaceAll(typstSource, oldName, newName)
+	}
+
+	// Generate PDF using Typst
+	pdfBytes, err := s.typst.GeneratePDF(ctx, typstSource, rootDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate PDF: %w", err)
 	}
@@ -73,6 +125,31 @@ func (s *Service) RenderPreview(ctx context.Context, req *port.RenderPreviewRequ
 		PageCount:       pageCount,
 		SignatureFields: signatureFields,
 	}, nil
+}
+
+// resolveRemoteImages handles image resolution via cache or direct download.
+// Returns rootDir, renames map, optional cleanup func, and error.
+func (s *Service) resolveRemoteImages(ctx context.Context, images map[string]string) (string, map[string]string, func(), error) {
+	if len(images) == 0 {
+		return "", nil, nil, nil
+	}
+
+	if s.imageCache != nil {
+		renames := s.imageCache.ResolveImages(ctx, images, s.httpClient)
+		return s.imageCache.Dir(), renames, nil, nil
+	}
+
+	tmpDir, err := os.MkdirTemp("", "typst-images-*")
+	if err != nil {
+		return "", nil, nil, fmt.Errorf("failed to create temp dir: %w", err)
+	}
+
+	renames, dlErr := downloadImages(ctx, images, tmpDir, s.httpClient)
+	if dlErr != nil {
+		slog.WarnContext(ctx, "some images failed to download", slog.Any("error", dlErr))
+	}
+
+	return tmpDir, renames, func() { os.RemoveAll(tmpDir) }, nil
 }
 
 // resolveSignerRoleValues resolves signer role values from the document and injectables.
@@ -237,10 +314,38 @@ func (s *Service) applyPosition(ctx context.Context, field *port.SignatureField,
 	slog.DebugContext(ctx, "field positioned", "anchor", field.AnchorString, "x", field.PositionX, "y", field.PositionY)
 }
 
+// acquireSlot blocks until a render slot is available or the timeout expires.
+func (s *Service) acquireSlot(ctx context.Context) error {
+	if s.sem == nil {
+		return nil
+	}
+	timer := time.NewTimer(s.acquireTimeout)
+	defer timer.Stop()
+	select {
+	case s.sem <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return entity.ErrRendererBusy
+	}
+}
+
+// releaseSlot returns a render slot to the pool.
+func (s *Service) releaseSlot() {
+	if s.sem == nil {
+		return
+	}
+	<-s.sem
+}
+
 // Close releases resources held by the service.
 func (s *Service) Close() error {
-	if s.chrome != nil {
-		return s.chrome.Close()
+	if s.imageCache != nil {
+		s.imageCache.Close()
+	}
+	if s.typst != nil {
+		return s.typst.Close()
 	}
 	return nil
 }

@@ -5,7 +5,7 @@ import { useSandboxModeStore } from '@/stores/sandbox-mode-store'
 import { refreshAccessToken } from '@/lib/keycloak'
 
 // API Base URL from environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false
@@ -82,7 +82,12 @@ apiClient.interceptors.response.use(
 
     // Handle 401 Unauthorized - Try to refresh token first
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const { refreshToken } = useAuthStore.getState()
+      const { token, refreshToken } = useAuthStore.getState()
+
+      // Dummy auth: don't try Keycloak refresh
+      if (token === 'dummy-token') {
+        return Promise.reject(error)
+      }
 
       // If no refresh token, clear auth and reject immediately
       if (!refreshToken) {

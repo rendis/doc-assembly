@@ -48,8 +48,7 @@ func InitializeApp() (*infra.Initializer, error) {
 	if err != nil {
 		return nil, err
 	}
-	databaseConfig := infra.ProvideDatabaseConfig(configConfig)
-	pool, err := infra.ProvideDBPool(databaseConfig)
+	pool, err := infra.ProvideDBPool(configConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +79,8 @@ func InitializeApp() (*infra.Initializer, error) {
 	mapperRegistry := infra.ProvideMapperRegistry()
 	initDeps := infra.ProvideExtensionDeps()
 	injectorRegistry := infra.ProvideInjectorRegistry(injectorI18nConfig, mapperRegistry, initDeps)
-	injectableUseCase := injectable.NewInjectableService(injectableRepository, systemInjectableRepository, injectorRegistry)
+	workspaceInjectableProvider := infra.ProvideWorkspaceInjectableProvider()
+	injectableUseCase := injectable.NewInjectableService(injectableRepository, systemInjectableRepository, injectorRegistry, workspaceRepository, tenantRepository, workspaceInjectableProvider)
 	contentInjectableController := controller.NewContentInjectableController(injectableUseCase, injectableMapper)
 	templateRepository := templaterepo.New(pool)
 	templateVersionRepository := templateversionrepo.New(pool)
@@ -94,8 +94,8 @@ func InitializeApp() (*infra.Initializer, error) {
 	templateVersionSignerRoleRepository := templateversionsignerrolerepo.New(pool)
 	contentValidator := infra.ProvideContentValidator(injectableUseCase)
 	templateVersionUseCase := template.NewTemplateVersionService(templateVersionRepository, templateVersionInjectableRepository, templateVersionSignerRoleRepository, templateRepository, templateTagRepository, contentValidator, workspaceRepository)
-	chromeConfig := infra.ProvideChromeConfig(configConfig)
-	pdfRenderer, err := infra.ProvidePDFRenderer(chromeConfig)
+	typstConfig := infra.ProvideTypstConfig(configConfig)
+	pdfRenderer, err := infra.ProvidePDFRenderer(typstConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -117,14 +117,15 @@ func InitializeApp() (*infra.Initializer, error) {
 	documentRecipientRepository := documentrecipientrepo.New(pool)
 	injectableResolverService := infra.ProvideInjectableResolver(injectorRegistry)
 	documentGenerator := infra.ProvideDocumentGenerator(templateRepository, templateVersionRepository, documentRepository, documentRecipientRepository, injectableUseCase, mapperRegistry, injectableResolverService)
-	opensignConfig := infra.ProvideSigningConfig(configConfig)
-	signingProvider, err := infra.ProvideSigningProvider(opensignConfig)
+	documensoConfig := infra.ProvideSigningConfig(configConfig)
+	signingProvider, err := infra.ProvideSigningProvider(documensoConfig)
 	if err != nil {
 		return nil, err
 	}
 	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator, documentRepository, documentRecipientRepository, pdfRenderer, signingProvider)
 	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
-	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, documentTypeController, internalDocumentController)
+	renderAuthenticator := infra.ProvideRenderAuthenticator()
+	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, documentTypeController, internalDocumentController, renderAuthenticator)
 	initializer := infra.NewInitializer(httpServer, pool)
 	return initializer, nil
 }

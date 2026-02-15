@@ -86,7 +86,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	systemInjectableService := injectablesvc.NewSystemInjectableService(systemInjectableRepo, nil)
 
 	// Create services - Content
-	injectableService := injectablesvc.NewInjectableService(injectableRepo, systemInjectableRepo, nil)
+	injectableService := injectablesvc.NewInjectableService(injectableRepo, systemInjectableRepo, nil, workspaceRepo, tenantRepo, nil)
 
 	// Create content validator
 	contentValidator := contentvalidator.New(injectableService)
@@ -150,14 +150,14 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 
-	// Empty auth config = dev mode (no JWKS validation)
-	// This allows ParseUnverified to accept our test tokens
+	// Empty auth config = dev mode (no OIDC providers, uses ParseUnverified)
+	// This allows unsigned test tokens to be accepted
 	authCfg := &config.AuthConfig{}
 
 	// API v1 group with middleware chain
 	v1 := engine.Group("/api/v1")
 	v1.Use(middleware.Operation())
-	v1.Use(middleware.JWTAuth(authCfg))
+	v1.Use(middleware.MultiOIDCAuth(authCfg.GetAllOIDCProviders()))
 	v1.Use(middlewareProvider.IdentityContext())
 	v1.Use(middlewareProvider.SystemRoleContext())
 

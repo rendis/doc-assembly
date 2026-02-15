@@ -14,24 +14,31 @@ import {
   Type,
   User,
 } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { SystemInjectable } from '../types'
 
-// Icon mapping based on data type (same as editor)
-const DATA_TYPE_ICONS: Record<string, LucideIcon> = {
-  TEXT: Type,
-  NUMBER: Hash,
-  DATE: Calendar,
-  CURRENCY: Coins,
-  BOOLEAN: CheckSquare,
-  IMAGE: ImageIcon,
-  TABLE: Table,
-  ROLE_TEXT: User,
-}
-
-function getIconForType(dataType: string): LucideIcon {
-  return DATA_TYPE_ICONS[dataType.toUpperCase()] || Code2
+// Render the appropriate icon for a data type without dynamically creating components
+function DataTypeIcon({ dataType, size, className }: { dataType: string; size: number; className?: string }) {
+  switch (dataType.toUpperCase()) {
+    case 'TEXT':
+      return <Type size={size} className={className} />
+    case 'NUMBER':
+      return <Hash size={size} className={className} />
+    case 'DATE':
+      return <Calendar size={size} className={className} />
+    case 'CURRENCY':
+      return <Coins size={size} className={className} />
+    case 'BOOLEAN':
+      return <CheckSquare size={size} className={className} />
+    case 'IMAGE':
+      return <ImageIcon size={size} className={className} />
+    case 'TABLE':
+      return <Table size={size} className={className} />
+    case 'ROLE_TEXT':
+      return <User size={size} className={className} />
+    default:
+      return <Code2 size={size} className={className} />
+  }
 }
 
 interface InjectableCardProps {
@@ -57,7 +64,6 @@ export function InjectableCard({
   onSelectChange,
 }: InjectableCardProps): React.ReactElement {
   const { t, i18n } = useTranslation()
-  const Icon = getIconForType(injectable.dataType)
 
   // Get localized text from i18n objects
   const label =
@@ -118,7 +124,7 @@ export function InjectableCard({
         )}
 
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-muted/50">
-          <Icon size={16} className="text-muted-foreground" />
+          <DataTypeIcon dataType={injectable.dataType} size={16} className="text-muted-foreground" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

@@ -203,6 +203,12 @@ func (c *DocumentTypeController) CreateDocumentType(ctx *gin.Context) {
 // @Router /api/v1/tenant/document-types/{id} [put]
 // @Security BearerAuth
 func (c *DocumentTypeController) UpdateDocumentType(ctx *gin.Context) {
+	tenantID, ok := middleware.GetTenantID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(entity.ErrMissingTenantID))
+		return
+	}
+
 	id := ctx.Param("id")
 
 	var req dto.UpdateDocumentTypeRequest
@@ -216,7 +222,7 @@ func (c *DocumentTypeController) UpdateDocumentType(ctx *gin.Context) {
 		return
 	}
 
-	cmd := mapper.UpdateDocumentTypeRequestToCommand(id, req)
+	cmd := mapper.UpdateDocumentTypeRequestToCommand(id, tenantID, req)
 	docType, err := c.docTypeUC.UpdateDocumentType(ctx.Request.Context(), cmd)
 	if err != nil {
 		HandleError(ctx, err)
@@ -245,13 +251,19 @@ func (c *DocumentTypeController) UpdateDocumentType(ctx *gin.Context) {
 // @Router /api/v1/tenant/document-types/{id} [delete]
 // @Security BearerAuth
 func (c *DocumentTypeController) DeleteDocumentType(ctx *gin.Context) {
+	tenantID, ok := middleware.GetTenantID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(entity.ErrMissingTenantID))
+		return
+	}
+
 	id := ctx.Param("id")
 
 	var req dto.DeleteDocumentTypeRequest
 	// Bind JSON body if present, but don't fail if body is empty
 	_ = ctx.ShouldBindJSON(&req)
 
-	cmd := mapper.DeleteDocumentTypeRequestToCommand(id, req)
+	cmd := mapper.DeleteDocumentTypeRequestToCommand(id, tenantID, req)
 	result, err := c.docTypeUC.DeleteDocumentType(ctx.Request.Context(), cmd)
 	if err != nil {
 		HandleError(ctx, err)

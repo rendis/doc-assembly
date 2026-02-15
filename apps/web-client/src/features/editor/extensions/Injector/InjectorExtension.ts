@@ -11,6 +11,16 @@ export interface InjectorOptions {
   variableId?: string
   /** Formato seleccionado para la variable (ej: "DD/MM/YYYY" para fechas) */
   format?: string | null
+  /** Etiqueta antes del valor (ej: "Total: ") */
+  prefix?: string | null
+  /** Etiqueta después del valor (ej: " USD") */
+  suffix?: string | null
+  /** Mostrar etiquetas incluso si el valor está vacío */
+  showLabelIfEmpty?: boolean
+  /** Valor por defecto cuando el valor está vacío */
+  defaultValue?: string | null
+  /** Ancho fijo en píxeles (null = auto) */
+  width?: number | null
   /** Indica si es una variable de rol */
   isRoleVariable?: boolean
   /** ID del rol (solo para role variables) */
@@ -54,6 +64,31 @@ export const InjectorExtension = Node.create({
       },
       required: {
         default: false,
+      },
+      prefix: {
+        default: null,
+      },
+      suffix: {
+        default: null,
+      },
+      showLabelIfEmpty: {
+        default: false,
+      },
+      defaultValue: {
+        default: null,
+      },
+      width: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const w = element.getAttribute('data-width')
+          return w ? parseInt(w, 10) : null
+        },
+        renderHTML: (attributes: Record<string, unknown>) => {
+          if (attributes.width) {
+            return { 'data-width': attributes.width }
+          }
+          return {}
+        },
       },
       // Atributos para role injectables
       isRoleVariable: {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import type { Editor } from '@tiptap/core'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
 
@@ -35,14 +35,17 @@ export function useInconsistencyNavigation(
   const [currentIndex, setCurrentIndex] = useState(-1)
   const roles = useSignerRolesStore((state) => state.roles)
 
+  // Extract doc reference to use as a stable dependency
+  const doc = editor?.state.doc
+
   // Find all invalid injector nodes in the document
   const invalidNodes = useMemo<InvalidNode[]>(() => {
-    if (!editor) return []
+    if (!editor || !doc) return []
 
     const nodes: InvalidNode[] = []
     const roleIds = new Set(roles.map((r) => r.id))
 
-    editor.state.doc.descendants((node, pos) => {
+    doc.descendants((node, pos) => {
       if (node.type.name === 'injector') {
         const { isRoleVariable, roleId, label } = node.attrs
         // Check if it's a role variable and the role doesn't exist
@@ -53,16 +56,18 @@ export function useInconsistencyNavigation(
     })
 
     return nodes
-  }, [editor, editor?.state.doc, roles])
+  }, [editor, doc, roles])
 
-  // Reset current index when invalid nodes change
-  useEffect(() => {
+  // Reset current index when invalid nodes change (adjust state based on derived value)
+  const [prevInvalidNodesLength, setPrevInvalidNodesLength] = useState(invalidNodes.length)
+  if (invalidNodes.length !== prevInvalidNodesLength) {
+    setPrevInvalidNodesLength(invalidNodes.length)
     if (invalidNodes.length === 0) {
       setCurrentIndex(-1)
     } else if (currentIndex >= invalidNodes.length) {
       setCurrentIndex(invalidNodes.length - 1)
     }
-  }, [invalidNodes.length, currentIndex])
+  }
 
   const navigateTo = useCallback(
     (index: number) => {

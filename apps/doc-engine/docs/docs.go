@@ -6589,6 +6589,10 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "isGlobal": {
+                    "description": "True if from SYS tenant (read-only for other tenants)",
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "object",
                     "additionalProperties": {
@@ -6623,6 +6627,10 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "isGlobal": {
+                    "description": "True if from SYS tenant (read-only for other tenants)",
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "object",

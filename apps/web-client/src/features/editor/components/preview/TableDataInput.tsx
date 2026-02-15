@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   DndContext,
@@ -49,7 +49,7 @@ interface SortableRowProps {
 function SortableRow({
   row,
   columns,
-  lang,
+  lang: _lang,
   onCellChange,
   onDelete,
   disabled,
@@ -179,7 +179,7 @@ function CellInput({ column, value, onChange, disabled }: CellInputProps) {
 }
 
 export function TableDataInput({
-  variableId,
+  variableId: _variableId,
   label,
   columns,
   value,
@@ -189,11 +189,11 @@ export function TableDataInput({
   const { t, i18n } = useTranslation()
   const lang = i18n.language
 
-  // Initialize with one empty row if no value
-  const tableValue: TableInputValue = value ?? {
-    columns,
-    rows: [createEmptyRow(columns)],
-  }
+  // Initialize with one empty row if no value (memoized to stabilize callback deps)
+  const tableValue: TableInputValue = useMemo(
+    () => value ?? { columns, rows: [createEmptyRow(columns)] },
+    [value, columns]
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

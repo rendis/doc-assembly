@@ -209,26 +209,23 @@ export function CreateAssignmentDialog({
 
   const isPending = createMutation.isPending || excludeMutation.isPending
 
-  // Reset all state when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setScopeType('TENANT')
-      setSelectedTenant(null)
-      setSelectedWorkspace(null)
-      setAssignmentMode('include')
-      setActivePanel('tenant')
-      setCollapsingFrom(null)
-      setTenantSearch('')
-      setWorkspaceSearch('')
-    }
-  }, [open])
+  function resetState() {
+    setScopeType('TENANT')
+    setSelectedTenant(null)
+    setSelectedWorkspace(null)
+    setAssignmentMode('include')
+    setActivePanel('tenant')
+    setCollapsingFrom(null)
+    setTenantSearch('')
+    setWorkspaceSearch('')
+  }
 
-  // Reset search when panel changes
-  useEffect(() => {
-    if (activePanel === 'tenant') {
-      setWorkspaceSearch('')
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetState()
     }
-  }, [activePanel])
+    onOpenChange(nextOpen)
+  }
 
   // Clear collapsingFrom after animation completes
   useEffect(() => {
@@ -309,20 +306,12 @@ export function CreateAssignmentDialog({
   }
 
   function handleClose() {
+    resetState()
     onOpenChange(false)
-    // Reset state
-    setScopeType('TENANT')
-    setSelectedTenant(null)
-    setSelectedWorkspace(null)
-    setAssignmentMode('include')
-    setActivePanel('tenant')
-    setCollapsingFrom(null)
-    setTenantSearch('')
-    setWorkspaceSearch('')
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <BaseDialogContent className="sm:max-w-xl">
         <form onSubmit={handleSubmit}>
           {/* Header */}

@@ -160,5 +160,6 @@ func is401Error(err error) bool {
 
 // is503Error returns true if the error should result in a 503 Service Unavailable response.
 func is503Error(err error) bool {
-	return errors.Is(err, entity.ErrLLMServiceUnavailable)
+	return errors.Is(err, entity.ErrLLMServiceUnavailable) ||
+		errors.Is(err, entity.ErrRendererBusy)
 }

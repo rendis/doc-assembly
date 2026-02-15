@@ -121,10 +121,7 @@ export function InjectablesTab(): React.ReactElement {
       })
   }, [injectables, searchQuery, statusFilter, sortBy, i18n.language])
 
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(ITEMS_PER_PAGE)
-  }, [searchQuery, statusFilter, sortBy])
+  // Reset visible count when filters change - handled inline in filter setters below
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -319,7 +316,7 @@ export function InjectablesTab(): React.ReactElement {
             type="text"
             placeholder={t('systemInjectables.filters.searchPlaceholder', 'Search by name...')}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(ITEMS_PER_PAGE) }}
             className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-7 pr-4 text-sm font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
           />
         </div>
@@ -427,6 +424,7 @@ export function InjectablesTab(): React.ReactElement {
                     key={option.value}
                     onClick={() => {
                       setStatusFilter(option.value)
+                      setVisibleCount(ITEMS_PER_PAGE)
                       setStatusOpen(false)
                     }}
                     className={cn(
@@ -464,6 +462,7 @@ export function InjectablesTab(): React.ReactElement {
                     key={option.value}
                     onClick={() => {
                       setSortBy(option.value)
+                      setVisibleCount(ITEMS_PER_PAGE)
                       setSortOpen(false)
                     }}
                     className={cn(

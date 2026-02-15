@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, AlertCircle, Save, RefreshCw, Lock } from 'lucide-react'
 import { DocumentEditor } from '@/features/editor/components/DocumentEditor'
+import { ImportDocumentModal } from '@/features/editor/components/ImportDocumentModal'
 import { DocumentPreparationOverlay } from '@/features/editor/components/DocumentPreparationOverlay'
 import { SaveStatusIndicator } from '@/features/editor/components/SaveStatusIndicator'
 import { useInjectables } from '@/features/editor/hooks/useInjectables'
@@ -41,6 +42,9 @@ function EditorPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<Error | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
+
+  // Import modal state
+  const [showImportModal, setShowImportModal] = useState(false)
 
   // Preparation overlay state - stays visible until editor is fully ready AND minimum time elapsed
   const [isPreparingDocument, setIsPreparingDocument] = useState(true)
@@ -193,6 +197,48 @@ function EditorPage() {
     setIsEditorReady(true)
   }, [])
 
+  // Import modal handlers
+  const handleImport = useCallback(() => {
+    setShowImportModal(true)
+  }, [])
+
+  const handleImportDocument = useCallback((doc: PortableDocument) => {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const storeActions = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic config type
+      setPaginationConfig: (config: any) => {
+        const { pageSize, margins } = config
+        if (pageSize) usePaginationStore.getState().setPageSize(pageSize)
+        if (margins) usePaginationStore.getState().setMargins(margins)
+      },
+      setSignerRoles: useSignerRolesStore.getState().setRoles,
+      setWorkflowConfig: useSignerRolesStore.getState().setWorkflowConfig,
+    }
+
+    const result = importDocument(
+      doc,
+      editor,
+      storeActions,
+      variables.map((v) => ({
+        id: v.id,
+        variableId: v.variableId,
+        type: v.type,
+        label: v.label,
+      }))
+    )
+
+    if (!result.success) {
+      const errorMessages = result.validation.errors
+        .map((e) => e.message)
+        .join(', ')
+      setImportError(errorMessages || t('editor.errors.importFailed'))
+    }
+
+    setShowImportModal(false)
+  }, [variables, t])
+
   // Error state (shows without overlay)
   if (fetchError || importError) {
     return (
@@ -295,6 +341,7 @@ function EditorPage() {
               initialContent=""
               editable={isEditable}
               variables={variables}
+              onImport={isEditable ? handleImport : undefined}
               editorRef={editorRef}
               onEditorReady={setEditorInstance}
               onFullyReady={handleEditorFullyReady}
@@ -304,6 +351,12 @@ function EditorPage() {
           )}
         </div>
       </div>
+
+      <ImportDocumentModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        onImport={handleImportDocument}
+      />
     </>
   )
 }

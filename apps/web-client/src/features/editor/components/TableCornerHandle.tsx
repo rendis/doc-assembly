@@ -156,7 +156,8 @@ export function TableCornerHandle({ editor }: TableCornerHandleProps) {
       className="absolute z-50 flex gap-0.5 bg-popover border border-border rounded-md p-0.5 shadow-md"
       style={{
         top: position.top,
-        left: position.left,
+        left: position.left - 4,
+        transform: 'translateX(-100%)',
       }}
     >
       <Tooltip>

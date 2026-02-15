@@ -1,5 +1,6 @@
 // docengine-gen scans internal/extensions/ looking for structs marked with
-// //docengine:injector and //docengine:mapper, and generates registry_gen.go.
+// //docengine:injector, //docengine:mapper, //docengine:workspace_provider,
+// and //docengine:render_auth, and generates registry_gen.go.
 package main
 
 import (
@@ -17,14 +18,16 @@ import (
 )
 
 const (
-	extensionsDir  = "internal/extensions"
-	injectorsDir   = "internal/extensions/injectors"
-	mappersDir     = "internal/extensions/mappers"
-	outputFile     = "internal/extensions/registry_gen.go"
-	injectorMarker = "//docengine:injector"
-	mapperMarker   = "//docengine:mapper"
-	initMarker     = "//docengine:init"
-	modulePrefix   = "github.com/doc-assembly/doc-engine"
+	extensionsDir           = "internal/extensions"
+	injectorsDir            = "internal/extensions/injectors"
+	mappersDir              = "internal/extensions/mappers"
+	outputFile              = "internal/extensions/registry_gen.go"
+	injectorMarker          = "//docengine:injector"
+	mapperMarker            = "//docengine:mapper"
+	initMarker              = "//docengine:init"
+	workspaceProviderMarker = "//docengine:workspace_provider"
+	renderAuthMarker        = "//docengine:render_auth"
+	modulePrefix            = "github.com/doc-assembly/doc-engine"
 )
 
 type discoveredStruct struct {
@@ -40,10 +43,12 @@ type discoveredInit struct {
 }
 
 type generatorData struct {
-	Injectors []discoveredStruct
-	Mappers   []discoveredStruct
-	InitFuncs []discoveredInit
-	Imports   []string
+	Injectors          []discoveredStruct
+	Mappers            []discoveredStruct
+	WorkspaceProviders []discoveredStruct
+	RenderAuths        []discoveredStruct
+	InitFuncs          []discoveredInit
+	Imports            []string
 }
 
 func main() {
@@ -52,63 +57,87 @@ func main() {
 	data := &generatorData{}
 
 	// Scan injectors directory
-	if err := scanDirectory(injectorsDir, injectorMarker, &data.Injectors); err != nil {
-		fmt.Fprintf(os.Stderr, "Error scanning injectors: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("  Found %d injector(s)\n", len(data.Injectors))
+	scanAndValidate(injectorsDir, injectorMarker, "injector", 0, &data.Injectors)
 
-	// Scan mappers directory
-	if err := scanDirectory(mappersDir, mapperMarker, &data.Mappers); err != nil {
-		fmt.Fprintf(os.Stderr, "Error scanning mappers: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("  Found %d mapper(s)\n", len(data.Mappers))
-	if len(data.Mappers) > 1 {
-		fmt.Fprintf(os.Stderr, "ERROR: Only ONE mapper is allowed. Found %d mappers:\n", len(data.Mappers))
-		for _, m := range data.Mappers {
-			fmt.Fprintf(os.Stderr, "  - %s.%s\n", m.Package, m.Name)
-		}
-		fmt.Fprintln(os.Stderr, "Remove extra //docengine:mapper markers or combine into one mapper.")
-		os.Exit(1)
-	}
+	// Scan mappers directory (singleton)
+	scanAndValidate(mappersDir, mapperMarker, "mapper", 1, &data.Mappers)
 
 	// Scan for init function in extensions root
-	if err := scanForInit(extensionsDir, &data.InitFuncs); err != nil {
-		fmt.Fprintf(os.Stderr, "Error scanning for init: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("  Found %d init function(s)\n", len(data.InitFuncs))
-	if len(data.InitFuncs) > 1 {
-		fmt.Fprintf(os.Stderr, "ERROR: Only ONE init function is allowed. Found %d:\n", len(data.InitFuncs))
-		for _, i := range data.InitFuncs {
-			fmt.Fprintf(os.Stderr, "  - %s.%s\n", i.Package, i.FuncName)
-		}
-		fmt.Fprintln(os.Stderr, "Remove extra //docengine:init markers.")
-		os.Exit(1)
-	}
+	scanInitAndValidate(extensionsDir, &data.InitFuncs)
 
-	// Collect unique imports
-	imports := make(map[string]bool)
-	imports[modulePrefix+"/internal/core/port"] = true
-	for _, inj := range data.Injectors {
-		imports[inj.Import] = true
-	}
-	for _, m := range data.Mappers {
-		imports[m.Import] = true
-	}
-	for imp := range imports {
-		data.Imports = append(data.Imports, imp)
-	}
-	sort.Strings(data.Imports)
+	// Scan for workspace provider (singleton)
+	scanAndValidate(extensionsDir, workspaceProviderMarker, "workspace provider", 1, &data.WorkspaceProviders)
 
-	// Generate output
+	// Scan for render authenticator (singleton)
+	scanAndValidate(extensionsDir, renderAuthMarker, "render authenticator", 1, &data.RenderAuths)
+
+	// Collect unique imports and generate output
+	data.Imports = collectImports(data)
+
 	if err := generateOutput(data); err != nil {
 		fmt.Fprintf(os.Stderr, "Error generating output: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Printf("docengine-gen: Generated %s\n", outputFile)
+}
+
+// scanAndValidate scans a directory for a marker, prints results, and enforces maxCount (0 = unlimited).
+func scanAndValidate(dir, marker, label string, maxCount int, results *[]discoveredStruct) {
+	if err := scanDirectory(dir, marker, results); err != nil {
+		fmt.Fprintf(os.Stderr, "Error scanning %ss: %v\n", label, err)
+		os.Exit(1)
+	}
+	fmt.Printf("  Found %d %s(s)\n", len(*results), label)
+	if maxCount > 0 && len(*results) > maxCount {
+		fmt.Fprintf(os.Stderr, "ERROR: Only ONE %s is allowed. Found %d:\n", label, len(*results))
+		for _, s := range *results {
+			fmt.Fprintf(os.Stderr, "  - %s.%s\n", s.Package, s.Name)
+		}
+		fmt.Fprintf(os.Stderr, "Remove extra %s markers.\n", marker)
+		os.Exit(1)
+	}
+}
+
+// scanInitAndValidate scans for init functions and enforces singleton.
+func scanInitAndValidate(dir string, results *[]discoveredInit) {
+	if err := scanForInit(dir, results); err != nil {
+		fmt.Fprintf(os.Stderr, "Error scanning for init: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("  Found %d init function(s)\n", len(*results))
+	if len(*results) > 1 {
+		fmt.Fprintf(os.Stderr, "ERROR: Only ONE init function is allowed. Found %d:\n", len(*results))
+		for _, i := range *results {
+			fmt.Fprintf(os.Stderr, "  - %s.%s\n", i.Package, i.FuncName)
+		}
+		fmt.Fprintln(os.Stderr, "Remove extra //docengine:init markers.")
+		os.Exit(1)
+	}
+}
+
+// collectImports gathers unique import paths from all discovered components.
+func collectImports(data *generatorData) []string {
+	imports := make(map[string]bool)
+	imports[modulePrefix+"/internal/core/port"] = true
+	for _, s := range data.Injectors {
+		imports[s.Import] = true
+	}
+	for _, s := range data.Mappers {
+		imports[s.Import] = true
+	}
+	for _, s := range data.WorkspaceProviders {
+		imports[s.Import] = true
+	}
+	for _, s := range data.RenderAuths {
+		imports[s.Import] = true
+	}
+	sorted := make([]string, 0, len(imports))
+	for imp := range imports {
+		sorted = append(sorted, imp)
+	}
+	sort.Strings(sorted)
+	return sorted
 }
 
 func scanDirectory(dir, marker string, results *[]discoveredStruct) error {
@@ -318,7 +347,7 @@ import (
 {{- end }}
 )
 
-// RegisterAll registers all discovered injectors and mappers.
+// RegisterAll registers all discovered injectors, mappers, and extension components.
 // Note: i18n is automatically loaded from settings/injectors.i18n.yaml
 func RegisterAll(injReg port.InjectorRegistry, mapReg port.MapperRegistry, deps *InitDeps) {
 {{- if .InitFuncs }}
@@ -341,4 +370,20 @@ func RegisterAll(injReg port.InjectorRegistry, mapReg port.MapperRegistry, deps 
 	mapReg.Set(&{{ (index .Mappers 0).Package }}.{{ (index .Mappers 0).Name }}{})
 {{- end }}
 }
+{{- if .WorkspaceProviders }}
+
+// GetWorkspaceProvider returns the discovered workspace injectable provider.
+// Auto-discovered via //docengine:workspace_provider (ONE only).
+func GetWorkspaceProvider() port.WorkspaceInjectableProvider {
+	return &{{ (index .WorkspaceProviders 0).Package }}.{{ (index .WorkspaceProviders 0).Name }}{}
+}
+{{- end }}
+{{- if .RenderAuths }}
+
+// GetRenderAuthenticator returns the discovered render authenticator.
+// Auto-discovered via //docengine:render_auth (ONE only).
+func GetRenderAuthenticator() port.RenderAuthenticator {
+	return &{{ (index .RenderAuths 0).Package }}.{{ (index .RenderAuths 0).Name }}{}
+}
+{{- end }}
 `

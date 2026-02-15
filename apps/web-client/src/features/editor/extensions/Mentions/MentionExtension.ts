@@ -44,6 +44,20 @@ export const MentionExtension = Mention.configure({
         return
       }
 
+      // Si es LIST, insertar como listInjector (block)
+      if (item.type === 'LIST') {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setListInjector({
+            variableId: item.id,
+            label: item.label,
+          })
+          .run()
+        return
+      }
+
       // Si es un role injectable, insertar directamente con atributos de rol
       if (item.isRoleVariable) {
         editor

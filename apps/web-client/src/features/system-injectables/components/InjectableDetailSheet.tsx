@@ -135,13 +135,13 @@ export function InjectableDetailSheet({
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedTenantId, setExpandedTenantId] = useState<string | null>(null)
 
-  // Reset state when sheet closes
-  useEffect(() => {
-    if (!open) {
+  function handleSheetOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
       setSearchQuery('')
       setExpandedTenantId(null)
     }
-  }, [open])
+    onOpenChange(nextOpen)
+  }
 
   const label = injectable
     ? injectable.label[i18n.language] || injectable.label['en'] || injectable.key
@@ -174,7 +174,7 @@ export function InjectableDetailSheet({
   )
 
   // Auto-expand tenants with matching workspaces when searching
-  useEffect(() => {
+  const effectiveExpandedTenantId = useMemo(() => {
     if (searchQuery.trim() && filteredGroups.length > 0) {
       const firstMatchingTenant = filteredGroups.find(
         (g) =>
@@ -182,10 +182,11 @@ export function InjectableDetailSheet({
           !g.tenantName.toLowerCase().includes(searchQuery.toLowerCase())
       )
       if (firstMatchingTenant) {
-        setExpandedTenantId(firstMatchingTenant.tenantId)
+        return firstMatchingTenant.tenantId
       }
     }
-  }, [searchQuery, filteredGroups])
+    return expandedTenantId
+  }, [searchQuery, filteredGroups, expandedTenantId])
 
   function handleToggle(checked: boolean) {
     if (!injectable) return
@@ -220,7 +221,7 @@ export function InjectableDetailSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleSheetOpenChange}>
         <SheetContent className="flex flex-col overflow-hidden sm:max-w-md">
           <SheetHeader className="border-b border-border pb-4 pr-8">
             <div className="flex items-start justify-between">
@@ -314,7 +315,7 @@ export function InjectableDetailSheet({
                   <TenantAccordionItem
                     key={group.tenantId}
                     group={group}
-                    isExpanded={expandedTenantId === group.tenantId}
+                    isExpanded={effectiveExpandedTenantId === group.tenantId}
                     onToggleExpand={() => handleTenantExpand(group.tenantId)}
                     canManage={canManage}
                     onDeleteAssignment={handleDelete}
@@ -476,12 +477,13 @@ function TenantAccordionItem({
   const [visibleCount, setVisibleCount] = useState(WORKSPACES_PER_PAGE)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  // Reset visible count when collapsed
-  useEffect(() => {
-    if (!isExpanded) {
+  // Reset visible count when toggling to collapsed
+  function handleToggle() {
+    if (isExpanded) {
       setVisibleCount(WORKSPACES_PER_PAGE)
     }
-  }, [isExpanded])
+    onToggleExpand()
+  }
 
   // Infinite scroll observer
   useEffect(() => {
@@ -516,7 +518,7 @@ function TenantAccordionItem({
       {/* Tenant Header */}
       <button
         type="button"
-        onClick={onToggleExpand}
+        onClick={handleToggle}
         className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-muted/30"
       >
         <div className="flex items-center gap-3">

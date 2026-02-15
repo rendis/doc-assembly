@@ -173,6 +173,7 @@
       "description": "Crea una nueva plantilla de documento",
       "titleLabel": "Título",
       "titlePlaceholder": "Ingresa el título de la plantilla...",
+      "documentTypeLabel": "Tipo de Documento",
       "tagsLabel": "Etiquetas",
       "submit": "Crear Plantilla"
     },
@@ -285,7 +286,9 @@
         "archive": "Archivar",
         "clone": "Clonar versión",
         "cancelSchedule": "Cancelar Programación"
-      }
+      },
+      "renamed": "Versión renombrada",
+      "renameFailed": "Error al renombrar versión"
     },
     "promoteDialog": {
       "title": "Promover a Producción",
@@ -422,6 +425,7 @@
       "header": "Variables",
       "expandAll": "Expandir todo",
       "collapseAll": "Colapsar todo",
+      "expandModal": "Expandir panel",
       "collapse": {
         "expand": "Expandir panel",
         "collapse": "Colapsar panel"
@@ -440,6 +444,11 @@
         "internalVariables": "Variables del Sistema",
         "externalVariables": "Variables Personalizadas"
       }
+    },
+    "variablesModal": {
+      "title": "Variables",
+      "description": "Selecciona variables para insertar en tu plantilla",
+      "close": "Cerrar"
     },
     "toolbar": {
       "blocks": "Bloques",
@@ -575,8 +584,40 @@
       "fontSize": "Tamaño de Fuente",
       "fontWeight": "Grosor de Fuente",
       "textColor": "Color de Texto",
+      "removeTextColor": "Quitar color",
       "textAlign": "Alineación de Texto",
       "background": "Fondo"
+    },
+    "context_menu": {
+      "configure_label": "Configurar Etiqueta...",
+      "edit": "Editar",
+      "copy": "Copiar",
+      "cut": "Cortar",
+      "delete": "Eliminar",
+      "reset_width": "Restablecer Ancho",
+      "node_types": {
+        "variable": "Variable",
+        "signature": "Firma",
+        "conditional": "Condicional",
+        "page_break": "Salto de página"
+      }
+    },
+    "injector_config": {
+      "title": "Configurar Variable",
+      "description": "Agrega etiquetas y configura el comportamiento cuando el valor está vacío.",
+      "preview": "Vista previa",
+      "prefix": "Prefijo (Izquierda)",
+      "prefix_placeholder": "ej: Total: ",
+      "prefix_help": "Texto a mostrar antes del valor",
+      "suffix": "Sufijo (Derecha)",
+      "suffix_placeholder": "ej:  USD",
+      "suffix_help": "Texto a mostrar después del valor",
+      "empty_value_behavior": "Comportamiento con Valor Vacío",
+      "show_label_when_empty": "Mostrar etiquetas cuando el valor está vacío",
+      "show_label_when_empty_desc": "Muestra el prefijo/sufijo incluso si la variable no tiene valor",
+      "default_value": "Valor Predeterminado",
+      "default_value_placeholder": "ej: N/D",
+      "default_value_desc": "Valor a usar cuando la variable está vacía"
     },
     "tableInjector": {
       "dynamicTable": "Tabla Dinámica",
@@ -585,6 +626,21 @@
       "editStyles": "Editar Estilos",
       "delete": "Eliminar",
       "previewHint": "El contenido de la tabla se completará cuando se renderice el documento"
+    },
+    "listInjector": {
+      "dynamicList": "Lista Dinámica",
+      "variable": "Variable",
+      "noVariable": "Sin variable asignada",
+      "editStyles": "Editar Estilos",
+      "delete": "Eliminar",
+      "previewHint": "El contenido de la lista se completará cuando se renderice el documento",
+      "symbols": {
+        "bullet": "Viñeta",
+        "number": "Numerado",
+        "dash": "Guión",
+        "roman": "Romano",
+        "letter": "Letra"
+      }
     },
     "sender": "Remitente",
     "recipient": "Destinatario",
@@ -654,7 +710,13 @@
       "imageVariables": "Variables de Imagen",
       "generateRandomImage": "Generar imagen aleatoria",
       "invalidUrl": "URL no válida",
-      "imageLoadError": "No se pudo cargar la imagen"
+      "imageLoadError": "No se pudo cargar la imagen",
+      "listSection": "Listas",
+      "listAutoPopulated": "Se completa automáticamente al renderizar",
+      "listItemPlaceholder": "Texto del elemento...",
+      "subItemPlaceholder": "Texto del sub-elemento...",
+      "addListItem": "Agregar Elemento",
+      "addSubItem": "Agregar sub-elemento"
     },
     "workflow": {
       "title": "Configuración de firma",
@@ -907,6 +969,27 @@
       "errors": {
         "roleDeleted": "El rol asociado fue eliminado"
       }
+    },
+    "import": {
+      "title": "Importar Documento",
+      "description": "Importa un documento desde archivo JSON",
+      "tabs": {
+        "file": "Archivo",
+        "paste": "Pegar"
+      },
+      "fileTabDescription": "Haz clic para seleccionar o arrastra un archivo aquí",
+      "acceptedFormat": "Solo archivos .json",
+      "dropHere": "Suelta para importar",
+      "pasteLabel": "Contenido JSON",
+      "pastePlaceholder": "Pega tu documento JSON aquí...",
+      "pasteFromClipboard": "Pegar",
+      "parseButton": "Validar JSON",
+      "invalidJson": "Formato JSON inválido",
+      "invalidFileType": "Tipo de archivo inválido. Solo se aceptan archivos .json",
+      "emptyContent": "No hay contenido para parsear",
+      "jsonValid": "El JSON es válido y está listo para importar",
+      "importDocument": "Importar",
+      "fileSelected": "Archivo listo para importar"
     }
   },
   "settings": {
@@ -1016,6 +1099,8 @@
       "noResults": "No se encontraron tipos de documento",
       "empty": "No hay tipos de documento",
       "create": "Crear Tipo",
+      "global": "Global",
+      "readOnly": "Solo lectura",
       "columns": {
         "code": "Código",
         "name": "Nombre",

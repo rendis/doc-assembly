@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -52,26 +51,21 @@ func (c *ContentInjectableController) RegisterRoutes(rg *gin.RouterGroup, middle
 // @Accept json
 // @Produce json
 // @Param X-Workspace-ID header string true "Workspace ID"
-// @Param locale query string false "Locale for translations (default: es)"
 // @Success 200 {object} dto.ListInjectablesResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Router /api/v1/content/injectables [get]
 func (c *ContentInjectableController) ListInjectables(ctx *gin.Context) {
 	workspaceID, _ := middleware.GetWorkspaceID(ctx)
-	locale := ctx.DefaultQuery("locale", "es")
 
-	injectables, err := c.injectableUC.ListInjectables(ctx.Request.Context(), workspaceID)
+	result, err := c.injectableUC.ListInjectables(ctx.Request.Context(), &injectableuc.ListInjectablesRequest{
+		WorkspaceID: workspaceID,
+	})
 	if err != nil {
-		slog.ErrorContext(ctx.Request.Context(), "failed to list injectables",
-			slog.String("workspace_id", workspaceID),
-			slog.Any("error", err),
-		)
 		respondError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	groups := c.injectableUC.GetGroups(locale)
-	ctx.JSON(http.StatusOK, c.injectableMapper.ToListResponse(injectables, groups))
+	ctx.JSON(http.StatusOK, c.injectableMapper.ToListResponse(result.Injectables, result.Groups))
 }
 
 // GetInjectable retrieves an injectable by ID.

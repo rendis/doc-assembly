@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Editor } from '@tiptap/core'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
@@ -14,19 +14,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  FONT_FAMILY_OPTIONS,
-  FONT_SIZE_OPTIONS,
-  TEXT_ALIGN_OPTIONS,
-  type TableStylesAttrs,
-} from './types'
+import type { TableStylesAttrs } from './types'
+import { STYLE_PANEL_FONT_FAMILIES, STYLE_PANEL_FONT_SIZES, TEXT_ALIGN_OPTIONS } from '../../config'
 
 interface TableStylesPanelProps {
   editor: Editor
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Node type to edit styles for. Defaults to 'table' */
-  nodeType?: 'table' | 'tableInjector'
+  nodeType?: 'table' | 'tableInjector' | 'listInjector'
   /** Initial styles to load when opening. If not provided, uses editor.getAttributes() */
   initialStyles?: Partial<TableStylesAttrs>
   /** Direct update callback (from NodeView's updateAttributes). Bypasses editor commands. */
@@ -37,25 +33,27 @@ export function TableStylesPanel({ editor, open, onOpenChange, nodeType = 'table
   const { t } = useTranslation()
   const [styles, setStyles] = useState<TableStylesAttrs>({})
 
-  // Load current styles when dialog opens
-  useEffect(() => {
-    if (!open || !editor) return
-
-    const attrs = initialStyles ?? editor.getAttributes(nodeType)
-    setStyles({
-      headerFontFamily: attrs.headerFontFamily || 'inherit',
-      headerFontSize: attrs.headerFontSize || 12,
-      headerFontWeight: attrs.headerFontWeight || 'bold',
-      headerTextColor: attrs.headerTextColor || '#333333',
-      headerTextAlign: attrs.headerTextAlign || 'left',
-      headerBackground: attrs.headerBackground || '#f5f5f5',
-      bodyFontFamily: attrs.bodyFontFamily || 'inherit',
-      bodyFontSize: attrs.bodyFontSize || 12,
-      bodyFontWeight: attrs.bodyFontWeight || 'normal',
-      bodyTextColor: attrs.bodyTextColor || '#333333',
-      bodyTextAlign: attrs.bodyTextAlign || 'left',
-    })
-  }, [open, editor, nodeType, initialStyles])
+  // Load current styles when dialog opens (adjust state based on props)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open && editor) {
+      const attrs = initialStyles ?? editor.getAttributes(nodeType)
+      setStyles({
+        headerFontFamily: attrs.headerFontFamily || 'inherit',
+        headerFontSize: attrs.headerFontSize || 12,
+        headerFontWeight: attrs.headerFontWeight || 'bold',
+        headerTextColor: attrs.headerTextColor || '#333333',
+        headerTextAlign: attrs.headerTextAlign || 'left',
+        headerBackground: attrs.headerBackground || '#f5f5f5',
+        bodyFontFamily: attrs.bodyFontFamily || 'inherit',
+        bodyFontSize: attrs.bodyFontSize || 12,
+        bodyFontWeight: attrs.bodyFontWeight || 'normal',
+        bodyTextColor: attrs.bodyTextColor || '#333333',
+        bodyTextAlign: attrs.bodyTextAlign || 'left',
+      })
+    }
+  }
 
   const handleApply = useCallback(() => {
     if (!editor) return
@@ -144,7 +142,7 @@ export function TableStylesPanel({ editor, open, onOpenChange, nodeType = 'table
                         <SelectValue placeholder={t('editor.table.selectFont', 'Select font')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {FONT_FAMILY_OPTIONS.map((opt) => (
+                        {STYLE_PANEL_FONT_FAMILIES.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
@@ -164,7 +162,7 @@ export function TableStylesPanel({ editor, open, onOpenChange, nodeType = 'table
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {FONT_SIZE_OPTIONS.map((opt) => (
+                        {STYLE_PANEL_FONT_SIZES.map((opt) => (
                           <SelectItem key={opt.value} value={String(opt.value)}>
                             {opt.label}
                           </SelectItem>
@@ -265,7 +263,7 @@ export function TableStylesPanel({ editor, open, onOpenChange, nodeType = 'table
                         <SelectValue placeholder={t('editor.table.selectFont', 'Select font')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {FONT_FAMILY_OPTIONS.map((opt) => (
+                        {STYLE_PANEL_FONT_FAMILIES.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
@@ -285,7 +283,7 @@ export function TableStylesPanel({ editor, open, onOpenChange, nodeType = 'table
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {FONT_SIZE_OPTIONS.map((opt) => (
+                        {STYLE_PANEL_FONT_SIZES.map((opt) => (
                           <SelectItem key={opt.value} value={String(opt.value)}>
                             {opt.label}
                           </SelectItem>

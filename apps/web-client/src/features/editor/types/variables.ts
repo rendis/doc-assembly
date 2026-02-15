@@ -12,6 +12,7 @@ export type InjectorType =
   | 'BOOLEAN'
   | 'IMAGE'
   | 'TABLE'
+  | 'LIST'
   | 'ROLE_TEXT'
 
 /**

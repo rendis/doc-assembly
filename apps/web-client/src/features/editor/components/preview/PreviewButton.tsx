@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye } from 'lucide-react'
+import type { Editor } from '@tiptap/core'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -8,26 +9,33 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { InjectablesFormModal } from './InjectablesFormModal'
+import { extractVariableIdsFromEditor } from '../../services/document-export'
 
 interface PreviewButtonProps {
   templateId: string
   versionId: string
   disabled?: boolean
+  editor: Editor | null
 }
 
 export function PreviewButton({
   templateId,
   versionId,
   disabled,
+  editor,
 }: PreviewButtonProps) {
   const { t } = useTranslation()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [usedVariableIds, setUsedVariableIds] = useState<string[]>([])
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (!disabled && templateId && versionId) {
+      if (editor) {
+        setUsedVariableIds(extractVariableIdsFromEditor(editor))
+      }
       setIsModalOpen(true)
     }
-  }
+  }, [disabled, templateId, versionId, editor])
 
   return (
     <>
@@ -53,6 +61,7 @@ export function PreviewButton({
         onOpenChange={setIsModalOpen}
         templateId={templateId}
         versionId={versionId}
+        usedVariableIds={usedVariableIds}
       />
     </>
   )

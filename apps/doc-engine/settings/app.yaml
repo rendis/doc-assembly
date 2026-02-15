@@ -9,6 +9,9 @@ server:
   read_timeout: 30    # seconds
   write_timeout: 30   # seconds
   shutdown_timeout: 10 # seconds
+  swagger_ui: false   # DOC_ENGINE_SERVER_SWAGGER_UI - Enable Swagger UI at /swagger/
+  cors:
+    allowed_origins: []  # Empty = allow all origins (*)
 
 database:
   host: localhost             # Override via DOC_ENGINE_DATABASE_HOST
@@ -22,21 +25,28 @@ database:
   max_idle_time_seconds: 300  # Override via DOC_ENGINE_DATABASE_MAX_IDLE_TIME_SECS
 
 auth:
-  jwks_url: ""   # DOC_ENGINE_AUTH_JWKS_URL - Keycloak JWKS endpoint
-  issuer: ""     # DOC_ENGINE_AUTH_ISSUER - Expected token issuer
-  audience: ""   # DOC_ENGINE_AUTH_AUDIENCE - Expected token audience
+  dummy: false  # DOC_ENGINE_AUTH_DUMMY - Force dummy auth (bypass JWT). Use: make run DUMMY=1
+  panel:
+    name: keycloak
+    discovery_url: ${DOC_ENGINE_AUTH_DISCOVERY_URL:}
+    issuer: ${DOC_ENGINE_AUTH_ISSUER:}
+    jwks_url: ${DOC_ENGINE_AUTH_JWKS_URL:}
+    audience: ${DOC_ENGINE_AUTH_AUDIENCE:}
+    client_id: ${DOC_ENGINE_AUTH_CLIENT_ID:}
 
 # Internal API for service-to-service communication
 internal_api:
   enabled: true
   api_key: ""    # DOC_ENGINE_INTERNAL_API_API_KEY - API key for internal service authentication
 
-# Signing provider configuration (supports: opensign, docusign, pandadoc)
+# Signing provider configuration (Documenso self-hosted)
 signing:
-  provider: opensign      # DOC_ENGINE_SIGNING_PROVIDER
-  api_key: ""             # DOC_ENGINE_SIGNING_API_KEY
-  base_url: ""            # DOC_ENGINE_SIGNING_BASE_URL (default: https://sandbox.opensignlabs.com/api/v1)
-  webhook_secret: ""      # DOC_ENGINE_SIGNING_WEBHOOK_SECRET
+  provider: documenso         # DOC_ENGINE_SIGNING_PROVIDER
+  api_key: ""                 # DOC_ENGINE_SIGNING_API_KEY
+  base_url: ""                # DOC_ENGINE_SIGNING_BASE_URL (default: https://app.documenso.com/api/v2)
+  signing_base_url: ""        # DOC_ENGINE_SIGNING_SIGNING_BASE_URL (base URL for signing links, without /api/v2)
+  webhook_secret: ""          # DOC_ENGINE_SIGNING_WEBHOOK_SECRET
+  webhook_url: ""             # DOC_ENGINE_SIGNING_WEBHOOK_URL (public URL for receiving webhooks)
 
 storage:
   bucket: "contracts-bucket"
@@ -47,10 +57,21 @@ logging:
   level: info   # debug, info, warn, error
   format: json  # json, text
 
-# Chrome browser pool configuration for PDF rendering
-chrome:
-  timeout_seconds: 30  # DOC_ENGINE_CHROME_TIMEOUT_SECONDS - Max time per PDF generation
-  pool_size: 10        # DOC_ENGINE_CHROME_POOL_SIZE - Number of browser instances in pool
-  headless: true       # DOC_ENGINE_CHROME_HEADLESS - Run in headless mode
-  disable_gpu: true    # DOC_ENGINE_CHROME_DISABLE_GPU - Disable GPU acceleration
-  no_sandbox: true     # DOC_ENGINE_CHROME_NO_SANDBOX - Disable sandbox (for Docker)
+# First-user bootstrap configuration
+# When enabled, the first user to login via OIDC becomes SUPERADMIN automatically.
+# This only happens when the database has zero users.
+bootstrap:
+  enabled: true  # DOC_ENGINE_BOOTSTRAP_ENABLED - Set false to require manual user setup
+
+# Typst PDF renderer configuration
+typst:
+  bin_path: "typst"                      # DOC_ENGINE_TYPST_BIN_PATH - Path to the typst binary
+  timeout_seconds: 30                    # DOC_ENGINE_TYPST_TIMEOUT_SECONDS - Max time per PDF compilation
+  font_dirs: []                          # DOC_ENGINE_TYPST_FONT_DIRS - Additional font directories
+  max_concurrent: 10                     # DOC_ENGINE_TYPST_MAX_CONCURRENT - Max simultaneous renders
+  acquire_timeout_seconds: 5             # DOC_ENGINE_TYPST_ACQUIRE_TIMEOUT_SECONDS - Max wait for render slot
+  template_cache_ttl_seconds: 60         # DOC_ENGINE_TYPST_TEMPLATE_CACHE_TTL_SECONDS - Template cache TTL
+  template_cache_max_entries: 1000       # DOC_ENGINE_TYPST_TEMPLATE_CACHE_MAX_ENTRIES - Max cached templates
+  image_cache_dir: ""                    # DOC_ENGINE_TYPST_IMAGE_CACHE_DIR - Image cache directory (empty = temp)
+  image_cache_max_age_seconds: 300       # DOC_ENGINE_TYPST_IMAGE_CACHE_MAX_AGE_SECONDS - Cache TTL (5 min)
+  image_cache_cleanup_interval_seconds: 60  # DOC_ENGINE_TYPST_IMAGE_CACHE_CLEANUP_INTERVAL_SECONDS

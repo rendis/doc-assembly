@@ -1,7 +1,9 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -53,6 +55,29 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// Explicit env override for dummy auth flag.
+	// Viper's AutomaticEnv does not reliably propagate nested env vars during Unmarshal.
+	if os.Getenv("DOC_ENGINE_AUTH_DUMMY") == "true" {
+		cfg.Auth.Dummy = true
+	}
+
+	// Set default DummyAuthUserID when in dummy auth mode.
+	// Uses the well-known dummy UUID; override with DOC_ENGINE_DUMMY_AUTH_USER_ID env var.
+	if cfg.Auth.IsDummyAuth() && cfg.DummyAuthUserID == "" {
+		if id := os.Getenv("DOC_ENGINE_DUMMY_AUTH_USER_ID"); id != "" {
+			cfg.DummyAuthUserID = id
+		} else {
+			cfg.DummyAuthUserID = "00000000-0000-0000-0000-000000000001"
+		}
+	}
+
+	// Run OIDC discovery to populate issuer/jwks_url from discovery endpoints.
+	// Non-fatal: dev mode (no OIDC) and manual config still work.
+	if err := cfg.Auth.DiscoverAll(context.Background()); err != nil {
+		slog.WarnContext(context.Background(), "OIDC discovery failed (non-fatal)",
+			slog.String("error", err.Error()))
+	}
+
 	return &cfg, nil
 }
 
@@ -77,13 +102,6 @@ func setDefaults(v *viper.Viper) {
 	// Logging defaults
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "json")
-
-	// Chrome defaults
-	v.SetDefault("chrome.timeout_seconds", 30)
-	v.SetDefault("chrome.pool_size", 10)
-	v.SetDefault("chrome.headless", true)
-	v.SetDefault("chrome.disable_gpu", true)
-	v.SetDefault("chrome.no_sandbox", true)
 
 	// Environment default
 	v.SetDefault("environment", "development")

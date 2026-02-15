@@ -4,14 +4,29 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/controller"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
+
+	_ "github.com/doc-assembly/doc-engine/docs" // swagger generated docs
 )
+
+func init() {
+	// Register MIME types to avoid OS-level detection inconsistencies (especially on Windows).
+	_ = mime.AddExtensionType(".js", "application/javascript")
+	_ = mime.AddExtensionType(".css", "text/css")
+	_ = mime.AddExtensionType(".woff2", "font/woff2")
+	_ = mime.AddExtensionType(".svg", "image/svg+xml")
+}
 
 // @title           Doc Engine API
 // @version         1.0
@@ -49,6 +64,7 @@ func NewHTTPServer(
 	tenantController *controller.TenantController,
 	documentTypeController *controller.DocumentTypeController,
 	internalDocController *controller.InternalDocumentController,
+	renderAuthenticator port.RenderAuthenticator,
 ) *HTTPServer {
 	// Set Gin mode based on environment
 	if cfg.Environment == "production" {
@@ -60,11 +76,19 @@ func NewHTTPServer(
 	// Global middleware
 	engine.Use(gin.Recovery())
 	engine.Use(gin.Logger())
-	engine.Use(corsMiddleware())
+	engine.Use(corsMiddleware(cfg.Server.CORS))
 
 	// Health check endpoint (no auth required)
 	engine.GET("/health", healthHandler)
 	engine.GET("/ready", readyHandler)
+
+	// Client config endpoint (no auth required)
+	engine.GET("/api/v1/config", clientConfigHandler(cfg))
+
+	// Swagger UI (enabled via DOC_ENGINE_SERVER_SWAGGER_UI=true)
+	if cfg.Server.SwaggerUI {
+		engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	// =====================================================
 	// INTERNAL API ROUTES - Uses API Key authentication
@@ -79,54 +103,109 @@ func NewHTTPServer(
 		slog.WarnContext(context.Background(), "internal API routes disabled (no API key configured)")
 	}
 
-	// API v1 routes with authentication
-	v1 := engine.Group("/api/v1")
-	v1.Use(middleware.Operation())
-	v1.Use(middleware.JWTAuth(&cfg.Auth))
-	v1.Use(middlewareProvider.IdentityContext())
-	v1.Use(middlewareProvider.SystemRoleContext()) // Load system role if exists (optional)
-	{
-		// Placeholder ping endpoint
-		v1.GET("/ping", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "pong"})
-		})
-
-		// =====================================================
-		// SYSTEM ROUTES - No X-Workspace-ID or X-Tenant-ID required
-		// Requires system roles (SUPERADMIN or PLATFORM_ADMIN)
-		// =====================================================
-		adminController.RegisterRoutes(v1)
-
-		// =====================================================
-		// ME ROUTES - User-specific routes, no tenant/workspace required
-		// Only requires authentication
-		// =====================================================
-		meController.RegisterRoutes(v1)
-
-		// =====================================================
-		// TENANT ROUTES - Requires X-Tenant-ID header
-		// Requires tenant roles (TENANT_OWNER or TENANT_ADMIN)
-		// =====================================================
-		tenantController.RegisterRoutes(v1, middlewareProvider)
-		documentTypeController.RegisterRoutes(v1, middlewareProvider)
-
-		// =====================================================
-		// WORKSPACE ROUTES - Requires X-Workspace-ID header
-		// Operations within a specific workspace
-		// =====================================================
-		workspaceController.RegisterRoutes(v1, middlewareProvider)
-
-		// =====================================================
-		// CONTENT ROUTES - Requires X-Workspace-ID header
-		// =====================================================
-		injectableController.RegisterRoutes(v1, middlewareProvider)
-		templateController.RegisterRoutes(v1, middlewareProvider)
+	// Request timeout: slightly less than WriteTimeout so the handler's context
+	// cancels before the HTTP server closes the connection.
+	requestTimeout := cfg.Server.WriteTimeoutDuration() - 2*time.Second
+	if requestTimeout <= 0 {
+		requestTimeout = 28 * time.Second
 	}
+
+	// Panel routes (full auth with identity lookup)
+	v1 := setupPanelRoutes(engine, cfg, middlewareProvider, requestTimeout)
+	registerPanelControllers(v1, middlewareProvider, adminController, meController,
+		tenantController, documentTypeController, workspaceController,
+		injectableController, templateController)
+
+	// Render routes (separate auth, no identity lookup)
+	setupRenderRoutes(engine, cfg, renderAuthenticator, requestTimeout)
+
+	// NoRoute handler for unmatched routes
+	engine.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+	})
 
 	return &HTTPServer{
 		engine: engine,
 		config: &cfg.Server,
 	}
+}
+
+// setupPanelRoutes creates the panel route group with authentication middleware.
+// Uses DummyAuth in dev mode or PanelAuth + IdentityContext + SystemRoleContext in production.
+func setupPanelRoutes(
+	engine *gin.Engine,
+	cfg *config.Config,
+	middlewareProvider *middleware.Provider,
+	requestTimeout time.Duration,
+) *gin.RouterGroup {
+	v1 := engine.Group("/api/v1")
+	v1.Use(noCacheAPI())
+	v1.Use(middleware.Operation())
+	v1.Use(middleware.RequestTimeout(requestTimeout))
+
+	if cfg.Auth.IsDummyAuth() {
+		v1.Use(middleware.DummyAuth())
+		v1.Use(middleware.DummyIdentityAndRoles(cfg.DummyAuthUserID))
+	} else {
+		v1.Use(middleware.PanelAuth(&cfg.Auth))
+		v1.Use(middlewareProvider.IdentityContext())
+		v1.Use(middlewareProvider.SystemRoleContext())
+	}
+
+	return v1
+}
+
+// registerPanelControllers registers all panel route controllers.
+func registerPanelControllers(
+	v1 *gin.RouterGroup,
+	middlewareProvider *middleware.Provider,
+	adminController *controller.AdminController,
+	meController *controller.MeController,
+	tenantController *controller.TenantController,
+	documentTypeController *controller.DocumentTypeController,
+	workspaceController *controller.WorkspaceController,
+	injectableController *controller.ContentInjectableController,
+	templateController *controller.ContentTemplateController,
+) {
+	v1.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+
+	adminController.RegisterRoutes(v1)
+	meController.RegisterRoutes(v1)
+	tenantController.RegisterRoutes(v1, middlewareProvider)
+	documentTypeController.RegisterRoutes(v1, middlewareProvider)
+	workspaceController.RegisterRoutes(v1, middlewareProvider)
+	injectableController.RegisterRoutes(v1, middlewareProvider)
+	templateController.RegisterRoutes(v1, middlewareProvider)
+}
+
+// setupRenderRoutes creates the render route group with separate auth.
+// Auth priority: dummy > custom RenderAuthenticator > OIDC.
+// Render routes skip DB identity lookup for stateless operation.
+func setupRenderRoutes(
+	engine *gin.Engine,
+	cfg *config.Config,
+	renderAuthenticator port.RenderAuthenticator,
+	requestTimeout time.Duration,
+) {
+	renderGroup := engine.Group("/api/v1/render")
+	renderGroup.Use(noCacheAPI())
+	renderGroup.Use(middleware.Operation())
+	renderGroup.Use(middleware.RequestTimeout(requestTimeout))
+
+	switch {
+	case cfg.Auth.IsDummyAuth():
+		renderGroup.Use(middleware.DummyAuth())
+	case renderAuthenticator != nil:
+		renderGroup.Use(middleware.CustomRenderAuth(renderAuthenticator))
+	default:
+		renderGroup.Use(middleware.RenderAuth(&cfg.Auth))
+		renderGroup.Use(middleware.RenderClaimsContext())
+	}
+
+	// Render routes will be registered here when render endpoints are added.
+	// Example: renderController.RegisterWorkspaceRoutes(renderGroup)
 }
 
 // Start starts the HTTP server.
@@ -191,12 +270,86 @@ func readyHandler(c *gin.Context) {
 	})
 }
 
-// corsMiddleware configures CORS for the API.
-func corsMiddleware() gin.HandlerFunc {
+// clientConfigHandler returns a handler that exposes non-sensitive config to the frontend.
+func clientConfigHandler(cfg *config.Config) gin.HandlerFunc {
+	type providerInfo struct {
+		Name               string `json:"name"`
+		Issuer             string `json:"issuer"`
+		TokenEndpoint      string `json:"tokenEndpoint,omitempty"`
+		UserinfoEndpoint   string `json:"userinfoEndpoint,omitempty"`
+		EndSessionEndpoint string `json:"endSessionEndpoint,omitempty"`
+		ClientID           string `json:"clientId,omitempty"`
+	}
+
+	type clientConfig struct {
+		DummyAuth     bool          `json:"dummyAuth"`
+		PanelProvider *providerInfo `json:"panelProvider,omitempty"`
+	}
+
+	var panelProvider *providerInfo
+	if panel := cfg.Auth.GetPanelOIDC(); panel != nil {
+		panelProvider = &providerInfo{
+			Name:               panel.Name,
+			Issuer:             panel.Issuer,
+			TokenEndpoint:      panel.TokenEndpoint,
+			UserinfoEndpoint:   panel.UserinfoEndpoint,
+			EndSessionEndpoint: panel.EndSessionEndpoint,
+			ClientID:           panel.ClientID,
+		}
+	}
+
+	resp := clientConfig{
+		DummyAuth:     cfg.Auth.IsDummyAuth(),
+		PanelProvider: panelProvider,
+	}
+
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		c.JSON(http.StatusOK, resp)
+	}
+}
+
+// noCacheAPI ensures browsers never cache API responses.
+// Without explicit Cache-Control headers, Chrome applies heuristic caching to GET
+// requests, which can cause stale or corrupted cache entries that result in requests
+// stuck as "pending" indefinitely — even across page reloads.
+func noCacheAPI() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
+		c.Next()
+	}
+}
+
+// corsMiddleware configures CORS for the API using allowed origins from config.
+// Access-Control-Allow-Origin only accepts a single origin or "*".
+// When multiple origins are configured, we check the request Origin header
+// and respond with that origin if it's in the allowed list.
+func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
+	allowed := make(map[string]bool, len(corsCfg.AllowedOrigins))
+	wildcard := false
+	for _, o := range corsCfg.AllowedOrigins {
+		if o == "*" {
+			wildcard = true
+		}
+		allowed[o] = true
+	}
+	if len(corsCfg.AllowedOrigins) == 0 {
+		wildcard = true
+	}
+
+	return func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
+
+		if wildcard {
+			c.Header("Access-Control-Allow-Origin", "*")
+		} else if allowed[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Vary", "Origin")
+		}
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Workspace-ID, X-Tenant-ID, X-Sandbox-Mode, X-API-Key, X-External-ID, X-Template-ID, X-Transactional-ID")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, Cache-Control, Pragma, X-Workspace-ID, X-Tenant-ID, X-Sandbox-Mode, X-API-Key, X-External-ID, X-Template-ID, X-Transactional-ID")
 		c.Header("Access-Control-Expose-Headers", "Content-Length")
 		c.Header("Access-Control-Allow-Credentials", "true")
 

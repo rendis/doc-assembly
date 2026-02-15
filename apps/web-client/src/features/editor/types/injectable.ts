@@ -1,5 +1,6 @@
 import type { InjectorType, Variable } from './variables'
-import type { InjectableGroup } from './injectable-group'
+import type { RawInjectableGroup } from './injectable-group'
+import { resolveI18n } from './i18n-resolve'
 
 // ============================================
 // Internal Injectable Constants
@@ -84,9 +85,9 @@ export interface Injectable {
   id: string
   workspaceId: string
   key: string
-  label: string
+  label: Record<string, string>
   dataType: InjectorType
-  description?: string
+  description?: Record<string, string>
   isGlobal: boolean
   sourceType: 'INTERNAL' | 'EXTERNAL'
   formatConfig?: FormatConfig
@@ -101,20 +102,21 @@ export interface Injectable {
  */
 export interface InjectablesListResponse {
   items: Injectable[]
-  groups: InjectableGroup[]
+  groups: RawInjectableGroup[]
   total: number
 }
 
 /**
- * Convert API Injectable to frontend Variable format
+ * Convert API Injectable to frontend Variable format.
+ * Resolves i18n label/description maps to a single string for the given locale.
  */
-export function mapInjectableToVariable(injectable: Injectable): Variable {
+export function mapInjectableToVariable(injectable: Injectable, locale = 'en'): Variable {
   return {
     id: injectable.id,
     variableId: injectable.key,
-    label: injectable.label,
+    label: resolveI18n(injectable.label, locale, injectable.key),
     type: injectable.dataType,
-    description: injectable.description,
+    description: resolveI18n(injectable.description, locale),
     formatConfig: injectable.formatConfig,
     sourceType: injectable.sourceType,
     metadata: injectable.metadata,
@@ -123,10 +125,11 @@ export function mapInjectableToVariable(injectable: Injectable): Variable {
 }
 
 /**
- * Convert array of Injectables to Variables
+ * Convert array of Injectables to Variables.
+ * Resolves i18n label/description maps to a single string for the given locale.
  */
-export function mapInjectablesToVariables(injectables: Injectable[]): Variable[] {
-  return injectables.map(mapInjectableToVariable)
+export function mapInjectablesToVariables(injectables: Injectable[], locale = 'en'): Variable[] {
+  return injectables.map((i) => mapInjectableToVariable(i, locale))
 }
 
 /**

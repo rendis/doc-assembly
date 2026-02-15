@@ -2,8 +2,8 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion, type Transition } from 'framer-motion'
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock, Database, Loader2, Search, Users, Variable as VariableIcon, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock, Database, Loader2, Maximize2, Search, Users, Variable as VariableIcon, X } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRoleInjectables } from '../hooks/useRoleInjectables'
 import { useInjectablesStore } from '../stores/injectables-store'
@@ -13,6 +13,7 @@ import type { RoleInjectable } from '../types/role-injectable'
 import type { Variable } from '../types/variables'
 import { DraggableVariable } from './DraggableVariable'
 import { VariableGroup } from './VariableGroup'
+import { VariablesModal } from './VariablesModal'
 
 const COLLAPSE_TRANSITION: Transition = { duration: 0.2, ease: [0.4, 0, 0.2, 1] }
 
@@ -69,6 +70,7 @@ export function VariablesPanel({
   const { t } = useTranslation()
   const isCollapsed = useVariablesPanelStore((state) => state.isCollapsed)
   const toggleCollapsed = useVariablesPanelStore((state) => state.toggleCollapsed)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Get variables from stores
   const { variables: globalVariables, groups, isLoading } = useInjectablesStore()
@@ -90,56 +92,26 @@ export function VariablesPanel({
   // State for grouped variable sections (controlled mode)
   const [groupOpenStates, setGroupOpenStates] = useState<Record<string, boolean>>({})
 
-  // Track if all sections are expanded (for toggle button)
-  const allSectionsExpanded = useMemo(() => {
-    const hasRoles = roleInjectables.length > 0
-    const hasExternal = globalVariables.some(v => v.sourceType === 'EXTERNAL')
-    const hasUngroupedInternal = globalVariables.some(v => v.sourceType === 'INTERNAL' && !v.group)
-    const groupKeys = groups.map(g => g.key)
-
-    const sectionsOpen = [
-      !hasRoles || rolesSectionOpen,
-      !hasExternal || externalSectionOpen,
-      !hasUngroupedInternal || internalSectionOpen,
-      ...groupKeys.map(key => groupOpenStates[key] ?? false),
-    ]
-
-    return sectionsOpen.every(Boolean)
-  }, [rolesSectionOpen, externalSectionOpen, internalSectionOpen, groupOpenStates, roleInjectables, globalVariables, groups])
-
   // Expand all sections when searching
   const isSearching = searchQuery.trim().length > 0
 
-  useEffect(() => {
+  // Expand all sections when search begins (adjust state based on derived value)
+  const [prevIsSearching, setPrevIsSearching] = useState(isSearching)
+  if (isSearching !== prevIsSearching) {
+    setPrevIsSearching(isSearching)
     if (isSearching) {
-      // Expand all sections when searching
       setRolesSectionOpen(true)
       setExternalSectionOpen(true)
       setInternalSectionOpen(true)
-      setGroupOpenStates(prev => {
-        const newStates = { ...prev }
+      setGroupOpenStates(() => {
+        const newStates: Record<string, boolean> = {}
         for (const group of groups) {
           newStates[group.key] = true
         }
         return newStates
       })
     }
-  }, [isSearching, groups])
-
-  // Toggle all sections expand/collapse
-  const toggleAllSections = useCallback(() => {
-    const newState = !allSectionsExpanded
-    setRolesSectionOpen(newState)
-    setExternalSectionOpen(newState)
-    setInternalSectionOpen(newState)
-    setGroupOpenStates(prev => {
-      const newStates = { ...prev }
-      for (const group of groups) {
-        newStates[group.key] = newState
-      }
-      return newStates
-    })
-  }, [allSectionsExpanded, groups])
+  }
 
   // Handler for individual group open state changes
   const handleGroupOpenChange = useCallback((groupKey: string, isOpen: boolean) => {
@@ -185,7 +157,7 @@ export function VariablesPanel({
     )
   }, [roleInjectables, lowerSearchQuery])
 
-  const { groupedInternalVariables, ungroupedInternalVariables, externalVariables } = useMemo(() => {
+  const { groupedInternalVariables, ungroupedInternalVariables, groupedExternalVariables, ungroupedExternalVariables } = useMemo(() => {
     // Filter variables by source type and search query
     const filterBySourceType = (sourceType: 'INTERNAL' | 'EXTERNAL', excludeFilter: 'internal' | 'external'): Variable[] => {
       if (variablesFilter === excludeFilter) return []
@@ -198,33 +170,42 @@ export function VariablesPanel({
       )
     }
 
-    const internalVars = filterBySourceType('INTERNAL', 'external')
+    // Separate grouped and ungrouped variables for a given list
+    const separateByGroup = (vars: Variable[]) => {
+      const grouped = new Map<string, Variable[]>()
+      const ungrouped: Variable[] = []
 
-    // Separate grouped and ungrouped internal variables
-    const grouped = new Map<string, Variable[]>()
-    const ungrouped: Variable[] = []
-
-    for (const variable of internalVars) {
-      if (variable.group) {
-        const existing = grouped.get(variable.group) || []
-        grouped.set(variable.group, [...existing, variable])
-      } else {
-        ungrouped.push(variable)
+      for (const variable of vars) {
+        if (variable.group) {
+          const existing = grouped.get(variable.group) || []
+          grouped.set(variable.group, [...existing, variable])
+        } else {
+          ungrouped.push(variable)
+        }
       }
+
+      // Sort groups by their order
+      const sortedGrouped = Array.from(grouped.entries())
+        .sort((a, b) => {
+          const groupA = groups.find(g => g.key === a[0])
+          const groupB = groups.find(g => g.key === b[0])
+          return (groupA?.order ?? 99) - (groupB?.order ?? 99)
+        })
+
+      return { grouped: sortedGrouped, ungrouped }
     }
 
-    // Sort groups by their order
-    const sortedGrouped = Array.from(grouped.entries())
-      .sort((a, b) => {
-        const groupA = groups.find(g => g.key === a[0])
-        const groupB = groups.find(g => g.key === b[0])
-        return (groupA?.order ?? 99) - (groupB?.order ?? 99)
-      })
+    const internalVars = filterBySourceType('INTERNAL', 'external')
+    const externalVars = filterBySourceType('EXTERNAL', 'internal')
+
+    const { grouped: groupedInternal, ungrouped: ungroupedInternal } = separateByGroup(internalVars)
+    const { grouped: groupedExternal, ungrouped: ungroupedExternal } = separateByGroup(externalVars)
 
     return {
-      groupedInternalVariables: sortedGrouped,
-      ungroupedInternalVariables: ungrouped,
-      externalVariables: filterBySourceType('EXTERNAL', 'internal'),
+      groupedInternalVariables: groupedInternal,
+      ungroupedInternalVariables: ungroupedInternal,
+      groupedExternalVariables: groupedExternal,
+      ungroupedExternalVariables: ungroupedExternal,
     }
   }, [globalVariables, groups, variablesFilter, lowerSearchQuery])
 
@@ -253,11 +234,45 @@ export function VariablesPanel({
     propertyLabel: ri.propertyLabel,
   })
 
+  // Track if all sections are expanded (for toggle button)
+  const allSectionsExpanded = useMemo(() => {
+    const hasRoles = roleInjectables.length > 0
+    const hasUngroupedExternal = ungroupedExternalVariables.length > 0
+    const hasUngroupedInternal = ungroupedInternalVariables.length > 0
+    const groupKeys = groups.map(g => g.key)
+
+    const sectionsOpen = [
+      !hasRoles || rolesSectionOpen,
+      !hasUngroupedExternal || externalSectionOpen,
+      !hasUngroupedInternal || internalSectionOpen,
+      ...groupKeys.map(key => groupOpenStates[key] ?? false),
+    ]
+
+    return sectionsOpen.every(Boolean)
+  }, [rolesSectionOpen, externalSectionOpen, internalSectionOpen, groupOpenStates, roleInjectables, ungroupedExternalVariables, ungroupedInternalVariables, groups])
+
+  // Toggle all sections expand/collapse
+  const toggleAllSections = useCallback(() => {
+    const newState = !allSectionsExpanded
+    setRolesSectionOpen(newState)
+    setExternalSectionOpen(newState)
+    setInternalSectionOpen(newState)
+    setGroupOpenStates(prev => {
+      const newStates = { ...prev }
+      for (const group of groups) {
+        newStates[group.key] = newState
+      }
+      return newStates
+    })
+  }, [allSectionsExpanded, groups])
+
   // Total count for badge
   const totalInternalGrouped = groupedInternalVariables.reduce((acc, [, vars]) => acc + vars.length, 0)
-  const totalCount = filteredRoleInjectables.length + totalInternalGrouped + ungroupedInternalVariables.length + externalVariables.length
+  const totalExternalGrouped = groupedExternalVariables.reduce((acc, [, vars]) => acc + vars.length, 0)
+  const totalCount = filteredRoleInjectables.length + totalInternalGrouped + ungroupedInternalVariables.length + totalExternalGrouped + ungroupedExternalVariables.length
 
   return (
+    <>
     <motion.aside
       initial={false}
       animate={{ width: isCollapsed ? 56 : 288 }}
@@ -268,8 +283,8 @@ export function VariablesPanel({
       )}
     >
       {/* Header */}
-      <div className="relative flex items-center h-14 px-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className={cn("relative flex items-center h-14 border-b border-border shrink-0", isCollapsed ? "px-1" : "px-3")}>
+        <div className={cn("flex items-center gap-2 min-w-0", !isCollapsed && "flex-1")}>
           <VariableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
           <motion.span
             initial={false}
@@ -296,6 +311,22 @@ export function VariablesPanel({
         >
           {totalCount}
         </motion.span>
+
+        {/* Expand modal button - hide when collapsed */}
+        <motion.button
+          initial={false}
+          animate={{
+            opacity: isCollapsed ? 0 : 1,
+            width: isCollapsed ? 0 : 'auto',
+          }}
+          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          onClick={() => setIsModalOpen(true)}
+          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1 overflow-hidden"
+          aria-label={t('editor.variablesPanel.expandModal')}
+          title={t('editor.variablesPanel.expandModal')}
+        >
+          <Maximize2 className="h-4 w-4 text-muted-foreground" />
+        </motion.button>
 
         {/* Expand/Collapse all button - hide when collapsed */}
         <motion.button
@@ -452,7 +483,8 @@ export function VariablesPanel({
                    filteredRoleInjectables.length === 0 &&
                    groupedInternalVariables.length === 0 &&
                    ungroupedInternalVariables.length === 0 &&
-                   externalVariables.length === 0 && (
+                   groupedExternalVariables.length === 0 &&
+                   ungroupedExternalVariables.length === 0 && (
                      <div className="flex flex-col items-center justify-center py-8 text-center">
                        <VariableIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">
@@ -525,8 +557,26 @@ export function VariablesPanel({
                   </div>
                 )}
 
-                  {/* 2. External Variables Section (user-defined) */}
-                  {!isLoading && externalVariables.length > 0 && (
+                  {/* 2a. Grouped External Variables (provider injectables with groups) */}
+                  {!isLoading && groupedExternalVariables.map(([groupKey, variables]) => {
+                    const group = groups.find(g => g.key === groupKey)
+                    if (!group) return null
+
+                    return (
+                      <VariableGroup
+                        key={`ext-${groupKey}`}
+                        group={group}
+                        variables={variables}
+                        onVariableClick={onVariableClick}
+                        draggingIds={draggingIds}
+                        isOpen={groupOpenStates[groupKey] ?? false}
+                        onOpenChange={(open) => handleGroupOpenChange(groupKey, open)}
+                      />
+                    )
+                  })}
+
+                  {/* 2b. Ungrouped External Variables (provider injectables without groups) */}
+                  {!isLoading && ungroupedExternalVariables.length > 0 && (
                     <div className="space-y-2 min-w-0">
                       <button
                         onClick={() => setExternalSectionOpen(!externalSectionOpen)}
@@ -541,7 +591,7 @@ export function VariablesPanel({
                         <Database className="h-3 w-3" />
                         <span>{t('editor.variablesPanel.sections.externalVariables')}</span>
                         <span className="ml-auto text-[9px] bg-external-muted/50 text-external-foreground px-1.5 rounded">
-                          {externalVariables.length}
+                          {ungroupedExternalVariables.length}
                         </span>
                       </button>
 
@@ -558,7 +608,7 @@ export function VariablesPanel({
                         style={{ overflow: 'hidden' }}
                       >
                         <div className="space-y-2 pt-2 min-w-0">
-                          {externalVariables.map((v) => (
+                          {ungroupedExternalVariables.map((v) => (
                             <DraggableVariable
                               key={v.variableId}
                               data={mapVariableToDragData(v)}
@@ -647,5 +697,12 @@ export function VariablesPanel({
         )}
       </AnimatePresence>
     </motion.aside>
+      <VariablesModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        onVariableClick={onVariableClick}
+        draggingIds={draggingIds}
+      />
+    </>
   )
 }
