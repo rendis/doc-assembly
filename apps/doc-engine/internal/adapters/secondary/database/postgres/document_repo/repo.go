@@ -22,6 +22,68 @@ type Repository struct {
 	pool *pgxpool.Pool
 }
 
+// scanDocument scans a full document row into a Document entity.
+func scanDocument(row pgx.Row) (*entity.Document, error) {
+	doc := &entity.Document{}
+	err := row.Scan(
+		&doc.ID,
+		&doc.WorkspaceID,
+		&doc.TemplateVersionID,
+		&doc.Title,
+		&doc.ClientExternalReferenceID,
+		&doc.TransactionalID,
+		&doc.OperationType,
+		&doc.RelatedDocumentID,
+		&doc.SignerDocumentID,
+		&doc.SignerProvider,
+		&doc.Status,
+		&doc.InjectedValuesSnapshot,
+		&doc.PDFStoragePath,
+		&doc.CompletedPDFURL,
+		&doc.ExpiresAt,
+		&doc.RetryCount,
+		&doc.LastRetryAt,
+		&doc.NextRetryAt,
+		&doc.CreatedAt,
+		&doc.UpdatedAt,
+	)
+	return doc, err
+}
+
+// scanDocumentRows scans multiple document rows into a slice.
+func scanDocumentRows(rows pgx.Rows) ([]*entity.Document, error) {
+	var documents []*entity.Document
+	for rows.Next() {
+		doc := &entity.Document{}
+		if err := rows.Scan(
+			&doc.ID,
+			&doc.WorkspaceID,
+			&doc.TemplateVersionID,
+			&doc.Title,
+			&doc.ClientExternalReferenceID,
+			&doc.TransactionalID,
+			&doc.OperationType,
+			&doc.RelatedDocumentID,
+			&doc.SignerDocumentID,
+			&doc.SignerProvider,
+			&doc.Status,
+			&doc.InjectedValuesSnapshot,
+			&doc.PDFStoragePath,
+			&doc.CompletedPDFURL,
+			&doc.ExpiresAt,
+			&doc.RetryCount,
+			&doc.LastRetryAt,
+			&doc.NextRetryAt,
+			&doc.CreatedAt,
+			&doc.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		documents = append(documents, doc)
+	}
+	return documents, rows.Err()
+}
+
 // Create creates a new document.
 func (r *Repository) Create(ctx context.Context, document *entity.Document) (string, error) {
 	var id string
@@ -39,6 +101,7 @@ func (r *Repository) Create(ctx context.Context, document *entity.Document) (str
 		document.InjectedValuesSnapshot,
 		document.PDFStoragePath,
 		document.CompletedPDFURL,
+		document.ExpiresAt,
 		document.CreatedAt,
 	).Scan(&id)
 	if err != nil {
@@ -50,25 +113,7 @@ func (r *Repository) Create(ctx context.Context, document *entity.Document) (str
 
 // FindByID finds a document by ID.
 func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Document, error) {
-	doc := &entity.Document{}
-	err := r.pool.QueryRow(ctx, queryFindByID, id).Scan(
-		&doc.ID,
-		&doc.WorkspaceID,
-		&doc.TemplateVersionID,
-		&doc.Title,
-		&doc.ClientExternalReferenceID,
-		&doc.TransactionalID,
-		&doc.OperationType,
-		&doc.RelatedDocumentID,
-		&doc.SignerDocumentID,
-		&doc.SignerProvider,
-		&doc.Status,
-		&doc.InjectedValuesSnapshot,
-		&doc.PDFStoragePath,
-		&doc.CompletedPDFURL,
-		&doc.CreatedAt,
-		&doc.UpdatedAt,
-	)
+	doc, err := scanDocument(r.pool.QueryRow(ctx, queryFindByID, id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, entity.ErrDocumentNotFound
@@ -222,25 +267,7 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 
 // FindBySignerDocumentID finds a document by the external signing provider's document ID.
 func (r *Repository) FindBySignerDocumentID(ctx context.Context, signerDocumentID string) (*entity.Document, error) {
-	doc := &entity.Document{}
-	err := r.pool.QueryRow(ctx, queryFindBySignerDocumentID, signerDocumentID).Scan(
-		&doc.ID,
-		&doc.WorkspaceID,
-		&doc.TemplateVersionID,
-		&doc.Title,
-		&doc.ClientExternalReferenceID,
-		&doc.TransactionalID,
-		&doc.OperationType,
-		&doc.RelatedDocumentID,
-		&doc.SignerDocumentID,
-		&doc.SignerProvider,
-		&doc.Status,
-		&doc.InjectedValuesSnapshot,
-		&doc.PDFStoragePath,
-		&doc.CompletedPDFURL,
-		&doc.CreatedAt,
-		&doc.UpdatedAt,
-	)
+	doc, err := scanDocument(r.pool.QueryRow(ctx, queryFindBySignerDocumentID, signerDocumentID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, entity.ErrDocumentNotFound
@@ -259,34 +286,9 @@ func (r *Repository) FindByClientExternalRef(ctx context.Context, workspaceID, c
 	}
 	defer rows.Close()
 
-	var documents []*entity.Document
-	for rows.Next() {
-		doc := &entity.Document{}
-		if err := rows.Scan(
-			&doc.ID,
-			&doc.WorkspaceID,
-			&doc.TemplateVersionID,
-			&doc.Title,
-			&doc.ClientExternalReferenceID,
-			&doc.TransactionalID,
-			&doc.OperationType,
-			&doc.RelatedDocumentID,
-			&doc.SignerDocumentID,
-			&doc.SignerProvider,
-			&doc.Status,
-			&doc.InjectedValuesSnapshot,
-			&doc.PDFStoragePath,
-			&doc.CompletedPDFURL,
-			&doc.CreatedAt,
-			&doc.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning document: %w", err)
-		}
-		documents = append(documents, doc)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating documents: %w", err)
+	documents, err := scanDocumentRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("scanning documents by client external ref: %w", err)
 	}
 
 	return documents, nil
@@ -334,34 +336,25 @@ func (r *Repository) FindPendingForPolling(ctx context.Context, limit int) ([]*e
 	}
 	defer rows.Close()
 
-	var documents []*entity.Document
-	for rows.Next() {
-		doc := &entity.Document{}
-		if err := rows.Scan(
-			&doc.ID,
-			&doc.WorkspaceID,
-			&doc.TemplateVersionID,
-			&doc.Title,
-			&doc.ClientExternalReferenceID,
-			&doc.TransactionalID,
-			&doc.OperationType,
-			&doc.RelatedDocumentID,
-			&doc.SignerDocumentID,
-			&doc.SignerProvider,
-			&doc.Status,
-			&doc.InjectedValuesSnapshot,
-			&doc.PDFStoragePath,
-			&doc.CompletedPDFURL,
-			&doc.CreatedAt,
-			&doc.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning document: %w", err)
-		}
-		documents = append(documents, doc)
+	documents, err := scanDocumentRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("scanning pending documents: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating documents: %w", err)
+	return documents, nil
+}
+
+// FindErrorsForRetry finds ERROR documents eligible for retry.
+func (r *Repository) FindErrorsForRetry(ctx context.Context, maxRetries, limit int) ([]*entity.Document, error) {
+	rows, err := r.pool.Query(ctx, queryFindErrorsForRetry, maxRetries, limit)
+	if err != nil {
+		return nil, fmt.Errorf("querying error documents for retry: %w", err)
+	}
+	defer rows.Close()
+
+	documents, err := scanDocumentRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("scanning error documents for retry: %w", err)
 	}
 
 	return documents, nil
@@ -382,6 +375,10 @@ func (r *Repository) Update(ctx context.Context, document *entity.Document) erro
 		document.InjectedValuesSnapshot,
 		document.PDFStoragePath,
 		document.CompletedPDFURL,
+		document.ExpiresAt,
+		document.RetryCount,
+		document.LastRetryAt,
+		document.NextRetryAt,
 		document.UpdatedAt,
 	)
 	if err != nil {
@@ -443,4 +440,20 @@ func (r *Repository) CountByStatus(ctx context.Context, workspaceID string, stat
 	}
 
 	return count, nil
+}
+
+// FindExpired finds documents that have passed their expiration time and are still active.
+func (r *Repository) FindExpired(ctx context.Context, limit int) ([]*entity.Document, error) {
+	rows, err := r.pool.Query(ctx, queryFindExpired, limit)
+	if err != nil {
+		return nil, fmt.Errorf("querying expired documents: %w", err)
+	}
+	defer rows.Close()
+
+	documents, err := scanDocumentRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("scanning expired documents: %w", err)
+	}
+
+	return documents, nil
 }

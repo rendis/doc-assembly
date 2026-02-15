@@ -532,6 +532,36 @@ func (a *Adapter) CancelDocument(ctx context.Context, providerDocumentID string)
 	return nil
 }
 
+// DownloadSignedPDF downloads the completed/signed PDF from Documenso.
+func (a *Adapter) DownloadSignedPDF(ctx context.Context, providerDocumentID string) ([]byte, error) {
+	url := fmt.Sprintf("%s/envelope/%s/download", a.config.BaseURL, providerDocumentID)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating download request: %w", err)
+	}
+
+	a.setAuthHeader(httpReq)
+
+	resp, err := a.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("executing download request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("documenso API error downloading PDF (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading PDF response body: %w", err)
+	}
+
+	return data, nil
+}
+
 // ParseWebhook parses and validates an incoming webhook request.
 func (a *Adapter) ParseWebhook(ctx context.Context, body []byte, signature string) (*port.WebhookEvent, error) {
 	// Validate signature if secret is configured

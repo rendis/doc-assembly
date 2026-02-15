@@ -58,6 +58,7 @@
     "dashboard": "Panel",
     "templates": "Plantillas",
     "documents": "Documentos",
+    "signing": "Firmas",
     "variables": "Variables",
     "settings": "Configuración",
     "administration": "Administración",
@@ -1380,5 +1381,75 @@
   },
   "footer": {
     "secureEnvironment": "Entorno Seguro"
+  },
+  "signing": {
+    "title": "Documentos de Firma",
+    "description": "Gestiona los flujos de firma de documentos",
+    "create": "Crear Documento",
+    "noDocuments": "No se encontraron documentos de firma",
+    "noDocumentsDescription": "Crea tu primer documento para iniciar el proceso de firma",
+    "search": "Buscar documentos...",
+    "filterByStatus": "Filtrar por estado",
+    "allStatuses": "Todos los estados",
+    "detail": {
+      "title": "Detalles del Documento",
+      "metadata": "Información del Documento",
+      "recipients": "Destinatarios",
+      "events": "Registro de Actividad",
+      "template": "Plantilla",
+      "externalRef": "Referencia Externa",
+      "created": "Creado",
+      "updated": "Última Actualización",
+      "expiresAt": "Expira",
+      "actions": {
+        "refresh": "Actualizar Estado",
+        "cancel": "Cancelar Documento",
+        "downloadPdf": "Descargar PDF",
+        "copySigningUrl": "Copiar URL de Firma",
+        "remind": "Enviar Recordatorio"
+      }
+    },
+    "cancel": {
+      "title": "Cancelar Documento",
+      "description": "¿Estás seguro de que deseas cancelar este documento? Esta acción no se puede deshacer. Todas las firmas pendientes serán canceladas.",
+      "confirm": "Sí, Cancelar Documento"
+    },
+    "wizard": {
+      "title": "Crear Documento de Firma",
+      "step1": "Seleccionar Plantilla",
+      "step2": "Completar Valores",
+      "step3": "Asignar Destinatarios",
+      "step4": "Revisar y Enviar",
+      "selectTemplate": "Selecciona una plantilla",
+      "selectVersion": "Selecciona una versión",
+      "noPublishedVersions": "No hay versiones publicadas disponibles",
+      "recipientName": "Nombre del Destinatario",
+      "recipientEmail": "Correo del Destinatario",
+      "send": "Enviar para Firma"
+    },
+    "status": {
+      "DRAFT": "Borrador",
+      "PENDING_PROVIDER": "Procesando",
+      "PENDING": "Pendiente",
+      "IN_PROGRESS": "En Progreso",
+      "COMPLETED": "Completado",
+      "DECLINED": "Rechazado",
+      "VOIDED": "Anulado",
+      "EXPIRED": "Expirado",
+      "ERROR": "Error"
+    },
+    "recipientStatus": {
+      "PENDING": "Pendiente",
+      "SENT": "Enviado",
+      "DELIVERED": "Entregado",
+      "SIGNED": "Firmado",
+      "DECLINED": "Rechazado"
+    },
+    "bulk": {
+      "selected": "{{count}} seleccionados",
+      "cancelSelected": "Cancelar Seleccionados",
+      "refreshSelected": "Actualizar Seleccionados",
+      "cancelConfirm": "¿Estás seguro de que deseas cancelar {{count}} documentos?"
+    }
   }
 }

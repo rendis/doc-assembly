@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres"
+	"github.com/doc-assembly/doc-engine/internal/infra/scheduler"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
 )
 
@@ -17,16 +18,19 @@ import (
 type Initializer struct {
 	httpServer *server.HTTPServer
 	dbPool     *pgxpool.Pool
+	scheduler  *scheduler.Scheduler
 }
 
 // NewInitializer creates a new initializer with all required components.
 func NewInitializer(
 	httpServer *server.HTTPServer,
 	dbPool *pgxpool.Pool,
+	scheduler *scheduler.Scheduler,
 ) *Initializer {
 	return &Initializer{
 		httpServer: httpServer,
 		dbPool:     dbPool,
+		scheduler:  scheduler,
 	}
 }
 
@@ -39,6 +43,9 @@ func (i *Initializer) Run() error {
 	// Setup signal handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start background scheduler
+	i.scheduler.Start(ctx)
 
 	// Start HTTP server in goroutine
 	errChan := make(chan error, 1)
@@ -68,6 +75,9 @@ func (i *Initializer) Run() error {
 func (i *Initializer) cleanup() {
 	ctx := context.Background()
 	slog.InfoContext(ctx, "cleaning up resources")
+
+	// Stop background scheduler
+	i.scheduler.Stop()
 
 	// Close database pool
 	postgres.Close(i.dbPool)

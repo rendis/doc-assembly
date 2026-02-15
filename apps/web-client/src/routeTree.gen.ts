@@ -16,11 +16,14 @@ import { Route as WorkspaceWorkspaceIdRouteImport } from './routes/workspace.$wo
 import { Route as WorkspaceWorkspaceIdIndexRouteImport } from './routes/workspace.$workspaceId/index'
 import { Route as WorkspaceWorkspaceIdVariablesRouteImport } from './routes/workspace.$workspaceId/variables'
 import { Route as WorkspaceWorkspaceIdTemplatesRouteImport } from './routes/workspace.$workspaceId/templates'
+import { Route as WorkspaceWorkspaceIdSigningRouteImport } from './routes/workspace.$workspaceId/signing'
 import { Route as WorkspaceWorkspaceIdSettingsRouteImport } from './routes/workspace.$workspaceId/settings'
 import { Route as WorkspaceWorkspaceIdDocumentsRouteImport } from './routes/workspace.$workspaceId/documents'
 import { Route as WorkspaceWorkspaceIdAdministrationRouteImport } from './routes/workspace.$workspaceId/administration'
 import { Route as WorkspaceWorkspaceIdTemplatesIndexRouteImport } from './routes/workspace.$workspaceId/templates.index'
+import { Route as WorkspaceWorkspaceIdSigningIndexRouteImport } from './routes/workspace.$workspaceId/signing.index'
 import { Route as WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport } from './routes/workspace.$workspaceId/templates.$templateId'
+import { Route as WorkspaceWorkspaceIdSigningDocumentIdRouteImport } from './routes/workspace.$workspaceId/signing.$documentId'
 import { Route as WorkspaceWorkspaceIdEditorVersionIdRouteImport } from './routes/workspace.$workspaceId/editor.$versionId'
 import { Route as WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRouteImport } from './routes/workspace.$workspaceId/editor.$templateId.version.$versionId'
 
@@ -62,6 +65,12 @@ const WorkspaceWorkspaceIdTemplatesRoute =
     path: '/templates',
     getParentRoute: () => WorkspaceWorkspaceIdRoute,
   } as any)
+const WorkspaceWorkspaceIdSigningRoute =
+  WorkspaceWorkspaceIdSigningRouteImport.update({
+    id: '/signing',
+    path: '/signing',
+    getParentRoute: () => WorkspaceWorkspaceIdRoute,
+  } as any)
 const WorkspaceWorkspaceIdSettingsRoute =
   WorkspaceWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
@@ -86,11 +95,23 @@ const WorkspaceWorkspaceIdTemplatesIndexRoute =
     path: '/',
     getParentRoute: () => WorkspaceWorkspaceIdTemplatesRoute,
   } as any)
+const WorkspaceWorkspaceIdSigningIndexRoute =
+  WorkspaceWorkspaceIdSigningIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => WorkspaceWorkspaceIdSigningRoute,
+  } as any)
 const WorkspaceWorkspaceIdTemplatesTemplateIdRoute =
   WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport.update({
     id: '/$templateId',
     path: '/$templateId',
     getParentRoute: () => WorkspaceWorkspaceIdTemplatesRoute,
+  } as any)
+const WorkspaceWorkspaceIdSigningDocumentIdRoute =
+  WorkspaceWorkspaceIdSigningDocumentIdRouteImport.update({
+    id: '/$documentId',
+    path: '/$documentId',
+    getParentRoute: () => WorkspaceWorkspaceIdSigningRoute,
   } as any)
 const WorkspaceWorkspaceIdEditorVersionIdRoute =
   WorkspaceWorkspaceIdEditorVersionIdRouteImport.update({
@@ -113,11 +134,14 @@ export interface FileRoutesByFullPath {
   '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
   '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
+  '/workspace/$workspaceId/signing': typeof WorkspaceWorkspaceIdSigningRouteWithChildren
   '/workspace/$workspaceId/templates': typeof WorkspaceWorkspaceIdTemplatesRouteWithChildren
   '/workspace/$workspaceId/variables': typeof WorkspaceWorkspaceIdVariablesRoute
   '/workspace/$workspaceId/': typeof WorkspaceWorkspaceIdIndexRoute
   '/workspace/$workspaceId/editor/$versionId': typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  '/workspace/$workspaceId/signing/$documentId': typeof WorkspaceWorkspaceIdSigningDocumentIdRoute
   '/workspace/$workspaceId/templates/$templateId': typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  '/workspace/$workspaceId/signing/': typeof WorkspaceWorkspaceIdSigningIndexRoute
   '/workspace/$workspaceId/templates/': typeof WorkspaceWorkspaceIdTemplatesIndexRoute
   '/workspace/$workspaceId/editor/$templateId/version/$versionId': typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
@@ -131,7 +155,9 @@ export interface FileRoutesByTo {
   '/workspace/$workspaceId/variables': typeof WorkspaceWorkspaceIdVariablesRoute
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdIndexRoute
   '/workspace/$workspaceId/editor/$versionId': typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  '/workspace/$workspaceId/signing/$documentId': typeof WorkspaceWorkspaceIdSigningDocumentIdRoute
   '/workspace/$workspaceId/templates/$templateId': typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  '/workspace/$workspaceId/signing': typeof WorkspaceWorkspaceIdSigningIndexRoute
   '/workspace/$workspaceId/templates': typeof WorkspaceWorkspaceIdTemplatesIndexRoute
   '/workspace/$workspaceId/editor/$templateId/version/$versionId': typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
@@ -144,11 +170,14 @@ export interface FileRoutesById {
   '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
   '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
+  '/workspace/$workspaceId/signing': typeof WorkspaceWorkspaceIdSigningRouteWithChildren
   '/workspace/$workspaceId/templates': typeof WorkspaceWorkspaceIdTemplatesRouteWithChildren
   '/workspace/$workspaceId/variables': typeof WorkspaceWorkspaceIdVariablesRoute
   '/workspace/$workspaceId/': typeof WorkspaceWorkspaceIdIndexRoute
   '/workspace/$workspaceId/editor/$versionId': typeof WorkspaceWorkspaceIdEditorVersionIdRoute
+  '/workspace/$workspaceId/signing/$documentId': typeof WorkspaceWorkspaceIdSigningDocumentIdRoute
   '/workspace/$workspaceId/templates/$templateId': typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
+  '/workspace/$workspaceId/signing/': typeof WorkspaceWorkspaceIdSigningIndexRoute
   '/workspace/$workspaceId/templates/': typeof WorkspaceWorkspaceIdTemplatesIndexRoute
   '/workspace/$workspaceId/editor/$templateId/version/$versionId': typeof WorkspaceWorkspaceIdEditorTemplateIdVersionVersionIdRoute
 }
@@ -162,11 +191,14 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
+    | '/workspace/$workspaceId/signing'
     | '/workspace/$workspaceId/templates'
     | '/workspace/$workspaceId/variables'
     | '/workspace/$workspaceId/'
     | '/workspace/$workspaceId/editor/$versionId'
+    | '/workspace/$workspaceId/signing/$documentId'
     | '/workspace/$workspaceId/templates/$templateId'
+    | '/workspace/$workspaceId/signing/'
     | '/workspace/$workspaceId/templates/'
     | '/workspace/$workspaceId/editor/$templateId/version/$versionId'
   fileRoutesByTo: FileRoutesByTo
@@ -180,7 +212,9 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId/variables'
     | '/workspace/$workspaceId'
     | '/workspace/$workspaceId/editor/$versionId'
+    | '/workspace/$workspaceId/signing/$documentId'
     | '/workspace/$workspaceId/templates/$templateId'
+    | '/workspace/$workspaceId/signing'
     | '/workspace/$workspaceId/templates'
     | '/workspace/$workspaceId/editor/$templateId/version/$versionId'
   id:
@@ -192,11 +226,14 @@ export interface FileRouteTypes {
     | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
+    | '/workspace/$workspaceId/signing'
     | '/workspace/$workspaceId/templates'
     | '/workspace/$workspaceId/variables'
     | '/workspace/$workspaceId/'
     | '/workspace/$workspaceId/editor/$versionId'
+    | '/workspace/$workspaceId/signing/$documentId'
     | '/workspace/$workspaceId/templates/$templateId'
+    | '/workspace/$workspaceId/signing/'
     | '/workspace/$workspaceId/templates/'
     | '/workspace/$workspaceId/editor/$templateId/version/$versionId'
   fileRoutesById: FileRoutesById
@@ -259,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceWorkspaceIdTemplatesRouteImport
       parentRoute: typeof WorkspaceWorkspaceIdRoute
     }
+    '/workspace/$workspaceId/signing': {
+      id: '/workspace/$workspaceId/signing'
+      path: '/signing'
+      fullPath: '/workspace/$workspaceId/signing'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdSigningRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdRoute
+    }
     '/workspace/$workspaceId/settings': {
       id: '/workspace/$workspaceId/settings'
       path: '/settings'
@@ -287,12 +331,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceWorkspaceIdTemplatesIndexRouteImport
       parentRoute: typeof WorkspaceWorkspaceIdTemplatesRoute
     }
+    '/workspace/$workspaceId/signing/': {
+      id: '/workspace/$workspaceId/signing/'
+      path: '/'
+      fullPath: '/workspace/$workspaceId/signing/'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdSigningIndexRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdSigningRoute
+    }
     '/workspace/$workspaceId/templates/$templateId': {
       id: '/workspace/$workspaceId/templates/$templateId'
       path: '/$templateId'
       fullPath: '/workspace/$workspaceId/templates/$templateId'
       preLoaderRoute: typeof WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport
       parentRoute: typeof WorkspaceWorkspaceIdTemplatesRoute
+    }
+    '/workspace/$workspaceId/signing/$documentId': {
+      id: '/workspace/$workspaceId/signing/$documentId'
+      path: '/$documentId'
+      fullPath: '/workspace/$workspaceId/signing/$documentId'
+      preLoaderRoute: typeof WorkspaceWorkspaceIdSigningDocumentIdRouteImport
+      parentRoute: typeof WorkspaceWorkspaceIdSigningRoute
     }
     '/workspace/$workspaceId/editor/$versionId': {
       id: '/workspace/$workspaceId/editor/$versionId'
@@ -310,6 +368,24 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface WorkspaceWorkspaceIdSigningRouteChildren {
+  WorkspaceWorkspaceIdSigningDocumentIdRoute: typeof WorkspaceWorkspaceIdSigningDocumentIdRoute
+  WorkspaceWorkspaceIdSigningIndexRoute: typeof WorkspaceWorkspaceIdSigningIndexRoute
+}
+
+const WorkspaceWorkspaceIdSigningRouteChildren: WorkspaceWorkspaceIdSigningRouteChildren =
+  {
+    WorkspaceWorkspaceIdSigningDocumentIdRoute:
+      WorkspaceWorkspaceIdSigningDocumentIdRoute,
+    WorkspaceWorkspaceIdSigningIndexRoute:
+      WorkspaceWorkspaceIdSigningIndexRoute,
+  }
+
+const WorkspaceWorkspaceIdSigningRouteWithChildren =
+  WorkspaceWorkspaceIdSigningRoute._addFileChildren(
+    WorkspaceWorkspaceIdSigningRouteChildren,
+  )
 
 interface WorkspaceWorkspaceIdTemplatesRouteChildren {
   WorkspaceWorkspaceIdTemplatesTemplateIdRoute: typeof WorkspaceWorkspaceIdTemplatesTemplateIdRoute
@@ -333,6 +409,7 @@ interface WorkspaceWorkspaceIdRouteChildren {
   WorkspaceWorkspaceIdAdministrationRoute: typeof WorkspaceWorkspaceIdAdministrationRoute
   WorkspaceWorkspaceIdDocumentsRoute: typeof WorkspaceWorkspaceIdDocumentsRoute
   WorkspaceWorkspaceIdSettingsRoute: typeof WorkspaceWorkspaceIdSettingsRoute
+  WorkspaceWorkspaceIdSigningRoute: typeof WorkspaceWorkspaceIdSigningRouteWithChildren
   WorkspaceWorkspaceIdTemplatesRoute: typeof WorkspaceWorkspaceIdTemplatesRouteWithChildren
   WorkspaceWorkspaceIdVariablesRoute: typeof WorkspaceWorkspaceIdVariablesRoute
   WorkspaceWorkspaceIdIndexRoute: typeof WorkspaceWorkspaceIdIndexRoute
@@ -345,6 +422,8 @@ const WorkspaceWorkspaceIdRouteChildren: WorkspaceWorkspaceIdRouteChildren = {
     WorkspaceWorkspaceIdAdministrationRoute,
   WorkspaceWorkspaceIdDocumentsRoute: WorkspaceWorkspaceIdDocumentsRoute,
   WorkspaceWorkspaceIdSettingsRoute: WorkspaceWorkspaceIdSettingsRoute,
+  WorkspaceWorkspaceIdSigningRoute:
+    WorkspaceWorkspaceIdSigningRouteWithChildren,
   WorkspaceWorkspaceIdTemplatesRoute:
     WorkspaceWorkspaceIdTemplatesRouteWithChildren,
   WorkspaceWorkspaceIdVariablesRoute: WorkspaceWorkspaceIdVariablesRoute,

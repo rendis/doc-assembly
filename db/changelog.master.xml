@@ -114,6 +114,9 @@
     <!-- System Injectable Assignments: Scope assignments for system injectables -->
     <include file="src/content/system_injectable_assignments.xml"/>
 
+    <!-- Template Versions: Add signing workflow config column -->
+    <include file="src/content/template_versions_add_signing_workflow_config.xml"/>
+
     <!-- ============================================ -->
     <!-- PHASE 7: Execution Tables                   -->
     <!-- ============================================ -->
@@ -123,6 +126,15 @@
 
     <!-- Document Recipients: Participants/signers -->
     <include file="src/execution/document_recipients.xml"/>
+
+    <!-- Document Events: Audit trail for document lifecycle events -->
+    <include file="src/execution/document_events.xml"/>
+
+    <!-- Documents Retry: Add retry_count, last_retry_at, next_retry_at columns -->
+    <include file="src/execution/documents_retry_columns.xml"/>
+
+    <!-- Documents Expiration: Add expires_at column and index -->
+    <include file="src/execution/documents_expires_at.xml"/>
 
     <!-- ============================================ -->
     <!-- PHASE 8: Cache Tables                       -->

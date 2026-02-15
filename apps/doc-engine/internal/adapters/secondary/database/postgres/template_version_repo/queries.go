@@ -5,15 +5,16 @@ const (
 	queryCreate = `
 		INSERT INTO content.template_versions (
 			template_id, version_number, name, description, content_structure,
-			status, scheduled_publish_at, scheduled_archive_at, created_by, created_at
+			status, scheduled_publish_at, scheduled_archive_at, signing_workflow_config,
+			created_by, created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id`
 
 	queryFindByID = `
 		SELECT id, template_id, version_number, name, description, content_structure,
-			status, scheduled_publish_at, scheduled_archive_at, published_at, archived_at,
-			published_by, archived_by, created_by, created_at, updated_at
+			status, scheduled_publish_at, scheduled_archive_at, signing_workflow_config,
+			published_at, archived_at, published_by, archived_by, created_by, created_at, updated_at
 		FROM content.template_versions
 		WHERE id = $1`
 
@@ -35,31 +36,31 @@ const (
 
 	queryFindByTemplateID = `
 		SELECT id, template_id, version_number, name, description, content_structure,
-			status, scheduled_publish_at, scheduled_archive_at, published_at, archived_at,
-			published_by, archived_by, created_by, created_at, updated_at
+			status, scheduled_publish_at, scheduled_archive_at, signing_workflow_config,
+			published_at, archived_at, published_by, archived_by, created_by, created_at, updated_at
 		FROM content.template_versions
 		WHERE template_id = $1
 		ORDER BY version_number DESC`
 
 	queryFindPublishedByTemplateID = `
 		SELECT id, template_id, version_number, name, description, content_structure,
-			status, scheduled_publish_at, scheduled_archive_at, published_at, archived_at,
-			published_by, archived_by, created_by, created_at, updated_at
+			status, scheduled_publish_at, scheduled_archive_at, signing_workflow_config,
+			published_at, archived_at, published_by, archived_by, created_by, created_at, updated_at
 		FROM content.template_versions
 		WHERE template_id = $1 AND status = 'PUBLISHED'`
 
 	queryFindScheduledToPublish = `
 		SELECT id, template_id, version_number, name, description, content_structure,
-			status, scheduled_publish_at, scheduled_archive_at, published_at, archived_at,
-			published_by, archived_by, created_by, created_at, updated_at
+			status, scheduled_publish_at, scheduled_archive_at, signing_workflow_config,
+			published_at, archived_at, published_by, archived_by, created_by, created_at, updated_at
 		FROM content.template_versions
 		WHERE status = 'SCHEDULED' AND scheduled_publish_at <= $1
 		ORDER BY scheduled_publish_at`
 
 	queryFindScheduledToArchive = `
 		SELECT id, template_id, version_number, name, description, content_structure,
-			status, scheduled_publish_at, scheduled_archive_at, published_at, archived_at,
-			published_by, archived_by, created_by, created_at, updated_at
+			status, scheduled_publish_at, scheduled_archive_at, signing_workflow_config,
+			published_at, archived_at, published_by, archived_by, created_by, created_at, updated_at
 		FROM content.template_versions
 		WHERE status = 'PUBLISHED' AND scheduled_archive_at IS NOT NULL AND scheduled_archive_at <= $1
 		ORDER BY scheduled_archive_at`
@@ -67,9 +68,9 @@ const (
 	queryUpdate = `
 		UPDATE content.template_versions
 		SET name = $2, description = $3, content_structure = $4, status = $5,
-			scheduled_publish_at = $6, scheduled_archive_at = $7,
-			published_at = $8, archived_at = $9, published_by = $10, archived_by = $11,
-			updated_at = $12
+			scheduled_publish_at = $6, scheduled_archive_at = $7, signing_workflow_config = $8,
+			published_at = $9, archived_at = $10, published_by = $11, archived_by = $12,
+			updated_at = $13
 		WHERE id = $1`
 
 	queryUpdateStatusPublished = `

@@ -4,16 +4,18 @@ import "time"
 
 // Config represents the complete application configuration.
 type Config struct {
-	Environment string            `mapstructure:"environment"`
-	Server      ServerConfig      `mapstructure:"server"`
-	Database    DatabaseConfig    `mapstructure:"database"`
-	Auth        AuthConfig        `mapstructure:"auth"`
-	InternalAPI InternalAPIConfig `mapstructure:"internal_api"`
-	Signing     SigningConfig     `mapstructure:"signing"`
-	Storage     StorageConfig     `mapstructure:"storage"`
-	Logging     LoggingConfig     `mapstructure:"logging"`
-	Typst       TypstConfig       `mapstructure:"typst"`
-	Bootstrap   BootstrapConfig   `mapstructure:"bootstrap"`
+	Environment  string             `mapstructure:"environment"`
+	Server       ServerConfig       `mapstructure:"server"`
+	Database     DatabaseConfig     `mapstructure:"database"`
+	Auth         AuthConfig         `mapstructure:"auth"`
+	InternalAPI  InternalAPIConfig  `mapstructure:"internal_api"`
+	Signing      SigningConfig      `mapstructure:"signing"`
+	Storage      StorageConfig      `mapstructure:"storage"`
+	Logging      LoggingConfig      `mapstructure:"logging"`
+	Typst        TypstConfig        `mapstructure:"typst"`
+	Bootstrap    BootstrapConfig    `mapstructure:"bootstrap"`
+	Scheduler    SchedulerConfig    `mapstructure:"scheduler"`
+	Notification NotificationConfig `mapstructure:"notification"`
 
 	// DummyAuthUserID is the internal DB user ID for dummy auth mode.
 	// Set at runtime after seeding the dummy user (not loaded from YAML).
@@ -143,8 +145,10 @@ type SigningConfig struct {
 	WebhookURL     string `mapstructure:"webhook_url"` // Public URL for webhook endpoint
 }
 
-// StorageConfig holds S3/MinIO storage configuration.
+// StorageConfig holds object storage configuration.
 type StorageConfig struct {
+	Provider string `mapstructure:"provider"`  // "s3" or "local"
+	LocalDir string `mapstructure:"local_dir"` // Base directory for local storage
 	Bucket   string `mapstructure:"bucket"`
 	Region   string `mapstructure:"region"`
 	Endpoint string `mapstructure:"endpoint"`
@@ -190,9 +194,40 @@ func (t TypstConfig) ImageCacheCleanupIntervalDuration() time.Duration {
 	return time.Duration(t.ImageCacheCleanupIntervalSec) * time.Second
 }
 
+// SchedulerConfig holds background job scheduler configuration.
+type SchedulerConfig struct {
+	Enabled            bool `mapstructure:"enabled"`
+	PollingIntervalSec int  `mapstructure:"polling_interval_sec"`
+	PollingBatchSize   int  `mapstructure:"polling_batch_size"`
+	ExpirationDays     int  `mapstructure:"expiration_days"`
+	RetryMaxRetries    int  `mapstructure:"retry_max_retries"`
+	RetryBatchSize     int  `mapstructure:"retry_batch_size"`
+	RetryIntervalSec   int  `mapstructure:"retry_interval_sec"`
+}
+
+// PollingIntervalDuration returns the polling interval as time.Duration.
+func (s SchedulerConfig) PollingIntervalDuration() time.Duration {
+	return time.Duration(s.PollingIntervalSec) * time.Second
+}
+
+// RetryIntervalDuration returns the retry job interval as time.Duration.
+func (s SchedulerConfig) RetryIntervalDuration() time.Duration {
+	return time.Duration(s.RetryIntervalSec) * time.Second
+}
+
 // BootstrapConfig holds first-user bootstrap configuration.
 type BootstrapConfig struct {
 	// Enabled controls whether the first user to login is auto-created as SUPERADMIN.
 	// Only takes effect when the database has zero users.
 	Enabled bool `mapstructure:"enabled"`
+}
+
+// NotificationConfig holds email notification configuration.
+type NotificationConfig struct {
+	Provider string `mapstructure:"provider"` // "smtp" or "noop"
+	From     string `mapstructure:"from"`     // Sender email address
+	Host     string `mapstructure:"host"`     // SMTP host
+	Port     int    `mapstructure:"port"`     // SMTP port
+	Username string `mapstructure:"username"` // SMTP username
+	Password string `mapstructure:"password"` // SMTP password
 }

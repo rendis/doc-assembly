@@ -1,0 +1,180 @@
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Copy, Check } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { useToast } from '@/components/ui/use-toast'
+import { signingApi } from '../api/signing-api'
+import type { SigningRecipient, RecipientStatus } from '../types'
+
+const RECIPIENT_STATUS_CONFIG: Record<
+  string,
+  { label: string; className: string }
+> = {
+  PENDING: {
+    label: 'Pending',
+    className: 'bg-muted text-muted-foreground',
+  },
+  SENT: {
+    label: 'Sent',
+    className: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  },
+  DELIVERED: {
+    label: 'Delivered',
+    className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  },
+  SIGNED: {
+    label: 'Signed',
+    className: 'bg-green-500/10 text-green-600 dark:text-green-400',
+  },
+  DECLINED: {
+    label: 'Declined',
+    className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  },
+}
+
+function RecipientStatusBadge({
+  status,
+}: {
+  status: RecipientStatus
+}) {
+  const config = RECIPIENT_STATUS_CONFIG[status] ?? {
+    label: status,
+    className: 'bg-muted text-muted-foreground',
+  }
+
+  return (
+    <Badge
+      className={cn(
+        'border-transparent font-mono text-[10px] uppercase tracking-wider',
+        config.className,
+      )}
+    >
+      {config.label}
+    </Badge>
+  )
+}
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+interface RecipientTableProps {
+  documentId: string
+  recipients: SigningRecipient[]
+}
+
+export function RecipientTable({
+  documentId,
+  recipients,
+}: RecipientTableProps) {
+  const { t } = useTranslation()
+  const { toast } = useToast()
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const handleCopySigningURL = async (recipientId: string) => {
+    try {
+      const response = await signingApi.getSigningURL(documentId, recipientId)
+      await navigator.clipboard.writeText(response.signingUrl)
+      setCopiedId(recipientId)
+      toast({
+        title: t('signing.detail.urlCopied', 'Signing URL copied to clipboard'),
+      })
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error', 'Error'),
+        description: t(
+          'signing.detail.urlCopyError',
+          'Failed to copy signing URL',
+        ),
+      })
+    }
+  }
+
+  if (recipients.length === 0) {
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        {t('signing.detail.noRecipients', 'No recipients')}
+      </p>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="border-b border-border py-3 pl-4 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t('signing.detail.recipientName', 'Name')}
+            </th>
+            <th className="border-b border-border py-3 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t('signing.detail.recipientEmail', 'Email')}
+            </th>
+            <th className="border-b border-border py-3 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t('signing.detail.recipientRole', 'Role')}
+            </th>
+            <th className="border-b border-border py-3 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t('signing.detail.recipientStatus', 'Status')}
+            </th>
+            <th className="border-b border-border py-3 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t('signing.detail.recipientSignedAt', 'Signed At')}
+            </th>
+            <th className="border-b border-border py-3 pr-4 text-right font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t('signing.detail.recipientActions', 'Actions')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {recipients.map((recipient) => (
+            <tr
+              key={recipient.id}
+              className="transition-colors hover:bg-accent"
+            >
+              <td className="border-b border-border py-4 pl-4 pr-4 text-sm text-foreground">
+                {recipient.name}
+              </td>
+              <td className="border-b border-border py-4 pr-4 text-sm text-muted-foreground">
+                {recipient.email}
+              </td>
+              <td className="border-b border-border py-4 pr-4 text-sm text-foreground">
+                {recipient.roleName}
+              </td>
+              <td className="border-b border-border py-4 pr-4">
+                <RecipientStatusBadge status={recipient.status} />
+              </td>
+              <td className="border-b border-border py-4 pr-4 font-mono text-sm text-muted-foreground">
+                {formatDate(recipient.signedAt)}
+              </td>
+              <td className="border-b border-border py-4 pr-4 text-right">
+                <button
+                  onClick={() => handleCopySigningURL(recipient.id)}
+                  className="inline-flex items-center gap-1.5 rounded-none border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                  title={t(
+                    'signing.detail.copySigningUrl',
+                    'Copy signing URL',
+                  )}
+                >
+                  {copiedId === recipient.id ? (
+                    <Check size={12} />
+                  ) : (
+                    <Copy size={12} />
+                  )}
+                  {t('signing.detail.copyUrl', 'Copy URL')}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

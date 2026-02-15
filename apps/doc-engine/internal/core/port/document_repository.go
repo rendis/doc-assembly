@@ -43,6 +43,12 @@ type DocumentRepository interface {
 	// FindPendingForPolling finds documents that need status polling (PENDING or IN_PROGRESS).
 	FindPendingForPolling(ctx context.Context, limit int) ([]*entity.Document, error)
 
+	// FindErrorsForRetry finds ERROR documents eligible for retry (next_retry_at <= now, retry_count < max).
+	FindErrorsForRetry(ctx context.Context, maxRetries, limit int) ([]*entity.Document, error)
+
+	// FindExpired finds documents that have passed their expiration time and are still active.
+	FindExpired(ctx context.Context, limit int) ([]*entity.Document, error)
+
 	// Update updates a document.
 	Update(ctx context.Context, document *entity.Document) error
 

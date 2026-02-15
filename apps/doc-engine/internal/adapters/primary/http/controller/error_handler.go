@@ -140,7 +140,12 @@ func is400Error(err error) bool {
 		errors.Is(err, entity.ErrWorkspaceIDRequired) ||
 		errors.Is(err, entity.ErrCannotModifyGlobal) ||
 		errors.Is(err, entity.ErrDocumentTypeCodeImmutable) ||
-		errors.Is(err, entity.ErrDocumentTypeHasTemplates)
+		errors.Is(err, entity.ErrDocumentTypeHasTemplates) ||
+		errors.Is(err, entity.ErrInvalidOperationType) ||
+		errors.Is(err, entity.ErrDocumentNotCompleted) ||
+		errors.Is(err, entity.ErrDocumentNotTerminal) ||
+		errors.Is(err, entity.ErrRelatedDocumentRequired) ||
+		errors.Is(err, entity.ErrRelatedDocumentSameWorkspace)
 }
 
 // is403Error returns true if the error should result in a 403 Forbidden response.

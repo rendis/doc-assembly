@@ -58,6 +58,7 @@
     "dashboard": "Dashboard",
     "templates": "Templates",
     "documents": "Documents",
+    "signing": "Signing",
     "variables": "Variables",
     "settings": "Settings",
     "administration": "Administration",
@@ -1380,5 +1381,75 @@
   },
   "footer": {
     "secureEnvironment": "Secure Environment"
+  },
+  "signing": {
+    "title": "Signing Documents",
+    "description": "Manage document signing workflows",
+    "create": "Create Document",
+    "noDocuments": "No signing documents found",
+    "noDocumentsDescription": "Create your first document to start the signing process",
+    "search": "Search documents...",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All statuses",
+    "detail": {
+      "title": "Document Details",
+      "metadata": "Document Information",
+      "recipients": "Recipients",
+      "events": "Activity Log",
+      "template": "Template",
+      "externalRef": "External Reference",
+      "created": "Created",
+      "updated": "Last Updated",
+      "expiresAt": "Expires",
+      "actions": {
+        "refresh": "Refresh Status",
+        "cancel": "Cancel Document",
+        "downloadPdf": "Download PDF",
+        "copySigningUrl": "Copy Signing URL",
+        "remind": "Send Reminder"
+      }
+    },
+    "cancel": {
+      "title": "Cancel Document",
+      "description": "Are you sure you want to cancel this document? This action cannot be undone. All pending signatures will be cancelled.",
+      "confirm": "Yes, Cancel Document"
+    },
+    "wizard": {
+      "title": "Create Signing Document",
+      "step1": "Select Template",
+      "step2": "Fill Values",
+      "step3": "Assign Recipients",
+      "step4": "Review & Send",
+      "selectTemplate": "Select a template",
+      "selectVersion": "Select a version",
+      "noPublishedVersions": "No published versions available",
+      "recipientName": "Recipient Name",
+      "recipientEmail": "Recipient Email",
+      "send": "Send for Signing"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING_PROVIDER": "Processing",
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "DECLINED": "Declined",
+      "VOIDED": "Voided",
+      "EXPIRED": "Expired",
+      "ERROR": "Error"
+    },
+    "recipientStatus": {
+      "PENDING": "Pending",
+      "SENT": "Sent",
+      "DELIVERED": "Delivered",
+      "SIGNED": "Signed",
+      "DECLINED": "Declined"
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "cancelSelected": "Cancel Selected",
+      "refreshSelected": "Refresh Selected",
+      "cancelConfirm": "Are you sure you want to cancel {{count}} documents?"
+    }
   }
 }

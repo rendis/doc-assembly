@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,20 +13,24 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/core/entity"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
+	documentsvc "github.com/doc-assembly/doc-engine/internal/core/service/document"
 	documentuc "github.com/doc-assembly/doc-engine/internal/core/usecase/document"
 )
 
 // DocumentController handles document HTTP requests.
 type DocumentController struct {
-	documentUC documentuc.DocumentUseCase
+	documentUC   documentuc.DocumentUseCase
+	eventEmitter *documentsvc.EventEmitter
 }
 
 // NewDocumentController creates a new document controller.
 func NewDocumentController(
 	documentUC documentuc.DocumentUseCase,
+	eventEmitter *documentsvc.EventEmitter,
 ) *DocumentController {
 	return &DocumentController{
-		documentUC: documentUC,
+		documentUC:   documentUC,
+		eventEmitter: eventEmitter,
 	}
 }
 
@@ -41,20 +47,32 @@ func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup) {
 		// Create and send document
 		docs.POST("", middleware.RequireOperator(), c.CreateDocument)
 
+		// Batch create documents
+		docs.POST("/batch", middleware.RequireOperator(), c.CreateDocumentsBatch)
+
 		// Get single document
 		docs.GET("/:documentId", middleware.RequireViewer(), c.GetDocument)
 
 		// Get document recipients
 		docs.GET("/:documentId/recipients", middleware.RequireViewer(), c.GetRecipients)
 
+		// Get document events (audit trail)
+		docs.GET("/:documentId/events", middleware.RequireViewer(), c.GetDocumentEvents)
+
 		// Get signing URL for recipient
 		docs.GET("/:documentId/recipients/:recipientId/signing-url", middleware.RequireViewer(), c.GetSigningURL)
+
+		// Download signed PDF
+		docs.GET("/:documentId/pdf", middleware.RequireViewer(), c.GetDocumentPDF)
 
 		// Refresh document status from provider
 		docs.POST("/:documentId/refresh", middleware.RequireOperator(), c.RefreshStatus)
 
 		// Cancel document
 		docs.POST("/:documentId/cancel", middleware.RequireOperator(), c.CancelDocument)
+
+		// Send reminder to pending recipients
+		docs.POST("/:documentId/remind", middleware.RequireOperator(), c.SendReminder)
 	}
 }
 
@@ -179,6 +197,12 @@ func (c *DocumentController) CreateDocument(ctx *gin.Context) {
 		ClientExternalReferenceID: req.ClientExternalReferenceID,
 		InjectedValues:            req.InjectedValues,
 		Recipients:                make([]documentuc.DocumentRecipientCommand, len(req.Recipients)),
+		OperationType:             entity.OperationCreate,
+		RelatedDocumentID:         req.RelatedDocumentID,
+	}
+
+	if req.OperationType != nil {
+		cmd.OperationType = entity.OperationType(*req.OperationType)
 	}
 
 	for i, r := range req.Recipients {
@@ -200,6 +224,78 @@ func (c *DocumentController) CreateDocument(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, doc)
+}
+
+// CreateDocumentsBatch creates multiple documents in a single batch.
+// @Summary Batch create documents
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param request body dto.BatchCreateDocumentRequest true "Batch document creation request"
+// @Success 200 {object} dto.BatchCreateDocumentResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/batch [post]
+func (c *DocumentController) CreateDocumentsBatch(ctx *gin.Context) {
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	var req dto.BatchCreateDocumentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmds := make([]documentuc.CreateDocumentCommand, len(req.Documents))
+	for i, docReq := range req.Documents {
+		cmd := documentuc.CreateDocumentCommand{
+			WorkspaceID:               workspaceID,
+			TemplateVersionID:         docReq.TemplateVersionID,
+			Title:                     docReq.Title,
+			ClientExternalReferenceID: docReq.ClientExternalReferenceID,
+			InjectedValues:            docReq.InjectedValues,
+			Recipients:                make([]documentuc.DocumentRecipientCommand, len(docReq.Recipients)),
+			OperationType:             entity.OperationCreate,
+			RelatedDocumentID:         docReq.RelatedDocumentID,
+		}
+
+		if docReq.OperationType != nil {
+			cmd.OperationType = entity.OperationType(*docReq.OperationType)
+		}
+
+		for j, r := range docReq.Recipients {
+			cmd.Recipients[j] = documentuc.DocumentRecipientCommand{
+				RoleID: r.RoleID,
+				Name:   r.Name,
+				Email:  r.Email,
+			}
+		}
+
+		cmds[i] = cmd
+	}
+
+	results, err := c.documentUC.CreateDocumentsBatch(ctx.Request.Context(), cmds)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	response := dto.BatchCreateDocumentResponse{
+		Results: make([]dto.BatchDocumentResultResponse, len(results)),
+	}
+	for i, r := range results {
+		result := dto.BatchDocumentResultResponse{
+			Index:    r.Index,
+			Success:  r.Error == nil,
+			Document: r.Document,
+		}
+		if r.Error != nil {
+			result.Error = r.Error.Error()
+		}
+		response.Results[i] = result
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 // GetSigningURL returns the signing URL for a recipient.
@@ -277,6 +373,29 @@ func (c *DocumentController) CancelDocument(ctx *gin.Context) {
 	})
 }
 
+// GetDocumentPDF returns the signed PDF for a completed document.
+// @Summary Download signed PDF
+// @Tags Documents
+// @Produce application/pdf
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {file} file
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/pdf [get]
+func (c *DocumentController) GetDocumentPDF(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	pdfData, filename, err := c.documentUC.GetDocumentPDF(ctx.Request.Context(), documentID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	ctx.Data(http.StatusOK, "application/pdf", pdfData)
+}
+
 // GetStatistics returns document statistics for the workspace.
 // @Summary Get document statistics
 // @Tags Documents
@@ -296,4 +415,89 @@ func (c *DocumentController) GetStatistics(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, stats)
+}
+
+// SendReminder sends reminder notifications to pending recipients of a document.
+// @Summary Send document reminder
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/remind [post]
+func (c *DocumentController) SendReminder(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	if err := c.documentUC.SendReminder(ctx.Request.Context(), documentID); err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "reminders_sent",
+	})
+}
+
+// GetDocumentEvents returns the audit event trail for a document.
+// @Summary Get document events
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Param limit query int false "Limit results" default(50)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {array} dto.DocumentEventResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/events [get]
+func (c *DocumentController) GetDocumentEvents(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	limit := 50
+	offset := 0
+	if l := ctx.Query("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	if o := ctx.Query("offset"); o != "" {
+		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	events, err := c.eventEmitter.GetDocumentEvents(ctx.Request.Context(), documentID, limit, offset)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	responses := make([]dto.DocumentEventResponse, 0, len(events))
+	for _, e := range events {
+		resp := dto.DocumentEventResponse{
+			ID:          e.ID,
+			DocumentID:  e.DocumentID,
+			EventType:   e.EventType,
+			ActorType:   e.ActorType,
+			ActorID:     e.ActorID,
+			OldStatus:   e.OldStatus,
+			NewStatus:   e.NewStatus,
+			RecipientID: e.RecipientID,
+			CreatedAt:   e.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		}
+		if e.Metadata != nil {
+			var meta any
+			if err := json.Unmarshal(e.Metadata, &meta); err == nil {
+				resp.Metadata = meta
+			}
+		}
+		responses = append(responses, resp)
+	}
+
+	ctx.JSON(http.StatusOK, responses)
 }

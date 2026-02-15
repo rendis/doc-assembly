@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="documents:add_column:expires_at" author="doc-assembly">
+        <addColumn tableName="documents" schemaName="execution">
+            <column name="expires_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="documents:index:expires_at" author="doc-assembly">
+        <createIndex tableName="documents" schemaName="execution" indexName="idx_documents_expires_at">
+            <column name="expires_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

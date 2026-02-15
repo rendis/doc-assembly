@@ -24,6 +24,9 @@ type SigningProvider interface {
 	// CancelDocument cancels/voids a document that is pending signatures.
 	CancelDocument(ctx context.Context, providerDocumentID string) error
 
+	// DownloadSignedPDF downloads the completed/signed PDF from the provider.
+	DownloadSignedPDF(ctx context.Context, providerDocumentID string) ([]byte, error)
+
 	// ProviderName returns the name of this signing provider (e.g., "documenso", "docusign").
 	ProviderName() string
 }

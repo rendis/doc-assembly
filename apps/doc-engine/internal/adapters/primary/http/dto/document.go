@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/doc-assembly/doc-engine/internal/core/entity"
+
 // CreateDocumentRequest is the request body for creating a document.
 type CreateDocumentRequest struct {
 	TemplateVersionID         string                   `json:"templateVersionId" binding:"required"`
@@ -7,6 +9,8 @@ type CreateDocumentRequest struct {
 	ClientExternalReferenceID *string                  `json:"clientExternalReferenceId,omitempty"`
 	InjectedValues            map[string]any           `json:"injectedValues,omitempty"`
 	Recipients                []CreateRecipientRequest `json:"recipients" binding:"required,min=1,dive"`
+	OperationType             *string                  `json:"operationType,omitempty"`     // CREATE, RENEW, or AMEND (defaults to CREATE)
+	RelatedDocumentID         *string                  `json:"relatedDocumentId,omitempty"` // Required for RENEW/AMEND
 }
 
 // CreateRecipientRequest represents a recipient in the create document request.
@@ -72,4 +76,36 @@ type DocumentStatisticsResponse struct {
 	InProgress int            `json:"inProgress"`
 	Completed  int            `json:"completed"`
 	Declined   int            `json:"declined"`
+}
+
+// BatchCreateDocumentRequest is the request body for creating multiple documents in a batch.
+type BatchCreateDocumentRequest struct {
+	Documents []CreateDocumentRequest `json:"documents" binding:"required,min=1,max=50,dive"`
+}
+
+// BatchCreateDocumentResponse is the response for batch document creation.
+type BatchCreateDocumentResponse struct {
+	Results []BatchDocumentResultResponse `json:"results"`
+}
+
+// BatchDocumentResultResponse represents the result of a single document in a batch.
+type BatchDocumentResultResponse struct {
+	Index    int                            `json:"index"`
+	Success  bool                           `json:"success"`
+	Document *entity.DocumentWithRecipients `json:"document,omitempty"`
+	Error    string                         `json:"error,omitempty"`
+}
+
+// DocumentEventResponse represents a document event in API responses.
+type DocumentEventResponse struct {
+	ID          string `json:"id"`
+	DocumentID  string `json:"documentId"`
+	EventType   string `json:"eventType"`
+	ActorType   string `json:"actorType"`
+	ActorID     string `json:"actorId,omitempty"`
+	OldStatus   string `json:"oldStatus,omitempty"`
+	NewStatus   string `json:"newStatus,omitempty"`
+	RecipientID string `json:"recipientId,omitempty"`
+	Metadata    any    `json:"metadata,omitempty"`
+	CreatedAt   string `json:"createdAt"`
 }

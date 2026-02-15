@@ -12,6 +12,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres"
+	documenteventrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_event_repo"
 	documentrecipientrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	documentrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
 	documenttyperepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_type_repo"
@@ -32,7 +33,11 @@ import (
 	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	noopnotification "github.com/doc-assembly/doc-engine/internal/adapters/secondary/notification/noop"
+	smtpnotification "github.com/doc-assembly/doc-engine/internal/adapters/secondary/notification/smtp"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
+	localstorage "github.com/doc-assembly/doc-engine/internal/adapters/secondary/storage/local"
+	s3storage "github.com/doc-assembly/doc-engine/internal/adapters/secondary/storage/s3"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
 	accesssvc "github.com/doc-assembly/doc-engine/internal/core/service/access"
 	catalogsvc "github.com/doc-assembly/doc-engine/internal/core/service/catalog"
@@ -47,6 +52,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/extensions"
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 	"github.com/doc-assembly/doc-engine/internal/infra/registry"
+	"github.com/doc-assembly/doc-engine/internal/infra/scheduler"
 	"github.com/doc-assembly/doc-engine/internal/infra/server"
 )
 
@@ -56,6 +62,7 @@ var ProviderSet = wire.NewSet(
 	config.Load,
 	ProvideServerConfig,
 	ProvideAuthConfig,
+	ProvideSchedulerConfig,
 
 	// Database
 	ProvideDBPool,
@@ -85,11 +92,18 @@ var ProviderSet = wire.NewSet(
 	// Repositories - Execution
 	documentrepo.New,
 	documentrecipientrepo.New,
+	documenteventrepo.New,
 
 	// Signing Provider
 	ProvideSigningConfig,
 	ProvideSigningProvider,
 	ProvideWebhookHandlers,
+
+	// Storage
+	ProvideStorageAdapter,
+
+	// Notification
+	ProvideNotificationProvider,
 
 	// Services - Organization
 	organizationsvc.NewWorkspaceService,
@@ -116,7 +130,9 @@ var ProviderSet = wire.NewSet(
 	templatesvc.NewTemplateVersionService,
 
 	// Services - Document
-	documentsvc.NewDocumentService,
+	ProvideDocumentService,
+	documentsvc.NewEventEmitter,
+	documentsvc.NewNotificationService,
 	ProvideDocumentGenerator,
 	ProvideInternalDocumentService,
 
@@ -166,6 +182,9 @@ var ProviderSet = wire.NewSet(
 
 	// HTTP Server
 	server.NewHTTPServer,
+
+	// Background Scheduler
+	ProvideScheduler,
 
 	// Initializer
 	NewInitializer,
@@ -376,4 +395,81 @@ func ProvideInternalDocumentService(
 		pdfRenderer,
 		signingProvider,
 	)
+}
+
+// ProvideStorageAdapter creates the storage adapter based on the configured provider.
+func ProvideStorageAdapter(cfg *config.Config) (port.StorageAdapter, error) {
+	switch cfg.Storage.Provider {
+	case "s3":
+		return s3storage.New(&s3storage.Config{
+			Bucket:   cfg.Storage.Bucket,
+			Region:   cfg.Storage.Region,
+			Endpoint: cfg.Storage.Endpoint,
+		})
+	default:
+		return localstorage.New(cfg.Storage.LocalDir)
+	}
+}
+
+// ProvideSchedulerConfig extracts scheduler config from the main config.
+func ProvideSchedulerConfig(cfg *config.Config) *config.SchedulerConfig {
+	return &cfg.Scheduler
+}
+
+// ProvideDocumentService creates the document service with expiration config.
+func ProvideDocumentService(
+	documentRepo port.DocumentRepository,
+	recipientRepo port.DocumentRecipientRepository,
+	versionRepo port.TemplateVersionRepository,
+	signerRoleRepo port.TemplateVersionSignerRoleRepository,
+	pdfRenderer port.PDFRenderer,
+	signingProvider port.SigningProvider,
+	storageAdapter port.StorageAdapter,
+	eventEmitter *documentsvc.EventEmitter,
+	notificationSvc *documentsvc.NotificationService,
+	schedulerCfg *config.SchedulerConfig,
+) documentuc.DocumentUseCase {
+	return documentsvc.NewDocumentService(
+		documentRepo,
+		recipientRepo,
+		versionRepo,
+		signerRoleRepo,
+		pdfRenderer,
+		signingProvider,
+		storageAdapter,
+		eventEmitter,
+		notificationSvc,
+		schedulerCfg.ExpirationDays,
+	)
+}
+
+// ProvideNotificationProvider creates the notification provider based on config.
+func ProvideNotificationProvider(cfg *config.Config) port.NotificationProvider {
+	switch cfg.Notification.Provider {
+	case "smtp":
+		return smtpnotification.New(&smtpnotification.Config{
+			Host:     cfg.Notification.Host,
+			Port:     cfg.Notification.Port,
+			Username: cfg.Notification.Username,
+			Password: cfg.Notification.Password,
+			From:     cfg.Notification.From,
+		})
+	default:
+		return noopnotification.New()
+	}
+}
+
+// ProvideScheduler creates the background job scheduler and registers polling jobs.
+func ProvideScheduler(cfg *config.SchedulerConfig, docUC documentuc.DocumentUseCase) *scheduler.Scheduler {
+	s := scheduler.New(cfg.Enabled)
+	s.RegisterJob("poll-pending-documents", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
+		return docUC.ProcessPendingDocuments(ctx, cfg.PollingBatchSize)
+	})
+	s.RegisterJob("expire-documents", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
+		return docUC.ExpireDocuments(ctx, cfg.PollingBatchSize)
+	})
+	s.RegisterJob("retry-error-documents", cfg.RetryIntervalDuration(), func(ctx context.Context) error {
+		return docUC.RetryErrorDocuments(ctx, cfg.RetryMaxRetries, cfg.RetryBatchSize)
+	})
+	return s
 }

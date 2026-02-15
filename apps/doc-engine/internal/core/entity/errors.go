@@ -221,6 +221,11 @@ var (
 	ErrInvalidRecipientStatus           = errors.New("invalid recipient status")
 	ErrInvalidRecipientStatusTransition = errors.New("invalid recipient status transition")
 	ErrDuplicateRecipientRole           = errors.New("duplicate recipient role assignment")
+	ErrInvalidOperationType             = errors.New("invalid operation type")
+	ErrDocumentNotCompleted             = errors.New("related document must be completed for RENEW")
+	ErrDocumentNotTerminal              = errors.New("related document must be in a terminal state for AMEND")
+	ErrRelatedDocumentRequired          = errors.New("related document ID is required for RENEW/AMEND operations")
+	ErrRelatedDocumentSameWorkspace     = errors.New("related document must belong to the same workspace")
 )
 
 // Signing Provider errors.

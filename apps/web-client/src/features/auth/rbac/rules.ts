@@ -71,6 +71,12 @@ export const Permission = {
   INJECTABLE_EDIT: 'injectable:edit',
   INJECTABLE_DELETE: 'injectable:delete',
   INJECTABLE_TOGGLE_STATUS: 'injectable:toggle_status',
+
+  // Document Signing
+  DOCUMENT_VIEW: 'document:view',
+  DOCUMENT_CREATE: 'document:create',
+  DOCUMENT_CANCEL: 'document:cancel',
+  DOCUMENT_REFRESH: 'document:refresh',
 } as const
 export type Permission = (typeof Permission)[keyof typeof Permission]
 
@@ -103,6 +109,10 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
     Permission.INJECTABLE_EDIT,
     Permission.INJECTABLE_DELETE,
     Permission.INJECTABLE_TOGGLE_STATUS,
+    Permission.DOCUMENT_VIEW,
+    Permission.DOCUMENT_CREATE,
+    Permission.DOCUMENT_CANCEL,
+    Permission.DOCUMENT_REFRESH,
   ],
   [WorkspaceRole.ADMIN]: [
     ...COMMON_CONTENT_READ,
@@ -121,6 +131,10 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
     Permission.INJECTABLE_EDIT,
     Permission.INJECTABLE_DELETE,
     Permission.INJECTABLE_TOGGLE_STATUS,
+    Permission.DOCUMENT_VIEW,
+    Permission.DOCUMENT_CREATE,
+    Permission.DOCUMENT_CANCEL,
+    Permission.DOCUMENT_REFRESH,
   ],
   [WorkspaceRole.EDITOR]: [
     ...COMMON_CONTENT_READ,
@@ -132,14 +146,20 @@ export const WORKSPACE_RULES: Record<WorkspaceRole, Permission[]> = {
     Permission.INJECTABLE_CREATE,
     Permission.INJECTABLE_EDIT,
     Permission.INJECTABLE_TOGGLE_STATUS,
+    Permission.DOCUMENT_VIEW,
   ],
   [WorkspaceRole.OPERATOR]: [
     ...COMMON_CONTENT_READ,
     Permission.INJECTABLE_VIEW,
+    Permission.DOCUMENT_VIEW,
+    Permission.DOCUMENT_CREATE,
+    Permission.DOCUMENT_CANCEL,
+    Permission.DOCUMENT_REFRESH,
   ],
   [WorkspaceRole.VIEWER]: [
     ...COMMON_CONTENT_READ,
     Permission.INJECTABLE_VIEW,
+    Permission.DOCUMENT_VIEW,
   ],
 }
 
@@ -188,6 +208,10 @@ export const SYSTEM_RULES: Record<SystemRole, Permission[]> = {
     Permission.INJECTABLE_EDIT,
     Permission.INJECTABLE_DELETE,
     Permission.INJECTABLE_TOGGLE_STATUS,
+    Permission.DOCUMENT_VIEW,
+    Permission.DOCUMENT_CREATE,
+    Permission.DOCUMENT_CANCEL,
+    Permission.DOCUMENT_REFRESH,
   ],
   [SystemRole.PLATFORM_ADMIN]: [
     Permission.ADMIN_ACCESS,

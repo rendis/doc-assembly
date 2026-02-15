@@ -16,6 +16,8 @@ type CreateDocumentCommand struct {
 	ClientExternalReferenceID *string
 	InjectedValues            map[string]any
 	Recipients                []DocumentRecipientCommand
+	OperationType             entity.OperationType // CREATE, RENEW, or AMEND (defaults to CREATE)
+	RelatedDocumentID         *string              // Required for RENEW/AMEND operations
 }
 
 // DocumentRecipientCommand represents a recipient to be added to a document.
@@ -71,6 +73,32 @@ type DocumentUseCase interface {
 
 	// GetDocumentStatistics returns document statistics for a workspace.
 	GetDocumentStatistics(ctx context.Context, workspaceID string) (*DocumentStatistics, error)
+
+	// GetDocumentPDF returns the signed PDF for a completed document.
+	// Returns the PDF bytes, suggested filename, and any error.
+	GetDocumentPDF(ctx context.Context, documentID string) ([]byte, string, error)
+
+	// ExpireDocuments finds and expires documents that have passed their expiration time.
+	ExpireDocuments(ctx context.Context, limit int) error
+
+	// RetryErrorDocuments finds ERROR documents eligible for retry and attempts recovery.
+	// Documents without a signer_document_id are re-rendered and re-sent.
+	// Documents with a signer_document_id are polled for status updates.
+	RetryErrorDocuments(ctx context.Context, maxRetries, limit int) error
+
+	// CreateDocumentsBatch creates multiple documents in a single batch.
+	// Per-document errors are captured in results rather than failing the entire batch.
+	CreateDocumentsBatch(ctx context.Context, cmds []CreateDocumentCommand) ([]BatchDocumentResult, error)
+
+	// SendReminder sends reminder notifications to pending recipients of a document.
+	SendReminder(ctx context.Context, documentID string) error
+}
+
+// BatchDocumentResult contains the result of creating a single document within a batch.
+type BatchDocumentResult struct {
+	Index    int
+	Document *entity.DocumentWithRecipients
+	Error    error
 }
 
 // DocumentStatistics contains aggregate statistics about documents in a workspace.

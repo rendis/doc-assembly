@@ -10,6 +10,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/controller"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_event_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_type_repo"
@@ -32,6 +33,7 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/doc-assembly/doc-engine/internal/core/service/access"
 	"github.com/doc-assembly/doc-engine/internal/core/service/catalog"
+	"github.com/doc-assembly/doc-engine/internal/core/service/document"
 	"github.com/doc-assembly/doc-engine/internal/core/service/injectable"
 	"github.com/doc-assembly/doc-engine/internal/core/service/organization"
 	"github.com/doc-assembly/doc-engine/internal/core/service/template"
@@ -126,6 +128,17 @@ func InitializeApp() (*infra.Initializer, error) {
 	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
 	renderAuthenticator := infra.ProvideRenderAuthenticator()
 	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, documentTypeController, internalDocumentController, renderAuthenticator)
-	initializer := infra.NewInitializer(httpServer, pool)
+	schedulerConfig := infra.ProvideSchedulerConfig(configConfig)
+	storageAdapter, err := infra.ProvideStorageAdapter(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	documentEventRepository := documenteventrepo.New(pool)
+	eventEmitter := document.NewEventEmitter(documentEventRepository)
+	notificationProvider := infra.ProvideNotificationProvider(configConfig)
+	notificationService := document.NewNotificationService(notificationProvider, documentRecipientRepository, documentRepository)
+	documentUseCase := infra.ProvideDocumentService(documentRepository, documentRecipientRepository, templateVersionRepository, templateVersionSignerRoleRepository, pdfRenderer, signingProvider, storageAdapter, eventEmitter, notificationService, schedulerConfig)
+	scheduler := infra.ProvideScheduler(schedulerConfig, documentUseCase)
+	initializer := infra.NewInitializer(httpServer, pool, scheduler)
 	return initializer, nil
 }

@@ -22,6 +22,10 @@ type Document struct {
 	InjectedValuesSnapshot    json.RawMessage `json:"injectedValuesSnapshot,omitempty"`
 	PDFStoragePath            *string         `json:"pdfStoragePath,omitempty"`
 	CompletedPDFURL           *string         `json:"completedPdfUrl,omitempty"`
+	ExpiresAt                 *time.Time      `json:"expiresAt,omitempty"`
+	RetryCount                int             `json:"retryCount"`
+	LastRetryAt               *time.Time      `json:"lastRetryAt,omitempty"`
+	NextRetryAt               *time.Time      `json:"nextRetryAt,omitempty"`
 	CreatedAt                 time.Time       `json:"createdAt"`
 	UpdatedAt                 *time.Time      `json:"updatedAt,omitempty"`
 }
@@ -113,6 +117,17 @@ func (d *Document) SetPDFPath(path string) {
 func (d *Document) SetCompletedPDFURL(url string) {
 	d.CompletedPDFURL = &url
 	d.touch()
+}
+
+// SetExpiresAt sets the expiration timestamp for the document.
+func (d *Document) SetExpiresAt(t time.Time) {
+	d.ExpiresAt = &t
+	d.touch()
+}
+
+// IsExpired returns true if the document has passed its expiration time.
+func (d *Document) IsExpired() bool {
+	return d.ExpiresAt != nil && time.Now().After(*d.ExpiresAt)
 }
 
 // MarkAsPendingProvider transitions the document to PENDING_PROVIDER status.
@@ -271,6 +286,38 @@ func (d *Document) Validate() error {
 		return ErrFieldTooLong
 	}
 	return nil
+}
+
+// ScheduleRetry increments the retry counter and calculates the next retry time
+// using exponential backoff: 60s * 2^retryCount, capped at 1 hour.
+// Returns false if maxRetries has been reached (no retry scheduled).
+func (d *Document) ScheduleRetry(maxRetries int) bool {
+	if d.RetryCount >= maxRetries {
+		return false
+	}
+
+	now := time.Now().UTC()
+	d.RetryCount++
+	d.LastRetryAt = &now
+
+	backoff := 60 * time.Second * (1 << d.RetryCount)
+	const maxBackoff = time.Hour
+	if backoff > maxBackoff {
+		backoff = maxBackoff
+	}
+
+	nextRetry := now.Add(backoff)
+	d.NextRetryAt = &nextRetry
+	d.touch()
+	return true
+}
+
+// ResetRetry clears all retry tracking fields after a successful recovery.
+func (d *Document) ResetRetry() {
+	d.RetryCount = 0
+	d.LastRetryAt = nil
+	d.NextRetryAt = nil
+	d.touch()
 }
 
 // touch updates the UpdatedAt timestamp.

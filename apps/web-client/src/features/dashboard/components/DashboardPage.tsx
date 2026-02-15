@@ -3,8 +3,9 @@ import { StatCard } from './StatCard'
 import { RecentActivity } from './RecentActivity'
 import { QuickDraft } from './QuickDraft'
 import { IntegrationsStatus } from './IntegrationsStatus'
+import { useDocumentStatistics } from '@/features/signing/hooks/useDocumentStatistics'
 
-// Sample data for charts
+// Sample data for charts (visual placeholders)
 const chartData1 = [
   { name: 'A', value: 20 },
   { name: 'B', value: 40 },
@@ -37,6 +38,13 @@ const barData = [
 
 export function DashboardPage() {
   const { t } = useTranslation()
+  const { data: statistics, isLoading } = useDocumentStatistics()
+
+  const totalGenerated = isLoading ? '-' : (statistics?.total ?? 0).toLocaleString()
+  const signedCount = isLoading ? '-' : (statistics?.completed ?? 0).toLocaleString()
+  const inProgressCount = isLoading
+    ? '-'
+    : ((statistics?.inProgress ?? 0) + (statistics?.pending ?? 0)).toLocaleString()
 
   return (
     <div className="animate-page-enter flex-1 overflow-y-auto bg-background">
@@ -66,20 +74,19 @@ export function DashboardPage() {
         <div className="mb-24 grid grid-cols-1 gap-12 border-b border-border pb-16 md:grid-cols-3 lg:gap-24">
           <StatCard
             label={t('dashboard.stats.generated', 'Total Generated')}
-            value="1,248"
+            value={totalGenerated}
             data={chartData1}
             chartType="area"
           />
           <StatCard
             label={t('dashboard.stats.signed', 'Signed (30 Days)')}
-            value="302"
-            badge="+12.4%"
+            value={signedCount}
             data={chartData2}
             chartType="step"
           />
           <StatCard
             label={t('dashboard.stats.inProgress', 'In Progress')}
-            value="45"
+            value={inProgressCount}
             suffix="active"
             data={barData}
             chartType="bars"

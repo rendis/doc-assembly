@@ -11,22 +11,23 @@ var anchorRegex = regexp.MustCompile(`^__sig_[a-z][a-z0-9_]*__$`)
 
 // TemplateVersion represents a specific version of a template with content and lifecycle management.
 type TemplateVersion struct {
-	ID                 string          `json:"id"`
-	TemplateID         string          `json:"templateId"`
-	VersionNumber      int             `json:"versionNumber"`
-	Name               string          `json:"name"`
-	Description        *string         `json:"description,omitempty"`
-	ContentStructure   json.RawMessage `json:"contentStructure,omitempty"`
-	Status             VersionStatus   `json:"status"`
-	ScheduledPublishAt *time.Time      `json:"scheduledPublishAt,omitempty"`
-	ScheduledArchiveAt *time.Time      `json:"scheduledArchiveAt,omitempty"`
-	PublishedAt        *time.Time      `json:"publishedAt,omitempty"`
-	ArchivedAt         *time.Time      `json:"archivedAt,omitempty"`
-	PublishedBy        *string         `json:"publishedBy,omitempty"`
-	ArchivedBy         *string         `json:"archivedBy,omitempty"`
-	CreatedBy          *string         `json:"createdBy,omitempty"`
-	CreatedAt          time.Time       `json:"createdAt"`
-	UpdatedAt          *time.Time      `json:"updatedAt,omitempty"`
+	ID                    string          `json:"id"`
+	TemplateID            string          `json:"templateId"`
+	VersionNumber         int             `json:"versionNumber"`
+	Name                  string          `json:"name"`
+	Description           *string         `json:"description,omitempty"`
+	ContentStructure      json.RawMessage `json:"contentStructure,omitempty"`
+	Status                VersionStatus   `json:"status"`
+	ScheduledPublishAt    *time.Time      `json:"scheduledPublishAt,omitempty"`
+	ScheduledArchiveAt    *time.Time      `json:"scheduledArchiveAt,omitempty"`
+	PublishedAt           *time.Time      `json:"publishedAt,omitempty"`
+	ArchivedAt            *time.Time      `json:"archivedAt,omitempty"`
+	PublishedBy           *string         `json:"publishedBy,omitempty"`
+	SigningWorkflowConfig json.RawMessage `json:"signingWorkflowConfig,omitempty"`
+	ArchivedBy            *string         `json:"archivedBy,omitempty"`
+	CreatedBy             *string         `json:"createdBy,omitempty"`
+	CreatedAt             time.Time       `json:"createdAt"`
+	UpdatedAt             *time.Time      `json:"updatedAt,omitempty"`
 }
 
 // NewTemplateVersion creates a new template version with DRAFT status.

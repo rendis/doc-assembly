@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -22,6 +23,10 @@ func NewDocumentService(
 	signerRoleRepo port.TemplateVersionSignerRoleRepository,
 	pdfRenderer port.PDFRenderer,
 	signingProvider port.SigningProvider,
+	storageAdapter port.StorageAdapter,
+	eventEmitter *EventEmitter,
+	notificationSvc *NotificationService,
+	expirationDays int,
 ) documentuc.DocumentUseCase {
 	return &DocumentService{
 		documentRepo:    documentRepo,
@@ -30,6 +35,10 @@ func NewDocumentService(
 		signerRoleRepo:  signerRoleRepo,
 		pdfRenderer:     pdfRenderer,
 		signingProvider: signingProvider,
+		storageAdapter:  storageAdapter,
+		eventEmitter:    eventEmitter,
+		notificationSvc: notificationSvc,
+		expirationDays:  expirationDays,
 	}
 }
 
@@ -41,10 +50,18 @@ type DocumentService struct {
 	signerRoleRepo  port.TemplateVersionSignerRoleRepository
 	pdfRenderer     port.PDFRenderer
 	signingProvider port.SigningProvider
+	storageAdapter  port.StorageAdapter
+	eventEmitter    *EventEmitter
+	notificationSvc *NotificationService
+	expirationDays  int
 }
 
 // CreateAndSendDocument creates a document, generates the PDF, and sends it for signing.
 func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documentuc.CreateDocumentCommand) (*entity.DocumentWithRecipients, error) {
+	if err := s.validateOperationType(ctx, cmd); err != nil {
+		return nil, err
+	}
+
 	version, roleMap, err := s.validateTemplateAndRoles(ctx, cmd)
 	if err != nil {
 		return nil, err
@@ -76,6 +93,9 @@ func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documen
 		slog.String("provider", *document.SignerProvider),
 		slog.Int("recipient_count", len(recipients)),
 	)
+
+	s.eventEmitter.EmitDocumentEvent(ctx, document.ID, entity.EventDocumentCreated, entity.ActorUser, "", "", string(entity.DocumentStatusDraft), nil)
+	s.eventEmitter.EmitDocumentEvent(ctx, document.ID, entity.EventDocumentSent, entity.ActorSystem, "", string(entity.DocumentStatusDraft), string(entity.DocumentStatusPending), nil)
 
 	return &entity.DocumentWithRecipients{
 		Document:   *document,
@@ -117,11 +137,65 @@ func (s *DocumentService) validateTemplateAndRoles(ctx context.Context, cmd docu
 	return version, roleMap, nil
 }
 
+// validateOperationType validates the operation type and related document for RENEW/AMEND.
+func (s *DocumentService) validateOperationType(ctx context.Context, cmd documentuc.CreateDocumentCommand) error {
+	opType := cmd.OperationType
+	if opType == "" {
+		opType = entity.OperationCreate
+	}
+
+	if !opType.IsValid() {
+		return entity.ErrInvalidOperationType
+	}
+
+	if opType == entity.OperationCreate {
+		return nil
+	}
+
+	if opType != entity.OperationRenew && opType != entity.OperationAmend {
+		return nil
+	}
+
+	if cmd.RelatedDocumentID == nil {
+		return entity.ErrRelatedDocumentRequired
+	}
+
+	relatedDoc, err := s.documentRepo.FindByID(ctx, *cmd.RelatedDocumentID)
+	if err != nil {
+		return fmt.Errorf("finding related document: %w", err)
+	}
+
+	if relatedDoc.WorkspaceID != cmd.WorkspaceID {
+		return entity.ErrRelatedDocumentSameWorkspace
+	}
+
+	switch opType {
+	case entity.OperationRenew:
+		if !relatedDoc.IsCompleted() {
+			return entity.ErrDocumentNotCompleted
+		}
+	case entity.OperationAmend:
+		if !relatedDoc.IsTerminal() {
+			return entity.ErrDocumentNotTerminal
+		}
+	}
+
+	return nil
+}
+
 // createDocument creates and persists the document entity.
 func (s *DocumentService) createDocument(ctx context.Context, cmd documentuc.CreateDocumentCommand) (*entity.Document, error) {
 	document := entity.NewDocument(cmd.WorkspaceID, cmd.TemplateVersionID)
 	document.ID = uuid.NewString()
 	document.SetTitle(cmd.Title)
+
+	if cmd.OperationType != "" && cmd.OperationType != entity.OperationCreate {
+		document.SetOperationType(cmd.OperationType)
+	}
+
+	if cmd.RelatedDocumentID != nil {
+		document.SetRelatedDocumentID(*cmd.RelatedDocumentID)
+	}
 
 	if cmd.ClientExternalReferenceID != nil {
 		document.SetExternalReference(*cmd.ClientExternalReferenceID)
@@ -235,6 +309,10 @@ func (s *DocumentService) sendToSigningProvider(
 		return fmt.Errorf("marking document as pending: %w", err)
 	}
 
+	if s.expirationDays > 0 {
+		document.SetExpiresAt(time.Now().UTC().AddDate(0, 0, s.expirationDays))
+	}
+
 	if err := s.documentRepo.Update(ctx, document); err != nil {
 		return fmt.Errorf("updating document: %w", err)
 	}
@@ -346,6 +424,8 @@ func (s *DocumentService) RefreshDocumentStatus(ctx context.Context, documentID 
 		return s.documentRepo.FindByIDWithRecipients(ctx, documentID)
 	}
 
+	oldStatus := string(doc.Status)
+
 	statusResult, err := s.signingProvider.GetDocumentStatus(ctx, *doc.SignerDocumentID)
 	if err != nil {
 		return nil, fmt.Errorf("getting document status: %w", err)
@@ -358,6 +438,8 @@ func (s *DocumentService) RefreshDocumentStatus(ctx context.Context, documentID 
 	if err := s.updateRecipientsFromStatus(ctx, documentID, statusResult.Recipients); err != nil {
 		return nil, err
 	}
+
+	s.eventEmitter.EmitDocumentEvent(ctx, documentID, entity.EventStatusRefreshed, entity.ActorSystem, "", oldStatus, string(doc.Status), nil)
 
 	return s.documentRepo.FindByIDWithRecipients(ctx, documentID)
 }
@@ -374,6 +456,10 @@ func (s *DocumentService) updateDocumentFromStatus(ctx context.Context, doc *ent
 
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
 		return fmt.Errorf("updating document: %w", err)
+	}
+
+	if doc.IsCompleted() {
+		s.downloadAndStorePDF(ctx, doc)
 	}
 
 	return nil
@@ -420,6 +506,8 @@ func (s *DocumentService) CancelDocument(ctx context.Context, documentID string)
 		return fmt.Errorf("finding document: %w", err)
 	}
 
+	oldStatus := string(doc.Status)
+
 	if doc.IsTerminal() {
 		return fmt.Errorf("cannot cancel document in terminal state: %s", doc.Status)
 	}
@@ -437,6 +525,8 @@ func (s *DocumentService) CancelDocument(ctx context.Context, documentID string)
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
 		return fmt.Errorf("updating document: %w", err)
 	}
+
+	s.eventEmitter.EmitDocumentEvent(ctx, documentID, entity.EventDocumentCancelled, entity.ActorUser, "", oldStatus, string(entity.DocumentStatusVoided), nil)
 
 	slog.InfoContext(ctx, "document cancelled", slog.String("document_id", documentID))
 
@@ -456,8 +546,16 @@ func (s *DocumentService) HandleWebhookEvent(ctx context.Context, event *port.We
 		slog.String("provider_document_id", event.ProviderDocumentID),
 	)
 
+	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventWebhookReceived, entity.ActorWebhook, "", "", "", json.RawMessage(event.RawPayload))
+
+	oldStatus := string(doc.Status)
+
 	if err := s.processDocumentStatusFromWebhook(ctx, doc, event); err != nil {
 		return err
+	}
+
+	if event.DocumentStatus != nil && string(*event.DocumentStatus) != oldStatus {
+		s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, eventTypeFromDocumentStatus(*event.DocumentStatus), entity.ActorWebhook, "", oldStatus, string(*event.DocumentStatus), nil)
 	}
 
 	if event.ProviderRecipientID != "" && event.RecipientStatus != nil {
@@ -516,6 +614,7 @@ func (s *DocumentService) updateDocumentStatusFromRecipient(ctx context.Context,
 		}
 		if err := doc.MarkAsCompleted(); err == nil {
 			_ = s.documentRepo.Update(ctx, doc)
+			s.downloadAndStorePDF(ctx, doc)
 		}
 
 	case entity.RecipientStatusDeclined:
@@ -594,6 +693,247 @@ func (s *DocumentService) GetDocumentStatistics(ctx context.Context, workspaceID
 			entity.DocumentStatusDeclined.String():   declined,
 		},
 	}, nil
+}
+
+// downloadAndStorePDF downloads the signed PDF from the provider and stores it locally.
+func (s *DocumentService) downloadAndStorePDF(ctx context.Context, doc *entity.Document) {
+	if !doc.HasSignerInfo() {
+		return
+	}
+	if doc.PDFStoragePath != nil {
+		return
+	}
+
+	pdfData, err := s.signingProvider.DownloadSignedPDF(ctx, *doc.SignerDocumentID)
+	if err != nil {
+		slog.WarnContext(ctx, "failed to download signed PDF",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	storageKey := fmt.Sprintf("documents/%s/%s/signed.pdf", doc.WorkspaceID, doc.ID)
+
+	if err := s.storageAdapter.Upload(ctx, storageKey, pdfData, "application/pdf"); err != nil {
+		slog.WarnContext(ctx, "failed to store signed PDF",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	doc.SetPDFPath(storageKey)
+	if err := s.documentRepo.Update(ctx, doc); err != nil {
+		slog.WarnContext(ctx, "failed to update document PDF path",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	slog.InfoContext(ctx, "signed PDF stored",
+		slog.String("document_id", doc.ID),
+		slog.String("storage_key", storageKey),
+	)
+}
+
+// GetDocumentPDF returns the signed PDF for a completed document.
+func (s *DocumentService) GetDocumentPDF(ctx context.Context, documentID string) ([]byte, string, error) {
+	doc, err := s.documentRepo.FindByID(ctx, documentID)
+	if err != nil {
+		return nil, "", fmt.Errorf("finding document: %w", err)
+	}
+
+	if doc.PDFStoragePath == nil {
+		return nil, "", fmt.Errorf("signed PDF not available for this document")
+	}
+
+	data, err := s.storageAdapter.Download(ctx, *doc.PDFStoragePath)
+	if err != nil {
+		return nil, "", fmt.Errorf("downloading PDF from storage: %w", err)
+	}
+
+	filename := fmt.Sprintf("document-%s-signed.pdf", doc.ID)
+	if doc.Title != nil {
+		filename = fmt.Sprintf("%s-signed.pdf", *doc.Title)
+	}
+
+	return data, filename, nil
+}
+
+// ExpireDocuments finds and expires documents that have passed their expiration time.
+func (s *DocumentService) ExpireDocuments(ctx context.Context, limit int) error {
+	docs, err := s.documentRepo.FindExpired(ctx, limit)
+	if err != nil {
+		return fmt.Errorf("finding expired documents: %w", err)
+	}
+
+	for _, doc := range docs {
+		s.expireSingleDocument(ctx, doc)
+	}
+
+	if len(docs) > 0 {
+		slog.InfoContext(ctx, "expired documents processed", slog.Int("count", len(docs)))
+	}
+
+	return nil
+}
+
+// expireSingleDocument expires a single document and cancels it with the provider.
+func (s *DocumentService) expireSingleDocument(ctx context.Context, doc *entity.Document) {
+	oldStatus := string(doc.Status)
+
+	if doc.HasSignerInfo() {
+		if err := s.signingProvider.CancelDocument(ctx, *doc.SignerDocumentID); err != nil {
+			slog.WarnContext(ctx, "failed to cancel expired document with provider",
+				slog.String("document_id", doc.ID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	if err := doc.MarkAsExpired(); err != nil {
+		slog.WarnContext(ctx, "failed to mark document as expired",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	if err := s.documentRepo.Update(ctx, doc); err != nil {
+		slog.WarnContext(ctx, "failed to update expired document",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventDocumentExpired, entity.ActorSystem, "", oldStatus, string(entity.DocumentStatusExpired), nil)
+
+	slog.InfoContext(ctx, "document expired",
+		slog.String("document_id", doc.ID),
+		slog.String("previous_status", oldStatus),
+	)
+}
+
+// RetryErrorDocuments finds ERROR documents eligible for retry and attempts recovery.
+func (s *DocumentService) RetryErrorDocuments(ctx context.Context, maxRetries, limit int) error {
+	docs, err := s.documentRepo.FindErrorsForRetry(ctx, maxRetries, limit)
+	if err != nil {
+		return fmt.Errorf("finding error documents for retry: %w", err)
+	}
+
+	for _, doc := range docs {
+		s.retrySingleDocument(ctx, doc, maxRetries)
+	}
+
+	if len(docs) > 0 {
+		slog.InfoContext(ctx, "retried error documents", slog.Int("count", len(docs)))
+	}
+
+	return nil
+}
+
+// retrySingleDocument attempts to recover a single error document.
+func (s *DocumentService) retrySingleDocument(ctx context.Context, doc *entity.Document, maxRetries int) {
+	if !doc.ScheduleRetry(maxRetries) {
+		slog.WarnContext(ctx, "document exceeded max retries",
+			slog.String("document_id", doc.ID),
+			slog.Int("retry_count", doc.RetryCount),
+		)
+		return
+	}
+
+	if doc.HasSignerInfo() {
+		s.retryWithStatusPoll(ctx, doc)
+	} else {
+		s.retryWithResend(ctx, doc)
+	}
+}
+
+// retryWithStatusPoll polls the signing provider for a document that already has a signer ID.
+func (s *DocumentService) retryWithStatusPoll(ctx context.Context, doc *entity.Document) {
+	statusResult, err := s.signingProvider.GetDocumentStatus(ctx, *doc.SignerDocumentID)
+	if err != nil {
+		slog.WarnContext(ctx, "retry status poll failed",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		if updateErr := s.documentRepo.Update(ctx, doc); updateErr != nil {
+			slog.WarnContext(ctx, "failed to update document after retry", slog.String("error", updateErr.Error()))
+		}
+		return
+	}
+
+	if err := s.updateDocumentFromStatus(ctx, doc, statusResult); err != nil {
+		slog.WarnContext(ctx, "failed to update document from status poll",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	if !doc.IsTerminal() {
+		doc.ResetRetry()
+	}
+	if err := s.documentRepo.Update(ctx, doc); err != nil {
+		slog.WarnContext(ctx, "failed to update document after retry recovery",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+	}
+}
+
+// retryWithResend marks the document for re-processing by updating retry info.
+func (s *DocumentService) retryWithResend(ctx context.Context, doc *entity.Document) {
+	if err := s.documentRepo.Update(ctx, doc); err != nil {
+		slog.WarnContext(ctx, "failed to update document retry info",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	slog.InfoContext(ctx, "document scheduled for retry",
+		slog.String("document_id", doc.ID),
+		slog.Int("retry_count", doc.RetryCount),
+	)
+}
+
+// CreateDocumentsBatch creates multiple documents in a single batch.
+func (s *DocumentService) CreateDocumentsBatch(ctx context.Context, cmds []documentuc.CreateDocumentCommand) ([]documentuc.BatchDocumentResult, error) {
+	results := make([]documentuc.BatchDocumentResult, len(cmds))
+
+	for i, cmd := range cmds {
+		doc, err := s.CreateAndSendDocument(ctx, cmd)
+		results[i] = documentuc.BatchDocumentResult{
+			Index:    i,
+			Document: doc,
+			Error:    err,
+		}
+	}
+
+	return results, nil
+}
+
+// eventTypeFromDocumentStatus maps a document status to the corresponding event type.
+func eventTypeFromDocumentStatus(status entity.DocumentStatus) string {
+	switch status {
+	case entity.DocumentStatusCompleted:
+		return entity.EventDocumentCompleted
+	case entity.DocumentStatusVoided:
+		return entity.EventDocumentCancelled
+	case entity.DocumentStatusExpired:
+		return entity.EventDocumentExpired
+	case entity.DocumentStatusError:
+		return entity.EventDocumentError
+	default:
+		return entity.EventStatusRefreshed
+	}
+}
+
+// SendReminder sends reminder notifications to pending recipients of a document.
+func (s *DocumentService) SendReminder(ctx context.Context, documentID string) error {
+	return s.notificationSvc.SendReminder(ctx, documentID)
 }
 
 // parsePortableDocument is a helper to parse document content.
