@@ -11,6 +11,7 @@ import {
     Calendar,
     CalendarCheck,
     CalendarClock,
+    ClipboardCopy,
     Clock,
     Copy,
     ExternalLink,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useToast } from '@/components/ui/use-toast'
 import { VersionStatusBadge } from './VersionStatusBadge'
 
 interface VersionListItemProps {
@@ -95,6 +97,7 @@ export function VersionListItem({
   isHighlighted = false,
 }: VersionListItemProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
 
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(version.name)
@@ -159,8 +162,6 @@ export function VersionListItem({
   const showDelete = version.status === 'DRAFT'
   const showPromote = isSandboxMode && version.status === 'PUBLISHED'
   const showClone = !!onClone // Always visible if handler is provided
-
-  const hasActions = showPublish || showSchedule || showCancelSchedule || showArchive || showDelete || showPromote || showClone
 
   return (
     <div
@@ -248,9 +249,18 @@ export function VersionListItem({
           )}
         </div>
 
-        {/* Action buttons - always visible, aligned with metadata */}
-        {hasActions && (
-          <div className="flex items-center gap-1">
+        {/* Action buttons - copy ID always visible, others conditional */}
+        <div className="flex items-center gap-1">
+            <ActionButton
+              icon={<ClipboardCopy size={18} />}
+              label={t('templates.versions.actions.copyId', 'Copy Version ID')}
+              onClick={async () => {
+                await navigator.clipboard.writeText(version.id)
+                toast({
+                  description: t('templates.versions.idCopied', 'Version ID copied to clipboard'),
+                })
+              }}
+            />
             {showClone && (
               <ActionButton
                 icon={<Copy size={18} />}
@@ -302,7 +312,6 @@ export function VersionListItem({
               />
             )}
           </div>
-        )}
       </div>
     </div>
   )

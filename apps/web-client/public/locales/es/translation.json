@@ -279,6 +279,7 @@
     },
     "versions": {
       "actions": {
+        "copyId": "Copiar ID de versión",
         "promote": "Promover a Producción",
         "delete": "Eliminar",
         "publishNow": "Publicar Ahora",
@@ -288,7 +289,8 @@
         "cancelSchedule": "Cancelar Programación"
       },
       "renamed": "Versión renombrada",
-      "renameFailed": "Error al renombrar versión"
+      "renameFailed": "Error al renombrar versión",
+      "idCopied": "ID de versión copiado al portapapeles"
     },
     "promoteDialog": {
       "title": "Promover a Producción",
