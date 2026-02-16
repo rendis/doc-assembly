@@ -1,0 +1,5 @@
+# Fork merge strategy: keep user customizations for these paths
+core/extensions/** merge=ours
+core/settings/app.yaml merge=ours
+settings/ merge=ours
+extensions/ merge=ours

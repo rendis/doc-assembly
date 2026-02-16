@@ -1,0 +1,34 @@
+.PHONY: build run run-dummy migrate test lint clean help
+
+BINARY_NAME={{.ProjectName}}
+BUILD_DIR=bin
+
+build:
+	@go build -o $(BUILD_DIR)/$(BINARY_NAME) .
+
+run:
+	@go run .
+
+run-dummy:
+	@DOC_ENGINE_AUTH_DUMMY=true go run .
+
+migrate:
+	@go run . migrate
+
+test:
+	@go test ./...
+
+lint:
+	@golangci-lint run ./...
+
+clean:
+	@rm -rf $(BUILD_DIR)
+
+help:
+	@echo "  build       - Build binary"
+	@echo "  run         - Run the application"
+	@echo "  run-dummy   - Run with dummy auth (no JWT)"
+	@echo "  migrate     - Run database migrations"
+	@echo "  test        - Run tests"
+	@echo "  lint        - Run linter"
+	@echo "  clean       - Remove build artifacts"

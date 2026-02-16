@@ -1,0 +1,19 @@
+package extensions
+
+import (
+	"github.com/rendis/doc-assembly/core/sdk"
+	"{{.ModulePath}}/extensions/injectors"
+)
+
+// Register configures all user-defined extensions on the engine.
+// Edit this function to add custom injectors, mappers, and providers.
+func Register(engine *sdk.Engine) {
+	// Init function (runs before all injectors on each render request)
+	// engine.SetInitFunc(myInitFunc)
+
+	// Custom injectors
+	engine.RegisterInjector(&injectors.ExampleInjector{})
+
+	// Custom mapper (transforms incoming render requests)
+	// engine.SetMapper(&MyMapper{})
+}

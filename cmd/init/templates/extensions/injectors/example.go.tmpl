@@ -1,0 +1,17 @@
+package injectors
+
+import (
+	"github.com/rendis/doc-assembly/core/sdk"
+)
+
+// ExampleInjector demonstrates how to create a custom injector.
+// Replace this with your own business-specific injectors.
+type ExampleInjector struct{}
+
+func (e *ExampleInjector) Code() string { return "example_greeting" }
+
+func (e *ExampleInjector) Resolve(ctx sdk.InjectorContext) (sdk.InjectorResult, error) {
+	return sdk.InjectorResult{
+		Value: sdk.StringValue("Hello from {{.ProjectName}}!"),
+	}, nil
+}

@@ -1,0 +1,61 @@
+# {{.ProjectName}} Configuration
+# Override values using environment variables with prefix DOC_ENGINE_
+# Example: DOC_ENGINE_SERVER_PORT=9000
+
+environment: development
+
+server:
+  port: "8080"
+  read_timeout: 30
+  write_timeout: 30
+  shutdown_timeout: 10
+  swagger_ui: false
+  cors:
+    allowed_origins: []
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: ""
+  name: doc_assembly
+  ssl_mode: disable
+  max_pool_size: 10
+  min_pool_size: 2
+  max_idle_time_seconds: 300
+
+auth:
+  dummy: false  # Set true or use DOC_ENGINE_AUTH_DUMMY=true for dev without JWT
+
+signing:
+  provider: mock  # "mock", "documenso"
+  api_key: ""
+  base_url: ""
+  signing_base_url: ""
+  webhook_secret: ""
+  webhook_url: ""
+
+storage:
+  provider: "local"
+  local_dir: "./data/storage"
+
+scheduler:
+  enabled: true
+  polling_interval_sec: 60
+  polling_batch_size: 50
+  expiration_days: 30
+  retry_max_retries: 5
+  retry_batch_size: 20
+  retry_interval_sec: 120
+
+typst:
+  bin_path: "typst"
+  timeout_seconds: 30
+  max_concurrent: 10
+  acquire_timeout_seconds: 5
+
+notification:
+  provider: "noop"
+
+bootstrap:
+  enabled: true

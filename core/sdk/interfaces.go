@@ -1,0 +1,92 @@
+package sdk
+
+import "github.com/rendis/doc-assembly/core/internal/core/port"
+
+// --- Core Extensibility Interfaces ---
+
+// Injector resolves injectable values during document rendering.
+type Injector = port.Injector
+
+// InitFunc is called once before all injectors on each render request.
+type InitFunc = port.InitFunc
+
+// ResolveFunc resolves a single injectable value.
+type ResolveFunc = port.ResolveFunc
+
+// RequestMapper transforms incoming render requests before processing.
+type RequestMapper = port.RequestMapper
+
+// MapperContext provides request context to the mapper.
+type MapperContext = port.MapperContext
+
+// --- Provider Interfaces ---
+
+// WorkspaceInjectableProvider supplies workspace-specific injectable definitions.
+type WorkspaceInjectableProvider = port.WorkspaceInjectableProvider
+
+// RenderAuthenticator provides custom authentication for render endpoints.
+type RenderAuthenticator = port.RenderAuthenticator
+
+// SigningProvider handles document signing via an external provider.
+type SigningProvider = port.SigningProvider
+
+// WebhookHandler parses incoming webhook events from a signing provider.
+type WebhookHandler = port.WebhookHandler
+
+// StorageAdapter handles file storage (local, S3, etc.).
+type StorageAdapter = port.StorageAdapter
+
+// NotificationProvider sends notifications (email, etc.).
+type NotificationProvider = port.NotificationProvider
+
+// --- Optional Schema Interfaces ---
+
+// TableSchemaProvider can be implemented by Injector to expose table column schema.
+type TableSchemaProvider = port.TableSchemaProvider
+
+// ListSchemaProvider can be implemented by Injector to expose list schema.
+type ListSchemaProvider = port.ListSchemaProvider
+
+// --- Provider DTOs ---
+
+// WorkspaceInjectableProvider types
+type (
+	GetInjectablesResult      = port.GetInjectablesResult
+	ProviderInjectable        = port.ProviderInjectable
+	ProviderFormat            = port.ProviderFormat
+	ProviderGroup             = port.ProviderGroup
+	ResolveInjectablesRequest = port.ResolveInjectablesRequest
+	ResolveInjectablesResult  = port.ResolveInjectablesResult
+)
+
+// RenderAuthenticator types
+type RenderAuthClaims = port.RenderAuthClaims
+
+// SigningProvider types
+type (
+	UploadDocumentRequest  = port.UploadDocumentRequest
+	UploadDocumentResult   = port.UploadDocumentResult
+	SigningRecipient       = port.SigningRecipient
+	SignatureFieldPosition = port.SignatureFieldPosition
+	RecipientResult        = port.RecipientResult
+	GetSigningURLRequest   = port.GetSigningURLRequest
+	GetSigningURLResult    = port.GetSigningURLResult
+	DocumentStatusResult   = port.DocumentStatusResult
+	RecipientStatusResult  = port.RecipientStatusResult
+	WebhookEvent           = port.WebhookEvent
+)
+
+// NotificationProvider types
+type (
+	NotificationRequest    = port.NotificationRequest
+	NotificationAttachment = port.NotificationAttachment
+)
+
+// PDF Renderer types
+type (
+	SignatureField  = port.SignatureField
+	SignerRoleValue = port.SignerRoleValue
+)
+
+// Registry types
+type GroupConfig = port.GroupConfig

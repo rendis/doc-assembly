@@ -1,0 +1,501 @@
+package bootstrap
+
+import (
+	"context"
+	"fmt"
+	"io/fs"
+	"log/slog"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/controller"
+	httpmapper "github.com/rendis/doc-assembly/core/internal/adapters/primary/http/mapper"
+	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
+	"github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres"
+	documenteventrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_event_repo"
+	documentrecipientrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_recipient_repo"
+	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
+	documenttyperepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_type_repo"
+	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
+	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
+	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
+	systemrolerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_role_repo"
+	tagrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tag_repo"
+	templaterepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/template_repo"
+	templatetagrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/template_tag_repo"
+	templateversioninjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/template_version_injectable_repo"
+	templateversionrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/template_version_repo"
+	templateversionsignerrolerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/template_version_signer_role_repo"
+	tenantmemberrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tenant_member_repo"
+	tenantrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tenant_repo"
+	useraccesshistoryrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/user_access_history_repo"
+	userrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/user_repo"
+	workspaceinjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
+	workspacememberrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/workspace_member_repo"
+	workspacerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/workspace_repo"
+	gmailnotification "github.com/rendis/doc-assembly/core/internal/adapters/secondary/notification/gmail"
+	noopnotification "github.com/rendis/doc-assembly/core/internal/adapters/secondary/notification/noop"
+	smtpnotification "github.com/rendis/doc-assembly/core/internal/adapters/secondary/notification/smtp"
+	"github.com/rendis/doc-assembly/core/internal/adapters/secondary/signing/documenso"
+	mocksigning "github.com/rendis/doc-assembly/core/internal/adapters/secondary/signing/mock"
+	localstorage "github.com/rendis/doc-assembly/core/internal/adapters/secondary/storage/local"
+	s3storage "github.com/rendis/doc-assembly/core/internal/adapters/secondary/storage/s3"
+	"github.com/rendis/doc-assembly/core/internal/core/port"
+	accesssvc "github.com/rendis/doc-assembly/core/internal/core/service/access"
+	catalogsvc "github.com/rendis/doc-assembly/core/internal/core/service/catalog"
+	documentsvc "github.com/rendis/doc-assembly/core/internal/core/service/document"
+	injectablesvc "github.com/rendis/doc-assembly/core/internal/core/service/injectable"
+	organizationsvc "github.com/rendis/doc-assembly/core/internal/core/service/organization"
+	"github.com/rendis/doc-assembly/core/internal/core/service/rendering/pdfrenderer"
+	templatesvc "github.com/rendis/doc-assembly/core/internal/core/service/template"
+	"github.com/rendis/doc-assembly/core/internal/core/service/template/contentvalidator"
+	documentuc "github.com/rendis/doc-assembly/core/internal/core/usecase/document"
+	"github.com/rendis/doc-assembly/core/internal/extensions/injectors/datetime"
+	"github.com/rendis/doc-assembly/core/internal/frontend"
+	"github.com/rendis/doc-assembly/core/internal/infra/config"
+	"github.com/rendis/doc-assembly/core/internal/infra/registry"
+	"github.com/rendis/doc-assembly/core/internal/infra/scheduler"
+	"github.com/rendis/doc-assembly/core/internal/infra/server"
+)
+
+// appComponents holds all initialized components.
+type appComponents struct {
+	httpServer  *server.HTTPServer
+	dbPool      *pgxpool.Pool
+	scheduler   *scheduler.Scheduler
+	hasFrontend bool
+}
+
+func (a *appComponents) cleanup() {
+	slog.Info("cleaning up resources")
+	a.scheduler.Stop()
+	postgres.Close(a.dbPool)
+	slog.Info("cleanup complete")
+}
+
+// initialize creates all components using manual DI.
+func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nolint:funlen // DI composition is inherently sequential
+	cfg := e.config
+
+	// --- Database ---
+	pool, err := postgres.NewPool(ctx, &cfg.Database)
+	if err != nil {
+		return nil, err
+	}
+
+	// --- Dummy Auth: seed default user ---
+	if cfg.Auth.IsDummyAuth() {
+		userID, seedErr := seedDummyUser(ctx, pool)
+		if seedErr != nil {
+			return nil, seedErr
+		}
+		cfg.DummyAuthUserID = userID
+		slog.InfoContext(ctx, "dummy auth user seeded", slog.String("user_id", userID))
+	}
+
+	// --- Repositories: Organizational ---
+	userRepo := userrepo.New(pool)
+	systemRoleRepo := systemrolerepo.New(pool)
+	workspaceRepo := workspacerepo.New(pool)
+	workspaceMemberRepo := workspacememberrepo.New(pool)
+	tenantMemberRepo := tenantmemberrepo.New(pool)
+	tenantRepo := tenantrepo.New(pool)
+	userAccessHistoryRepo := useraccesshistoryrepo.New(pool)
+
+	// --- Repositories: Catalog ---
+	folderRepo := folderrepo.New(pool)
+	tagRepo := tagrepo.New(pool)
+
+	// --- Repositories: Content ---
+	injectableRepo := injectablerepo.New(pool)
+	systemInjectableRepo := systeminjectablerepo.New(pool)
+	workspaceInjectableRepo := workspaceinjectablerepo.New(pool)
+	templateRepo := templaterepo.New(pool)
+	templateVersionRepo := templateversionrepo.New(pool)
+	templateTagRepo := templatetagrepo.New(pool)
+	templateVersionInjectableRepo := templateversioninjectablerepo.New(pool)
+	templateVersionSignerRoleRepo := templateversionsignerrolerepo.New(pool)
+	documentTypeRepo := documenttyperepo.New(pool)
+
+	// --- Repositories: Execution ---
+	documentRepo := documentrepo.New(pool)
+	documentRecipientRepo := documentrecipientrepo.New(pool)
+	documentEventRepo := documenteventrepo.New(pool)
+
+	// --- Middleware ---
+	middlewareProvider := middleware.NewProvider(
+		userRepo, systemRoleRepo, workspaceRepo, workspaceMemberRepo, tenantMemberRepo,
+	)
+
+	// --- Extensibility: Registries ---
+	injReg, mapReg, err := e.buildRegistries()
+	if err != nil {
+		return nil, err
+	}
+
+	// --- Services: Organization ---
+	workspaceSvc := organizationsvc.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo, userAccessHistoryRepo)
+	tenantSvc := organizationsvc.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
+	workspaceMemberSvc := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
+	tenantMemberSvc := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
+
+	// --- Services: Catalog ---
+	folderSvc := catalogsvc.NewFolderService(folderRepo)
+	tagSvc := catalogsvc.NewTagService(tagRepo)
+	documentTypeSvc := catalogsvc.NewDocumentTypeService(documentTypeRepo, templateRepo)
+
+	// --- Services: Access ---
+	systemRoleSvc := accesssvc.NewSystemRoleService(systemRoleRepo, userRepo)
+	userAccessHistorySvc := accesssvc.NewUserAccessHistoryService(userAccessHistoryRepo)
+
+	// --- Services: Injectable ---
+	injectableSvc := injectablesvc.NewInjectableService(
+		injectableRepo, systemInjectableRepo, injReg,
+		workspaceRepo, tenantRepo, e.workspaceProvider,
+	)
+	workspaceInjectableSvc := injectablesvc.NewWorkspaceInjectableService(workspaceInjectableRepo)
+	systemInjectableSvc := injectablesvc.NewSystemInjectableService(systemInjectableRepo, injReg)
+
+	// --- Services: Template ---
+	templateSvc := templatesvc.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
+	contentValidator := contentvalidator.New(injectableSvc)
+	templateVersionSvc := templatesvc.NewTemplateVersionService(
+		templateVersionRepo, templateVersionInjectableRepo, templateVersionSignerRoleRepo,
+		templateRepo, templateTagRepo, contentValidator, workspaceRepo,
+	)
+
+	// --- PDF Renderer ---
+	pdfRenderer, err := buildPDFRenderer(cfg, e.designTokens)
+	if err != nil {
+		return nil, err
+	}
+
+	// --- Signing Provider ---
+	signingProvider, err := e.resolveSigningProvider(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// --- Storage Adapter ---
+	storageAdapter, err := e.resolveStorageAdapter(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// --- Notification Provider ---
+	notificationProvider := e.resolveNotificationProvider(cfg)
+
+	// --- Webhook Handlers ---
+	webhookHandlers, err := e.resolveWebhookHandlers(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// --- Services: Document ---
+	eventEmitter := documentsvc.NewEventEmitter(documentEventRepo)
+	notificationSvc := documentsvc.NewNotificationService(notificationProvider, documentRecipientRepo, documentRepo)
+	documentSvc := documentsvc.NewDocumentService(
+		documentRepo, documentRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		pdfRenderer, signingProvider, storageAdapter,
+		eventEmitter, notificationSvc,
+		cfg.Scheduler.ExpirationDays,
+	)
+	injectableResolver := injectablesvc.NewInjectableResolverService(injReg)
+	documentGenerator := documentsvc.NewDocumentGenerator(
+		templateRepo, templateVersionRepo, documentRepo, documentRecipientRepo,
+		injectableSvc, mapReg, injectableResolver,
+	)
+	internalDocSvc := documentsvc.NewInternalDocumentService(
+		documentGenerator, documentRepo, documentRecipientRepo, pdfRenderer, signingProvider,
+	)
+
+	// --- HTTP Mappers ---
+	injectableMapper := httpmapper.NewInjectableMapper()
+	templateVersionMapper := httpmapper.NewTemplateVersionMapper(injectableMapper)
+	tagMapper := httpmapper.NewTagMapper()
+	folderMapper := httpmapper.NewFolderMapper()
+	templateMapper := httpmapper.NewTemplateMapper(templateVersionMapper, tagMapper, folderMapper)
+
+	// --- Controllers ---
+	workspaceCtrl := controller.NewWorkspaceController(
+		workspaceSvc, folderSvc, tagSvc, workspaceMemberSvc, workspaceInjectableSvc, injectableMapper,
+	)
+	injectableCtrl := controller.NewContentInjectableController(injectableSvc, injectableMapper)
+	renderCtrl := controller.NewRenderController(templateVersionSvc, pdfRenderer)
+	templateVersionCtrl := controller.NewTemplateVersionController(
+		templateVersionSvc, templateVersionMapper, templateMapper, renderCtrl,
+	)
+	templateCtrl := controller.NewContentTemplateController(templateSvc, templateMapper, templateVersionCtrl)
+	adminCtrl := controller.NewAdminController(tenantSvc, systemRoleSvc, systemInjectableSvc)
+	meCtrl := controller.NewMeController(tenantSvc, tenantMemberRepo, workspaceMemberRepo, userAccessHistorySvc)
+	tenantCtrl := controller.NewTenantController(tenantSvc, workspaceSvc, tenantMemberSvc)
+	documentTypeCtrl := controller.NewDocumentTypeController(documentTypeSvc, templateSvc, templateMapper)
+	documentCtrl := controller.NewDocumentController(documentSvc, eventEmitter)
+	webhookCtrl := controller.NewWebhookController(documentSvc, webhookHandlers)
+	internalDocCtrl := controller.NewInternalDocumentController(internalDocSvc)
+
+	// --- Render Authenticator ---
+	renderAuth := e.renderAuthenticator
+
+	// --- Frontend FS ---
+	frontendFS := e.resolveFrontendFS()
+
+	// --- HTTP Server ---
+	httpServer := server.NewHTTPServer(
+		cfg,
+		middlewareProvider,
+		workspaceCtrl,
+		injectableCtrl,
+		templateCtrl,
+		adminCtrl,
+		meCtrl,
+		tenantCtrl,
+		documentTypeCtrl,
+		documentCtrl,
+		webhookCtrl,
+		internalDocCtrl,
+		renderAuth,
+		frontendFS,
+	)
+
+	// --- Background Scheduler ---
+	sched := scheduler.New(cfg.Scheduler.Enabled)
+	registerSchedulerJobs(sched, &cfg.Scheduler, documentSvc)
+
+	return &appComponents{
+		httpServer:  httpServer,
+		dbPool:      pool,
+		scheduler:   sched,
+		hasFrontend: frontendFS != nil,
+	}, nil
+}
+
+// buildPDFRenderer creates the Typst-based PDF renderer service.
+func buildPDFRenderer(cfg *config.Config, customTokens *pdfrenderer.TypstDesignTokens) (port.PDFRenderer, error) {
+	typstCfg := &cfg.Typst
+	opts := pdfrenderer.TypstOptions{
+		BinPath:        typstCfg.BinPath,
+		Timeout:        typstCfg.TimeoutDuration(),
+		FontDirs:       typstCfg.FontDirs,
+		MaxConcurrent:  typstCfg.MaxConcurrent,
+		AcquireTimeout: typstCfg.AcquireTimeoutDuration(),
+	}
+
+	var imageCache *pdfrenderer.ImageCache
+	if typstCfg.ImageCacheDir != "" || typstCfg.ImageCacheMaxAgeSeconds > 0 {
+		var err error
+		imageCache, err = pdfrenderer.NewImageCache(pdfrenderer.ImageCacheOptions{
+			Dir:             typstCfg.ImageCacheDir,
+			MaxAge:          typstCfg.ImageCacheMaxAgeDuration(),
+			CleanupInterval: typstCfg.ImageCacheCleanupIntervalDuration(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("creating image cache: %w", err)
+		}
+	}
+
+	tokens := pdfrenderer.DefaultDesignTokens()
+	if customTokens != nil {
+		tokens = *customTokens
+	}
+
+	factory := pdfrenderer.NewTypstConverterFactory(tokens)
+	return pdfrenderer.NewService(opts, imageCache, factory, tokens)
+}
+
+// resolveSigningProvider returns the engine override or auto-selects from config.
+func (e *Engine) resolveSigningProvider(cfg *config.Config) (port.SigningProvider, error) {
+	if e.signingProvider != nil {
+		return e.signingProvider, nil
+	}
+	switch cfg.Signing.Provider {
+	case "mock":
+		return mocksigning.New(), nil
+	default:
+		return documenso.New(&documenso.Config{
+			APIKey:         cfg.Signing.APIKey,
+			BaseURL:        cfg.Signing.BaseURL,
+			SigningBaseURL: cfg.Signing.SigningBaseURL,
+			WebhookSecret:  cfg.Signing.WebhookSecret,
+			WebhookURL:     cfg.Signing.WebhookURL,
+		})
+	}
+}
+
+// resolveStorageAdapter returns the engine override or auto-selects from config.
+func (e *Engine) resolveStorageAdapter(cfg *config.Config) (port.StorageAdapter, error) {
+	if e.storageAdapter != nil {
+		return e.storageAdapter, nil
+	}
+	switch cfg.Storage.Provider {
+	case "s3":
+		return s3storage.New(&s3storage.Config{
+			Bucket:   cfg.Storage.Bucket,
+			Region:   cfg.Storage.Region,
+			Endpoint: cfg.Storage.Endpoint,
+		})
+	default:
+		return localstorage.New(cfg.Storage.LocalDir)
+	}
+}
+
+// resolveNotificationProvider returns the engine override or auto-selects from config.
+func (e *Engine) resolveNotificationProvider(cfg *config.Config) port.NotificationProvider {
+	if e.notificationProvider != nil {
+		return e.notificationProvider
+	}
+	switch cfg.Notification.Provider {
+	case "smtp":
+		return smtpnotification.New(&smtpnotification.Config{
+			Host:     cfg.Notification.Host,
+			Port:     cfg.Notification.Port,
+			Username: cfg.Notification.Username,
+			Password: cfg.Notification.Password,
+			From:     cfg.Notification.From,
+		})
+	case "gmail":
+		return gmailnotification.New(
+			cfg.Notification.Username,
+			cfg.Notification.Password,
+			cfg.Notification.From,
+		)
+	default:
+		return noopnotification.New()
+	}
+}
+
+// resolveWebhookHandlers returns the engine override or auto-selects from config.
+func (e *Engine) resolveWebhookHandlers(cfg *config.Config) (map[string]port.WebhookHandler, error) {
+	if e.webhookHandlers != nil {
+		return e.webhookHandlers, nil
+	}
+	switch cfg.Signing.Provider {
+	case "mock":
+		adapter := mocksigning.New()
+		return map[string]port.WebhookHandler{"mock": adapter}, nil
+	default:
+		documensoAdapter, err := documenso.New(&documenso.Config{
+			APIKey:         cfg.Signing.APIKey,
+			BaseURL:        cfg.Signing.BaseURL,
+			SigningBaseURL: cfg.Signing.SigningBaseURL,
+			WebhookSecret:  cfg.Signing.WebhookSecret,
+			WebhookURL:     cfg.Signing.WebhookURL,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return map[string]port.WebhookHandler{"documenso": documensoAdapter}, nil
+	}
+}
+
+// buildRegistries creates and populates injector/mapper registries with built-in and user extensions.
+func (e *Engine) buildRegistries() (port.InjectorRegistry, port.MapperRegistry, error) {
+	i18nCfg, err := config.LoadInjectorI18n()
+	if err != nil {
+		return nil, nil, err
+	}
+	if e.i18nFilePath != "" {
+		userI18n, mergeErr := config.LoadInjectorI18nFromFile(e.i18nFilePath)
+		if mergeErr != nil {
+			return nil, nil, mergeErr
+		}
+		i18nCfg.Merge(userI18n)
+	}
+
+	mapReg := registry.NewMapperRegistry()
+	injReg := registry.NewInjectorRegistry(i18nCfg)
+
+	builtinInjectors := []port.Injector{
+		&datetime.DateNowInjector{}, &datetime.DateTimeNowInjector{},
+		&datetime.DayNowInjector{}, &datetime.MonthNowInjector{},
+		&datetime.TimeNowInjector{}, &datetime.YearNowInjector{},
+	}
+	for _, inj := range builtinInjectors {
+		_ = injReg.Register(inj)
+	}
+	for _, inj := range e.injectors {
+		if regErr := injReg.Register(inj); regErr != nil {
+			return nil, nil, regErr
+		}
+	}
+	if e.mapper != nil {
+		if setErr := mapReg.Set(e.mapper); setErr != nil {
+			return nil, nil, setErr
+		}
+	}
+	if e.initFunc != nil {
+		injReg.SetInitFunc(e.initFunc)
+	}
+
+	return injReg, mapReg, nil
+}
+
+// resolveFrontendFS returns the frontend filesystem to serve.
+// Priority: user override via SetFrontendFS() → embedded dist FS → nil.
+func (e *Engine) resolveFrontendFS() fs.FS {
+	if e.frontendOverridden {
+		return e.frontendFS // may be nil (user explicitly disabled frontend)
+	}
+
+	// Check if embedded dist has actual content (not just .gitkeep)
+	entries, err := fs.ReadDir(frontend.DistFS, "dist")
+	if err != nil || len(entries) <= 1 {
+		slog.Warn("no embedded frontend found (run 'make embed-app' to embed)")
+		return nil
+	}
+
+	sub, err := fs.Sub(frontend.DistFS, "dist")
+	if err != nil {
+		slog.Error("failed to create sub-FS for frontend", slog.Any("error", err))
+		return nil
+	}
+	slog.Info("serving embedded frontend")
+	return sub
+}
+
+// registerSchedulerJobs registers background polling jobs.
+func registerSchedulerJobs(s *scheduler.Scheduler, cfg *config.SchedulerConfig, docUC documentuc.DocumentUseCase) {
+	s.RegisterJob("poll-pending-documents", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
+		return docUC.ProcessPendingDocuments(ctx, cfg.PollingBatchSize)
+	})
+	s.RegisterJob("expire-documents", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
+		return docUC.ExpireDocuments(ctx, cfg.PollingBatchSize)
+	})
+	s.RegisterJob("retry-error-documents", cfg.RetryIntervalDuration(), func(ctx context.Context) error {
+		return docUC.RetryErrorDocuments(ctx, cfg.RetryMaxRetries, cfg.RetryBatchSize)
+	})
+	s.RegisterJob("upload-pending-signing", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
+		return docUC.ProcessPendingProviderDocuments(ctx, cfg.PollingBatchSize)
+	})
+}
+
+// seedDummyUser ensures a default admin user exists in the DB for dummy auth mode.
+func seedDummyUser(ctx context.Context, pool *pgxpool.Pool) (string, error) {
+	const (
+		email      = "admin@docengine.local"
+		fullName   = "Doc Engine Admin"
+		externalID = "00000000-0000-0000-0000-000000000001"
+	)
+
+	var userID string
+	err := pool.QueryRow(ctx, `
+		INSERT INTO identity.users (email, external_identity_id, full_name, status)
+		VALUES ($1, $2, $3, 'ACTIVE')
+		ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name
+		RETURNING id
+	`, email, externalID, fullName).Scan(&userID)
+	if err != nil {
+		return "", fmt.Errorf("seeding dummy user: %w", err)
+	}
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO identity.system_roles (user_id, role)
+		VALUES ($1, 'SUPERADMIN')
+		ON CONFLICT (user_id) DO NOTHING
+	`, userID)
+	if err != nil {
+		return "", fmt.Errorf("seeding dummy system role: %w", err)
+	}
+
+	return userID, nil
+}

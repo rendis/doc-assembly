@@ -1,0 +1,29 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/rendis/doc-assembly/core/sdk"
+	"{{.ModulePath}}/extensions"
+)
+
+func main() {
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		engine := sdk.New()
+		if err := engine.RunMigrations(); err != nil {
+			fmt.Fprintf(os.Stderr, "migration error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("migrations applied successfully")
+		return
+	}
+
+	engine := sdk.New()
+	extensions.Register(engine)
+
+	if err := engine.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "fatal: %v\n", err)
+		os.Exit(1)
+	}
+}
