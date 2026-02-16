@@ -286,11 +286,14 @@ func (s *DocumentService) sendToSigningProvider(
 ) error {
 	signingRecipients := s.buildSigningRecipients(cmd.Recipients, roleMap)
 
+	signatureFields := s.buildSignatureFieldPositions(cmd.Recipients)
+
 	uploadReq := &port.UploadDocumentRequest{
-		PDF:         pdfData,
-		Title:       cmd.Title,
-		Recipients:  signingRecipients,
-		ExternalRef: document.ID,
+		PDF:             pdfData,
+		Title:           cmd.Title,
+		Recipients:      signingRecipients,
+		ExternalRef:     document.ID,
+		SignatureFields: signatureFields,
 	}
 
 	if cmd.ClientExternalReferenceID != nil {
@@ -320,6 +323,24 @@ func (s *DocumentService) sendToSigningProvider(
 	s.updateRecipientsWithProviderIDs(ctx, recipients, uploadResult.Recipients)
 
 	return nil
+}
+
+// buildSignatureFieldPositions generates default signature field positions for recipients.
+// Documenso uses percentage-based coordinates (0-100 for both axes).
+// Each recipient gets a signature field on page 1, stacked vertically.
+func (s *DocumentService) buildSignatureFieldPositions(recipients []documentuc.DocumentRecipientCommand) []port.SignatureFieldPosition {
+	fields := make([]port.SignatureFieldPosition, 0, len(recipients))
+	for i, r := range recipients {
+		fields = append(fields, port.SignatureFieldPosition{
+			RoleID:    r.RoleID,
+			Page:      1,
+			PositionX: 10,
+			PositionY: float64(70 + i*12),
+			Width:     30,
+			Height:    5,
+		})
+	}
+	return fields
 }
 
 // buildSigningRecipients converts recipient inputs to signing provider format.
@@ -579,6 +600,10 @@ func (s *DocumentService) processDocumentStatusFromWebhook(ctx context.Context, 
 
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
 		return fmt.Errorf("updating document: %w", err)
+	}
+
+	if doc.IsCompleted() {
+		s.downloadAndStorePDF(ctx, doc)
 	}
 
 	return nil
@@ -884,19 +909,106 @@ func (s *DocumentService) retryWithStatusPoll(ctx context.Context, doc *entity.D
 	}
 }
 
-// retryWithResend marks the document for re-processing by updating retry info.
+// retryWithResend re-renders the PDF and re-uploads to the signing provider.
 func (s *DocumentService) retryWithResend(ctx context.Context, doc *entity.Document) {
+	version, recipients, roleMap, err := s.loadRetryContext(ctx, doc)
+	if err != nil {
+		slog.WarnContext(ctx, "retry: failed to load context",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		_ = s.documentRepo.Update(ctx, doc)
+		return
+	}
+
+	cmd := s.buildRetryCommand(doc, recipients)
+
+	pdfData, err := s.renderPDF(ctx, version, cmd)
+	if err != nil {
+		slog.WarnContext(ctx, "retry: failed to render PDF",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		_ = s.documentRepo.Update(ctx, doc)
+		return
+	}
+
+	if err := s.sendToSigningProvider(ctx, doc, recipients, roleMap, cmd, pdfData); err != nil {
+		slog.WarnContext(ctx, "retry: failed to send to signing provider",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	doc.ResetRetry()
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		slog.WarnContext(ctx, "failed to update document retry info",
+		slog.WarnContext(ctx, "retry: failed to update document after resend",
 			slog.String("document_id", doc.ID),
 			slog.String("error", err.Error()),
 		)
 	}
 
-	slog.InfoContext(ctx, "document scheduled for retry",
+	slog.InfoContext(ctx, "document re-sent successfully after retry",
 		slog.String("document_id", doc.ID),
 		slog.Int("retry_count", doc.RetryCount),
 	)
+}
+
+// loadRetryContext loads all dependencies needed for a document retry.
+func (s *DocumentService) loadRetryContext(ctx context.Context, doc *entity.Document) (*entity.TemplateVersion, []*entity.DocumentRecipient, map[string]*entity.TemplateVersionSignerRole, error) {
+	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("finding template version: %w", err)
+	}
+
+	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("finding recipients: %w", err)
+	}
+
+	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("finding signer roles: %w", err)
+	}
+
+	roleMap := make(map[string]*entity.TemplateVersionSignerRole, len(signerRoles))
+	for _, role := range signerRoles {
+		roleMap[role.ID] = role
+	}
+
+	return version, recipients, roleMap, nil
+}
+
+// buildRetryCommand reconstructs a CreateDocumentCommand from an existing document and recipients.
+func (s *DocumentService) buildRetryCommand(doc *entity.Document, recipients []*entity.DocumentRecipient) documentuc.CreateDocumentCommand {
+	var injectedValues map[string]any
+	if doc.InjectedValuesSnapshot != nil {
+		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectedValues)
+	}
+
+	cmdRecipients := make([]documentuc.DocumentRecipientCommand, len(recipients))
+	for i, r := range recipients {
+		cmdRecipients[i] = documentuc.DocumentRecipientCommand{
+			RoleID: r.TemplateVersionRoleID,
+			Name:   r.Name,
+			Email:  r.Email,
+		}
+	}
+
+	title := ""
+	if doc.Title != nil {
+		title = *doc.Title
+	}
+
+	return documentuc.CreateDocumentCommand{
+		WorkspaceID:               doc.WorkspaceID,
+		TemplateVersionID:         doc.TemplateVersionID,
+		Title:                     title,
+		InjectedValues:            injectedValues,
+		Recipients:                cmdRecipients,
+		ClientExternalReferenceID: doc.ClientExternalReferenceID,
+	}
 }
 
 // CreateDocumentsBatch creates multiple documents in a single batch.

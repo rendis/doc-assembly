@@ -441,7 +441,8 @@ var validStatusTransitions = map[DocumentStatus]map[DocumentStatus]bool{
 	},
 	// Terminal states: Completed, Declined, Voided, Expired - no transitions allowed
 	DocumentStatusError: {
-		DocumentStatusDraft: true, // Can retry from error
+		DocumentStatusDraft:   true, // Can retry from error
+		DocumentStatusPending: true, // Direct retry: re-upload to provider
 	},
 }
 

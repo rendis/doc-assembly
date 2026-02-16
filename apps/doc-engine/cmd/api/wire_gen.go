@@ -117,18 +117,11 @@ func InitializeApp() (*infra.Initializer, error) {
 	documentTypeController := controller.NewDocumentTypeController(documentTypeUseCase, templateUseCase, templateMapper)
 	documentRepository := documentrepo.New(pool)
 	documentRecipientRepository := documentrecipientrepo.New(pool)
-	injectableResolverService := infra.ProvideInjectableResolver(injectorRegistry)
-	documentGenerator := infra.ProvideDocumentGenerator(templateRepository, templateVersionRepository, documentRepository, documentRecipientRepository, injectableUseCase, mapperRegistry, injectableResolverService)
-	documensoConfig := infra.ProvideSigningConfig(configConfig)
-	signingProvider, err := infra.ProvideSigningProvider(documensoConfig)
+	signingConfig := infra.ProvideSigningConfig(configConfig)
+	signingProvider, err := infra.ProvideSigningProvider(signingConfig)
 	if err != nil {
 		return nil, err
 	}
-	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator, documentRepository, documentRecipientRepository, pdfRenderer, signingProvider)
-	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
-	renderAuthenticator := infra.ProvideRenderAuthenticator()
-	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, documentTypeController, internalDocumentController, renderAuthenticator)
-	schedulerConfig := infra.ProvideSchedulerConfig(configConfig)
 	storageAdapter, err := infra.ProvideStorageAdapter(configConfig)
 	if err != nil {
 		return nil, err
@@ -137,7 +130,20 @@ func InitializeApp() (*infra.Initializer, error) {
 	eventEmitter := document.NewEventEmitter(documentEventRepository)
 	notificationProvider := infra.ProvideNotificationProvider(configConfig)
 	notificationService := document.NewNotificationService(notificationProvider, documentRecipientRepository, documentRepository)
+	schedulerConfig := infra.ProvideSchedulerConfig(configConfig)
 	documentUseCase := infra.ProvideDocumentService(documentRepository, documentRecipientRepository, templateVersionRepository, templateVersionSignerRoleRepository, pdfRenderer, signingProvider, storageAdapter, eventEmitter, notificationService, schedulerConfig)
+	documentController := controller.NewDocumentController(documentUseCase, eventEmitter)
+	v, err := infra.ProvideWebhookHandlers(signingConfig)
+	if err != nil {
+		return nil, err
+	}
+	webhookController := controller.NewWebhookController(documentUseCase, v)
+	injectableResolverService := infra.ProvideInjectableResolver(injectorRegistry)
+	documentGenerator := infra.ProvideDocumentGenerator(templateRepository, templateVersionRepository, documentRepository, documentRecipientRepository, injectableUseCase, mapperRegistry, injectableResolverService)
+	internalDocumentUseCase := infra.ProvideInternalDocumentService(documentGenerator, documentRepository, documentRecipientRepository, pdfRenderer, signingProvider)
+	internalDocumentController := controller.NewInternalDocumentController(internalDocumentUseCase)
+	renderAuthenticator := infra.ProvideRenderAuthenticator()
+	httpServer := server.NewHTTPServer(configConfig, provider, workspaceController, contentInjectableController, contentTemplateController, adminController, meController, tenantController, documentTypeController, documentController, webhookController, internalDocumentController, renderAuthenticator)
 	scheduler := infra.ProvideScheduler(schedulerConfig, documentUseCase)
 	initializer := infra.NewInitializer(httpServer, pool, scheduler)
 	return initializer, nil

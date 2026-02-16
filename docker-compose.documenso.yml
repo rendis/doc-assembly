@@ -1,0 +1,32 @@
+services:
+  documenso-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: documenso
+      POSTGRES_PASSWORD: documenso
+      POSTGRES_DB: documenso
+    ports:
+      - "5433:5432"
+    volumes:
+      - documenso-pgdata:/var/lib/postgresql/data
+
+  documenso:
+    image: documenso/documenso:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=supersecret-for-local-dev-only
+      - DATABASE_URL=postgresql://documenso:documenso@documenso-db:5432/documenso
+      - NEXT_PRIVATE_DATABASE_URL=postgresql://documenso:documenso@documenso-db:5432/documenso
+      - NEXT_PRIVATE_DIRECT_DATABASE_URL=postgresql://documenso:documenso@documenso-db:5432/documenso
+      - NEXT_PRIVATE_ENCRYPTION_KEY=aH7kG2pL9mN4qR8sT1vW6xY0bC3dF5e
+      - NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=jK8nP3rV6wZ1cE4gI7lO0sU2xA5yB9d
+      - NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
+      - NEXT_PRIVATE_SMTP_FROM_ADDRESS=noreply@localhost
+      - NEXT_PRIVATE_SMTP_FROM_NAME=Documenso
+    depends_on:
+      - documenso-db
+
+volumes:
+  documenso-pgdata:

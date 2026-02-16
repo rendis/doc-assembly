@@ -92,7 +92,7 @@ typst:
 
 # Email notification configuration
 notification:
-  provider: "noop"   # DOC_ENGINE_NOTIFICATION_PROVIDER - "smtp" or "noop"
+  provider: "noop"   # DOC_ENGINE_NOTIFICATION_PROVIDER - "smtp", "gmail", or "noop"
   from: ""           # DOC_ENGINE_NOTIFICATION_FROM - Sender email address
   host: ""           # DOC_ENGINE_NOTIFICATION_HOST - SMTP host (e.g. smtp.gmail.com)
   port: 587          # DOC_ENGINE_NOTIFICATION_PORT - SMTP port

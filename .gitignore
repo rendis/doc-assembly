@@ -152,3 +152,6 @@ apps/doc-engine/tmp
 
 # Worktrees
 .worktrees/
+
+# Local data/storage
+**/data/storage/

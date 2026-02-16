@@ -64,6 +64,8 @@ func NewHTTPServer(
 	meController *controller.MeController,
 	tenantController *controller.TenantController,
 	documentTypeController *controller.DocumentTypeController,
+	documentController *controller.DocumentController,
+	webhookController *controller.WebhookController,
 	internalDocController *controller.InternalDocumentController,
 	renderAuthenticator port.RenderAuthenticator,
 ) *HTTPServer {
@@ -91,18 +93,7 @@ func NewHTTPServer(
 		engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
 
-	// =====================================================
-	// INTERNAL API ROUTES - Uses API Key authentication
-	// For service-to-service communication
-	// =====================================================
-	if cfg.InternalAPI.Enabled && cfg.InternalAPI.APIKey != "" {
-		internalV1 := engine.Group("/api/v1")
-		internalV1.Use(middleware.Operation())
-		internalDocController.RegisterRoutes(internalV1, cfg.InternalAPI.APIKey)
-		slog.InfoContext(context.Background(), "internal API routes registered")
-	} else {
-		slog.WarnContext(context.Background(), "internal API routes disabled (no API key configured)")
-	}
+	registerInternalRoutes(engine, cfg, internalDocController)
 
 	// Request timeout: slightly less than WriteTimeout so the handler's context
 	// cancels before the HTTP server closes the connection.
@@ -115,7 +106,10 @@ func NewHTTPServer(
 	v1 := setupPanelRoutes(engine, cfg, middlewareProvider, requestTimeout)
 	registerPanelControllers(v1, middlewareProvider, adminController, meController,
 		tenantController, documentTypeController, workspaceController,
-		injectableController, templateController)
+		injectableController, templateController, documentController)
+
+	// Webhook routes (no auth, registered on engine root)
+	webhookController.RegisterRoutes(engine)
 
 	// Render routes (separate auth, no identity lookup)
 	setupRenderRoutes(engine, cfg, renderAuthenticator, requestTimeout)
@@ -128,6 +122,18 @@ func NewHTTPServer(
 	return &HTTPServer{
 		engine: engine,
 		config: &cfg.Server,
+	}
+}
+
+// registerInternalRoutes registers internal API routes with API key authentication.
+func registerInternalRoutes(engine *gin.Engine, cfg *config.Config, internalDocController *controller.InternalDocumentController) {
+	if cfg.InternalAPI.Enabled && cfg.InternalAPI.APIKey != "" {
+		internalV1 := engine.Group("/api/v1")
+		internalV1.Use(middleware.Operation())
+		internalDocController.RegisterRoutes(internalV1, cfg.InternalAPI.APIKey)
+		slog.InfoContext(context.Background(), "internal API routes registered")
+	} else {
+		slog.WarnContext(context.Background(), "internal API routes disabled (no API key configured)")
 	}
 }
 
@@ -167,6 +173,7 @@ func registerPanelControllers(
 	workspaceController *controller.WorkspaceController,
 	injectableController *controller.ContentInjectableController,
 	templateController *controller.ContentTemplateController,
+	documentController *controller.DocumentController,
 ) {
 	v1.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
@@ -179,6 +186,10 @@ func registerPanelControllers(
 	workspaceController.RegisterRoutes(v1, middlewareProvider)
 	injectableController.RegisterRoutes(v1, middlewareProvider)
 	templateController.RegisterRoutes(v1, middlewareProvider)
+
+	// Document routes (within workspace context)
+	wsGroup := v1.Group("", middlewareProvider.WorkspaceContext())
+	documentController.RegisterRoutes(wsGroup)
 }
 
 // setupRenderRoutes creates the render route group with separate auth.

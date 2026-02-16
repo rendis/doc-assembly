@@ -450,3 +450,22 @@ func CreateTestTemplateTag(t *testing.T, pool *pgxpool.Pool, templateID, tagID s
 		VALUES ($1, $2)`, templateID, tagID)
 	require.NoError(t, err, "failed to create template tag")
 }
+
+// --- Document Fixtures ---
+
+// CleanupDocument removes a test document and all associated data.
+func CleanupDocument(t *testing.T, pool *pgxpool.Pool, documentID string) {
+	t.Helper()
+	ctx := context.Background()
+	_, _ = pool.Exec(ctx, "DELETE FROM execution.document_events WHERE document_id = $1", documentID)
+	_, _ = pool.Exec(ctx, "DELETE FROM execution.document_recipients WHERE document_id = $1", documentID)
+	_, _ = pool.Exec(ctx, "DELETE FROM execution.documents WHERE id = $1", documentID)
+}
+
+// PublishTestVersion updates a template version status to PUBLISHED directly in the database.
+func PublishTestVersion(t *testing.T, pool *pgxpool.Pool, versionID string) {
+	t.Helper()
+	ctx := context.Background()
+	_, err := pool.Exec(ctx, `UPDATE content.template_versions SET status = 'PUBLISHED' WHERE id = $1`, versionID)
+	require.NoError(t, err, "failed to publish version")
+}

@@ -33,9 +33,11 @@ import (
 	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	gmailnotification "github.com/doc-assembly/doc-engine/internal/adapters/secondary/notification/gmail"
 	noopnotification "github.com/doc-assembly/doc-engine/internal/adapters/secondary/notification/noop"
 	smtpnotification "github.com/doc-assembly/doc-engine/internal/adapters/secondary/notification/smtp"
 	"github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/documenso"
+	mocksigning "github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/mock"
 	localstorage "github.com/doc-assembly/doc-engine/internal/adapters/secondary/storage/local"
 	s3storage "github.com/doc-assembly/doc-engine/internal/adapters/secondary/storage/s3"
 	"github.com/doc-assembly/doc-engine/internal/core/port"
@@ -306,31 +308,49 @@ func ProvidePDFRenderer(typstCfg *config.TypstConfig) (port.PDFRenderer, error) 
 }
 
 // ProvideSigningConfig extracts signing config from the main config.
-func ProvideSigningConfig(cfg *config.Config) *documenso.Config {
-	return &documenso.Config{
-		APIKey:         cfg.Signing.APIKey,
-		BaseURL:        cfg.Signing.BaseURL,
-		SigningBaseURL: cfg.Signing.SigningBaseURL,
-		WebhookSecret:  cfg.Signing.WebhookSecret,
-		WebhookURL:     cfg.Signing.WebhookURL,
-	}
+func ProvideSigningConfig(cfg *config.Config) *config.SigningConfig {
+	return &cfg.Signing
 }
 
-// ProvideSigningProvider creates the signing provider (Documenso adapter).
-func ProvideSigningProvider(cfg *documenso.Config) (port.SigningProvider, error) {
-	return documenso.New(cfg)
+// ProvideSigningProvider creates the signing provider based on the configured provider name.
+func ProvideSigningProvider(cfg *config.SigningConfig) (port.SigningProvider, error) {
+	switch cfg.Provider {
+	case "mock":
+		return mocksigning.New(), nil
+	default:
+		return documenso.New(&documenso.Config{
+			APIKey:         cfg.APIKey,
+			BaseURL:        cfg.BaseURL,
+			SigningBaseURL: cfg.SigningBaseURL,
+			WebhookSecret:  cfg.WebhookSecret,
+			WebhookURL:     cfg.WebhookURL,
+		})
+	}
 }
 
 // ProvideWebhookHandlers creates the map of webhook handlers by provider name.
-func ProvideWebhookHandlers(cfg *documenso.Config) (map[string]port.WebhookHandler, error) {
-	documensoAdapter, err := documenso.New(cfg)
-	if err != nil {
-		return nil, err
+func ProvideWebhookHandlers(cfg *config.SigningConfig) (map[string]port.WebhookHandler, error) {
+	switch cfg.Provider {
+	case "mock":
+		adapter := mocksigning.New()
+		return map[string]port.WebhookHandler{
+			"mock": adapter,
+		}, nil
+	default:
+		documensoAdapter, err := documenso.New(&documenso.Config{
+			APIKey:         cfg.APIKey,
+			BaseURL:        cfg.BaseURL,
+			SigningBaseURL: cfg.SigningBaseURL,
+			WebhookSecret:  cfg.WebhookSecret,
+			WebhookURL:     cfg.WebhookURL,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return map[string]port.WebhookHandler{
+			"documenso": documensoAdapter,
+		}, nil
 	}
-
-	return map[string]port.WebhookHandler{
-		"documenso": documensoAdapter,
-	}, nil
 }
 
 // ProvideInjectorRegistry creates the injector registry with i18n support and registers all extensions.
@@ -454,6 +474,12 @@ func ProvideNotificationProvider(cfg *config.Config) port.NotificationProvider {
 			Password: cfg.Notification.Password,
 			From:     cfg.Notification.From,
 		})
+	case "gmail":
+		return gmailnotification.New(
+			cfg.Notification.Username,
+			cfg.Notification.Password,
+			cfg.Notification.From,
+		)
 	default:
 		return noopnotification.New()
 	}

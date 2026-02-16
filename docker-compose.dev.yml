@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: doc_assembly
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - dev-pgdata:/var/lib/postgresql/data
+
+  doc-engine:
+    build: apps/doc-engine
+    ports:
+      - "8080:8080"
+    environment:
+      DOC_ENGINE_DATABASE_HOST: postgres
+      DOC_ENGINE_DATABASE_PASSWORD: postgres
+      DOC_ENGINE_AUTH_DUMMY: "true"
+    depends_on:
+      - postgres
+
+volumes:
+  dev-pgdata:

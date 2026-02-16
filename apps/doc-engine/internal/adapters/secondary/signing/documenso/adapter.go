@@ -534,7 +534,18 @@ func (a *Adapter) CancelDocument(ctx context.Context, providerDocumentID string)
 
 // DownloadSignedPDF downloads the completed/signed PDF from Documenso.
 func (a *Adapter) DownloadSignedPDF(ctx context.Context, providerDocumentID string) ([]byte, error) {
-	url := fmt.Sprintf("%s/envelope/%s/download", a.config.BaseURL, providerDocumentID)
+	// Fetch envelope details to get the envelope item ID for download
+	envResp, err := a.fetchEnvelope(ctx, providerDocumentID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching envelope for PDF download: %w", err)
+	}
+
+	if len(envResp.EnvelopeItems) == 0 {
+		return nil, fmt.Errorf("envelope %s has no items to download", providerDocumentID)
+	}
+
+	itemID := envResp.EnvelopeItems[0].ID
+	url := fmt.Sprintf("%s/envelope/item/%s/download", a.config.BaseURL, itemID)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -662,9 +673,16 @@ type envelopeDetailResponse struct {
 	Status               string              `json:"status"`
 	Title                string              `json:"title"`
 	Recipients           []recipientResponse `json:"recipients"`
+	EnvelopeItems        []envelopeItem      `json:"envelopeItems,omitempty"`
 	CompletedDocumentURL string              `json:"completedDocumentUrl,omitempty"`
 	CreatedAt            string              `json:"createdAt"`
 	UpdatedAt            string              `json:"updatedAt"`
+}
+
+type envelopeItem struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Order int    `json:"order"`
 }
 
 type webhookPayload struct {

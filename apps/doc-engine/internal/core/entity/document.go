@@ -142,8 +142,9 @@ func (d *Document) MarkAsPendingProvider() error {
 }
 
 // MarkAsPending transitions the document to PENDING status (sent to provider).
+// Allowed from DRAFT, PENDING_PROVIDER, or ERROR (for retry after failed upload).
 func (d *Document) MarkAsPending() error {
-	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusPendingProvider {
+	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusPendingProvider && d.Status != DocumentStatusError {
 		return ErrInvalidDocumentStatusTransition
 	}
 	d.Status = DocumentStatusPending

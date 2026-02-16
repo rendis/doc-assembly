@@ -3,15 +3,20 @@
 package testhelper
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/controller"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/mapper"
 	"github.com/doc-assembly/doc-engine/internal/adapters/primary/http/middleware"
+	documenteventrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_event_repo"
+	documentrecipientrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_recipient_repo"
+	documentrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/document_repo"
 	folderrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/injectable_repo"
 	systeminjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/system_injectable_repo"
@@ -29,8 +34,13 @@ import (
 	workspaceinjectablerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_injectable_repo"
 	workspacememberrepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_member_repo"
 	workspacerepo "github.com/doc-assembly/doc-engine/internal/adapters/secondary/database/postgres/workspace_repo"
+	noopnotification "github.com/doc-assembly/doc-engine/internal/adapters/secondary/notification/noop"
+	mocksigning "github.com/doc-assembly/doc-engine/internal/adapters/secondary/signing/mock"
+	localstorage "github.com/doc-assembly/doc-engine/internal/adapters/secondary/storage/local"
+	"github.com/doc-assembly/doc-engine/internal/core/port"
 	accesssvc "github.com/doc-assembly/doc-engine/internal/core/service/access"
 	catalogsvc "github.com/doc-assembly/doc-engine/internal/core/service/catalog"
+	documentsvc "github.com/doc-assembly/doc-engine/internal/core/service/document"
 	injectablesvc "github.com/doc-assembly/doc-engine/internal/core/service/injectable"
 	organizationsvc "github.com/doc-assembly/doc-engine/internal/core/service/organization"
 	templatesvc "github.com/doc-assembly/doc-engine/internal/core/service/template"
@@ -38,12 +48,27 @@ import (
 	"github.com/doc-assembly/doc-engine/internal/infra/config"
 )
 
+// MockPDFRenderer implements port.PDFRenderer for testing.
+type MockPDFRenderer struct{}
+
+// RenderPreview returns minimal PDF bytes.
+func (m *MockPDFRenderer) RenderPreview(_ context.Context, _ *port.RenderPreviewRequest) (*port.RenderPreviewResult, error) {
+	return &port.RenderPreviewResult{
+		PDF:      []byte("%PDF-1.4 mock test pdf"),
+		Filename: "test.pdf",
+	}, nil
+}
+
+// Close is a no-op.
+func (m *MockPDFRenderer) Close() error { return nil }
+
 // TestServer wraps an httptest.Server with helper methods for E2E testing.
 type TestServer struct {
-	Server *httptest.Server
-	Engine *gin.Engine
-	Pool   *pgxpool.Pool
-	t      *testing.T
+	Server             *httptest.Server
+	Engine             *gin.Engine
+	Pool               *pgxpool.Pool
+	MockSigningAdapter *mocksigning.Adapter
+	t                  *testing.T
 }
 
 // NewTestServer creates a test HTTP server with all real dependencies.
@@ -103,6 +128,41 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		workspaceRepo,
 	)
 
+	// Create repositories - Document/Execution
+	docRepo := documentrepo.New(pool)
+	docRecipientRepo := documentrecipientrepo.New(pool)
+	docEventRepo := documenteventrepo.New(pool)
+
+	// Mock signing provider
+	mockSigningAdapter := mocksigning.New()
+
+	// Mock PDF renderer
+	mockPDFRenderer := &MockPDFRenderer{}
+
+	// Local storage in temp dir
+	storageDir := t.TempDir()
+	storageAdapter, err := localstorage.New(storageDir)
+	require.NoError(t, err, "failed to create local storage adapter")
+
+	// Event emitter + notification
+	eventEmitter := documentsvc.NewEventEmitter(docEventRepo)
+	noopNotifier := noopnotification.New()
+	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo)
+
+	// Document service
+	documentService := documentsvc.NewDocumentService(
+		docRepo,
+		docRecipientRepo,
+		templateVersionRepo,
+		templateVersionSignerRoleRepo,
+		mockPDFRenderer,
+		mockSigningAdapter,
+		storageAdapter,
+		eventEmitter,
+		notificationSvc,
+		30, // expirationDays
+	)
+
 	// Create mappers
 	injectableMapper := mapper.NewInjectableMapper()
 	templateVersionMapper := mapper.NewTemplateVersionMapper(injectableMapper)
@@ -146,6 +206,13 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		templateVersionController,
 	)
 
+	// Create controllers - Document & Webhook
+	documentController := controller.NewDocumentController(documentService, eventEmitter)
+	webhookHandlers := map[string]port.WebhookHandler{
+		"mock": mockSigningAdapter,
+	}
+	webhookController := controller.NewWebhookController(documentService, webhookHandlers)
+
 	// Build engine with middleware chain
 	engine := gin.New()
 	engine.Use(gin.Recovery())
@@ -169,15 +236,23 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	injectableController.RegisterRoutes(v1, middlewareProvider)
 	templateController.RegisterRoutes(v1, middlewareProvider)
 
+	// Document routes (within workspace context)
+	wsGroup := v1.Group("", middlewareProvider.WorkspaceContext())
+	documentController.RegisterRoutes(wsGroup)
+
+	// Webhook routes (no auth, registered on engine root)
+	webhookController.RegisterRoutes(engine)
+
 	// Create test server
 	server := httptest.NewServer(engine)
 	t.Cleanup(func() { server.Close() })
 
 	return &TestServer{
-		Server: server,
-		Engine: engine,
-		Pool:   pool,
-		t:      t,
+		Server:             server,
+		Engine:             engine,
+		Pool:               pool,
+		MockSigningAdapter: mockSigningAdapter,
+		t:                  t,
 	}
 }
 
