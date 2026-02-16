@@ -931,14 +931,14 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	// Anchor text (invisible but present for PDF anchor extraction)
 	sb.WriteString(fmt.Sprintf("    #text(size: 0.1pt, fill: white)[%s]\n", escapeTypst(anchorString)))
 
-	// Fixed-width container matching line width — text centers relative to line
-	sb.WriteString(fmt.Sprintf("    #block(width: %s)[\n", lineWidthPt))
+	// Responsive container — caps width to available space to prevent grid overflow
+	sb.WriteString(fmt.Sprintf("    #layout(size => block(width: calc.min(%s, size.width))[\n", lineWidthPt))
 	sb.WriteString("      #line(length: 100%, stroke: 0.5pt)\n")
 	sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 9pt)[%s]]\n", escapeTypst(sig.Label)))
 	if sig.Subtitle != nil && *sig.Subtitle != "" {
 		sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 8pt, fill: luma(100))[%s]]\n", escapeTypst(*sig.Subtitle)))
 	}
-	sb.WriteString("    ]\n")
+	sb.WriteString("    ])\n")
 
 	return sb.String()
 }
