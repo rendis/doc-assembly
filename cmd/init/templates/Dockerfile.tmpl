@@ -1,7 +1,8 @@
 # Build stage
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
-COPY go.mod go.sum ./
+COPY go.mod ./
+COPY go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o /app/bin/{{.ProjectName}} .
@@ -11,11 +12,15 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates
 
 # Install Typst
-COPY --from=ghcr.io/typst/typst:latest /usr/local/bin/typst /usr/local/bin/typst
+COPY --from=ghcr.io/typst/typst:v0.14.2 /usr/local/bin/typst /usr/local/bin/typst
+
+RUN adduser -D -u 1000 appuser
 
 WORKDIR /app
 COPY --from=builder /app/bin/{{.ProjectName}} .
 COPY settings/ ./settings/
 
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://localhost:8080/health || exit 1
+USER appuser
 CMD ["./{{.ProjectName}}"]

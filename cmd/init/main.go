@@ -50,12 +50,13 @@ func main() {
 	}
 
 	projectName := positional[0]
+	displayName := filepath.Base(projectName)
 	if modulePath == "" {
-		modulePath = "github.com/myorg/" + projectName
+		modulePath = "github.com/myorg/" + displayName
 	}
 
 	data := projectData{
-		ProjectName: projectName,
+		ProjectName: displayName,
 		ModulePath:  modulePath,
 	}
 
@@ -63,9 +64,10 @@ func main() {
 		fatalf("scaffold error: %v", err)
 	}
 
-	fmt.Printf("\nProject %q created successfully!\n\n", projectName)
+	absPath, _ := filepath.Abs(projectName)
+	fmt.Printf("\nProject %q created at %s\n\n", displayName, absPath)
 	fmt.Println("Next steps:")
-	fmt.Printf("  cd %s\n", projectName)
+	fmt.Printf("  cd %s\n", absPath)
 	fmt.Println("  go mod tidy")
 	fmt.Println("  # Edit settings/app.yaml with your database config")
 	fmt.Println("  go run . migrate")

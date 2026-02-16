@@ -1,14 +1,20 @@
-# Custom i18n labels and descriptions for injectors.
-# These merge with (and override) the built-in translations.
+# Injector i18n — human-readable labels and descriptions for the template editor UI.
+# These merge with (and override) the built-in translations shipped by doc-assembly.
+#
+# The top-level key is the injector code, which MUST match the value returned by
+# the injector's Code() method (e.g., GreetingInjector.Code() == "example_greeting").
 #
 # Format:
 #   <injector_code>:
 #     label:
-#       en: "English Label"
-#       es: "Etiqueta en Espanol"
+#       <lang>: "Localized Label"
 #     description:
-#       en: "English description"
-#       es: "Descripcion en espanol"
+#       <lang>: "Localized description"
+#
+# Notes:
+#   - "en" (English) is the minimum required language; other languages are optional.
+#   - If a language is missing, the engine falls back to "en".
+#   - Keep labels short (1-3 words); descriptions can be a brief sentence.
 
 example_greeting:
   label:

@@ -9,15 +9,15 @@ server:
   read_timeout: 30
   write_timeout: 30
   shutdown_timeout: 10
-  swagger_ui: false
+  swagger_ui: true
   cors:
-    allowed_origins: []
+    allowed_origins: ["http://localhost:3000", "http://localhost:5173"]
 
 database:
   host: localhost
   port: 5432
   user: postgres
-  password: ""
+  password: "postgres"
   name: doc_assembly
   ssl_mode: disable
   max_pool_size: 10
@@ -25,7 +25,7 @@ database:
   max_idle_time_seconds: 300
 
 auth:
-  dummy: false  # Set true or use DOC_ENGINE_AUTH_DUMMY=true for dev without JWT
+  dummy: true  # Set to false and configure OIDC for production
 
 signing:
   provider: mock  # "mock", "documenso"
@@ -49,7 +49,7 @@ scheduler:
   retry_interval_sec: 120
 
 typst:
-  bin_path: "typst"
+  bin_path: "typst"  # Install: https://github.com/typst/typst/releases
   timeout_seconds: 30
   max_concurrent: 10
   acquire_timeout_seconds: 5

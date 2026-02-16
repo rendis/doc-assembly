@@ -1,4 +1,4 @@
-.PHONY: build run run-dummy migrate test lint clean help
+.PHONY: build run run-dummy dev migrate test lint clean docker-build docker-run help
 
 BINARY_NAME={{.ProjectName}}
 BUILD_DIR=bin
@@ -12,23 +12,36 @@ run:
 run-dummy:
 	@DOC_ENGINE_AUTH_DUMMY=true go run .
 
+dev: migrate  ## Start with dummy auth (runs migrations first)
+	@$(MAKE) run-dummy
+
 migrate:
 	@go run . migrate
 
 test:
 	@go test ./...
 
-lint:
-	@golangci-lint run ./...
+lint:  ## Run linter
+	@which golangci-lint > /dev/null 2>&1 || (echo "Install golangci-lint: https://golangci-lint.run/usage/install/"; exit 1)
+	golangci-lint run ./...
 
 clean:
 	@rm -rf $(BUILD_DIR)
 
+docker-build:  ## Build Docker image
+	docker build -t {{.ProjectName}} .
+
+docker-run: docker-build  ## Build and run Docker image
+	docker run --rm -p 8080:8080 --env-file .env {{.ProjectName}}
+
 help:
-	@echo "  build       - Build binary"
-	@echo "  run         - Run the application"
-	@echo "  run-dummy   - Run with dummy auth (no JWT)"
-	@echo "  migrate     - Run database migrations"
-	@echo "  test        - Run tests"
-	@echo "  lint        - Run linter"
-	@echo "  clean       - Remove build artifacts"
+	@echo "  build        - Build binary"
+	@echo "  run          - Run the application"
+	@echo "  run-dummy    - Run with dummy auth (no JWT)"
+	@echo "  dev          - Start with dummy auth (runs migrations first)"
+	@echo "  migrate      - Run database migrations"
+	@echo "  test         - Run tests"
+	@echo "  lint         - Run linter"
+	@echo "  clean        - Remove build artifacts"
+	@echo "  docker-build - Build Docker image"
+	@echo "  docker-run   - Build and run Docker image"

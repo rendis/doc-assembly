@@ -10,16 +10,19 @@ import (
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		// Loads config from settings/app.yaml. Override with DOC_ENGINE_* env vars.
 		engine := sdk.New()
 		if err := engine.RunMigrations(); err != nil {
-			fmt.Fprintf(os.Stderr, "migration error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "migration failed (check DB config in settings/app.yaml): %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Println("migrations applied successfully")
 		return
 	}
 
+	// Loads config from settings/app.yaml. Override with DOC_ENGINE_* env vars.
 	engine := sdk.New()
+	// Register all custom injectors, mappers, and providers (see extensions/register.go)
 	extensions.Register(engine)
 
 	if err := engine.Run(); err != nil {
