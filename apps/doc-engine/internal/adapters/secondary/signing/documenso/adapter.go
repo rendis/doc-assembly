@@ -3,9 +3,7 @@ package documenso
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -56,7 +54,7 @@ func (a *Adapter) setAuthHeader(req *http.Request) {
 
 // UploadDocument uploads a PDF document to Documenso and creates a signing envelope.
 func (a *Adapter) UploadDocument(ctx context.Context, req *port.UploadDocumentRequest) (*port.UploadDocumentResult, error) {
-	envelopeID, err := a.createEnvelope(ctx, req.Title, req.PDF)
+	envelopeID, err := a.createEnvelope(ctx, req.Title, req.ExternalRef, req.PDF)
 	if err != nil {
 		return nil, err
 	}
@@ -86,49 +84,56 @@ func (a *Adapter) UploadDocument(ctx context.Context, req *port.UploadDocumentRe
 	return a.buildUploadResult(envelopeID, envDetails, req.Recipients), nil
 }
 
-// createEnvelope creates a new envelope with the PDF document.
-func (a *Adapter) createEnvelope(ctx context.Context, title string, pdf []byte) (string, error) {
+// buildEnvelopeBody builds the multipart form body for creating an envelope.
+func buildEnvelopeBody(title, externalRef string, pdf []byte) (*bytes.Buffer, string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	// Create file part with explicit PDF content type
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition", `form-data; name="files"; filename="document.pdf"`)
 	h.Set("Content-Type", "application/pdf")
 
 	part, err := writer.CreatePart(h)
 	if err != nil {
-		return "", fmt.Errorf("creating form file: %w", err)
+		return nil, "", fmt.Errorf("creating form file: %w", err)
 	}
 	if _, err := part.Write(pdf); err != nil {
-		return "", fmt.Errorf("writing PDF to form: %w", err)
+		return nil, "", fmt.Errorf("writing PDF to form: %w", err)
 	}
 
-	payload := map[string]any{
-		"title": title,
-		"type":  "DOCUMENT",
+	payload := map[string]any{"title": title, "type": "DOCUMENT"}
+	if externalRef != "" {
+		payload["externalId"] = externalRef
 	}
 
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
-		return "", fmt.Errorf("marshaling payload: %w", err)
+		return nil, "", fmt.Errorf("marshaling payload: %w", err)
 	}
-
 	if err := writer.WriteField("payload", string(payloadJSON)); err != nil {
-		return "", fmt.Errorf("writing payload field: %w", err)
+		return nil, "", fmt.Errorf("writing payload field: %w", err)
 	}
-
 	if err := writer.Close(); err != nil {
-		return "", fmt.Errorf("closing multipart writer: %w", err)
+		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/envelope/create", &buf)
+	return &buf, writer.FormDataContentType(), nil
+}
+
+// createEnvelope creates a new envelope with the PDF document.
+func (a *Adapter) createEnvelope(ctx context.Context, title string, externalRef string, pdf []byte) (string, error) {
+	buf, contentType, err := buildEnvelopeBody(title, externalRef, pdf)
+	if err != nil {
+		return "", err
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/envelope/create", buf)
 	if err != nil {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
 
 	a.setAuthHeader(httpReq)
-	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
+	httpReq.Header.Set("Content-Type", contentType)
 
 	resp, err := a.httpClient.Do(httpReq)
 	if err != nil {
@@ -587,9 +592,15 @@ func (a *Adapter) ParseWebhook(ctx context.Context, body []byte, signature strin
 		return nil, fmt.Errorf("parsing webhook payload: %w", err)
 	}
 
+	// Determine provider document ID: prefer externalId (our document UUID), fallback to numeric ID
+	providerDocID := strconv.Itoa(payload.Payload.ID)
+	if payload.Payload.ExternalID != nil && *payload.Payload.ExternalID != "" {
+		providerDocID = *payload.Payload.ExternalID
+	}
+
 	event := &port.WebhookEvent{
 		EventType:          payload.Event,
-		ProviderDocumentID: payload.Data.DocumentID,
+		ProviderDocumentID: providerDocID,
 		Timestamp:          time.Now(),
 		RawPayload:         body,
 	}
@@ -599,25 +610,25 @@ func (a *Adapter) ParseWebhook(ctx context.Context, body []byte, signature strin
 	event.DocumentStatus = mapping.DocumentStatus
 	event.RecipientStatus = mapping.RecipientStatus
 
-	// Extract recipient ID if present
-	if payload.Data.RecipientID != "" {
-		event.ProviderRecipientID = payload.Data.RecipientID
+	// Extract the recipient who signed from the webhook payload
+	for _, r := range payload.Payload.Recipients {
+		if r.SigningStatus == "SIGNED" && r.SignedAt != nil {
+			event.ProviderRecipientID = strconv.Itoa(r.ID)
+			break
+		}
 	}
 
 	return event, nil
 }
 
-// validateSignature validates the webhook signature using HMAC-SHA256.
-func (a *Adapter) validateSignature(body []byte, signature string) bool {
+// validateSignature validates the webhook secret.
+// Documenso sends the raw secret in the X-Documenso-Secret header (not HMAC).
+func (a *Adapter) validateSignature(_ []byte, signature string) bool {
 	if signature == "" {
 		return false
 	}
 
-	mac := hmac.New(sha256.New, []byte(a.config.WebhookSecret))
-	mac.Write(body)
-	expectedSignature := hex.EncodeToString(mac.Sum(nil))
-
-	return hmac.Equal([]byte(signature), []byte(expectedSignature))
+	return subtle.ConstantTimeCompare([]byte(signature), []byte(a.config.WebhookSecret)) == 1
 }
 
 // Ensure Adapter implements the interfaces
@@ -686,13 +697,24 @@ type envelopeItem struct {
 }
 
 type webhookPayload struct {
-	Event string `json:"event"`
-	Data  struct {
-		DocumentID  string `json:"documentId"`
-		RecipientID string `json:"recipientId,omitempty"`
-		Status      string `json:"status,omitempty"`
-	} `json:"data"`
-	Timestamp string `json:"timestamp"`
+	Event   string          `json:"event"`
+	Payload webhookDocument `json:"payload"`
+}
+
+type webhookDocument struct {
+	ID         int                `json:"id"`
+	ExternalID *string            `json:"externalId"`
+	Title      string             `json:"title"`
+	Status     string             `json:"status"`
+	Recipients []webhookRecipient `json:"recipients"`
+}
+
+type webhookRecipient struct {
+	ID            int     `json:"id"`
+	Name          string  `json:"name"`
+	Email         string  `json:"email"`
+	SigningStatus string  `json:"signingStatus"`
+	SignedAt      *string `json:"signedAt"`
 }
 
 // Field creation types for Documenso API

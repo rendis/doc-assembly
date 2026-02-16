@@ -11,6 +11,7 @@ type DocumensoEnvelopeStatus string
 
 const (
 	EnvelopeStatusCreated   DocumensoEnvelopeStatus = "CREATED"
+	EnvelopeStatusPending   DocumensoEnvelopeStatus = "PENDING"
 	EnvelopeStatusSent      DocumensoEnvelopeStatus = "SENT"
 	EnvelopeStatusOpened    DocumensoEnvelopeStatus = "OPENED"
 	EnvelopeStatusSigned    DocumensoEnvelopeStatus = "SIGNED"
@@ -36,7 +37,7 @@ func MapEnvelopeStatus(status string) entity.DocumentStatus {
 	switch DocumensoEnvelopeStatus(strings.ToUpper(status)) {
 	case EnvelopeStatusCreated:
 		return entity.DocumentStatusDraft
-	case EnvelopeStatusSent:
+	case EnvelopeStatusPending, EnvelopeStatusSent:
 		return entity.DocumentStatusPending
 	case EnvelopeStatusOpened:
 		return entity.DocumentStatusInProgress
@@ -81,10 +82,14 @@ type WebhookEventMapping struct {
 }
 
 // MapWebhookEvent maps a Documenso webhook event type to status updates.
+// Handles both formats: "document.signed" (dot) and "DOCUMENT_SIGNED" (underscore).
 func MapWebhookEvent(eventType string) WebhookEventMapping {
 	mapping := WebhookEventMapping{}
 
-	switch strings.ToLower(eventType) {
+	normalized := strings.ToLower(eventType)
+	normalized = strings.ReplaceAll(normalized, "_", ".")
+
+	switch normalized {
 	case "document.created":
 		status := entity.DocumentStatusDraft
 		mapping.DocumentStatus = &status

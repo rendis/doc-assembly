@@ -10,6 +10,12 @@ services:
     volumes:
       - documenso-pgdata:/var/lib/postgresql/data
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP
+
   documenso:
     image: documenso/documenso:latest
     ports:
@@ -23,10 +29,15 @@ services:
       - NEXT_PRIVATE_ENCRYPTION_KEY=aH7kG2pL9mN4qR8sT1vW6xY0bC3dF5e
       - NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=jK8nP3rV6wZ1cE4gI7lO0sU2xA5yB9d
       - NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
+      - NEXT_PRIVATE_SMTP_HOST=mailpit
+      - NEXT_PRIVATE_SMTP_PORT=1025
       - NEXT_PRIVATE_SMTP_FROM_ADDRESS=noreply@localhost
       - NEXT_PRIVATE_SMTP_FROM_NAME=Documenso
+      - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/app/certs/cert.p12
+      - NEXT_PRIVATE_SIGNING_PASSPHRASE=documenso
     depends_on:
       - documenso-db
+      - mailpit
 
 volumes:
   documenso-pgdata:

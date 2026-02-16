@@ -558,7 +558,11 @@ func (s *DocumentService) CancelDocument(ctx context.Context, documentID string)
 func (s *DocumentService) HandleWebhookEvent(ctx context.Context, event *port.WebhookEvent) error {
 	doc, err := s.documentRepo.FindBySignerDocumentID(ctx, event.ProviderDocumentID)
 	if err != nil {
-		return fmt.Errorf("finding document by provider ID: %w", err)
+		// Fallback: if externalId was set to our document UUID, try direct lookup
+		doc, err = s.documentRepo.FindByID(ctx, event.ProviderDocumentID)
+		if err != nil {
+			return fmt.Errorf("finding document by provider ID: %w", err)
+		}
 	}
 
 	slog.InfoContext(ctx, "processing webhook event",

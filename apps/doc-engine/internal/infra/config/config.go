@@ -71,6 +71,9 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// Explicit env overrides for signing config (same Viper nested env issue).
+	applySigningEnvOverrides(&cfg.Signing)
+
 	// Run OIDC discovery to populate issuer/jwks_url from discovery endpoints.
 	// Non-fatal: dev mode (no OIDC) and manual config still work.
 	if err := cfg.Auth.DiscoverAll(context.Background()); err != nil {
@@ -105,6 +108,28 @@ func setDefaults(v *viper.Viper) {
 
 	// Environment default
 	v.SetDefault("environment", "development")
+}
+
+// applySigningEnvOverrides reads DOC_ENGINE_SIGNING_* env vars into SigningConfig.
+func applySigningEnvOverrides(cfg *SigningConfig) {
+	if v := os.Getenv("DOC_ENGINE_SIGNING_PROVIDER"); v != "" {
+		cfg.Provider = v
+	}
+	if v := os.Getenv("DOC_ENGINE_SIGNING_API_KEY"); v != "" {
+		cfg.APIKey = v
+	}
+	if v := os.Getenv("DOC_ENGINE_SIGNING_BASE_URL"); v != "" {
+		cfg.BaseURL = v
+	}
+	if v := os.Getenv("DOC_ENGINE_SIGNING_SIGNING_BASE_URL"); v != "" {
+		cfg.SigningBaseURL = v
+	}
+	if v := os.Getenv("DOC_ENGINE_SIGNING_WEBHOOK_SECRET"); v != "" {
+		cfg.WebhookSecret = v
+	}
+	if v := os.Getenv("DOC_ENGINE_SIGNING_WEBHOOK_URL"); v != "" {
+		cfg.WebhookURL = v
+	}
 }
 
 // MustLoad loads configuration and panics on error.

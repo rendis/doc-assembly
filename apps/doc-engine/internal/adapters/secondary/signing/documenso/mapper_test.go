@@ -15,6 +15,7 @@ func TestMapEnvelopeStatus(t *testing.T) {
 		expect entity.DocumentStatus
 	}{
 		{"CREATED -> DRAFT", "CREATED", entity.DocumentStatusDraft},
+		{"PENDING -> PENDING", "PENDING", entity.DocumentStatusPending},
 		{"SENT -> PENDING", "SENT", entity.DocumentStatusPending},
 		{"OPENED -> IN_PROGRESS", "OPENED", entity.DocumentStatusInProgress},
 		{"SIGNED -> COMPLETED", "SIGNED", entity.DocumentStatusCompleted},
@@ -103,6 +104,34 @@ func TestMapWebhookEvent(t *testing.T) {
 			name:          "document.cancelled",
 			eventType:     "document.cancelled",
 			wantDocStatus: docStatusPtr(entity.DocumentStatusVoided),
+		},
+		{
+			name:          "DOCUMENT_CREATED (underscore format)",
+			eventType:     "DOCUMENT_CREATED",
+			wantDocStatus: docStatusPtr(entity.DocumentStatusDraft),
+		},
+		{
+			name:            "DOCUMENT_SENT (underscore format)",
+			eventType:       "DOCUMENT_SENT",
+			wantDocStatus:   docStatusPtr(entity.DocumentStatusPending),
+			wantRecipStatus: recipStatusPtr(entity.RecipientStatusSent),
+		},
+		{
+			name:            "DOCUMENT_OPENED (underscore format)",
+			eventType:       "DOCUMENT_OPENED",
+			wantDocStatus:   docStatusPtr(entity.DocumentStatusInProgress),
+			wantRecipStatus: recipStatusPtr(entity.RecipientStatusDelivered),
+		},
+		{
+			name:            "DOCUMENT_SIGNED (underscore format)",
+			eventType:       "DOCUMENT_SIGNED",
+			wantDocStatus:   nil,
+			wantRecipStatus: recipStatusPtr(entity.RecipientStatusSigned),
+		},
+		{
+			name:          "DOCUMENT_COMPLETED (underscore format)",
+			eventType:     "DOCUMENT_COMPLETED",
+			wantDocStatus: docStatusPtr(entity.DocumentStatusCompleted),
 		},
 		{
 			name:      "unknown event returns empty mapping",

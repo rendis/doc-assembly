@@ -155,3 +155,6 @@ apps/doc-engine/tmp
 
 # Local data/storage
 **/data/storage/
+
+# Documenso local certs
+.documenso-certs/
