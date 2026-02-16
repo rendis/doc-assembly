@@ -792,36 +792,53 @@ func (c *typstConverter) getAnchorString(sig *portabledoc.SignatureItem) string 
 
 // renderSignatureBlock renders a signature block in Typst.
 func (c *typstConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) string {
-	lineWidthPt := c.signatureLineWidth(attrs.LineWidth)
+	lwPt := c.signatureLineWidth(attrs.LineWidth)
+	body := c.signatureLayoutBody(attrs, lwPt)
+	return "#v(2em)\n" + body
+}
 
-	var sb strings.Builder
-	sb.WriteString("#v(2em)\n")
+// signatureLayoutBody dispatches to the appropriate layout renderer.
+func (c *typstConverter) signatureLayoutBody(attrs portabledoc.SignatureAttrs, lwPt string) string {
+	sigs := attrs.Signatures
 
-	// Determine Typst column layout
-	columns := c.signatureColumns(attrs.Layout, attrs.Count)
+	switch attrs.Layout {
+	// Single signature layouts
+	case portabledoc.LayoutSingleLeft:
+		return c.renderAlignedSignature(&sigs[0], "left", lwPt)
+	case portabledoc.LayoutSingleRight:
+		return c.renderAlignedSignature(&sigs[0], "right", lwPt)
+	case portabledoc.LayoutSingleCenter:
+		return c.renderAlignedSignature(&sigs[0], "center", lwPt)
 
-	if len(attrs.Signatures) == 1 {
-		// Single signature - use align (content block provided by #align)
-		sig := &attrs.Signatures[0]
-		alignment := c.signatureAlignment(attrs.Layout)
-		sb.WriteString(fmt.Sprintf("#align(%s)[\n", alignment))
-		sb.WriteString(c.renderTypstSignatureItemContent(sig, lineWidthPt))
-		sb.WriteString("]\n")
-	} else {
-		// Multiple signatures - use grid (each item needs [...] content block)
-		sb.WriteString(fmt.Sprintf("#grid(\n  columns: (%s),\n  gutter: 1em,\n", columns))
-		for i := range attrs.Signatures {
-			sb.WriteString("  [\n")
-			sb.WriteString(c.renderTypstSignatureItemContent(&attrs.Signatures[i], lineWidthPt))
-			sb.WriteString("  ]")
-			if i < len(attrs.Signatures)-1 {
-				sb.WriteString(",\n")
-			}
-		}
-		sb.WriteString("\n)\n")
+	// Dual layouts
+	case portabledoc.LayoutDualSides:
+		return c.renderSignatureGrid(sigs, 2, lwPt)
+	case portabledoc.LayoutDualCenter:
+		return c.renderStackedSignatures(sigs, "center", lwPt)
+	case portabledoc.LayoutDualLeft:
+		return c.renderStackedSignatures(sigs, "left", lwPt)
+	case portabledoc.LayoutDualRight:
+		return c.renderStackedSignatures(sigs, "right", lwPt)
+
+	// Triple layouts
+	case portabledoc.LayoutTripleRow:
+		return c.renderSignatureGrid(sigs, 3, lwPt)
+	case portabledoc.LayoutTriplePyramid:
+		return c.renderSplitLayout(sigs[:2], 2, sigs[2:], 0, lwPt)
+	case portabledoc.LayoutTripleInverted:
+		return c.renderSplitLayout(sigs[:1], 0, sigs[1:], 2, lwPt)
+
+	// Quad layouts
+	case portabledoc.LayoutQuadGrid:
+		return c.renderSignatureGrid(sigs, 2, lwPt)
+	case portabledoc.LayoutQuadTopHeavy:
+		return c.renderSplitLayout(sigs[:3], 3, sigs[3:], 0, lwPt)
+	case portabledoc.LayoutQuadBottomHeavy:
+		return c.renderSplitLayout(sigs[:1], 0, sigs[1:], 3, lwPt)
+
+	default:
+		return c.renderSignatureGrid(sigs, len(sigs), lwPt)
 	}
-
-	return sb.String()
 }
 
 // signatureLineWidth returns the line width in pt from the lineWidth name.
@@ -836,30 +853,68 @@ func (c *typstConverter) signatureLineWidth(lineWidth string) string {
 	}
 }
 
-// signatureColumns returns Typst column specification for the layout.
-func (c *typstConverter) signatureColumns(_ string, count int) string {
-	switch count {
-	case 2:
-		return "1fr, 1fr"
-	case 3:
-		return "1fr, 1fr, 1fr"
-	case 4:
-		return "1fr, 1fr"
-	default:
-		return "1fr"
+// renderSignatureGrid renders signatures in a Typst grid layout.
+func (c *typstConverter) renderSignatureGrid(sigs []portabledoc.SignatureItem, cols int, lwPt string) string {
+	colSpec := strings.TrimRight(strings.Repeat("1fr, ", cols), ", ")
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf(
+		"#grid(\n  columns: (%s),\n  column-gutter: 1em,\n  row-gutter: 3em,\n  align: center + top,\n",
+		colSpec,
+	))
+	for i := range sigs {
+		sb.WriteString("  [\n")
+		sb.WriteString(c.renderTypstSignatureItemContent(&sigs[i], lwPt))
+		sb.WriteString("  ]")
+		if i < len(sigs)-1 {
+			sb.WriteString(",\n")
+		}
 	}
+	sb.WriteString("\n)\n")
+	return sb.String()
 }
 
-// signatureAlignment returns Typst alignment for single signature layouts.
-func (c *typstConverter) signatureAlignment(layout string) string {
-	switch layout {
-	case portabledoc.LayoutSingleLeft:
-		return "left"
-	case portabledoc.LayoutSingleRight:
-		return "right"
-	default:
-		return "center"
+// renderAlignedSignature renders a single signature with the given alignment.
+func (c *typstConverter) renderAlignedSignature(sig *portabledoc.SignatureItem, alignment, lwPt string) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("#align(%s)[\n", alignment))
+	sb.WriteString(c.renderTypstSignatureItemContent(sig, lwPt))
+	sb.WriteString("]\n")
+	return sb.String()
+}
+
+// renderStackedSignatures renders signatures vertically stacked with the given alignment.
+func (c *typstConverter) renderStackedSignatures(sigs []portabledoc.SignatureItem, alignment, lwPt string) string {
+	var sb strings.Builder
+	for i := range sigs {
+		if i > 0 {
+			sb.WriteString("#v(3em)\n")
+		}
+		sb.WriteString(c.renderAlignedSignature(&sigs[i], alignment, lwPt))
 	}
+	return sb.String()
+}
+
+// renderSplitLayout renders two groups of signatures separated by vertical space.
+// cols=0 means single centered signature; cols>0 means grid with that many columns.
+func (c *typstConverter) renderSplitLayout(
+	topSigs []portabledoc.SignatureItem, topCols int,
+	bottomSigs []portabledoc.SignatureItem, bottomCols int,
+	lwPt string,
+) string {
+	var sb strings.Builder
+	sb.WriteString(c.renderSignatureGroup(topSigs, topCols, lwPt))
+	sb.WriteString("#v(3em)\n")
+	sb.WriteString(c.renderSignatureGroup(bottomSigs, bottomCols, lwPt))
+	return sb.String()
+}
+
+// renderSignatureGroup renders a group of signatures as either a centered single or a grid.
+func (c *typstConverter) renderSignatureGroup(sigs []portabledoc.SignatureItem, cols int, lwPt string) string {
+	if cols == 0 || len(sigs) == 1 {
+		return c.renderAlignedSignature(&sigs[0], "center", lwPt)
+	}
+	return c.renderSignatureGrid(sigs, cols, lwPt)
 }
 
 // renderTypstSignatureItemContent renders the inner content of a signature item.
@@ -876,16 +931,14 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	// Anchor text (invisible but present for PDF anchor extraction)
 	sb.WriteString(fmt.Sprintf("    #text(size: 0.1pt, fill: white)[%s]\n", escapeTypst(anchorString)))
 
-	// Signature line
-	sb.WriteString(fmt.Sprintf("    #line(length: %s, stroke: 0.5pt)\n", lineWidthPt))
-
-	// Label
-	sb.WriteString(fmt.Sprintf("    #text(size: 9pt)[%s]\n", escapeTypst(sig.Label)))
-
-	// Subtitle
+	// Fixed-width container matching line width — text centers relative to line
+	sb.WriteString(fmt.Sprintf("    #block(width: %s)[\n", lineWidthPt))
+	sb.WriteString("      #line(length: 100%, stroke: 0.5pt)\n")
+	sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 9pt)[%s]]\n", escapeTypst(sig.Label)))
 	if sig.Subtitle != nil && *sig.Subtitle != "" {
-		sb.WriteString(fmt.Sprintf("    #text(size: 8pt, fill: luma(100))[%s]\n", escapeTypst(*sig.Subtitle)))
+		sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 8pt, fill: luma(100))[%s]]\n", escapeTypst(*sig.Subtitle)))
 	}
+	sb.WriteString("    ]\n")
 
 	return sb.String()
 }

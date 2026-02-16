@@ -1206,5 +1206,222 @@ func TestTypstBuilder_PageCount(t *testing.T) {
 	}
 }
 
+// --- Signature Block Layouts ---
+
+func makeSigs(n int) []portabledoc.SignatureItem {
+	sigs := make([]portabledoc.SignatureItem, 0, n)
+	for i := range n {
+		sigs = append(sigs, portabledoc.SignatureItem{
+			ID:    fmt.Sprintf("sig_%d", i),
+			Label: fmt.Sprintf("Signer %d", i),
+		})
+	}
+	return sigs
+}
+
+func makeSigsWithSubtitle(n int, subtitleIdx int) []portabledoc.SignatureItem {
+	sigs := makeSigs(n)
+	sub := "Director"
+	sigs[subtitleIdx].Subtitle = &sub
+	return sigs
+}
+
+func TestRenderSignatureBlock_SingleLayouts(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	tests := []struct {
+		layout    string
+		wantAlign string
+	}{
+		{portabledoc.LayoutSingleLeft, "#align(left)"},
+		{portabledoc.LayoutSingleCenter, "#align(center)"},
+		{portabledoc.LayoutSingleRight, "#align(right)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.layout, func(t *testing.T) {
+			attrs := portabledoc.SignatureAttrs{Count: 1, Layout: tt.layout, LineWidth: "md", Signatures: makeSigs(1)}
+			got := c.renderSignatureBlock(attrs)
+			if !strings.Contains(got, tt.wantAlign) {
+				t.Errorf("layout %s: expected %q in output:\n%s", tt.layout, tt.wantAlign, got)
+			}
+			if strings.Contains(got, "#grid") {
+				t.Errorf("layout %s: should NOT contain #grid:\n%s", tt.layout, got)
+			}
+		})
+	}
+}
+
+func TestRenderSignatureBlock_DualSides(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 2, Layout: portabledoc.LayoutDualSides, LineWidth: "md", Signatures: makeSigs(2)}
+	got := c.renderSignatureBlock(attrs)
+
+	if !strings.Contains(got, "#grid") {
+		t.Fatalf("dual-sides should contain #grid:\n%s", got)
+	}
+	if !strings.Contains(got, "columns: (1fr, 1fr)") {
+		t.Errorf("dual-sides should have 2 columns:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_DualStacked(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	tests := []struct {
+		layout    string
+		wantAlign string
+	}{
+		{portabledoc.LayoutDualCenter, "#align(center)"},
+		{portabledoc.LayoutDualLeft, "#align(left)"},
+		{portabledoc.LayoutDualRight, "#align(right)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.layout, func(t *testing.T) {
+			attrs := portabledoc.SignatureAttrs{Count: 2, Layout: tt.layout, LineWidth: "md", Signatures: makeSigs(2)}
+			got := c.renderSignatureBlock(attrs)
+			if strings.Contains(got, "#grid") {
+				t.Errorf("layout %s should NOT contain #grid:\n%s", tt.layout, got)
+			}
+			if !strings.Contains(got, tt.wantAlign) {
+				t.Errorf("layout %s: expected %q:\n%s", tt.layout, tt.wantAlign, got)
+			}
+			if !strings.Contains(got, "#v(3em)") {
+				t.Errorf("layout %s: expected vertical spacing #v(3em):\n%s", tt.layout, got)
+			}
+			// Should have 2 align blocks
+			if strings.Count(got, tt.wantAlign) < 2 {
+				t.Errorf("layout %s: expected 2 align blocks, got %d:\n%s", tt.layout, strings.Count(got, tt.wantAlign), got)
+			}
+		})
+	}
+}
+
+func TestRenderSignatureBlock_TripleRow(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 3, Layout: portabledoc.LayoutTripleRow, LineWidth: "md", Signatures: makeSigs(3)}
+	got := c.renderSignatureBlock(attrs)
+
+	if !strings.Contains(got, "#grid") {
+		t.Fatalf("triple-row should contain #grid:\n%s", got)
+	}
+	if !strings.Contains(got, "columns: (1fr, 1fr, 1fr)") {
+		t.Errorf("triple-row should have 3 columns:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_TriplePyramid(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 3, Layout: portabledoc.LayoutTriplePyramid, LineWidth: "md", Signatures: makeSigs(3)}
+	got := c.renderSignatureBlock(attrs)
+
+	// Should have a 2-col grid for top row
+	if !strings.Contains(got, "columns: (1fr, 1fr)") {
+		t.Errorf("triple-pyramid should have 2-col grid for top:\n%s", got)
+	}
+	// Should have centered bottom
+	if !strings.Contains(got, "#align(center)") {
+		t.Errorf("triple-pyramid should have #align(center) for bottom:\n%s", got)
+	}
+	// Grid should appear BEFORE align(center)
+	gridIdx := strings.Index(got, "#grid")
+	alignIdx := strings.LastIndex(got, "#align(center)")
+	if gridIdx > alignIdx {
+		t.Errorf("triple-pyramid: grid should come before centered align:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_TripleInverted(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 3, Layout: portabledoc.LayoutTripleInverted, LineWidth: "md", Signatures: makeSigs(3)}
+	got := c.renderSignatureBlock(attrs)
+
+	// Should have centered top
+	if !strings.Contains(got, "#align(center)") {
+		t.Errorf("triple-inverted should have #align(center) for top:\n%s", got)
+	}
+	// Should have 2-col grid for bottom
+	if !strings.Contains(got, "columns: (1fr, 1fr)") {
+		t.Errorf("triple-inverted should have 2-col grid for bottom:\n%s", got)
+	}
+	// Align(center) should appear BEFORE grid
+	alignIdx := strings.Index(got, "#align(center)")
+	gridIdx := strings.Index(got, "#grid")
+	if alignIdx > gridIdx {
+		t.Errorf("triple-inverted: centered align should come before grid:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_QuadGrid(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 4, Layout: portabledoc.LayoutQuadGrid, LineWidth: "md", Signatures: makeSigs(4)}
+	got := c.renderSignatureBlock(attrs)
+
+	if !strings.Contains(got, "columns: (1fr, 1fr)") {
+		t.Errorf("quad-grid should have 2 columns:\n%s", got)
+	}
+	if !strings.Contains(got, "row-gutter: 3em") {
+		t.Errorf("quad-grid should have row-gutter: 3em:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_QuadTopHeavy(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 4, Layout: portabledoc.LayoutQuadTopHeavy, LineWidth: "md", Signatures: makeSigs(4)}
+	got := c.renderSignatureBlock(attrs)
+
+	// Should have 3-col grid for top
+	if !strings.Contains(got, "columns: (1fr, 1fr, 1fr)") {
+		t.Errorf("quad-top-heavy should have 3-col grid:\n%s", got)
+	}
+	// Should have centered bottom
+	if !strings.Contains(got, "#align(center)") {
+		t.Errorf("quad-top-heavy should have #align(center):\n%s", got)
+	}
+	// Grid before centered
+	gridIdx := strings.Index(got, "#grid")
+	alignIdx := strings.LastIndex(got, "#align(center)")
+	if gridIdx > alignIdx {
+		t.Errorf("quad-top-heavy: grid should come before centered:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_QuadBottomHeavy(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	attrs := portabledoc.SignatureAttrs{Count: 4, Layout: portabledoc.LayoutQuadBottomHeavy, LineWidth: "md", Signatures: makeSigs(4)}
+	got := c.renderSignatureBlock(attrs)
+
+	// Should have centered top
+	if !strings.Contains(got, "#align(center)") {
+		t.Errorf("quad-bottom-heavy should have #align(center):\n%s", got)
+	}
+	// Should have 3-col grid for bottom
+	if !strings.Contains(got, "columns: (1fr, 1fr, 1fr)") {
+		t.Errorf("quad-bottom-heavy should have 3-col grid:\n%s", got)
+	}
+	// Centered before grid
+	alignIdx := strings.Index(got, "#align(center)")
+	gridIdx := strings.Index(got, "#grid")
+	if alignIdx > gridIdx {
+		t.Errorf("quad-bottom-heavy: centered should come before grid:\n%s", got)
+	}
+}
+
+func TestRenderSignatureBlock_SubtitleAlignment(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	// One signature with subtitle, one without - in side-by-side layout
+	attrs := portabledoc.SignatureAttrs{
+		Count: 2, Layout: portabledoc.LayoutDualSides, LineWidth: "md",
+		Signatures: makeSigsWithSubtitle(2, 0),
+	}
+	got := c.renderSignatureBlock(attrs)
+
+	// Grid should use top alignment to keep lines at same height
+	if !strings.Contains(got, "align: center + top") {
+		t.Errorf("side-by-side layout should use center + top alignment:\n%s", got)
+	}
+	// Should contain subtitle text
+	if !strings.Contains(got, "Director") {
+		t.Errorf("should contain subtitle text:\n%s", got)
+	}
+}
+
 // Ensure unused import is satisfied
 var _ = port.SignatureField{}
