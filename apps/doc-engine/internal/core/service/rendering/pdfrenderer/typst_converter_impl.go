@@ -793,8 +793,33 @@ func (c *typstConverter) getAnchorString(sig *portabledoc.SignatureItem) string 
 // renderSignatureBlock renders a signature block in Typst.
 func (c *typstConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) string {
 	lwPt := c.signatureLineWidth(attrs.LineWidth)
+	lwPt = c.capSignatureLineWidth(lwPt)
 	body := c.signatureLayoutBody(attrs, lwPt)
 	return "#v(2em)\n" + body
+}
+
+// capSignatureLineWidth caps the configured line width to fit within
+// the most constrained layout (3 columns), ensuring the same width
+// is used regardless of layout type.
+func (c *typstConverter) capSignatureLineWidth(lwPt string) string {
+	if c.contentWidthPx <= 0 {
+		return lwPt
+	}
+
+	lwVal, err := strconv.ParseFloat(strings.TrimSuffix(lwPt, "pt"), 64)
+	if err != nil {
+		return lwPt
+	}
+
+	contentWidthPt := c.contentWidthPx * pxToPt
+	const gutterPt = 11.0 // 1em at 11pt base text size
+	const maxCols = 3     // worst case: 3 columns
+	maxWidth := (contentWidthPt - float64(maxCols-1)*gutterPt) / float64(maxCols)
+
+	if lwVal > maxWidth {
+		return fmt.Sprintf("%.1fpt", maxWidth)
+	}
+	return lwPt
 }
 
 // signatureLayoutBody dispatches to the appropriate layout renderer.
@@ -931,14 +956,13 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	// Anchor text (invisible but present for PDF anchor extraction)
 	sb.WriteString(fmt.Sprintf("    #text(size: 0.1pt, fill: white)[%s]\n", escapeTypst(anchorString)))
 
-	// Responsive container — caps width to available space to prevent grid overflow
-	sb.WriteString(fmt.Sprintf("    #layout(size => block(width: calc.min(%s, size.width))[\n", lineWidthPt))
+	sb.WriteString(fmt.Sprintf("    #block(width: %s)[\n", lineWidthPt))
 	sb.WriteString("      #line(length: 100%, stroke: 0.5pt)\n")
 	sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 9pt)[%s]]\n", escapeTypst(sig.Label)))
 	if sig.Subtitle != nil && *sig.Subtitle != "" {
 		sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 8pt, fill: luma(100))[%s]]\n", escapeTypst(*sig.Subtitle)))
 	}
-	sb.WriteString("    ])\n")
+	sb.WriteString("    ]\n")
 
 	return sb.String()
 }

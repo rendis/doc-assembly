@@ -1423,5 +1423,38 @@ func TestRenderSignatureBlock_SubtitleAlignment(t *testing.T) {
 	}
 }
 
+func TestCapSignatureLineWidth(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	// A4: contentWidthPx=642.5 → contentWidthPt=481.875 → 3-col max=(481.875-22)/3≈153.3pt
+	c.SetContentWidthPx(642.5)
+
+	tests := []struct {
+		name     string
+		lwPt     string
+		expected string
+	}{
+		{"lg gets capped", "250pt", "153.3pt"},
+		{"md gets capped", "180pt", "153.3pt"},
+		{"sm fits", "120pt", "120pt"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := c.capSignatureLineWidth(tt.lwPt)
+			if got != tt.expected {
+				t.Errorf("got %s, want %s", got, tt.expected)
+			}
+		})
+	}
+
+	t.Run("no contentWidth keeps raw", func(t *testing.T) {
+		c2 := newTestConverter(nil, nil)
+		got := c2.capSignatureLineWidth("250pt")
+		if got != "250pt" {
+			t.Errorf("got %s, want 250pt", got)
+		}
+	})
+}
+
 // Ensure unused import is satisfied
 var _ = port.SignatureField{}
