@@ -1,3 +1,5 @@
+import i18n from '@/lib/i18n'
+
 /**
  * Tipos para el componente de firma multi-layout
  */
@@ -129,7 +131,7 @@ export interface SignatureImageUploadProps {
 export function createEmptySignatureItem(index: number): SignatureItem {
   return {
     id: `sig_${Date.now()}_${index}`,
-    label: '',
+    label: i18n.t('editor.signature.title'),
     subtitle: '',
     imageOpacity: 100,
   }

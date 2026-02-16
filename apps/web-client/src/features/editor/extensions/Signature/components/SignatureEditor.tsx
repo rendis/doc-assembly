@@ -100,9 +100,17 @@ export function SignatureEditor({
   )
 
   const handleSave = useCallback(() => {
-    onSave(localAttrs)
+    const defaultLabel = t('editor.signature.title')
+    const sanitized: SignatureBlockAttrs = {
+      ...localAttrs,
+      signatures: localAttrs.signatures.map((sig) => ({
+        ...sig,
+        label: sig.label.trim() || defaultLabel,
+      })),
+    }
+    onSave(sanitized)
     onOpenChange(false)
-  }, [localAttrs, onSave, onOpenChange])
+  }, [localAttrs, onSave, onOpenChange, t])
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>

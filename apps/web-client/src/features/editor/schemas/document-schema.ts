@@ -270,7 +270,7 @@ export const SignatureLayoutSchema = z.union([
 export const SignatureItemSchema = z.object({
   id: z.string(),
   roleId: z.string().optional(),
-  label: z.string(),
+  label: z.string().min(1),
   subtitle: z.string().optional(),
   imageData: z.string().optional(),
   imageOriginal: z.string().optional(),
