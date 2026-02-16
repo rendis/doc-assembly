@@ -340,17 +340,15 @@ func convertFieldToProviderPosition(f port.SignatureField) (posX, posY float64) 
 	posX, posY = f.PositionX, f.PositionY // defaults (percentages)
 
 	if f.PDFPageW > 0 && f.PDFPageH > 0 {
-		posX = (f.PDFPointX / f.PDFPageW) * 100
+		// Anchor text is centered in its grid cell, so its center X ≈ signature line center.
+		// Center the box horizontally on the anchor's center position.
+		anchorCenterPct := ((f.PDFPointX + f.PDFAnchorW/2) / f.PDFPageW) * 100
+		posX = anchorCenterPct - f.Width/2
+
 		// Flip Y: PDF bottom→top to provider top→bottom.
 		posY = 100 - ((f.PDFPointY / f.PDFPageH) * 100)
 		// Offset Y upward so signature line ends up at bottom of box.
 		posY -= f.Height * signatureLineBottomRatio
-
-		// Center horizontally over anchor when anchor is wider than field.
-		anchorW := (f.PDFAnchorW / f.PDFPageW) * 100
-		if anchorW >= f.Width {
-			posX += (anchorW - f.Width) / 2
-		}
 	}
 
 	// Clamp to valid range.

@@ -20,6 +20,7 @@ type typstConverter struct {
 	signerRoleValues         map[string]port.SignerRoleValue
 	signerRoles              map[string]portabledoc.SignerRole // roleID -> SignerRole
 	contentWidthPx           float64                           // page content area width in pixels (for table column calculations)
+	pageWidthPx              float64                           // full page width in pixels (for signature field percentage calculations)
 	currentPage              int
 	signatureFields          []port.SignatureField
 	currentTableHeaderStyles *entity.TableStyles
@@ -68,6 +69,11 @@ func (c *typstConverter) RemoteImages() map[string]string {
 // SetContentWidthPx sets the page content area width in pixels.
 func (c *typstConverter) SetContentWidthPx(width float64) {
 	c.contentWidthPx = width
+}
+
+// SetPageWidthPx sets the full page width in pixels (including margins).
+func (c *typstConverter) SetPageWidthPx(width float64) {
+	c.pageWidthPx = width
 }
 
 // registerRemoteImage registers a remote URL or data URL and returns a local filename.
@@ -680,11 +686,10 @@ func (c *typstConverter) signature(node portabledoc.Node) string {
 
 // collectSignatureFields extracts signature field positions from the signature block.
 func (c *typstConverter) collectSignatureFields(attrs portabledoc.SignatureAttrs) {
-	// Default signature dimensions (as percentage of page)
-	const (
-		defaultWidth  = 30.0 // 30% of page width
-		defaultHeight = 8.0  // 8% of page height
-	)
+	const defaultHeight = 8.0 // 8% of page height
+
+	// Calculate field width from line width in points.
+	fieldWidth := c.signatureFieldWidthPercent(attrs.LineWidth)
 
 	// Calculate X positions based on layout
 	xPositions := c.calculateXPositions(attrs.Layout, attrs.Count)
@@ -712,10 +717,35 @@ func (c *typstConverter) collectSignatureFields(attrs portabledoc.SignatureAttrs
 			Page:         c.currentPage,
 			PositionX:    xPos,
 			PositionY:    yPosition,
-			Width:        defaultWidth,
+			Width:        fieldWidth,
 			Height:       defaultHeight,
 		})
 	}
+}
+
+// signatureFieldWidthPercent converts the signature line width (pt) to a page-width percentage.
+func (c *typstConverter) signatureFieldWidthPercent(lineWidth string) float64 {
+	const fallbackWidth = 30.0 // 30% fallback
+
+	lwPt := c.signatureLineWidth(lineWidth)
+	lwPt = c.capSignatureLineWidth(lwPt)
+
+	val, err := strconv.ParseFloat(strings.TrimSuffix(lwPt, "pt"), 64)
+	if err != nil || val <= 0 {
+		return fallbackWidth
+	}
+
+	// Full page width in pt for percentage calculation (Documenso fields are % of full page).
+	pageWidthPt := c.pageWidthPx * pxToPt
+	if pageWidthPt <= 0 {
+		return fallbackWidth
+	}
+
+	pct := (val / pageWidthPt) * 100
+	if pct > 100 {
+		pct = 100
+	}
+	return pct
 }
 
 // calculateXPositions returns X positions for signatures based on layout.

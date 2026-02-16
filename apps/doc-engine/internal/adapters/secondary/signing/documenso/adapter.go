@@ -159,11 +159,11 @@ func (a *Adapter) addRecipients(ctx context.Context, envelopeID string, recipien
 	payloads := make([]recipientPayload, len(recipients))
 	for i, r := range recipients {
 		payloads[i] = recipientPayload{
-			Email:      r.Email,
-			Name:       r.Name,
-			Role:       "SIGNER",
-			Order:      r.SignerOrder,
-			ExternalID: r.RoleID,
+			Email:        r.Email,
+			Name:         r.Name,
+			Role:         "SIGNER",
+			SigningOrder: r.SignerOrder,
+			ExternalID:   r.RoleID,
 		}
 	}
 
@@ -645,11 +645,11 @@ type envelopeResponse struct {
 }
 
 type recipientPayload struct {
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	Role       string `json:"role"`
-	Order      int    `json:"order,omitempty"`
-	ExternalID string `json:"externalId,omitempty"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	Role         string `json:"role"`
+	SigningOrder int    `json:"signingOrder,omitempty"`
+	ExternalID   string `json:"externalId,omitempty"`
 }
 
 type recipientsRequest struct {

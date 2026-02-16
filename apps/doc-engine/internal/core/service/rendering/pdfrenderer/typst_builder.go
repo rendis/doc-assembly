@@ -44,7 +44,8 @@ func (b *TypstBuilder) Build(doc *portabledoc.Document) (string, int, []port.Sig
 	// Heading styles
 	sb.WriteString(b.headingStyles())
 
-	// Set content area width for table column calculations
+	// Set page dimensions for column and signature field calculations
+	b.converter.SetPageWidthPx(doc.PageConfig.Width)
 	b.converter.SetContentWidthPx(doc.PageConfig.Width - doc.PageConfig.Margins.Left - doc.PageConfig.Margins.Right)
 
 	// Render content via converter

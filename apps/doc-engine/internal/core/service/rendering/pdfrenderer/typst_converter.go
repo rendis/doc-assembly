@@ -23,4 +23,8 @@ type TypstConverter interface {
 	// SetContentWidthPx sets the page content area width in pixels.
 	// Used for computing proportional table column widths.
 	SetContentWidthPx(width float64)
+
+	// SetPageWidthPx sets the full page width in pixels (including margins).
+	// Used for computing signature field width as a percentage of full page.
+	SetPageWidthPx(width float64)
 }

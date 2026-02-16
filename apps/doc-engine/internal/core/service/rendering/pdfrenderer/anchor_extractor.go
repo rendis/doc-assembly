@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -166,85 +165,30 @@ func extractWithPdftotext(ctx context.Context, pdfPath string, anchors []string)
 			slog.DebugContext(ctx, "skipping page with invalid dimensions", "page", pageNum, "width", pw, "height", ph)
 			continue
 		}
-		lines := groupBboxWords(page.Words)
-		matchBboxAnchors(ctx, lines, anchors, pageNum, pw, ph, positions)
+		matchBboxAnchors(ctx, page.Words, anchors, pageNum, pw, ph, positions)
 	}
 
 	return positions, nil
 }
 
-type bboxLine struct {
-	text string
-	xMin float64
-	xMax float64
-	avgY float64
-}
-
-type bboxWordInfo struct {
-	xMin, yMin, xMax float64
-	text             string
-}
-
-// groupBboxWords groups pdftotext words into lines by Y proximity and concatenates text.
-// Words within each line are sorted by X before concatenation.
-func groupBboxWords(words []bboxWord) []bboxLine {
-	const yTol = 2.0
-	lineMap := make(map[int][]bboxWordInfo)
-	for _, w := range words {
-		xMin, _ := strconv.ParseFloat(w.XMin, 64)
-		yMin, _ := strconv.ParseFloat(w.YMin, 64)
-		xMax, _ := strconv.ParseFloat(w.XMax, 64)
-		key := int(yMin / yTol)
-		lineMap[key] = append(lineMap[key], bboxWordInfo{xMin: xMin, yMin: yMin, xMax: xMax, text: w.Text})
-	}
-
-	lines := make([]bboxLine, 0, len(lineMap))
-	for _, wds := range lineMap {
-		lines = append(lines, buildBboxLine(wds))
-	}
-	return lines
-}
-
-// buildBboxLine sorts words by X and concatenates into a single line.
-func buildBboxLine(wds []bboxWordInfo) bboxLine {
-	slices.SortFunc(wds, func(a, b bboxWordInfo) int {
-		if a.xMin < b.xMin {
-			return -1
-		}
-		if a.xMin > b.xMin {
-			return 1
-		}
-		return 0
-	})
-
-	var sb strings.Builder
-	minX, maxX, avgY := wds[0].xMin, wds[0].xMax, 0.0
-	for _, w := range wds {
-		sb.WriteString(w.text)
-		if w.xMin < minX {
-			minX = w.xMin
-		}
-		if w.xMax > maxX {
-			maxX = w.xMax
-		}
-		avgY += w.yMin
-	}
-	avgY /= float64(len(wds))
-	return bboxLine{text: sb.String(), xMin: minX, xMax: maxX, avgY: avgY}
-}
-
-// matchBboxAnchors searches lines for anchor strings and populates positions.
+// matchBboxAnchors searches individual words for anchor strings and populates positions.
+// Matching at word level (not line level) ensures each anchor gets its own X coordinate
+// even when multiple anchors share the same Y row (e.g., grid layouts).
 // pdftotext -bbox uses top-left origin; Y is converted to PDF standard (bottom-left).
-func matchBboxAnchors(ctx context.Context, lines []bboxLine, anchors []string, pageNum int, pw, ph float64, positions map[string]AnchorPosition) {
-	for _, line := range lines {
+func matchBboxAnchors(ctx context.Context, words []bboxWord, anchors []string, pageNum int, pw, ph float64, positions map[string]AnchorPosition) {
+	for _, w := range words {
 		for _, anchor := range anchors {
-			if strings.Contains(line.text, anchor) {
-				positions[anchor] = AnchorPosition{
-					Page: pageNum, X: line.xMin, Y: ph - line.avgY,
-					Width: line.xMax - line.xMin, PageWidth: pw, PageHeight: ph,
-				}
-				slog.DebugContext(ctx, "pdftotext found anchor", "anchor", anchor, "x", line.xMin, "y", ph-line.avgY, "page", pageNum)
+			if !strings.Contains(w.Text, anchor) {
+				continue
 			}
+			xMin, _ := strconv.ParseFloat(w.XMin, 64)
+			yMin, _ := strconv.ParseFloat(w.YMin, 64)
+			xMax, _ := strconv.ParseFloat(w.XMax, 64)
+			positions[anchor] = AnchorPosition{
+				Page: pageNum, X: xMin, Y: ph - yMin,
+				Width: xMax - xMin, PageWidth: pw, PageHeight: ph,
+			}
+			slog.DebugContext(ctx, "pdftotext found anchor", "anchor", anchor, "x", xMin, "y", ph-yMin, "page", pageNum)
 		}
 	}
 }
