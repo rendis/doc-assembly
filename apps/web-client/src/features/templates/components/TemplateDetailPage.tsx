@@ -13,8 +13,9 @@ import { useVersionHighlightStore } from '@/stores/version-highlight-store'
 import type { TemplateVersionSummaryResponse, VersionStatus } from '@/types/api'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import axios from 'axios'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
+    AlertTriangle,
     Archive,
     ArrowLeft,
     Calendar,
@@ -208,7 +209,7 @@ export function TemplateDetailPage() {
         ARCHIVED: 0,
       } as Record<VersionStatus, number>
     )
-  }, [template.versions])
+  }, [template?.versions])
 
   // User's filter toggle preferences (true = show, false = hide)
   const [userFilterToggles, setUserFilterToggles] = useState<Record<VersionStatus, boolean>>({
@@ -532,6 +533,28 @@ export function TemplateDetailPage() {
       animate={{ opacity: isVisible ? 1 : 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
     >
+      {/* Warning: published but no document type — overlay, no layout shift */}
+      <div className="sticky top-0 z-40 h-0">
+        <AnimatePresence initial={false}>
+          {template.versions?.some((v) => v.status === 'PUBLISHED') && !template.documentTypeId && (
+            <motion.div
+              key="no-type-warning"
+              initial={{ y: -40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -40, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
+              <div className="flex items-center gap-2 border-b border-warning/30 bg-warning-muted/60 px-6 py-2 dark:bg-warning-muted/50">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warning dark:text-warning-border" />
+                <span className="text-sm text-warning-foreground">
+                  {t('templates.warnings.noDocumentTypeDescription')}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Header */}
       <header className="shrink-0 px-4 pb-6 pt-12 md:px-6 lg:px-6">
         {/* Breadcrumb */}
@@ -636,6 +659,20 @@ export function TemplateDetailPage() {
                   <dt className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <FileType size={12} />
                     {t('templates.detail.documentType', 'Document Type')}
+                    <motion.span
+                      animate={
+                        template.versions?.some((v) => v.status === 'PUBLISHED') && !template.documentTypeId
+                          ? { opacity: 1, x: 0, width: 'auto', marginLeft: 4 }
+                          : { opacity: 0, x: -20, width: 0, marginLeft: 0 }
+                      }
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className="inline-flex shrink-0 items-center gap-1 overflow-hidden border border-warning/50 bg-warning-muted/60 px-1.5 py-0.5 text-warning-foreground dark:border-warning-border dark:bg-warning-muted/50"
+                    >
+                      <AlertTriangle size={10} className="shrink-0" />
+                      <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-widest">
+                        {t('templates.warnings.noDocumentType')}
+                      </span>
+                    </motion.span>
                   </dt>
                   <dd>
                     <DocumentTypeSelector

@@ -262,7 +262,7 @@ func (s *Service) extractPositions(
 	anchors := s.collectAnchors(fields)
 	slog.DebugContext(ctx, "extracting anchors", "count", len(anchors))
 
-	positions, err := ExtractAnchorPositions(tmpPath, anchors)
+	positions, err := ExtractAnchorPositions(ctx, tmpPath, anchors)
 	if err != nil {
 		slog.WarnContext(ctx, "anchor extraction failed", "error", err)
 		return nil, err
@@ -297,21 +297,21 @@ func (s *Service) updateFieldPositions(
 		if !ok {
 			continue
 		}
-		s.applyPosition(ctx, &updated[i], pos)
+		s.setRawPosition(ctx, &updated[i], pos)
 	}
 	return updated
 }
 
-// applyPosition calculates and applies position to a signature field.
-func (s *Service) applyPosition(ctx context.Context, field *port.SignatureField, pos AnchorPosition) {
-	posX, posY := pos.ToDocumensoPercentage()
-	lineWidth := (pos.Width / pos.PageWidth) * 100
-
+// setRawPosition stores raw PDF coordinates on the field for later provider-specific conversion.
+func (s *Service) setRawPosition(ctx context.Context, field *port.SignatureField, pos AnchorPosition) {
 	field.Page = pos.Page
-	field.PositionX = posX + (lineWidth-field.Width)/2 // Center horizontally
-	field.PositionY = posY - field.Height              // Position above line
-
-	slog.DebugContext(ctx, "field positioned", "anchor", field.AnchorString, "x", field.PositionX, "y", field.PositionY)
+	field.PDFPointX = pos.X
+	field.PDFPointY = pos.Y
+	field.PDFPageW = pos.PageWidth
+	field.PDFPageH = pos.PageHeight
+	field.PDFAnchorW = pos.Width
+	slog.DebugContext(ctx, "raw position set", "anchor", field.AnchorString,
+		"x", pos.X, "y", pos.Y, "anchorW", pos.Width, "page", pos.Page)
 }
 
 // acquireSlot blocks until a render slot is available or the timeout expires.

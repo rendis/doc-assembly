@@ -1,4 +1,4 @@
-import { FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash, Layers, Check, Clock } from 'lucide-react'
+import { AlertTriangle, FileText, Edit, MoreHorizontal, FolderOpen, Pencil, Trash, Layers, Check, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
@@ -100,6 +100,21 @@ export function TemplateListRow({
               <span className="font-display text-lg font-medium text-foreground">
                 {template.title}
               </span>
+              {template.hasPublishedVersion && !template.documentTypeCode && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex shrink-0 items-center gap-1 border border-warning/50 bg-warning-muted/60 px-1.5 py-0.5 text-warning-foreground dark:border-warning-border dark:bg-warning-muted/50">
+                      <AlertTriangle size={12} />
+                      <span className="font-mono text-[10px] uppercase">
+                        {t('templates.warnings.noDocumentType')}
+                      </span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    {t('templates.warnings.noDocumentTypeDescription')}
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {template.documentTypeCode && (
                 <span className="shrink-0 rounded-sm border px-1 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
                   {template.documentTypeCode}

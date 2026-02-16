@@ -57,10 +57,10 @@ type SignatureField struct {
 	// Page is the 1-indexed page number where the signature appears.
 	Page int
 
-	// PositionX is the X position as a percentage (0-100) from left edge.
+	// PositionX is the default X position as a percentage (0-100) from left edge.
 	PositionX float64
 
-	// PositionY is the Y position as a percentage (0-100) from top edge.
+	// PositionY is the default Y position as a percentage (0-100) from top edge.
 	PositionY float64
 
 	// Width is the field width as a percentage (0-100) of page width.
@@ -68,6 +68,14 @@ type SignatureField struct {
 
 	// Height is the field height as a percentage (0-100) of page height.
 	Height float64
+
+	// Raw PDF coordinates populated by anchor extraction (zero if not extracted).
+	// These are in PDF standard units (points, bottom-left origin).
+	PDFPointX  float64
+	PDFPointY  float64
+	PDFPageW   float64
+	PDFPageH   float64
+	PDFAnchorW float64 // anchor text width in points (for horizontal centering)
 }
 
 // PDFRenderer defines the interface for PDF rendering operations.

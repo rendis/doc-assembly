@@ -801,17 +801,19 @@ func (c *typstConverter) renderSignatureBlock(attrs portabledoc.SignatureAttrs) 
 	columns := c.signatureColumns(attrs.Layout, attrs.Count)
 
 	if len(attrs.Signatures) == 1 {
-		// Single signature - use align
+		// Single signature - use align (content block provided by #align)
 		sig := &attrs.Signatures[0]
 		alignment := c.signatureAlignment(attrs.Layout)
 		sb.WriteString(fmt.Sprintf("#align(%s)[\n", alignment))
-		sb.WriteString(c.renderTypstSignatureItem(sig, lineWidthPt))
+		sb.WriteString(c.renderTypstSignatureItemContent(sig, lineWidthPt))
 		sb.WriteString("]\n")
 	} else {
-		// Multiple signatures - use grid
+		// Multiple signatures - use grid (each item needs [...] content block)
 		sb.WriteString(fmt.Sprintf("#grid(\n  columns: (%s),\n  gutter: 1em,\n", columns))
 		for i := range attrs.Signatures {
-			sb.WriteString(c.renderTypstSignatureItem(&attrs.Signatures[i], lineWidthPt))
+			sb.WriteString("  [\n")
+			sb.WriteString(c.renderTypstSignatureItemContent(&attrs.Signatures[i], lineWidthPt))
+			sb.WriteString("  ]")
 			if i < len(attrs.Signatures)-1 {
 				sb.WriteString(",\n")
 			}
@@ -860,12 +862,11 @@ func (c *typstConverter) signatureAlignment(layout string) string {
 	}
 }
 
-// renderTypstSignatureItem renders a single signature item in Typst.
-func (c *typstConverter) renderTypstSignatureItem(sig *portabledoc.SignatureItem, lineWidthPt string) string {
+// renderTypstSignatureItemContent renders the inner content of a signature item.
+// The caller is responsible for wrapping in [...] content blocks when needed (e.g., grid items).
+func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.SignatureItem, lineWidthPt string) string {
 	var sb strings.Builder
 	anchorString := c.getAnchorString(sig)
-
-	sb.WriteString("  [\n")
 
 	// Signature image (if signed)
 	if sig.IsSigned() && sig.ImageData != nil && *sig.ImageData != "" {
@@ -886,7 +887,6 @@ func (c *typstConverter) renderTypstSignatureItem(sig *portabledoc.SignatureItem
 		sb.WriteString(fmt.Sprintf("    #text(size: 8pt, fill: luma(100))[%s]\n", escapeTypst(*sig.Subtitle)))
 	}
 
-	sb.WriteString("  ]")
 	return sb.String()
 }
 

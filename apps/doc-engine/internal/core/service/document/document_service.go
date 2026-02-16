@@ -77,12 +77,12 @@ func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documen
 		return nil, err
 	}
 
-	pdfData, err := s.renderPDF(ctx, version, cmd)
+	pdfData, sigFields, err := s.renderPDF(ctx, version, cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.sendToSigningProvider(ctx, document, recipients, roleMap, cmd, pdfData)
+	err = s.sendToSigningProvider(ctx, document, recipients, roleMap, cmd, pdfData, sigFields)
 	if err != nil {
 		return nil, err
 	}
@@ -244,8 +244,8 @@ func (s *DocumentService) createRecipients(ctx context.Context, docID string, cm
 	return recipients, nil
 }
 
-// renderPDF generates the PDF for the document.
-func (s *DocumentService) renderPDF(ctx context.Context, version *entity.TemplateVersion, cmd documentuc.CreateDocumentCommand) ([]byte, error) {
+// renderPDF generates the PDF for the document and returns extracted signature field positions.
+func (s *DocumentService) renderPDF(ctx context.Context, version *entity.TemplateVersion, cmd documentuc.CreateDocumentCommand) ([]byte, []port.SignatureField, error) {
 	signerRoleValues := make(map[string]port.SignerRoleValue)
 	for _, r := range cmd.Recipients {
 		signerRoleValues[r.RoleID] = port.SignerRoleValue{
@@ -262,17 +262,17 @@ func (s *DocumentService) renderPDF(ctx context.Context, version *entity.Templat
 	if version.ContentStructure != nil {
 		doc, err := parsePortableDocument(version.ContentStructure)
 		if err != nil {
-			return nil, fmt.Errorf("parsing document content: %w", err)
+			return nil, nil, fmt.Errorf("parsing document content: %w", err)
 		}
 		renderReq.Document = doc
 	}
 
 	renderResult, err := s.pdfRenderer.RenderPreview(ctx, renderReq)
 	if err != nil {
-		return nil, fmt.Errorf("rendering PDF: %w", err)
+		return nil, nil, fmt.Errorf("rendering PDF: %w", err)
 	}
 
-	return renderResult.PDF, nil
+	return renderResult.PDF, renderResult.SignatureFields, nil
 }
 
 // sendToSigningProvider uploads the document to the signing provider and updates statuses.
@@ -283,10 +283,14 @@ func (s *DocumentService) sendToSigningProvider(
 	roleMap map[string]*entity.TemplateVersionSignerRole,
 	cmd documentuc.CreateDocumentCommand,
 	pdfData []byte,
+	sigFields []port.SignatureField,
 ) error {
 	signingRecipients := s.buildSigningRecipients(cmd.Recipients, roleMap)
 
-	signatureFields := s.buildSignatureFieldPositions(cmd.Recipients)
+	signatureFields := s.mapExtractedSignatureFields(sigFields, roleMap)
+	if len(signatureFields) == 0 {
+		signatureFields = s.buildSignatureFieldPositions(cmd.Recipients)
+	}
 
 	uploadReq := &port.UploadDocumentRequest{
 		PDF:             pdfData,
@@ -323,6 +327,77 @@ func (s *DocumentService) sendToSigningProvider(
 	s.updateRecipientsWithProviderIDs(ctx, recipients, uploadResult.Recipients)
 
 	return nil
+}
+
+// signatureLineBottomRatio is the fraction of the signature box height placed above the anchor line.
+// The box is positioned so the signature line (anchor point) ends up near the bottom ~30% of the box.
+const signatureLineBottomRatio = 0.7
+
+// convertFieldToProviderPosition converts raw PDF coordinates to provider-specific
+// percentage positions (0-100, Y from top). Falls back to default percentages when
+// raw extraction data is absent.
+func convertFieldToProviderPosition(f port.SignatureField) (posX, posY float64) {
+	posX, posY = f.PositionX, f.PositionY // defaults (percentages)
+
+	if f.PDFPageW > 0 && f.PDFPageH > 0 {
+		posX = (f.PDFPointX / f.PDFPageW) * 100
+		// Flip Y: PDF bottom→top to provider top→bottom.
+		posY = 100 - ((f.PDFPointY / f.PDFPageH) * 100)
+		// Offset Y upward so signature line ends up at bottom of box.
+		posY -= f.Height * signatureLineBottomRatio
+
+		// Center horizontally over anchor when anchor is wider than field.
+		anchorW := (f.PDFAnchorW / f.PDFPageW) * 100
+		if anchorW >= f.Width {
+			posX += (anchorW - f.Width) / 2
+		}
+	}
+
+	// Clamp to valid range.
+	posX = max(0, min(posX, 100-f.Width))
+	posY = max(0, min(posY, 100-f.Height))
+	return posX, posY
+}
+
+// mapExtractedSignatureFields maps PDF-extracted signature fields to signing provider positions.
+// Converts portable doc role IDs to DB role IDs via AnchorString matching.
+// If raw PDF coordinates are available, converts them to provider percentages with Y offset.
+func (s *DocumentService) mapExtractedSignatureFields(
+	fields []port.SignatureField,
+	roleMap map[string]*entity.TemplateVersionSignerRole,
+) []port.SignatureFieldPosition {
+	if len(fields) == 0 {
+		return nil
+	}
+
+	// Build reverse map: anchorString → DB role ID
+	anchorToRoleID := make(map[string]string, len(roleMap))
+	for _, role := range roleMap {
+		if role.AnchorString != "" {
+			anchorToRoleID[role.AnchorString] = role.ID
+		}
+	}
+
+	positions := make([]port.SignatureFieldPosition, 0, len(fields))
+	for _, f := range fields {
+		dbRoleID, ok := anchorToRoleID[f.AnchorString]
+		if !ok || dbRoleID == "" {
+			continue
+		}
+
+		posX, posY := convertFieldToProviderPosition(f)
+
+		positions = append(positions, port.SignatureFieldPosition{
+			RoleID:    dbRoleID,
+			Page:      f.Page,
+			PositionX: posX,
+			PositionY: posY,
+			Width:     f.Width,
+			Height:    f.Height,
+		})
+	}
+
+	return positions
 }
 
 // buildSignatureFieldPositions generates default signature field positions for recipients.
@@ -927,7 +1002,7 @@ func (s *DocumentService) retryWithResend(ctx context.Context, doc *entity.Docum
 
 	cmd := s.buildRetryCommand(doc, recipients)
 
-	pdfData, err := s.renderPDF(ctx, version, cmd)
+	pdfData, sigFields, err := s.renderPDF(ctx, version, cmd)
 	if err != nil {
 		slog.WarnContext(ctx, "retry: failed to render PDF",
 			slog.String("document_id", doc.ID),
@@ -937,7 +1012,7 @@ func (s *DocumentService) retryWithResend(ctx context.Context, doc *entity.Docum
 		return
 	}
 
-	if err := s.sendToSigningProvider(ctx, doc, recipients, roleMap, cmd, pdfData); err != nil {
+	if err := s.sendToSigningProvider(ctx, doc, recipients, roleMap, cmd, pdfData, sigFields); err != nil {
 		slog.WarnContext(ctx, "retry: failed to send to signing provider",
 			slog.String("document_id", doc.ID),
 			slog.String("error", err.Error()),

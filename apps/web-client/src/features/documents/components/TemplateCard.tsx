@@ -1,5 +1,10 @@
 import { useTranslation } from 'react-i18next'
-import { FileText } from 'lucide-react'
+import { AlertTriangle, FileText } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { TemplateListItem } from '@/types/api'
 
 interface TemplateCardProps {
@@ -9,6 +14,7 @@ interface TemplateCardProps {
 
 export function TemplateCard({ template, onClick }: TemplateCardProps) {
   const { t } = useTranslation()
+  const hasWarning = template.hasPublishedVersion && !template.documentTypeCode
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -30,15 +36,30 @@ export function TemplateCard({ template, onClick }: TemplateCardProps) {
           onClick?.()
         }
       }}
-      className="group relative flex cursor-pointer flex-col gap-3 border border-border bg-background p-5 transition-colors hover:border-foreground"
+      className={`group relative flex cursor-pointer flex-col gap-3 border border-border bg-background p-5 transition-colors hover:border-foreground ${hasWarning ? 'border-l-2 border-l-warning bg-warning-muted/60 dark:border-l-warning-border dark:bg-warning-muted/50' : ''}`}
     >
       {/* Title row */}
       <div className="flex items-start gap-3">
-        <FileText
-          className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
-          size={20}
-          strokeWidth={1.5}
-        />
+        {hasWarning ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertTriangle
+                className="mt-0.5 shrink-0 text-warning-foreground"
+                size={20}
+                strokeWidth={1.5}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {t('templates.warnings.noDocumentTypeDescription')}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <FileText
+            className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+            size={20}
+            strokeWidth={1.5}
+          />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="truncate font-display text-base font-medium leading-snug text-foreground decoration-1 underline-offset-4 group-hover:underline">

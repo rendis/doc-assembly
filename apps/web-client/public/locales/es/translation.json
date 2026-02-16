@@ -139,6 +139,10 @@
     }
   },
   "templates": {
+    "warnings": {
+      "noDocumentType": "Sin tipo asignado",
+      "noDocumentTypeDescription": "Esta plantilla tiene una versión publicada pero no tiene tipo de documento. No será encontrada a través de la API interna de renderizado."
+    },
     "title": "Lista de Plantillas",
     "section": "Plantillas",
     "header": "Gestión",
@@ -461,6 +465,7 @@
       "redo": "Rehacer",
       "fontFamily": "Fuente",
       "fontSize": "Tamaño",
+      "textColor": "Color de texto",
       "heading1": "Encabezado 1",
       "heading2": "Encabezado 2",
       "heading3": "Encabezado 3",

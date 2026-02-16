@@ -139,6 +139,10 @@
     }
   },
   "templates": {
+    "warnings": {
+      "noDocumentType": "No type assigned",
+      "noDocumentTypeDescription": "This template has a published version but no document type. It won't be found via the internal render API."
+    },
     "title": "Template List",
     "section": "Templates",
     "header": "Management",
@@ -461,6 +465,7 @@
       "redo": "Redo",
       "fontFamily": "Font",
       "fontSize": "Size",
+      "textColor": "Text Color",
       "heading1": "Heading 1",
       "heading2": "Heading 2",
       "heading3": "Heading 3",

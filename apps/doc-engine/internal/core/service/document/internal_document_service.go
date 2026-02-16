@@ -208,11 +208,13 @@ func (s *InternalDocumentService) mapSignatureFields(
 			continue
 		}
 
+		posX, posY := convertFieldToProviderPosition(f)
+
 		positions = append(positions, port.SignatureFieldPosition{
 			RoleID:    dbRoleID,
 			Page:      f.Page,
-			PositionX: f.PositionX,
-			PositionY: f.PositionY,
+			PositionX: posX,
+			PositionY: posY,
 			Width:     f.Width,
 			Height:    f.Height,
 		})
