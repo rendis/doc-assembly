@@ -1,0 +1,302 @@
+# doc-assembly
+
+**Multi-tenant document template builder with digital signature delegation.**
+
+Go 1.25 &middot; React 19 &middot; PostgreSQL 16 &middot; Typst
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Monorepo Structure](#monorepo-structure)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Available Commands](#available-commands)
+- [Configuration](#configuration)
+- [Digital Signatures](#digital-signatures)
+- [Database](#database)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+- [License](#license)
+
+## Overview
+
+doc-assembly lets organizations build reusable document templates with a rich text editor, inject dynamic data through a variable system, render production-quality PDFs via Typst, and delegate digital signatures to external providers.
+
+The platform is multi-tenant by design: a three-level RBAC model (System, Tenant, Workspace) controls access, while the backend enforces tenant isolation across every query.
+
+### Key Features
+
+- Rich text template editor (TipTap) with injectable variables and signature blocks
+- PDF rendering powered by Typst (no browser/Chromium dependency)
+- Digital signature delegation to Documenso (PandaDoc and DocuSign interfaces planned)
+- Three-level RBAC: System, Tenant, and Workspace roles
+- Template versioning with publish/archive lifecycle
+- Extensibility system via code-generated injectors and mappers
+- Internationalization (English & Spanish)
+- Folder and tag organization for templates
+
+## Monorepo Structure
+
+```
+doc-assembly/
+  apps/
+    doc-engine/     Go backend (Hexagonal Architecture, Gin, Wire DI)
+    web-client/     React SPA (TanStack Router, Zustand, TipTap)
+  db/               Liquibase migrations (PostgreSQL 16)
+```
+
+| Component      | Stack                                                    | Docs                                   |
+| -------------- | -------------------------------------------------------- | -------------------------------------- |
+| **doc-engine** | Go 1.25, Gin, pgx/v5, Wire                               | [AGENTS.md](apps/doc-engine/AGENTS.md) |
+| **web-client** | React 19, TypeScript, TanStack Router, Zustand, TipTap 3 | [AGENTS.md](apps/web-client/AGENTS.md) |
+| **db**         | Liquibase, PostgreSQL 16, pgcrypto                       | [DATABASE.md](db/DATABASE.md)          |
+
+## Architecture
+
+### Request Flow (Hexagonal)
+
+```
+HTTP Request
+ -> Middleware (JWT auth, tenant context, operation ID)
+   -> Controller (parse DTO, validate)
+     -> UseCase interface
+       -> Service (business logic)
+         -> Port interface
+           -> Repository (SQL via pgx)
+             -> PostgreSQL
+```
+
+### Multi-Tenant Hierarchy
+
+```
+System
+ +-- Tenant A
+ |    +-- Workspace 1
+ |    +-- Workspace 2
+ +-- Tenant B
+      +-- Workspace 3
+```
+
+### RBAC
+
+Three authorization levels with seven roles:
+
+| Level         | Roles                                            |
+| ------------- | ------------------------------------------------ |
+| **System**    | `SUPERADMIN`, `PLATFORM_ADMIN`                   |
+| **Tenant**    | `OWNER`, `ADMIN`                                 |
+| **Workspace** | `OWNER`, `ADMIN`, `EDITOR`, `OPERATOR`, `VIEWER` |
+
+`SUPERADMIN` auto-elevates to `OWNER` in any tenant or workspace.
+
+## Quick Start
+
+### Prerequisites
+
+| Tool          | Version | Install                                                         |
+| ------------- | ------- | --------------------------------------------------------------- |
+| Go            | 1.25+   | [go.dev/dl](https://go.dev/dl/)                                 |
+| Node.js       | 20+     | [nodejs.org](https://nodejs.org/)                               |
+| pnpm          | 9+      | `npm i -g pnpm`                                                 |
+| Docker        | latest  | [docker.com](https://www.docker.com/)                           |
+| Typst         | 0.13+   | [typst.app](https://github.com/typst/typst/releases)            |
+| golangci-lint | latest  | [golangci-lint.run](https://golangci-lint.run/welcome/install/) |
+| Wire          | latest  | `go install github.com/google/wire/cmd/wire@latest`             |
+
+Run `make doctor` to verify all dependencies are installed.
+
+### 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/your-org/doc-assembly.git
+cd doc-assembly
+pnpm install --dir apps/web-client
+go -C apps/doc-engine mod download
+```
+
+### 2. Start PostgreSQL
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+This starts PostgreSQL 16 on port 5432.
+
+### 3. Run database migrations
+
+```bash
+cd db && ./run-migrations.sh && cd ..
+```
+
+### 4. Start dev servers
+
+```bash
+make dev-dummy
+```
+
+> [!TIP]
+> `dev-dummy` bypasses JWT authentication so you can develop without setting up Keycloak. The backend runs on `:8080` and the frontend on `:3001`.
+
+The app is now available at **http://localhost:3001**. The first user to sign up is automatically promoted to `SUPERADMIN`.
+
+## Available Commands
+
+Run `make help` for the full list.
+
+| Command                 | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `make dev`              | Hot reload backend + frontend            |
+| `make dev-dummy`        | Dev with dummy auth (no Keycloak needed) |
+| `make build`            | Build backend + frontend                 |
+| `make test`             | Run unit tests                           |
+| `make test-integration` | Run integration tests (Docker required)  |
+| `make lint`             | Lint backend + frontend                  |
+| `make gen`              | Codegen: Wire DI + Swagger + Extensions  |
+| `make doctor`           | Check system dependencies                |
+| `make clean`            | Remove all build artifacts               |
+
+Pass `DUMMY=1` to any target to enable dummy auth: `make run DUMMY=1`.
+
+## Configuration
+
+### Backend
+
+Configuration is loaded from `apps/doc-engine/settings/app.yaml` and can be overridden with environment variables following the pattern `DOC_ENGINE_<SECTION>_<KEY>`.
+
+Copy the example env file and fill in values:
+
+```bash
+cp apps/doc-engine/.env.example apps/doc-engine/.env
+```
+
+Key variables:
+
+| Variable                          | Required | Description                           |
+| --------------------------------- | -------- | ------------------------------------- |
+| `DOC_ENGINE_DATABASE_PASSWORD`    | Yes      | PostgreSQL password                   |
+| `DOC_ENGINE_AUTH_JWKS_URL`        | Yes\*    | Keycloak JWKS endpoint                |
+| `DOC_ENGINE_AUTH_ISSUER`          | Yes\*    | Keycloak issuer URL                   |
+| `DOC_ENGINE_AUTH_AUDIENCE`        | Yes\*    | JWT audience claim                    |
+| `DOC_ENGINE_AUTH_DUMMY`           | No       | Set `true` to bypass JWT              |
+| `DOC_ENGINE_DOCUMENSO_API_KEY`    | No       | Documenso API key (for signing)       |
+| `DOC_ENGINE_INTERNAL_API_API_KEY` | No       | Internal API key (service-to-service) |
+
+\* Not required when `DOC_ENGINE_AUTH_DUMMY=true`.
+
+> [!NOTE]
+> See [`apps/doc-engine/settings/app.yaml`](apps/doc-engine/settings/app.yaml) for all available options including storage, logging, scheduler, Typst renderer, and notification settings.
+
+### Frontend
+
+```bash
+cp apps/web-client/.env.example apps/web-client/.env
+```
+
+| Variable                  | Default                 | Description                    |
+| ------------------------- | ----------------------- | ------------------------------ |
+| `VITE_API_URL`            | `/api/v1`               | Backend API base URL           |
+| `VITE_KEYCLOAK_URL`       | `http://localhost:8180` | Keycloak server URL            |
+| `VITE_KEYCLOAK_REALM`     | `doc-assembly`          | Keycloak realm                 |
+| `VITE_KEYCLOAK_CLIENT_ID` | `web-client`            | Keycloak client ID             |
+| `VITE_USE_MOCK_AUTH`      | `true`                  | Bypass Keycloak in development |
+
+## Digital Signatures
+
+doc-assembly delegates digital signatures to external providers. The signing flow:
+
+```
+Template (published) -> Document created -> PDF rendered with anchor text
+  -> PDF uploaded to signing provider -> Signing URLs generated per recipient
+    -> Recipients sign -> Webhooks update document status -> Sealed PDF stored
+```
+
+### Supported Providers
+
+| Provider                            | Status            |
+| ----------------------------------- | ----------------- |
+| [Documenso](https://documenso.com/) | Implemented       |
+| PandaDoc                            | Interface defined |
+| DocuSign                            | Interface defined |
+
+### Local Documenso Setup
+
+```bash
+docker compose -f docker-compose.documenso.yml up -d
+```
+
+> [!IMPORTANT]
+> The compose file includes a `documenso-cert-init` service that auto-generates a self-signed P12 certificate for document sealing. No manual certificate setup is needed.
+
+This starts:
+
+- **Documenso** on `http://localhost:3000`
+- **MailPit** (SMTP) on `http://localhost:8025` (web UI) and `:1025` (SMTP)
+- **PostgreSQL** for Documenso on port `5433`
+
+Configure the webhook in Documenso to point to `http://host.docker.internal:8080/webhooks/signing/documenso`.
+
+## Database
+
+PostgreSQL 16 with five schemas:
+
+| Schema      | Purpose                                        |
+| ----------- | ---------------------------------------------- |
+| `tenancy`   | Tenants, workspaces, memberships               |
+| `identity`  | Users, access history                          |
+| `organizer` | Folders, tags                                  |
+| `content`   | Templates, versions, injectables, signer roles |
+| `execution` | Documents, recipients, events                  |
+
+Migrations are managed with Liquibase:
+
+```bash
+cd db && ./run-migrations.sh
+```
+
+> [!WARNING]
+> Do not modify migration files in `db/src/` directly. Suggest changes and create new changesets instead.
+
+See [`db/DATABASE.md`](db/DATABASE.md) for the complete schema documentation.
+
+## Deployment
+
+### Docker Build
+
+```bash
+docker build -f apps/doc-engine/Dockerfile -t doc-engine .
+```
+
+The Dockerfile uses a multi-stage build:
+
+1. **Builder**: `golang:1.25-alpine` compiles the binary
+2. **Runtime**: `alpine:3.21` with Typst v0.13.1 and ca-certificates
+
+The container exposes port `8080`.
+
+### Required Environment Variables (Production)
+
+| Category     | Variables                                                          |
+| ------------ | ------------------------------------------------------------------ |
+| **Database** | `DOC_ENGINE_DATABASE_HOST`, `_PORT`, `_USER`, `_PASSWORD`, `_NAME` |
+| **Auth**     | `DOC_ENGINE_AUTH_JWKS_URL`, `_ISSUER`, `_AUDIENCE`                 |
+| **Signing**  | `DOC_ENGINE_DOCUMENSO_API_URL`, `_API_KEY`, `_WEBHOOK_SECRET`      |
+| **Storage**  | `DOC_ENGINE_STORAGE_BUCKET`, `_REGION` (for S3)                    |
+
+## Documentation
+
+| Document              | Path                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| Backend Architecture  | [`apps/doc-engine/docs/architecture.md`](apps/doc-engine/docs/architecture.md)                 |
+| Authentication Guide  | [`apps/doc-engine/docs/authentication-guide.md`](apps/doc-engine/docs/authentication-guide.md) |
+| Authorization Matrix  | [`apps/doc-engine/docs/authorization-matrix.md`](apps/doc-engine/docs/authorization-matrix.md) |
+| Extensibility Guide   | [`apps/doc-engine/docs/extensibility-guide.md`](apps/doc-engine/docs/extensibility-guide.md)   |
+| Frontend Architecture | [`apps/web-client/docs/architecture.md`](apps/web-client/docs/architecture.md)                 |
+| Design System         | [`apps/web-client/docs/design_system.md`](apps/web-client/docs/design_system.md)               |
+| Database Schema       | [`db/DATABASE.md`](db/DATABASE.md)                                                             |
+| OpenAPI Spec          | [`apps/doc-engine/docs/swagger.yaml`](apps/doc-engine/docs/swagger.yaml)                       |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
