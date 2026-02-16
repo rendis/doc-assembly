@@ -153,9 +153,9 @@ CLAUDE.md
 GEMINI.md
 apps/doc-engine/tmp
 
-# Embedded frontend (keep .gitkeep, ignore built files)
-core/internal/frontend/dist/*
-!core/internal/frontend/dist/.gitkeep
+# Embedded frontend — built files are committed for go:embed
+# Re-build with: make embed-app
+!core/internal/frontend/dist/
 
 # Worktrees
 .worktrees/

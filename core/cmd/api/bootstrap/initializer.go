@@ -437,9 +437,9 @@ func (e *Engine) resolveFrontendFS() fs.FS {
 		return e.frontendFS // may be nil (user explicitly disabled frontend)
 	}
 
-	// Check if embedded dist has actual content (not just .gitkeep)
+	// Check if embedded dist has actual content
 	entries, err := fs.ReadDir(frontend.DistFS, "dist")
-	if err != nil || len(entries) <= 1 {
+	if err != nil || len(entries) == 0 {
 		slog.Warn("no embedded frontend found (run 'make embed-app' to embed)")
 		return nil
 	}

@@ -24,7 +24,6 @@ embed-app: build-app
 	@echo "Embedding frontend..."
 	@rm -rf core/internal/frontend/dist/*
 	@cp -r app/dist/* core/internal/frontend/dist/
-	@touch core/internal/frontend/dist/.gitkeep
 
 # ─── Development ──────────────────────────────────────────────────
 
@@ -108,8 +107,6 @@ doctor:
 
 clean:
 	$(MAKE) -C core clean
-	@rm -rf core/internal/frontend/dist/*
-	@touch core/internal/frontend/dist/.gitkeep
 
 # ─── Help ────────────────────────────────────────────────────────
 

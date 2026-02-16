@@ -2,9 +2,9 @@ package frontend
 
 import "embed"
 
-// DistFS embeds the built SPA files from the dist/ directory.
-// When dist/ contains only .gitkeep, the embedded FS is effectively empty
-// and the engine will skip frontend serving.
+// DistFS embeds the pre-built SPA files from the dist/ directory.
+// These files are committed to the repo so consumers get the frontend via go:embed.
+// Re-build with: make embed-app
 //
 //go:embed all:dist
 var DistFS embed.FS
