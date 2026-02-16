@@ -208,15 +208,13 @@ export function SignatureItemView({
       {/* Línea de firma */}
       <div className={cn('h-px bg-foreground', lineWidthClasses)} />
 
-      {/* Label (texto superior/título) */}
-      <div className="mt-2 text-center">
+      {/* Label + subtitle — subtitle is absolute so it never affects item height */}
+      <div className="mt-2 text-center relative">
         <p className="text-sm font-medium text-foreground">
           {signature.label || t('editor.signature.title')}
         </p>
-
-        {/* Subtitle (texto inferior) */}
         {signature.subtitle && (
-          <p className="text-xs text-muted-foreground mt-0.5">{signature.subtitle}</p>
+          <p className="absolute left-0 right-0 text-xs text-muted-foreground mt-0.5">{signature.subtitle}</p>
         )}
       </div>
     </div>
