@@ -1,16 +1,40 @@
 import { useAuthStore } from '@/stores/auth-store'
 
 /**
- * Keycloak configuration from environment variables
+ * OIDC configuration interface.
  */
-const keycloakConfig = {
-  url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'doc-assembly',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'web-client',
+export interface OIDCConfig {
+  tokenEndpoint: string
+  userinfoEndpoint: string
+  endSessionEndpoint: string
+  clientId: string
 }
 
 /**
- * Token response from Keycloak
+ * Runtime OIDC config (set by AuthProvider after fetching from backend).
+ */
+let runtimeConfig: OIDCConfig | null = null
+
+/**
+ * Initialize OIDC config from runtime values (called by AuthProvider).
+ */
+export function initOIDCConfig(config: OIDCConfig): void {
+  runtimeConfig = config
+}
+
+/**
+ * Get current OIDC config.
+ * Throws if not initialized (AuthProvider must run first).
+ */
+function getConfig(): OIDCConfig {
+  if (!runtimeConfig) {
+    throw new Error('OIDC config not initialized. AuthProvider must load config first.')
+  }
+  return runtimeConfig
+}
+
+/**
+ * Token response from OIDC provider
  */
 export interface TokenResponse {
   access_token: string
@@ -23,17 +47,17 @@ export interface TokenResponse {
 }
 
 /**
- * Keycloak error response
+ * OIDC error response
  */
-export interface KeycloakError {
+export interface OIDCError {
   error: string
   error_description?: string
 }
 
 /**
- * User info from Keycloak
+ * User info from OIDC provider
  */
-export interface KeycloakUserInfo {
+export interface OIDCUserInfo {
   sub: string
   email?: string
   email_verified?: boolean
@@ -44,51 +68,33 @@ export interface KeycloakUserInfo {
 }
 
 /**
- * Get the token endpoint URL
- */
-function getTokenEndpoint(): string {
-  return `${keycloakConfig.url}/realms/${keycloakConfig.realm}/protocol/openid-connect/token`
-}
-
-/**
- * Get the logout endpoint URL
- */
-function getLogoutEndpoint(): string {
-  return `${keycloakConfig.url}/realms/${keycloakConfig.realm}/protocol/openid-connect/logout`
-}
-
-/**
- * Get the userinfo endpoint URL
- */
-function getUserInfoEndpoint(): string {
-  return `${keycloakConfig.url}/realms/${keycloakConfig.realm}/protocol/openid-connect/userinfo`
-}
-
-/**
  * Login with username and password using Direct Access Grant
  */
 export async function loginWithCredentials(
   username: string,
   password: string
 ): Promise<TokenResponse> {
+  const config = getConfig()
+
   const params = new URLSearchParams({
     grant_type: 'password',
-    client_id: keycloakConfig.clientId,
+    client_id: config.clientId,
     username,
     password,
     scope: 'openid profile email',
   })
 
-  const response = await fetch(getTokenEndpoint(), {
+  const response = await fetch(config.tokenEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: params.toString(),
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!response.ok) {
-    const error: KeycloakError = await response.json()
+    const error: OIDCError = await response.json()
     throw new Error(error.error_description || error.error || 'Login failed')
   }
 
@@ -99,6 +105,12 @@ export async function loginWithCredentials(
  * Refresh access token using refresh token
  */
 export async function refreshAccessToken(): Promise<TokenResponse> {
+  const config = getConfig()
+
+  if (!config.tokenEndpoint) {
+    throw new Error('Token endpoint not configured (dummy auth mode)')
+  }
+
   const { refreshToken } = useAuthStore.getState()
 
   if (!refreshToken) {
@@ -107,50 +119,49 @@ export async function refreshAccessToken(): Promise<TokenResponse> {
 
   const params = new URLSearchParams({
     grant_type: 'refresh_token',
-    client_id: keycloakConfig.clientId,
+    client_id: config.clientId,
     refresh_token: refreshToken,
   })
 
-  const response = await fetch(getTokenEndpoint(), {
+  const response = await fetch(config.tokenEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: params.toString(),
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!response.ok) {
-    const error: KeycloakError = await response.json()
+    const error: OIDCError = await response.json()
     throw new Error(error.error_description || error.error || 'Token refresh failed')
   }
 
   const tokens: TokenResponse = await response.json()
 
   // Update tokens in store
-  useAuthStore.getState().setTokens(
-    tokens.access_token,
-    tokens.refresh_token,
-    tokens.expires_in
-  )
+  useAuthStore.getState().setTokens(tokens.access_token, tokens.refresh_token, tokens.expires_in)
 
   return tokens
 }
 
 /**
- * Get user info from Keycloak
+ * Get user info from OIDC provider
  */
-export async function getUserInfo(): Promise<KeycloakUserInfo> {
+export async function getUserInfo(): Promise<OIDCUserInfo> {
+  const config = getConfig()
   const { token } = useAuthStore.getState()
 
   if (!token) {
     throw new Error('No access token available')
   }
 
-  const response = await fetch(getUserInfoEndpoint(), {
+  const response = await fetch(config.userinfoEndpoint, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
     },
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!response.ok) {
@@ -161,32 +172,34 @@ export async function getUserInfo(): Promise<KeycloakUserInfo> {
 }
 
 /**
- * Logout from Keycloak and clear local auth state
+ * Logout from OIDC provider and clear local auth state
  */
 export async function logout(): Promise<void> {
+  const config = getConfig()
   const { refreshToken, clearAuth } = useAuthStore.getState()
 
-  // Clear local auth state first
-  clearAuth()
+  // Clear local auth state first (don't show "session expired" toast on manual logout)
+  clearAuth(false)
 
-  // If we have a refresh token, try to invalidate it on Keycloak
-  if (refreshToken) {
+  // If we have a refresh token and a logout URL, try to invalidate it
+  if (refreshToken && config.endSessionEndpoint) {
     try {
       const params = new URLSearchParams({
-        client_id: keycloakConfig.clientId,
+        client_id: config.clientId,
         refresh_token: refreshToken,
       })
 
-      await fetch(getLogoutEndpoint(), {
+      await fetch(config.endSessionEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: params.toString(),
+        signal: AbortSignal.timeout(10_000),
       })
     } catch (error) {
       // Ignore logout errors - we've already cleared local state
-      console.warn('[Auth] Failed to logout from Keycloak:', error)
+      console.warn('[Auth] Failed to logout from OIDC provider:', error)
     }
   }
 }
@@ -208,9 +221,10 @@ export function shouldRefreshToken(): boolean {
 export function setupTokenRefresh(): () => void {
   const refreshInterval = setInterval(async () => {
     const { token, refreshToken } = useAuthStore.getState()
+    const shouldRefresh = shouldRefreshToken()
 
     // Only refresh if we have tokens and token needs refresh
-    if (token && refreshToken && shouldRefreshToken()) {
+    if (token && refreshToken && shouldRefresh) {
       try {
         await refreshAccessToken()
         console.log('[Auth] Token refreshed successfully')
@@ -246,5 +260,3 @@ export function parseJwtPayload(token: string): Record<string, unknown> | null {
     return null
   }
 }
-
-export { keycloakConfig }

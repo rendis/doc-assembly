@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
-import { refreshAccessToken, getUserInfo, setupTokenRefresh } from '@/lib/keycloak'
-import { getAuthConfig } from '@/lib/auth-config'
+import { refreshAccessToken, getUserInfo, setupTokenRefresh, initOIDCConfig } from '@/lib/oidc'
+import { getAuthConfig, getOIDCConfig } from '@/lib/auth-config'
 import { fetchMyRoles } from '@/features/auth/api/auth-api'
 import { initializeTheme } from '@/stores/theme-store'
 import { LoadingOverlay } from '@/components/common/LoadingSpinner'
@@ -49,6 +49,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Fetch auth config from backend (runtime, not build-time)
         const config = await getAuthConfig()
+
+        // Initialize OIDC config for all subsequent operations
+        const oidcConfig = getOIDCConfig(config)
+        initOIDCConfig(oidcConfig)
 
         console.log(
           `[Auth] Init: staleToken=${!!staleToken}, mode=${config.dummyAuth ? 'dummyAuth' : 'oidc'}`

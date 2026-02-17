@@ -3,10 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_BASE_PATH?: string
   readonly VITE_API_URL: string
-  readonly VITE_KEYCLOAK_URL: string
-  readonly VITE_KEYCLOAK_REALM: string
-  readonly VITE_KEYCLOAK_CLIENT_ID: string
-  readonly VITE_USE_MOCK_AUTH: string
+  readonly VITE_DUMMY_AUTH?: string
 }
 
 interface ImportMeta {

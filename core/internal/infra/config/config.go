@@ -71,8 +71,9 @@ func Load() (*Config, error) {
 		}
 	}
 
-	// Explicit env overrides for signing config (same Viper nested env issue).
+	// Explicit env overrides for nested config (same Viper nested env issue).
 	applySigningEnvOverrides(&cfg.Signing)
+	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
 
 	// Run OIDC discovery to populate issuer/jwks_url from discovery endpoints.
 	// Non-fatal: dev mode (no OIDC) and manual config still work.
@@ -133,6 +134,28 @@ func applySigningEnvOverrides(cfg *SigningConfig) {
 	}
 }
 
+// applyAuthPanelEnvOverrides reads DOC_ENGINE_AUTH_PANEL_* env vars into OIDCProvider.
+func applyAuthPanelEnvOverrides(panel *OIDCProvider) {
+	if panel == nil {
+		return
+	}
+	if v := os.Getenv("DOC_ENGINE_AUTH_PANEL_NAME"); v != "" {
+		panel.Name = v
+	}
+	if v := os.Getenv("DOC_ENGINE_AUTH_PANEL_DISCOVERY_URL"); v != "" {
+		panel.DiscoveryURL = v
+	}
+	if v := os.Getenv("DOC_ENGINE_AUTH_PANEL_ISSUER"); v != "" {
+		panel.Issuer = v
+	}
+	if v := os.Getenv("DOC_ENGINE_AUTH_PANEL_AUDIENCE"); v != "" {
+		panel.Audience = v
+	}
+	if v := os.Getenv("DOC_ENGINE_AUTH_PANEL_CLIENT_ID"); v != "" {
+		panel.ClientID = v
+	}
+}
+
 // LoadFromFile reads configuration from a specific YAML file path.
 // Environment variables still apply as overrides.
 func LoadFromFile(filePath string) (*Config, error) {
@@ -175,6 +198,7 @@ func LoadFromFile(filePath string) (*Config, error) {
 	}
 
 	applySigningEnvOverrides(&cfg.Signing)
+	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
 
 	if err := cfg.Auth.DiscoverAll(context.Background()); err != nil {
 		slog.WarnContext(context.Background(), "OIDC discovery failed (non-fatal)",

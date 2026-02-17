@@ -2,7 +2,7 @@ import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestCo
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppContextStore } from '@/stores/app-context-store'
 import { useSandboxModeStore } from '@/stores/sandbox-mode-store'
-import { refreshAccessToken } from '@/lib/keycloak'
+import { refreshAccessToken } from '@/lib/oidc'
 
 // API Base URL derived from base path
 const BASE_PATH = (import.meta.env.VITE_BASE_PATH || '').replace(/\/$/, '')
