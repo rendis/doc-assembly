@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"mime"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -80,31 +82,38 @@ func NewHTTPServer(
 	engine.Use(gin.Logger())
 	engine.Use(corsMiddleware(cfg.Server.CORS))
 
-	engine.GET("/health", healthHandler)
-	engine.GET("/ready", readyHandler)
-	engine.GET("/api/v1/config", clientConfigHandler(cfg))
-	if cfg.Server.SwaggerUI {
-		engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Base path group (e.g. "/doc-assembly" → all routes under /doc-assembly/*)
+	basePath := cfg.Server.NormalizedBasePath()
+	var base gin.IRouter = &engine.RouterGroup
+	if basePath != "" {
+		base = engine.Group(basePath)
 	}
 
-	registerInternalRoutes(engine, cfg, internalDocController)
+	base.GET("/health", healthHandler)
+	base.GET("/ready", readyHandler)
+	base.GET("/api/v1/config", clientConfigHandler(cfg))
+	if cfg.Server.SwaggerUI {
+		base.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
+
+	registerInternalRoutes(base, cfg, internalDocController)
 
 	requestTimeout := cfg.Server.WriteTimeoutDuration() - 2*time.Second
 	if requestTimeout <= 0 {
 		requestTimeout = 28 * time.Second
 	}
 
-	v1 := setupPanelRoutes(engine, cfg, middlewareProvider, requestTimeout)
+	v1 := setupPanelRoutes(base, cfg, middlewareProvider, requestTimeout)
 	registerPanelControllers(v1, middlewareProvider, adminController, meController,
 		tenantController, documentTypeController, workspaceController,
 		injectableController, templateController, documentController)
 
-	webhookController.RegisterRoutes(engine)
-	setupRenderRoutes(engine, cfg, renderAuthenticator, requestTimeout)
+	webhookController.RegisterRoutes(base)
+	setupRenderRoutes(base, cfg, renderAuthenticator, requestTimeout)
 
 	// Serve embedded SPA if frontendFS is provided, otherwise return 404 for unmatched routes.
 	if frontendFS != nil {
-		serveSPA(engine, frontendFS)
+		engine.NoRoute(spaHandler(frontendFS, basePath))
 	} else {
 		engine.NoRoute(func(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
@@ -118,9 +127,9 @@ func NewHTTPServer(
 }
 
 // registerInternalRoutes registers internal API routes with API key authentication.
-func registerInternalRoutes(engine *gin.Engine, cfg *config.Config, internalDocController *controller.InternalDocumentController) {
+func registerInternalRoutes(router gin.IRouter, cfg *config.Config, internalDocController *controller.InternalDocumentController) {
 	if cfg.InternalAPI.Enabled && cfg.InternalAPI.APIKey != "" {
-		internalV1 := engine.Group("/api/v1")
+		internalV1 := router.Group("/api/v1")
 		internalV1.Use(middleware.Operation())
 		internalDocController.RegisterRoutes(internalV1, cfg.InternalAPI.APIKey)
 		slog.InfoContext(context.Background(), "internal API routes registered")
@@ -132,12 +141,12 @@ func registerInternalRoutes(engine *gin.Engine, cfg *config.Config, internalDocC
 // setupPanelRoutes creates the panel route group with authentication middleware.
 // Uses DummyAuth in dev mode or PanelAuth + IdentityContext + SystemRoleContext in production.
 func setupPanelRoutes(
-	engine *gin.Engine,
+	router gin.IRouter,
 	cfg *config.Config,
 	middlewareProvider *middleware.Provider,
 	requestTimeout time.Duration,
 ) *gin.RouterGroup {
-	v1 := engine.Group("/api/v1")
+	v1 := router.Group("/api/v1")
 	v1.Use(noCacheAPI())
 	v1.Use(middleware.Operation())
 	v1.Use(middleware.RequestTimeout(requestTimeout))
@@ -188,12 +197,12 @@ func registerPanelControllers(
 // Auth priority: dummy > custom RenderAuthenticator > OIDC.
 // Render routes skip DB identity lookup for stateless operation.
 func setupRenderRoutes(
-	engine *gin.Engine,
+	router gin.IRouter,
 	cfg *config.Config,
 	renderAuthenticator port.RenderAuthenticator,
 	requestTimeout time.Duration,
 ) {
-	renderGroup := engine.Group("/api/v1/render")
+	renderGroup := router.Group("/api/v1/render")
 	renderGroup.Use(noCacheAPI())
 	renderGroup.Use(middleware.Operation())
 	renderGroup.Use(middleware.RequestTimeout(requestTimeout))
@@ -287,6 +296,7 @@ func clientConfigHandler(cfg *config.Config) gin.HandlerFunc {
 
 	type clientConfig struct {
 		DummyAuth     bool          `json:"dummyAuth"`
+		BasePath      string        `json:"basePath"`
 		PanelProvider *providerInfo `json:"panelProvider,omitempty"`
 	}
 
@@ -304,6 +314,7 @@ func clientConfigHandler(cfg *config.Config) gin.HandlerFunc {
 
 	resp := clientConfig{
 		DummyAuth:     cfg.Auth.IsDummyAuth(),
+		BasePath:      cfg.Server.NormalizedBasePath(),
 		PanelProvider: panelProvider,
 	}
 
@@ -374,34 +385,85 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 	}
 }
 
-// serveSPA registers static file serving + SPA fallback for the embedded frontend.
-// Static files are served with long cache headers. Non-API, non-file requests
-// fall back to index.html for client-side routing.
-func serveSPA(engine *gin.Engine, frontendFS fs.FS) {
-	fileServer := http.FileServer(http.FS(frontendFS))
+// stripBasePath removes the basePath prefix from reqPath.
+// Returns the stripped path and true, or empty and false if the prefix doesn't match.
+func stripBasePath(reqPath, basePath string) (string, bool) {
+	if basePath == "" {
+		return reqPath, true
+	}
+	if !strings.HasPrefix(reqPath, basePath) {
+		return "", false
+	}
+	stripped := strings.TrimPrefix(reqPath, basePath)
+	if stripped == "" {
+		return "/", true
+	}
+	return stripped, true
+}
 
-	engine.NoRoute(func(c *gin.Context) {
-		path := c.Request.URL.Path
+// isBackendPath returns true if the path belongs to backend-owned prefixes.
+func isBackendPath(p string) bool {
+	return strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/swagger/") || strings.HasPrefix(p, "/webhooks/")
+}
 
-		// API routes that weren't matched → 404 JSON
-		if strings.HasPrefix(path, "/api/") {
+// spaHandler returns a Gin handler that serves the embedded SPA frontend.
+// Explicit routes (/health, /ready, /api/v1/*) are matched by Gin before NoRoute.
+// This handler only runs for unmatched paths: static files get served with cache
+// headers, unknown paths get index.html (SPA client-side routing).
+// basePath is stripped from the request URL before filesystem lookup.
+func spaHandler(fsys fs.FS, basePath string) gin.HandlerFunc {
+	var fileServer http.Handler
+	if fsys != nil {
+		fileServer = http.StripPrefix(basePath, http.FileServer(http.FS(fsys)))
+	}
+
+	return func(c *gin.Context) {
+		stripped, ok := stripBasePath(c.Request.URL.Path, basePath)
+		if !ok || isBackendPath(stripped) || fsys == nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 			return
 		}
 
-		// Try to serve the exact file
-		if f, err := frontendFS.Open(strings.TrimPrefix(path, "/")); err == nil {
-			_ = f.Close()
-			// Cache static assets aggressively (JS, CSS, fonts, images contain content hashes)
-			if strings.Contains(path, "/assets/") {
+		// Normalize path for fs lookup
+		cleanPath := path.Clean(strings.TrimPrefix(stripped, "/"))
+		if cleanPath == "." || cleanPath == "" {
+			cleanPath = "index.html"
+		}
+
+		// Try serving the exact file
+		f, err := fsys.Open(cleanPath)
+		if err == nil {
+			f.Close()
+			if strings.HasPrefix(cleanPath, "assets/") {
 				c.Header("Cache-Control", "public, max-age=31536000, immutable")
 			}
 			fileServer.ServeHTTP(c.Writer, c.Request)
 			return
 		}
 
-		// SPA fallback: serve index.html for all other routes
-		c.Request.URL.Path = "/"
-		fileServer.ServeHTTP(c.Writer, c.Request)
-	})
+		// SPA fallback → serve index.html
+		serveIndexHTML(c, fsys)
+	}
+}
+
+// serveIndexHTML serves index.html with no-cache headers for SPA fallback routing.
+func serveIndexHTML(c *gin.Context, fsys fs.FS) {
+	indexFile, err := fsys.Open("index.html")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	defer indexFile.Close()
+
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	stat, _ := indexFile.Stat()
+
+	if rs, ok := indexFile.(io.ReadSeeker); ok {
+		http.ServeContent(c.Writer, c.Request, "index.html", stat.ModTime(), rs)
+		return
+	}
+
+	c.Writer.WriteHeader(http.StatusOK)
+	_, _ = io.Copy(c.Writer, indexFile)
 }

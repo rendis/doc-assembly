@@ -88,6 +88,7 @@ func Load() (*Config, error) {
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("server.port", "8080")
+	v.SetDefault("server.base_path", "")
 	v.SetDefault("server.read_timeout", 30)
 	v.SetDefault("server.write_timeout", 30)
 	v.SetDefault("server.shutdown_timeout", 10)

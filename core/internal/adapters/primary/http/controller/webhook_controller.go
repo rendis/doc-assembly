@@ -32,7 +32,7 @@ func NewWebhookController(
 
 // RegisterRoutes registers webhook routes.
 // Webhooks are not protected by auth middleware as they come from external providers.
-func (c *WebhookController) RegisterRoutes(router *gin.Engine) {
+func (c *WebhookController) RegisterRoutes(router gin.IRouter) {
 	webhooks := router.Group("/webhooks")
 	{
 		// Provider-specific webhook endpoints
