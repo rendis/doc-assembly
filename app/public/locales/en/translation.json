@@ -123,19 +123,23 @@
     "subtitle": "Workspace Overview",
     "lastSynced": "Last Synced",
     "totalGenerated": "Total Generated",
-    "signedThisMonth": "Signed (30 Days)",
     "inProgress": "In Progress",
     "recentActivity": "Recent Activity",
     "quickDraft": "Quick Draft",
     "newDocument": "New Document",
-    "integrations": "Integrations",
     "stats": {
       "generated": "Total Generated",
-      "signed": "Signed (30 Days)",
+      "completed": "Completed",
       "inProgress": "In Progress"
     },
     "activity": {
-      "title": "Recent Activity"
+      "title": "Recent Activity",
+      "viewAll": "View Full History",
+      "empty": "No documents yet",
+      "untitled": "Untitled",
+      "colDocument": "Document Name",
+      "colStatus": "Status",
+      "colModified": "Modified"
     }
   },
   "templates": {

@@ -123,19 +123,23 @@
     "subtitle": "Resumen del Workspace",
     "lastSynced": "Última sincronización",
     "totalGenerated": "Total Generados",
-    "signedThisMonth": "Firmados (30 Días)",
     "inProgress": "En Progreso",
     "recentActivity": "Actividad Reciente",
     "quickDraft": "Borrador Rápido",
     "newDocument": "Nuevo Documento",
-    "integrations": "Integraciones",
     "stats": {
       "generated": "Total Generados",
-      "signed": "Firmados (30 Días)",
+      "completed": "Completados",
       "inProgress": "En Progreso"
     },
     "activity": {
-      "title": "Actividad Reciente"
+      "title": "Actividad Reciente",
+      "viewAll": "Ver Historial Completo",
+      "empty": "Sin documentos aún",
+      "untitled": "Sin título",
+      "colDocument": "Nombre del Documento",
+      "colStatus": "Estado",
+      "colModified": "Modificado"
     }
   },
   "templates": {

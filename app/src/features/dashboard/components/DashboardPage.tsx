@@ -1,47 +1,35 @@
 import { useTranslation } from 'react-i18next'
+import { Link, useParams } from '@tanstack/react-router'
 import { StatCard } from './StatCard'
 import { RecentActivity } from './RecentActivity'
 import { QuickDraft } from './QuickDraft'
-import { IntegrationsStatus } from './IntegrationsStatus'
 import { useDocumentStatistics } from '@/features/signing/hooks/useDocumentStatistics'
 
-// Sample data for charts (visual placeholders)
-const chartData1 = [
-  { name: 'A', value: 20 },
-  { name: 'B', value: 40 },
-  { name: 'C', value: 35 },
-  { name: 'D', value: 50 },
-  { name: 'E', value: 45 },
-  { name: 'F', value: 70 },
-  { name: 'G', value: 65 },
-]
+function formatSyncTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
 
-const chartData2 = [
-  { name: 'A', value: 10 },
-  { name: 'B', value: 20 },
-  { name: 'C', value: 15 },
-  { name: 'D', value: 30 },
-  { name: 'E', value: 25 },
-  { name: 'F', value: 40 },
-  { name: 'G', value: 35 },
-]
+  const time = date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 
-const barData = [
-  { name: '1', value: 40 },
-  { name: '2', value: 60 },
-  { name: '3', value: 30 },
-  { name: '4', value: 80 },
-  { name: '5', value: 50 },
-  { name: '6', value: 90 },
-  { name: '7', value: 45 },
-]
+  if (isToday) return `Today, ${time}`
+
+  return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${time}`
+}
 
 export function DashboardPage() {
   const { t } = useTranslation()
-  const { data: statistics, isLoading } = useDocumentStatistics()
+  const { workspaceId } = useParams({ strict: false })
+  const { data: statistics, isLoading, dataUpdatedAt } = useDocumentStatistics()
 
   const totalGenerated = isLoading ? '-' : (statistics?.total ?? 0).toLocaleString()
-  const signedCount = isLoading ? '-' : (statistics?.completed ?? 0).toLocaleString()
+  const completedCount = isLoading ? '-' : (statistics?.completed ?? 0).toLocaleString()
   const inProgressCount = isLoading
     ? '-'
     : ((statistics?.inProgress ?? 0) + (statistics?.pending ?? 0)).toLocaleString()
@@ -64,9 +52,11 @@ export function DashboardPage() {
           </div>
           <div className="hidden text-left md:block md:text-right">
             <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Last Synced
+              {t('dashboard.lastSynced', 'Last Synced')}
             </p>
-            <p className="font-display text-sm font-medium">Today, 09:42 AM</p>
+            <p className="font-display text-sm font-medium">
+              {dataUpdatedAt ? formatSyncTime(dataUpdatedAt) : '-'}
+            </p>
           </div>
         </header>
 
@@ -75,21 +65,15 @@ export function DashboardPage() {
           <StatCard
             label={t('dashboard.stats.generated', 'Total Generated')}
             value={totalGenerated}
-            data={chartData1}
-            chartType="area"
           />
           <StatCard
-            label={t('dashboard.stats.signed', 'Signed (30 Days)')}
-            value={signedCount}
-            data={chartData2}
-            chartType="step"
+            label={t('dashboard.stats.completed', 'Completed')}
+            value={completedCount}
           />
           <StatCard
             label={t('dashboard.stats.inProgress', 'In Progress')}
             value={inProgressCount}
             suffix="active"
-            data={barData}
-            chartType="bars"
           />
         </div>
 
@@ -98,7 +82,6 @@ export function DashboardPage() {
           {/* Sidebar */}
           <div className="order-2 space-y-10 lg:order-1 lg:col-span-1">
             <QuickDraft />
-            <IntegrationsStatus />
           </div>
 
           {/* Activity */}
@@ -107,12 +90,14 @@ export function DashboardPage() {
               <h2 className="font-display text-xl font-medium tracking-tight">
                 {t('dashboard.activity.title', 'Recent Activity')}
               </h2>
-              <a
-                href="#"
+              <Link
+                to="/workspace/$workspaceId/signing"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Router type limitation
+                params={{ workspaceId: workspaceId ?? '' } as any}
                 className="border-b border-transparent pb-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
               >
-                View Full History
-              </a>
+                {t('dashboard.activity.viewAll', 'View Full History')}
+              </Link>
             </div>
             <RecentActivity />
           </div>
