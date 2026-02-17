@@ -74,6 +74,7 @@ func Load() (*Config, error) {
 	// Explicit env overrides for nested config (same Viper nested env issue).
 	applySigningEnvOverrides(&cfg.Signing)
 	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
+	applyBootstrapEnvOverrides(&cfg.Bootstrap)
 
 	// Run OIDC discovery to populate issuer/jwks_url from discovery endpoints.
 	// Non-fatal: dev mode (no OIDC) and manual config still work.
@@ -107,6 +108,9 @@ func setDefaults(v *viper.Viper) {
 	// Logging defaults
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "json")
+
+	// Bootstrap defaults
+	v.SetDefault("bootstrap.enabled", true)
 
 	// Environment default
 	v.SetDefault("environment", "development")
@@ -156,6 +160,13 @@ func applyAuthPanelEnvOverrides(panel *OIDCProvider) {
 	}
 }
 
+// applyBootstrapEnvOverrides reads DOC_ENGINE_BOOTSTRAP_* env vars into BootstrapConfig.
+func applyBootstrapEnvOverrides(cfg *BootstrapConfig) {
+	if v := os.Getenv("DOC_ENGINE_BOOTSTRAP_ENABLED"); v == "false" {
+		cfg.Enabled = false
+	}
+}
+
 // LoadFromFile reads configuration from a specific YAML file path.
 // Environment variables still apply as overrides.
 func LoadFromFile(filePath string) (*Config, error) {
@@ -199,6 +210,7 @@ func LoadFromFile(filePath string) (*Config, error) {
 
 	applySigningEnvOverrides(&cfg.Signing)
 	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
+	applyBootstrapEnvOverrides(&cfg.Bootstrap)
 
 	if err := cfg.Auth.DiscoverAll(context.Background()); err != nil {
 		slog.WarnContext(context.Background(), "OIDC discovery failed (non-fatal)",

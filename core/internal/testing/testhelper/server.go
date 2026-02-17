@@ -171,8 +171,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	templateMapper := mapper.NewTemplateMapper(templateVersionMapper, tagMapper, folderMapper)
 	workspaceInjectableMapper := mapper.NewInjectableMapper()
 
-	// Create middleware provider
+	// Create middleware provider (nil pool + bootstrap disabled for tests)
 	middlewareProvider := middleware.NewProvider(
+		nil, false,
 		userRepo,
 		systemRoleRepo,
 		workspaceRepo,

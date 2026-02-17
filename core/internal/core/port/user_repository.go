@@ -22,4 +22,7 @@ type UserRepository interface {
 
 	// Update updates a user's information.
 	Update(ctx context.Context, user *entity.User) error
+
+	// LinkToIdP links a user to their external IdP account.
+	LinkToIdP(ctx context.Context, id, externalID string) error
 }
