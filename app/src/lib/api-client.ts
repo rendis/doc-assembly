@@ -4,8 +4,9 @@ import { useAppContextStore } from '@/stores/app-context-store'
 import { useSandboxModeStore } from '@/stores/sandbox-mode-store'
 import { refreshAccessToken } from '@/lib/keycloak'
 
-// API Base URL from environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
+// API Base URL derived from base path
+const BASE_PATH = (import.meta.env.VITE_BASE_PATH || '').replace(/\/$/, '')
+const API_BASE_URL = `${BASE_PATH}/api/v1`
 
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false

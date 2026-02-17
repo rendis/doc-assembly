@@ -9,9 +9,15 @@ import { Toaster } from '@/components/ui/toaster'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import './index.css'
 
+declare const __BUILD_TIMESTAMP__: string
+console.log(`[Doc-Assembly] Build: ${__BUILD_TIMESTAMP__}`)
+
 // Create a new router instance
 // @ts-expect-error - TanStack Router requires strictNullChecks but we have it disabled
-const router = createRouter({ routeTree })
+const router = createRouter({
+  routeTree,
+  basepath: import.meta.env.VITE_BASE_PATH || '/',
+})
 
 // Register the router instance for type safety
 declare module '@tanstack/react-router' {
