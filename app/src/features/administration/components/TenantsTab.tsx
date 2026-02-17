@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Archive,
   Building2,
+  ExternalLink,
   MoreHorizontal,
   Pause,
   Pencil,
@@ -26,6 +27,9 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from '@tanstack/react-router'
+import { useAppContextStore } from '@/stores/app-context-store'
+import type { TenantWithRole } from '@/features/tenants/types'
 import { TenantFormDialog } from './TenantFormDialog'
 import { TenantStatusBadge } from './TenantStatusBadge'
 import { ArchiveTenantDialog } from './ArchiveTenantDialog'
@@ -58,6 +62,8 @@ export function TenantsTab(): React.ReactElement {
   const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null)
   const [archiveOpen, setArchiveOpen] = useState(false)
 
+  const navigate = useNavigate()
+  const { setCurrentTenant } = useAppContextStore()
   const updateStatusMutation = useUpdateTenantStatus()
 
   // Debounce search query and reset page when search changes
@@ -115,6 +121,12 @@ export function TenantsTab(): React.ReactElement {
   const handleArchive = (tenant: SystemTenant) => {
     setSelectedTenant(tenant)
     setArchiveOpen(true)
+  }
+
+  const handleOpenTenant = (tenant: SystemTenant) => {
+    const tenantWithRole: TenantWithRole = { ...tenant, role: 'SUPERADMIN' }
+    setCurrentTenant(tenantWithRole)
+    navigate({ to: '/select-tenant' })
   }
 
   const getStatusAction = (tenant: SystemTenant) => {
@@ -241,7 +253,12 @@ export function TenantsTab(): React.ReactElement {
                   className="border-b last:border-0 hover:bg-muted/50"
                 >
                   <td className="p-4">
-                    <span className="font-medium">{tenant.name}</span>
+                    <button
+                      onClick={() => handleOpenTenant(tenant)}
+                      className="font-medium hover:underline"
+                    >
+                      {tenant.name}
+                    </button>
                     {tenant.isSystem && (
                       <span className="ml-2 rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
                         {t('administration.tenants.system', 'System')}
@@ -268,6 +285,11 @@ export function TenantsTab(): React.ReactElement {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleOpenTenant(tenant)}>
+                            <ExternalLink size={14} className="mr-2" />
+                            {t('administration.tenants.actions.open', 'Open')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleEdit(tenant)}>
                             <Pencil size={14} className="mr-2" />
                             {t('administration.tenants.actions.edit', 'Edit')}
