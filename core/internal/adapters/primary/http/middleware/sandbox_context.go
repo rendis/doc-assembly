@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/core/port"
@@ -26,48 +29,22 @@ const (
 // workspace ID and replaces the workspace ID in context with the sandbox ID.
 func SandboxContext(workspaceRepo port.WorkspaceRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip for OPTIONS requests
-		if c.Request.Method == http.MethodOptions {
+		if c.Request.Method == http.MethodOptions || c.GetHeader(SandboxModeHeader) != "true" {
 			c.Next()
 			return
 		}
 
-		// Check if X-Sandbox-Mode header is present and set to "true"
-		sandboxHeader := c.GetHeader(SandboxModeHeader)
-		if sandboxHeader != "true" {
-			c.Next()
-			return
-		}
-
-		// Get workspace ID from context (set by WorkspaceContext)
 		parentWorkspaceID, ok := GetWorkspaceID(c)
 		if !ok {
-			// WorkspaceContext should have set this; if not, continue without sandbox resolution
 			c.Next()
 			return
 		}
 
-		// Look up the sandbox workspace for this parent
-		sandbox, err := workspaceRepo.FindSandboxByParentID(c.Request.Context(), parentWorkspaceID)
+		sandbox, err := resolveSandbox(c, workspaceRepo, parentWorkspaceID)
 		if err != nil {
-			if errors.Is(err, entity.ErrSandboxNotFound) {
-				slog.WarnContext(c.Request.Context(), "sandbox mode requested but workspace does not support sandbox",
-					slog.String("parent_workspace_id", parentWorkspaceID),
-					slog.String("operation_id", GetOperationID(c)),
-				)
-				abortWithError(c, http.StatusBadRequest, entity.ErrSandboxNotSupported)
-				return
-			}
-			slog.ErrorContext(c.Request.Context(), "failed to find sandbox workspace",
-				slog.String("error", err.Error()),
-				slog.String("parent_workspace_id", parentWorkspaceID),
-				slog.String("operation_id", GetOperationID(c)),
-			)
-			abortWithError(c, http.StatusInternalServerError, err)
 			return
 		}
 
-		// Store parent workspace ID and replace workspace ID with sandbox ID
 		c.Set(parentWorkspaceIDKey, parentWorkspaceID)
 		c.Set(workspaceIDKey, sandbox.ID)
 		c.Set(sandboxModeKey, true)
@@ -80,6 +57,88 @@ func SandboxContext(workspaceRepo port.WorkspaceRepository) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// resolveSandbox finds the sandbox workspace for the parent, auto-creating it if missing and eligible.
+// On error, it aborts the gin context.
+func resolveSandbox(c *gin.Context, workspaceRepo port.WorkspaceRepository, parentWorkspaceID string) (*entity.Workspace, error) {
+	sandbox, err := workspaceRepo.FindSandboxByParentID(c.Request.Context(), parentWorkspaceID)
+	if err == nil {
+		return sandbox, nil
+	}
+
+	if !errors.Is(err, entity.ErrSandboxNotFound) {
+		slog.ErrorContext(c.Request.Context(), "failed to find sandbox workspace",
+			slog.String("error", err.Error()),
+			slog.String("parent_workspace_id", parentWorkspaceID),
+			slog.String("operation_id", GetOperationID(c)),
+		)
+		abortWithError(c, http.StatusInternalServerError, err)
+		return nil, err
+	}
+
+	return findOrCreateSandbox(c, workspaceRepo, parentWorkspaceID)
+}
+
+// findOrCreateSandbox loads the parent workspace, checks eligibility, and creates a sandbox if possible.
+// On error, it aborts the gin context and returns nil + error.
+func findOrCreateSandbox(c *gin.Context, workspaceRepo port.WorkspaceRepository, parentWorkspaceID string) (*entity.Workspace, error) {
+	ctx := c.Request.Context()
+	opID := GetOperationID(c)
+
+	parent, err := workspaceRepo.FindByID(ctx, parentWorkspaceID)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to load parent workspace for sandbox resolution",
+			slog.String("error", err.Error()),
+			slog.String("parent_workspace_id", parentWorkspaceID),
+			slog.String("operation_id", opID),
+		)
+		abortWithError(c, http.StatusInternalServerError, err)
+		return nil, err
+	}
+
+	if !parent.CanHaveSandbox() {
+		slog.WarnContext(ctx, "sandbox mode requested but workspace does not support sandbox",
+			slog.String("parent_workspace_id", parentWorkspaceID),
+			slog.String("workspace_type", string(parent.Type)),
+			slog.String("operation_id", opID),
+		)
+		abortWithError(c, http.StatusBadRequest, entity.ErrSandboxNotSupported)
+		return nil, entity.ErrSandboxNotSupported
+	}
+
+	// Parent is eligible — auto-create sandbox
+	sandbox := &entity.Workspace{
+		ID:          uuid.NewString(),
+		TenantID:    parent.TenantID,
+		Name:        fmt.Sprintf("%s (SANDBOX)", parent.Name),
+		Type:        parent.Type,
+		Status:      parent.Status,
+		Settings:    parent.Settings,
+		IsSandbox:   true,
+		SandboxOfID: &parentWorkspaceID,
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	id, err := workspaceRepo.CreateSandbox(ctx, sandbox)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to auto-create sandbox workspace",
+			slog.String("error", err.Error()),
+			slog.String("parent_workspace_id", parentWorkspaceID),
+			slog.String("operation_id", opID),
+		)
+		abortWithError(c, http.StatusInternalServerError, err)
+		return nil, err
+	}
+	sandbox.ID = id
+
+	slog.InfoContext(ctx, "sandbox workspace auto-created",
+		slog.String("parent_workspace_id", parentWorkspaceID),
+		slog.String("sandbox_workspace_id", sandbox.ID),
+		slog.String("operation_id", opID),
+	)
+
+	return sandbox, nil
 }
 
 // IsSandboxMode returns true if the request is operating in sandbox mode.

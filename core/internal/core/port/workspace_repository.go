@@ -36,6 +36,9 @@ type WorkspaceRepository interface {
 	// FindSandboxByParentID finds the sandbox workspace for a given parent workspace ID.
 	FindSandboxByParentID(ctx context.Context, parentID string) (*entity.Workspace, error)
 
+	// CreateSandbox creates a sandbox workspace with is_sandbox=true and sandbox_of_id set.
+	CreateSandbox(ctx context.Context, sandbox *entity.Workspace) (string, error)
+
 	// Update updates a workspace.
 	Update(ctx context.Context, workspace *entity.Workspace) error
 
