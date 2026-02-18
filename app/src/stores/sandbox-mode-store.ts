@@ -105,3 +105,11 @@ export function isSandboxModeActive(): boolean {
   if (currentWorkspace.type !== 'CLIENT') return false
   return useSandboxModeStore.getState().sandboxWorkspaces[currentWorkspace.id] ?? false
 }
+
+// Auto-clear sandbox state when switching to a non-CLIENT workspace
+useAppContextStore.subscribe((state, prev) => {
+  const ws = state.currentWorkspace
+  if (ws && ws !== prev.currentWorkspace && ws.type !== 'CLIENT') {
+    useSandboxModeStore.getState().clearSandboxForWorkspace(ws.id)
+  }
+})

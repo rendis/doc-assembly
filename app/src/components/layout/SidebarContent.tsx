@@ -26,6 +26,7 @@ interface NavItem {
   icon: typeof LayoutGrid
   href: string
   showInSandbox: boolean
+  hideForSystem?: boolean
 }
 
 interface SidebarContentProps {
@@ -115,6 +116,7 @@ export function SidebarContent({
       icon: Settings,
       href: `/workspace/${workspaceId}/settings`,
       showInSandbox: false,
+      hideForSystem: true,
     },
     // Administration - only visible in SYSTEM workspace
     ...(isSystemContext()
@@ -129,10 +131,13 @@ export function SidebarContent({
       : []),
   ]
 
-  // Filter nav items based on sandbox mode
-  const visibleNavItems = isSandboxActive
-    ? allNavItems.filter((item) => item.showInSandbox)
-    : allNavItems
+  // Filter nav items based on sandbox mode and workspace type
+  const isSystem = isSystemContext()
+  const visibleNavItems = allNavItems.filter((item) => {
+    if (isSandboxActive && !item.showInSandbox) return false
+    if (isSystem && item.hideForSystem) return false
+    return true
+  })
 
   const displayName = userProfile
     ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() ||

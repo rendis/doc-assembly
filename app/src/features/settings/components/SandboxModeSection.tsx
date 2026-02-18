@@ -1,9 +1,9 @@
 import { useAppContextStore } from '@/stores/app-context-store'
-import { useSandboxMode, useSandboxModeStore } from '@/stores/sandbox-mode-store'
+import { useSandboxMode } from '@/stores/sandbox-mode-store'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, FlaskConical } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SandboxConfirmDialog } from './SandboxConfirmDialog'
 
@@ -13,18 +13,12 @@ export function SandboxModeSection() {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { currentWorkspace } = useAppContextStore()
-  const clearSandboxForWorkspace = useSandboxModeStore((state) => state.clearSandboxForWorkspace)
   const { isSandboxActive, enableSandbox, disableSandbox } = useSandboxMode()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [pendingAction, setPendingAction] = useState<'enable' | 'disable' | null>(null)
   // Pending checked value while dialog is open (null = use actual value)
   const [pendingChecked, setPendingChecked] = useState<boolean | null>(null)
   const isSandboxSupported = currentWorkspace?.type === 'CLIENT'
-
-  useEffect(() => {
-    if (!currentWorkspace?.id || isSandboxSupported) return
-    clearSandboxForWorkspace(currentWorkspace.id)
-  }, [clearSandboxForWorkspace, currentWorkspace?.id, isSandboxSupported])
 
   // Use pending value if set (dialog open), otherwise use actual sandbox state
   const localChecked = pendingChecked ?? isSandboxActive
