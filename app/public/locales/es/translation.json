@@ -1039,6 +1039,60 @@
         "enableConfirm": "Entrar a Sandbox",
         "disableConfirm": "Salir de Sandbox"
       }
+    },
+    "members": {
+      "title": "Miembros",
+      "description": "Gestiona los miembros y sus roles en este workspace.",
+      "searchPlaceholder": "Buscar miembros...",
+      "inviteMember": "Invitar Miembro",
+      "loadError": "Error al cargar miembros",
+      "noResults": "Ningún miembro coincide con tu búsqueda",
+      "empty": "No se encontraron miembros",
+      "roleUpdated": "Rol actualizado",
+      "roleError": "Error al actualizar el rol",
+      "columns": {
+        "name": "Nombre",
+        "email": "Correo",
+        "role": "Rol",
+        "status": "Estado"
+      },
+      "roles": {
+        "owner": "Propietario",
+        "admin": "Administrador",
+        "editor": "Editor",
+        "operator": "Operador",
+        "viewer": "Visualizador"
+      },
+      "actions": {
+        "makeOwner": "Hacer Propietario",
+        "makeAdmin": "Hacer Administrador",
+        "makeEditor": "Hacer Editor",
+        "makeOperator": "Hacer Operador",
+        "makeViewer": "Hacer Visualizador",
+        "remove": "Eliminar"
+      },
+      "invite": {
+        "title": "Invitar Miembro",
+        "description": "Invita un usuario a este workspace.",
+        "email": "Correo electrónico",
+        "emailRequired": "El correo es obligatorio",
+        "emailInvalid": "Ingresa un correo válido",
+        "fullName": "Nombre Completo",
+        "fullNamePlaceholder": "Juan Pérez",
+        "role": "Rol",
+        "submit": "Invitar Miembro",
+        "success": "Miembro invitado",
+        "memberExists": "Este usuario ya es miembro",
+        "error": "Error al invitar miembro"
+      },
+      "remove": {
+        "title": "Eliminar Miembro",
+        "confirm": "¿Estás seguro de que deseas eliminar a \"{{name}}\"?",
+        "ownerWarning": "Este miembro es propietario del workspace. Eliminarlo puede afectar la administración.",
+        "description": "Este usuario perderá acceso a este workspace.",
+        "success": "Miembro eliminado",
+        "error": "Error al eliminar miembro"
+      }
     }
   },
   "sandbox": {

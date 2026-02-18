@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { SandboxModeSection } from './SandboxModeSection'
+import { WorkspaceMembersSection } from './WorkspaceMembersSection'
 
 export function SettingsPage() {
   const { t } = useTranslation()
@@ -23,6 +24,9 @@ export function SettingsPage() {
       <main className="w-full px-4 pb-24 md:px-6 lg:px-6">
         <div className="w-full border-t border-border">
           <SandboxModeSection />
+        </div>
+        <div className="w-full border-t border-border">
+          <WorkspaceMembersSection />
         </div>
       </main>
     </div>

@@ -1039,6 +1039,60 @@
         "enableConfirm": "Enter Sandbox",
         "disableConfirm": "Exit Sandbox"
       }
+    },
+    "members": {
+      "title": "Members",
+      "description": "Manage members and their roles for this workspace.",
+      "searchPlaceholder": "Search members...",
+      "inviteMember": "Invite Member",
+      "loadError": "Failed to load members",
+      "noResults": "No members match your search",
+      "empty": "No members found",
+      "roleUpdated": "Role updated",
+      "roleError": "Failed to update role",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status"
+      },
+      "roles": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "editor": "Editor",
+        "operator": "Operator",
+        "viewer": "Viewer"
+      },
+      "actions": {
+        "makeOwner": "Make Owner",
+        "makeAdmin": "Make Admin",
+        "makeEditor": "Make Editor",
+        "makeOperator": "Make Operator",
+        "makeViewer": "Make Viewer",
+        "remove": "Remove"
+      },
+      "invite": {
+        "title": "Invite Member",
+        "description": "Invite a user to this workspace.",
+        "email": "Email",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email",
+        "fullName": "Full Name",
+        "fullNamePlaceholder": "John Doe",
+        "role": "Role",
+        "submit": "Invite Member",
+        "success": "Member invited",
+        "memberExists": "This user is already a member",
+        "error": "Failed to invite member"
+      },
+      "remove": {
+        "title": "Remove Member",
+        "confirm": "Are you sure you want to remove \"{{name}}\"?",
+        "ownerWarning": "This member is a workspace owner. Removing them may affect workspace administration.",
+        "description": "This user will lose access to this workspace.",
+        "success": "Member removed",
+        "error": "Failed to remove member"
+      }
     }
   },
   "sandbox": {
