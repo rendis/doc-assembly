@@ -13,7 +13,6 @@ import (
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/core/port"
-	"github.com/rendis/doc-assembly/core/internal/testing/testhelper"
 )
 
 func TestWebhookController_HandleSigningWebhook(t *testing.T) {

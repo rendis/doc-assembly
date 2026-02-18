@@ -22,6 +22,9 @@ Production Workspace (is_sandbox=false)
 
 To operate in sandbox mode, add the `X-Sandbox-Mode: true` header to your requests:
 
+> `X-Sandbox-Mode` is supported only for `CLIENT` workspaces.  
+> Requests with `X-Sandbox-Mode: true` on `SYSTEM` workspaces return `400 Bad Request`.
+
 ```bash
 # List templates in production
 curl -X GET /api/v1/content/templates \

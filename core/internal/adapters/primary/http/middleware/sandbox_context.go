@@ -122,6 +122,14 @@ func findOrCreateSandbox(c *gin.Context, workspaceRepo port.WorkspaceRepository,
 
 	id, err := workspaceRepo.CreateSandbox(ctx, sandbox)
 	if err != nil {
+		if errors.Is(err, entity.ErrSandboxNotSupported) {
+			slog.WarnContext(ctx, "sandbox workspace creation rejected",
+				slog.String("parent_workspace_id", parentWorkspaceID),
+				slog.String("operation_id", opID),
+			)
+			abortWithError(c, http.StatusBadRequest, entity.ErrSandboxNotSupported)
+			return nil, entity.ErrSandboxNotSupported
+		}
 		slog.ErrorContext(ctx, "failed to auto-create sandbox workspace",
 			slog.String("error", err.Error()),
 			slog.String("parent_workspace_id", parentWorkspaceID),

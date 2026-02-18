@@ -43,6 +43,10 @@ func (r *Repository) Create(ctx context.Context, workspace *entity.Workspace) (s
 
 // CreateSandbox creates a sandbox workspace with is_sandbox=true and sandbox_of_id set.
 func (r *Repository) CreateSandbox(ctx context.Context, sandbox *entity.Workspace) (string, error) {
+	if err := validateSandboxWorkspace(sandbox); err != nil {
+		return "", err
+	}
+
 	var id string
 	err := r.pool.QueryRow(ctx, queryCreateSandbox,
 		sandbox.ID,
@@ -54,11 +58,24 @@ func (r *Repository) CreateSandbox(ctx context.Context, sandbox *entity.Workspac
 		sandbox.SandboxOfID,
 		sandbox.CreatedAt,
 	).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", entity.ErrSandboxNotSupported
+	}
 	if err != nil {
 		return "", fmt.Errorf("inserting sandbox workspace: %w", err)
 	}
 
 	return id, nil
+}
+
+func validateSandboxWorkspace(sandbox *entity.Workspace) error {
+	if sandbox == nil || sandbox.SandboxOfID == nil || *sandbox.SandboxOfID == "" {
+		return entity.ErrRequiredField
+	}
+	if !sandbox.IsSandbox || sandbox.Type != entity.WorkspaceTypeClient {
+		return entity.ErrSandboxNotSupported
+	}
+	return nil
 }
 
 // FindByID finds a workspace by ID.

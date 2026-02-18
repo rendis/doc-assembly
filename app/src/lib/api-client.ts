@@ -61,7 +61,12 @@ apiClient.interceptors.request.use(
       // Inject sandbox mode header if active for this workspace
       // Only set if not explicitly specified by the caller (allows bypassing for production API calls)
       const { sandboxWorkspaces } = useSandboxModeStore.getState()
-      if (sandboxWorkspaces[currentWorkspace.id] && !('X-Sandbox-Mode' in config.headers)) {
+      const supportsSandbox = currentWorkspace.type === 'CLIENT'
+      if (
+        supportsSandbox &&
+        sandboxWorkspaces[currentWorkspace.id] &&
+        !('X-Sandbox-Mode' in config.headers)
+      ) {
         config.headers['X-Sandbox-Mode'] = 'true'
       }
     }

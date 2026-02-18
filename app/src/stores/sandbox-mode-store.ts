@@ -85,13 +85,14 @@ export function useSandboxMode() {
   } = useSandboxModeStore()
 
   const workspaceId = currentWorkspace?.id ?? ''
-  const isSandboxActive = sandboxWorkspaces[workspaceId] ?? false
+  const isSandboxSupported = currentWorkspace?.type === 'CLIENT'
+  const isSandboxActive = isSandboxSupported ? (sandboxWorkspaces[workspaceId] ?? false) : false
 
   return {
     isSandboxActive,
-    enableSandbox: () => workspaceId && enableSandbox(workspaceId),
+    enableSandbox: () => workspaceId && isSandboxSupported && enableSandbox(workspaceId),
     disableSandbox: () => workspaceId && disableSandbox(workspaceId),
-    toggleSandbox: () => workspaceId && toggleSandbox(workspaceId),
+    toggleSandbox: () => workspaceId && isSandboxSupported && toggleSandbox(workspaceId),
   }
 }
 
@@ -101,5 +102,6 @@ export function useSandboxMode() {
 export function isSandboxModeActive(): boolean {
   const { currentWorkspace } = useAppContextStore.getState()
   if (!currentWorkspace?.id) return false
+  if (currentWorkspace.type !== 'CLIENT') return false
   return useSandboxModeStore.getState().sandboxWorkspaces[currentWorkspace.id] ?? false
 }

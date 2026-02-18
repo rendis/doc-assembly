@@ -84,6 +84,13 @@ const (
 
 	queryCreateSandbox = `
 		INSERT INTO tenancy.workspaces (id, tenant_id, name, type, status, settings, is_sandbox, sandbox_of_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $8)
+		SELECT $1, $2, $3, $4, $5, $6, TRUE, $7, $8
+		WHERE EXISTS (
+			SELECT 1
+			FROM tenancy.workspaces parent
+			WHERE parent.id = $7
+			  AND parent.type = 'CLIENT'
+			  AND parent.is_sandbox = FALSE
+		)
 		RETURNING id`
 )

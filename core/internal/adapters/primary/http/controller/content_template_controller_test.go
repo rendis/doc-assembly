@@ -3,8 +3,10 @@
 package controller_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
@@ -282,6 +284,38 @@ func TestContentTemplateController_ListTemplates(t *testing.T) {
 			GET("/api/v1/content/templates")
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+
+	t.Run("bad request when sandbox mode is requested for system workspace", func(t *testing.T) {
+		var systemWorkspaceID string
+		err := pool.QueryRow(
+			context.Background(),
+			`SELECT id FROM tenancy.workspaces WHERE tenant_id = $1 AND type = 'SYSTEM' AND is_sandbox = FALSE LIMIT 1`,
+			tenantID,
+		).Scan(&systemWorkspaceID)
+		require.NoError(t, err)
+
+		testhelper.CreateTestWorkspaceMember(t, pool, systemWorkspaceID, owner.ID, entity.WorkspaceRoleOwner, nil)
+
+		req, err := http.NewRequest(http.MethodGet, ts.URL()+"/api/v1/content/templates", nil)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", owner.BearerHeader)
+		req.Header.Set("X-Workspace-ID", systemWorkspaceID)
+		req.Header.Set("X-Sandbox-Mode", "true")
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+		var errorResp map[string]string
+		err = json.Unmarshal(body, &errorResp)
+		require.NoError(t, err)
+		assert.Equal(t, entity.ErrSandboxNotSupported.Error(), errorResp["error"])
 	})
 }
 
