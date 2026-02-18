@@ -90,6 +90,7 @@ func is409Error(err error) bool {
 		errors.Is(err, entity.ErrDuplicateSignerAnchor) ||
 		errors.Is(err, entity.ErrDuplicateSignerOrder) ||
 		errors.Is(err, entity.ErrWorkspaceAlreadyExists) ||
+		errors.Is(err, entity.ErrWorkspaceCodeExists) ||
 		errors.Is(err, entity.ErrFolderAlreadyExists) ||
 		errors.Is(err, entity.ErrTagAlreadyExists) ||
 		errors.Is(err, entity.ErrSystemWorkspaceExists) ||
@@ -129,6 +130,7 @@ func is400Error(err error) bool {
 		errors.Is(err, entity.ErrInvalidRole) ||
 		errors.Is(err, entity.ErrInvalidTenantCode) ||
 		errors.Is(err, entity.ErrInvalidWorkspaceType) ||
+		errors.Is(err, entity.ErrInvalidWorkspaceCode) ||
 		errors.Is(err, entity.ErrInvalidSystemRole) ||
 		errors.Is(err, entity.ErrMissingTenantID) ||
 		errors.Is(err, entity.ErrCannotRemoveTenantOwner) ||

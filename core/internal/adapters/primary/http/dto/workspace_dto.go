@@ -4,29 +4,28 @@ import "time"
 
 // WorkspaceResponse represents a workspace in API responses.
 type WorkspaceResponse struct {
-	ID             string         `json:"id"`
-	TenantID       *string        `json:"tenantId,omitempty"`
-	Name           string         `json:"name"`
-	Type           string         `json:"type"`
-	Status         string         `json:"status"`
-	Settings       map[string]any `json:"settings,omitempty"`
-	CreatedAt      time.Time      `json:"createdAt"`
-	UpdatedAt      *time.Time     `json:"updatedAt,omitempty"`
-	LastAccessedAt *time.Time     `json:"lastAccessedAt,omitempty"`
+	ID             string     `json:"id"`
+	TenantID       *string    `json:"tenantId,omitempty"`
+	Name           string     `json:"name"`
+	Code           string     `json:"code"`
+	Type           string     `json:"type"`
+	Status         string     `json:"status"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+	LastAccessedAt *time.Time `json:"lastAccessedAt,omitempty"`
 }
 
 // CreateWorkspaceRequest represents a request to create a workspace.
 type CreateWorkspaceRequest struct {
-	TenantID *string        `json:"tenantId,omitempty"`
-	Name     string         `json:"name" binding:"required,min=1,max=255"`
-	Type     string         `json:"type" binding:"required,oneof=SYSTEM CLIENT"`
-	Settings map[string]any `json:"settings,omitempty"`
+	TenantID *string `json:"tenantId,omitempty"`
+	Name     string  `json:"name" binding:"required,min=1,max=255"`
+	Code     string  `json:"code" binding:"required,min=2,max=50"`
+	Type     string  `json:"type" binding:"required,oneof=SYSTEM CLIENT"`
 }
 
 // UpdateWorkspaceRequest represents a request to update a workspace.
 type UpdateWorkspaceRequest struct {
-	Name     string         `json:"name" binding:"required,min=1,max=255"`
-	Settings map[string]any `json:"settings,omitempty"`
+	Name string `json:"name" binding:"required,min=1,max=255"`
 }
 
 // Validate validates the CreateWorkspaceRequest.
@@ -43,7 +42,8 @@ func (r *CreateWorkspaceRequest) Validate() error {
 	if !validTypes[r.Type] {
 		return ErrInvalidWorkspaceType
 	}
-	return nil
+	r.Code = normalizeCode(r.Code)
+	return validateCode(r.Code)
 }
 
 // Validate validates the UpdateWorkspaceRequest.

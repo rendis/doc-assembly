@@ -29,9 +29,9 @@ func (r *Repository) Create(ctx context.Context, workspace *entity.Workspace) (s
 		workspace.ID,
 		workspace.TenantID,
 		workspace.Name,
+		workspace.Code,
 		workspace.Type,
 		workspace.Status,
-		workspace.Settings,
 		workspace.CreatedAt,
 	).Scan(&id)
 	if err != nil {
@@ -52,9 +52,9 @@ func (r *Repository) CreateSandbox(ctx context.Context, sandbox *entity.Workspac
 		sandbox.ID,
 		sandbox.TenantID,
 		sandbox.Name,
+		sandbox.Code,
 		sandbox.Type,
 		sandbox.Status,
-		sandbox.Settings,
 		sandbox.SandboxOfID,
 		sandbox.CreatedAt,
 	).Scan(&id)
@@ -85,9 +85,9 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Workspace
 		&ws.ID,
 		&ws.TenantID,
 		&ws.Name,
+		&ws.Code,
 		&ws.Type,
 		&ws.Status,
-		&ws.Settings,
 		&ws.IsSandbox,
 		&ws.SandboxOfID,
 		&ws.CreatedAt,
@@ -110,9 +110,9 @@ func (r *Repository) FindSandboxByParentID(ctx context.Context, parentID string)
 		&ws.ID,
 		&ws.TenantID,
 		&ws.Name,
+		&ws.Code,
 		&ws.Type,
 		&ws.Status,
-		&ws.Settings,
 		&ws.IsSandbox,
 		&ws.SandboxOfID,
 		&ws.CreatedAt,
@@ -181,9 +181,9 @@ func (r *Repository) FindSystemByTenant(ctx context.Context, tenantID *string) (
 		&ws.ID,
 		&ws.TenantID,
 		&ws.Name,
+		&ws.Code,
 		&ws.Type,
 		&ws.Status,
-		&ws.Settings,
 		&ws.IsSandbox,
 		&ws.SandboxOfID,
 		&ws.CreatedAt,
@@ -204,7 +204,6 @@ func (r *Repository) Update(ctx context.Context, workspace *entity.Workspace) er
 	_, err := r.pool.Exec(ctx, queryUpdate,
 		workspace.ID,
 		workspace.Name,
-		workspace.Settings,
 		workspace.UpdatedAt,
 	)
 	if err != nil {
@@ -254,6 +253,16 @@ func (r *Repository) ExistsSystemForTenant(ctx context.Context, tenantID *string
 	return exists, nil
 }
 
+// ExistsByCodeForTenant checks if a workspace with the given code exists in a tenant.
+func (r *Repository) ExistsByCodeForTenant(ctx context.Context, tenantID, code, excludeID string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, queryExistsByCodeForTenant, tenantID, code, excludeID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking workspace code existence: %w", err)
+	}
+	return exists, nil
+}
+
 // scanWorkspaces scans workspace rows into a slice.
 func scanWorkspaces(rows pgx.Rows) ([]*entity.Workspace, error) {
 	var result []*entity.Workspace
@@ -263,9 +272,9 @@ func scanWorkspaces(rows pgx.Rows) ([]*entity.Workspace, error) {
 			&ws.ID,
 			&ws.TenantID,
 			&ws.Name,
+			&ws.Code,
 			&ws.Type,
 			&ws.Status,
-			&ws.Settings,
 			&ws.IsSandbox,
 			&ws.SandboxOfID,
 			&ws.CreatedAt,
@@ -289,9 +298,9 @@ func scanWorkspacesWithRole(rows pgx.Rows) ([]*entity.WorkspaceWithRole, error) 
 			&ws.ID,
 			&ws.TenantID,
 			&ws.Name,
+			&ws.Code,
 			&ws.Type,
 			&ws.Status,
-			&ws.Settings,
 			&ws.IsSandbox,
 			&ws.SandboxOfID,
 			&ws.CreatedAt,

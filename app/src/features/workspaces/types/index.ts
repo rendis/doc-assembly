@@ -5,17 +5,11 @@ export interface Workspace {
   id: string
   tenantId?: string
   name: string
+  code: string
   type: WorkspaceType
   status: WorkspaceStatus
-  settings?: WorkspaceSettings
   createdAt: string
   updatedAt?: string
-}
-
-export interface WorkspaceSettings {
-  theme?: string
-  logoUrl?: string
-  primaryColor?: string
 }
 
 export interface WorkspaceWithRole extends Workspace {
@@ -25,12 +19,12 @@ export interface WorkspaceWithRole extends Workspace {
 
 export interface CreateWorkspaceRequest {
   name: string
+  code: string
   type: WorkspaceType
 }
 
 export interface UpdateWorkspaceRequest {
   name?: string
-  settings?: WorkspaceSettings
 }
 
 export interface UpdateWorkspaceStatusRequest {

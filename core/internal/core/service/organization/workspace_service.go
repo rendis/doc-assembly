@@ -47,15 +47,28 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, cmd organization
 		if exists {
 			return nil, entity.ErrSystemWorkspaceExists
 		}
+		// Auto-set code for SYSTEM workspaces
+		cmd.Code = "SYS_WRKSP"
+	}
+
+	// Check code uniqueness within tenant
+	if cmd.TenantID != nil {
+		codeExists, err := s.workspaceRepo.ExistsByCodeForTenant(ctx, *cmd.TenantID, cmd.Code, "")
+		if err != nil {
+			return nil, fmt.Errorf("checking workspace code: %w", err)
+		}
+		if codeExists {
+			return nil, entity.ErrWorkspaceCodeExists
+		}
 	}
 
 	workspace := &entity.Workspace{
 		ID:        uuid.NewString(),
 		TenantID:  cmd.TenantID,
 		Name:      cmd.Name,
+		Code:      cmd.Code,
 		Type:      cmd.Type,
 		Status:    entity.WorkspaceStatusActive,
-		Settings:  cmd.Settings,
 		CreatedAt: time.Now().UTC(),
 	}
 
@@ -83,6 +96,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, cmd organization
 	slog.InfoContext(ctx, "workspace created",
 		slog.String("workspace_id", workspace.ID),
 		slog.String("name", workspace.Name),
+		slog.String("code", workspace.Code),
 		slog.String("type", string(workspace.Type)),
 	)
 
@@ -131,7 +145,6 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, cmd organization
 	}
 
 	workspace.Name = cmd.Name
-	workspace.Settings = cmd.Settings
 	now := time.Now().UTC()
 	workspace.UpdatedAt = &now
 

@@ -10,19 +10,35 @@ import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Workspace, WorkspaceSettings } from '@/features/workspaces/types'
+import type { Workspace } from '@/features/workspaces/types'
 import {
   useCreateWorkspace,
   useUpdateWorkspace,
 } from '@/features/workspaces/hooks/useWorkspaces'
 import { useToast } from '@/components/ui/use-toast'
 import { useAppContextStore } from '@/stores/app-context-store'
+import axios from 'axios'
 
 interface WorkspaceFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: 'create' | 'edit'
   workspace?: Workspace | null
+}
+
+// Validates: alphanumeric segments separated by single underscores
+const CODE_REGEX = /^[A-Z0-9]+(_[A-Z0-9]+)*$/
+
+function normalizeCodeWhileTyping(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Z0-9_]/g, '')
+    .replace(/_+/g, '_')
+}
+
+function cleanCodeForSubmit(value: string): string {
+  return value.replace(/^_+|_+$/g, '')
 }
 
 export function WorkspaceFormDialog({
@@ -58,10 +74,9 @@ function WorkspaceFormDialogContent({
   const { currentWorkspace } = useAppContextStore()
 
   const [name, setName] = useState(mode === 'edit' && workspace ? workspace.name : '')
-  const [theme, setTheme] = useState(mode === 'edit' && workspace ? (workspace.settings?.theme || '') : '')
-  const [logoUrl, setLogoUrl] = useState(mode === 'edit' && workspace ? (workspace.settings?.logoUrl || '') : '')
-  const [primaryColor, setPrimaryColor] = useState(mode === 'edit' && workspace ? (workspace.settings?.primaryColor || '') : '')
+  const [code, setCode] = useState(mode === 'edit' && workspace ? workspace.code : '')
   const [nameError, setNameError] = useState('')
+  const [codeError, setCodeError] = useState('')
 
   const createMutation = useCreateWorkspace()
   const updateMutation = useUpdateWorkspace()
@@ -81,19 +96,39 @@ function WorkspaceFormDialogContent({
       setNameError('')
     }
 
+    if (mode === 'create') {
+      const cleanedCode = cleanCodeForSubmit(code)
+      if (!cleanedCode) {
+        setCodeError(t('administration.workspaces.form.codeRequired', 'Code is required'))
+        isValid = false
+      } else if (cleanedCode.length < 2 || cleanedCode.length > 50) {
+        setCodeError(t('administration.workspaces.form.codeLength', 'Code must be 2-50 characters'))
+        isValid = false
+      } else if (!CODE_REGEX.test(cleanedCode)) {
+        setCodeError(t('administration.workspaces.form.codeInvalid', 'Code must contain only letters, numbers, and underscores'))
+        isValid = false
+      } else {
+        setCodeError('')
+      }
+    }
+
     return isValid
   }
 
-  const buildSettings = (): WorkspaceSettings | undefined => {
-    const settings: WorkspaceSettings = {}
-    if (theme.trim()) settings.theme = theme.trim()
-    if (logoUrl.trim()) settings.logoUrl = logoUrl.trim()
-    if (primaryColor.trim()) settings.primaryColor = primaryColor.trim()
-    return Object.keys(settings).length > 0 ? settings : undefined
+  const handleCodeBlur = () => {
+    const cleaned = cleanCodeForSubmit(code)
+    if (cleaned !== code) {
+      setCode(cleaned)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const finalCode = cleanCodeForSubmit(code)
+    if (finalCode !== code) {
+      setCode(finalCode)
+    }
 
     if (!validateForm()) return
 
@@ -101,29 +136,21 @@ function WorkspaceFormDialogContent({
       if (mode === 'create') {
         await createMutation.mutateAsync({
           name: name.trim(),
-          type: 'CLIENT', // Always CLIENT for user-created workspaces
+          code: finalCode,
+          type: 'CLIENT',
         })
         toast({
           title: t('administration.workspaces.form.createSuccess', 'Workspace created'),
         })
       } else if (workspace) {
-        // For edit, we need to temporarily switch to the workspace context
-        // Store current workspace to restore later
-
-        // Note: The update endpoint operates on /workspace (current workspace context)
-        // This is a limitation - we may need a different endpoint for admin updates
-        // For now, we'll just update settings if they match current workspace
         if (currentWorkspace?.id === workspace.id) {
           await updateMutation.mutateAsync({
             name: name.trim(),
-            settings: buildSettings(),
           })
           toast({
             title: t('administration.workspaces.form.updateSuccess', 'Workspace updated'),
           })
         } else {
-          // Can't edit a different workspace from current context
-          // This would require a tenant-level update endpoint
           toast({
             variant: 'destructive',
             title: t('common.error', 'Error'),
@@ -133,12 +160,16 @@ function WorkspaceFormDialogContent({
         }
       }
       onOpenChange(false)
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: t('common.error', 'Error'),
-        description: t('administration.workspaces.form.saveError', 'Failed to save workspace'),
-      })
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        setCodeError(t('administration.workspaces.form.codeExists', 'A workspace with this code already exists'))
+      } else {
+        toast({
+          variant: 'destructive',
+          title: t('common.error', 'Error'),
+          description: t('administration.workspaces.form.saveError', 'Failed to save workspace'),
+        })
+      }
     }
   }
 
@@ -182,65 +213,47 @@ function WorkspaceFormDialogContent({
           )}
         </div>
 
-        {/* Settings section - collapsible or optional */}
-        <div className="space-y-3 border-t border-border pt-4">
-          <p className="text-sm font-medium text-muted-foreground">
-            {t('administration.workspaces.form.settings', 'Settings (Optional)')}
-          </p>
-
-          {/* Theme */}
+        {/* Code field - editable in create mode */}
+        {mode === 'create' && (
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.workspaces.form.theme', 'Theme')}
+              {t('administration.workspaces.form.code', 'Code')} *
             </label>
             <input
               type="text"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              placeholder={t('administration.workspaces.form.themePlaceholder', 'e.g., light, dark')}
-              className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Logo URL */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.workspaces.form.logoUrl', 'Logo URL')}
-            </label>
-            <input
-              type="url"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder={t('administration.workspaces.form.logoUrlPlaceholder', 'https://example.com/logo.png')}
-              className="w-full rounded-sm border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Primary Color */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.workspaces.form.primaryColor', 'Primary Color')}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                placeholder={t('administration.workspaces.form.primaryColorPlaceholder', '#3B82F6')}
-                className="flex-1 rounded-sm border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none transition-colors focus:border-foreground"
-                disabled={isLoading}
-              />
-              {primaryColor && (
-                <div
-                  className="h-9 w-9 rounded-sm border border-border"
-                  style={{ backgroundColor: primaryColor }}
-                />
+              value={code}
+              onChange={(e) => {
+                setCode(normalizeCodeWhileTyping(e.target.value))
+                setCodeError('')
+              }}
+              onBlur={handleCodeBlur}
+              placeholder={t('administration.workspaces.form.codePlaceholder', 'WORKSPACE_CODE')}
+              className={cn(
+                'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
+                codeError ? 'border-destructive' : 'border-border'
               )}
+              disabled={isLoading}
+            />
+            {codeError && (
+              <p className="mt-1 text-xs text-destructive">{codeError}</p>
+            )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('administration.workspaces.form.codeHint', '2-50 uppercase characters')}
+            </p>
+          </div>
+        )}
+
+        {/* Code display in edit mode */}
+        {mode === 'edit' && workspace && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              {t('administration.workspaces.form.code', 'Code')}
+            </label>
+            <div className="rounded-sm border border-border bg-muted px-3 py-2">
+              <span className="font-mono text-sm uppercase">{workspace.code}</span>
             </div>
           </div>
-        </div>
+        )}
 
         <DialogFooter className="gap-2 sm:gap-0">
           <button

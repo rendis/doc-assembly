@@ -71,6 +71,8 @@ var (
 	ErrInvalidWorkspaceStatus      = errors.New("invalid workspace status")
 	ErrCannotArchiveSystem         = errors.New("cannot archive system workspace")
 	ErrCannotModifySystemWorkspace = errors.New("cannot modify system workspace status")
+	ErrWorkspaceCodeExists         = errors.New("workspace with this code already exists in tenant")
+	ErrInvalidWorkspaceCode        = errors.New("invalid workspace code")
 	ErrSandboxNotFound             = errors.New("sandbox workspace not found")
 	ErrSandboxNotSupported         = errors.New("this workspace type does not support sandbox mode")
 	ErrCannotPromoteToSandbox      = errors.New("cannot promote to a sandbox workspace")

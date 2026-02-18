@@ -11,16 +11,15 @@ import (
 type CreateWorkspaceCommand struct {
 	TenantID  *string
 	Name      string
+	Code      string
 	Type      entity.WorkspaceType
-	Settings  entity.WorkspaceSettings
 	CreatedBy string
 }
 
 // UpdateWorkspaceCommand represents the command to update a workspace.
 type UpdateWorkspaceCommand struct {
-	ID       string
-	Name     string
-	Settings entity.WorkspaceSettings
+	ID   string
+	Name string
 }
 
 // UpdateWorkspaceStatusCommand represents the command to update a workspace's status.

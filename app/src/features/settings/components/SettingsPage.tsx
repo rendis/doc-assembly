@@ -1,31 +1,8 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SandboxModeSection } from './SandboxModeSection'
-import { MemberManagementSection } from './MemberManagementSection'
-import { UnsavedChangesAlert } from './UnsavedChangesAlert'
 
 export function SettingsPage() {
   const { t } = useTranslation()
-
-  // Form state
-  const [allowGuestAccess, setAllowGuestAccess] = useState(false)
-  const [adminContact, setAdminContact] = useState('admin@doc-assembly.io')
-  const [hasChanges, setHasChanges] = useState(false)
-
-  const handleReset = () => {
-    setAllowGuestAccess(false)
-    setAdminContact('admin@doc-assembly.io')
-    setHasChanges(false)
-  }
-
-  const handleApply = () => {
-    // Save settings
-    setHasChanges(false)
-  }
-
-  const handleChange = () => {
-    setHasChanges(true)
-  }
 
   return (
     <div className="animate-page-enter flex-1 overflow-y-auto bg-background">
@@ -44,28 +21,9 @@ export function SettingsPage() {
       </header>
 
       <main className="w-full px-4 pb-24 md:px-6 lg:px-6">
-        <form className="w-full border-t border-border">
+        <div className="w-full border-t border-border">
           <SandboxModeSection />
-
-          <MemberManagementSection
-            allowGuestAccess={allowGuestAccess}
-            onGuestAccessChange={(v) => {
-              setAllowGuestAccess(v)
-              handleChange()
-            }}
-            adminContact={adminContact}
-            onAdminContactChange={(v) => {
-              setAdminContact(v)
-              handleChange()
-            }}
-          />
-
-          <UnsavedChangesAlert
-            hasChanges={hasChanges}
-            onReset={handleReset}
-            onApply={handleApply}
-          />
-        </form>
+        </div>
       </main>
     </div>
   )

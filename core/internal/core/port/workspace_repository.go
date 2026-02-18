@@ -50,4 +50,8 @@ type WorkspaceRepository interface {
 
 	// ExistsSystemForTenant checks if a system workspace exists for a tenant.
 	ExistsSystemForTenant(ctx context.Context, tenantID *string) (bool, error)
+
+	// ExistsByCodeForTenant checks if a workspace with the given code exists in a tenant.
+	// excludeID allows excluding a specific workspace (for updates).
+	ExistsByCodeForTenant(ctx context.Context, tenantID, code, excludeID string) (bool, error)
 }

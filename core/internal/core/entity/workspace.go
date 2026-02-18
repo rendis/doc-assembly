@@ -1,35 +1,32 @@
 package entity
 
-import "time"
+import (
+	"regexp"
+	"time"
+)
 
 // Workspace is the root operational entity where all work happens.
 // Every resource (templates, documents, users) belongs to a workspace.
 type Workspace struct {
-	ID             string            `json:"id"`
-	TenantID       *string           `json:"tenantId,omitempty"` // NULL for global workspace
-	Name           string            `json:"name"`
-	Type           WorkspaceType     `json:"type"`
-	Status         WorkspaceStatus   `json:"status"`
-	Settings       WorkspaceSettings `json:"settings"`
-	IsSandbox      bool              `json:"isSandbox"`
-	SandboxOfID    *string           `json:"sandboxOfId,omitempty"` // ID of parent workspace if is_sandbox = true
-	CreatedAt      time.Time         `json:"createdAt"`
-	UpdatedAt      *time.Time        `json:"updatedAt,omitempty"`
-	LastAccessedAt *time.Time        `json:"-"` // Access metadata, not persisted
-}
-
-// WorkspaceSettings holds workspace-specific configuration.
-type WorkspaceSettings struct {
-	Theme        string `json:"theme,omitempty"`
-	LogoURL      string `json:"logoUrl,omitempty"`
-	PrimaryColor string `json:"primaryColor,omitempty"`
+	ID             string          `json:"id"`
+	TenantID       *string         `json:"tenantId,omitempty"` // NULL for global workspace
+	Name           string          `json:"name"`
+	Code           string          `json:"code"`
+	Type           WorkspaceType   `json:"type"`
+	Status         WorkspaceStatus `json:"status"`
+	IsSandbox      bool            `json:"isSandbox"`
+	SandboxOfID    *string         `json:"sandboxOfId,omitempty"` // ID of parent workspace if is_sandbox = true
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      *time.Time      `json:"updatedAt,omitempty"`
+	LastAccessedAt *time.Time      `json:"-"` // Access metadata, not persisted
 }
 
 // NewWorkspace creates a new workspace with default status ACTIVE.
-func NewWorkspace(tenantID *string, name string, wsType WorkspaceType) *Workspace {
+func NewWorkspace(tenantID *string, name, code string, wsType WorkspaceType) *Workspace {
 	return &Workspace{
 		TenantID:  tenantID,
 		Name:      name,
+		Code:      code,
 		Type:      wsType,
 		Status:    WorkspaceStatusActive,
 		CreatedAt: time.Now().UTC(),
@@ -62,10 +59,16 @@ func (w *Workspace) CanAccess() error {
 	return nil
 }
 
+// workspaceCodeRegex validates workspace codes: uppercase alphanumeric segments separated by single underscores.
+var workspaceCodeRegex = regexp.MustCompile(`^[A-Z0-9]+(_[A-Z0-9]+)*$`)
+
 // Validate checks if the workspace data is valid.
 func (w *Workspace) Validate() error {
 	if w.Name == "" {
 		return ErrRequiredField
+	}
+	if w.Code == "" || len(w.Code) < 2 || len(w.Code) > 50 || !workspaceCodeRegex.MatchString(w.Code) {
+		return ErrInvalidWorkspaceCode
 	}
 	if !w.Type.IsValid() {
 		return ErrInvalidWorkspaceType

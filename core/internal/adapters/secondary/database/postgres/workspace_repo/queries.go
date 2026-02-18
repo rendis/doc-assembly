@@ -3,18 +3,18 @@ package workspacerepo
 // SQL queries for workspace operations.
 const (
 	queryCreate = `
-		INSERT INTO tenancy.workspaces (id, tenant_id, name, type, status, settings, created_at)
+		INSERT INTO tenancy.workspaces (id, tenant_id, name, code, type, status, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id`
 
 	queryFindByID = `
-		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'),
+		SELECT id, tenant_id, name, code, type, status,
 		       is_sandbox, sandbox_of_id, created_at, updated_at
 		FROM tenancy.workspaces
 		WHERE id = $1`
 
 	queryFindSandboxByParentID = `
-		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'),
+		SELECT id, tenant_id, name, code, type, status,
 		       is_sandbox, sandbox_of_id, created_at, updated_at
 		FROM tenancy.workspaces
 		WHERE sandbox_of_id = $1 AND is_sandbox = TRUE`
@@ -23,7 +23,7 @@ const (
 	// When query ($3) is provided: orders by similarity (relevance).
 	// When query is empty: orders by access history (most recent), then by name.
 	queryFindByTenantPaginated = `
-		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'),
+		SELECT w.id, w.tenant_id, w.name, w.code, w.type, w.status,
 		       w.is_sandbox, w.sandbox_of_id, w.created_at, w.updated_at
 		FROM tenancy.workspaces w
 		LEFT JOIN identity.user_access_history h
@@ -47,7 +47,7 @@ const (
 		  AND ($3 = '' OR status = $3::workspace_status)`
 
 	queryFindByUser = `
-		SELECT w.id, w.tenant_id, w.name, w.type, w.status, COALESCE(w.settings, '{}'),
+		SELECT w.id, w.tenant_id, w.name, w.code, w.type, w.status,
 		       w.is_sandbox, w.sandbox_of_id, w.created_at, w.updated_at, m.role
 		FROM tenancy.workspaces w
 		INNER JOIN identity.workspace_members m ON w.id = m.workspace_id
@@ -55,20 +55,20 @@ const (
 		ORDER BY w.name`
 
 	queryFindSystemByTenantNull = `
-		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'),
+		SELECT id, tenant_id, name, code, type, status,
 		       is_sandbox, sandbox_of_id, created_at, updated_at
 		FROM tenancy.workspaces
 		WHERE tenant_id IS NULL AND type = 'SYSTEM'`
 
 	queryFindSystemByTenant = `
-		SELECT id, tenant_id, name, type, status, COALESCE(settings, '{}'),
+		SELECT id, tenant_id, name, code, type, status,
 		       is_sandbox, sandbox_of_id, created_at, updated_at
 		FROM tenancy.workspaces
 		WHERE tenant_id = $1 AND type = 'SYSTEM'`
 
 	queryUpdate = `
 		UPDATE tenancy.workspaces
-		SET name = $2, settings = $3, updated_at = $4
+		SET name = $2, updated_at = $3
 		WHERE id = $1`
 
 	queryUpdateStatus = `
@@ -83,7 +83,7 @@ const (
 		SELECT EXISTS(SELECT 1 FROM tenancy.workspaces WHERE tenant_id = $1 AND type = 'SYSTEM')`
 
 	queryCreateSandbox = `
-		INSERT INTO tenancy.workspaces (id, tenant_id, name, type, status, settings, is_sandbox, sandbox_of_id, created_at)
+		INSERT INTO tenancy.workspaces (id, tenant_id, name, code, type, status, is_sandbox, sandbox_of_id, created_at)
 		SELECT $1, $2, $3, $4, $5, $6, TRUE, $7, $8
 		WHERE EXISTS (
 			SELECT 1
@@ -93,4 +93,11 @@ const (
 			  AND parent.is_sandbox = FALSE
 		)
 		RETURNING id`
+
+	queryExistsByCodeForTenant = `
+		SELECT EXISTS(
+			SELECT 1 FROM tenancy.workspaces
+			WHERE tenant_id = $1 AND code = $2 AND is_sandbox = FALSE
+			  AND ($3 = '' OR id != $3::uuid)
+		)`
 )

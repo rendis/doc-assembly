@@ -6,7 +6,6 @@ export type { Tenant, TenantWithRole, TenantSettings } from '@/features/tenants/
 export type {
   Workspace,
   WorkspaceWithRole,
-  WorkspaceSettings,
   WorkspaceType,
   WorkspaceStatus,
 } from '@/features/workspaces/types'
