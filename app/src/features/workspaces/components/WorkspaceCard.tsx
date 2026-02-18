@@ -35,11 +35,9 @@ export function WorkspaceCard({
         >
           {workspace.name}
         </h3>
-        {workspace.type === 'SYSTEM' && (
-          <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-            System
-          </span>
-        )}
+        <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+          {workspace.code}
+        </span>
       </div>
       <div className="flex items-center gap-6 md:gap-8">
         {lastAccessed && (

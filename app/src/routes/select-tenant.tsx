@@ -386,11 +386,9 @@ function SelectTenantPage() {
                           <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground md:text-2xl">
                             {ws.name}
                           </h3>
-                          {ws.type === 'SYSTEM' && (
-                            <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                              System
-                            </span>
-                          )}
+                          <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                            {ws.code}
+                          </span>
                         </div>
                         <div className="flex items-center gap-6 md:gap-8">
                           <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">

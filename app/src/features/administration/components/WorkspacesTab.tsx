@@ -108,6 +108,9 @@ function WorkspaceRow({
       <td className="p-4">
         <span className="font-medium">{workspace.name}</span>
       </td>
+      <td className="whitespace-nowrap p-4 font-mono text-sm text-muted-foreground">
+        {workspace.code}
+      </td>
       <td className="whitespace-nowrap p-4">
         <WorkspaceStatusBadge status={workspace.status} />
       </td>
@@ -401,13 +404,16 @@ export function WorkspacesTab(): React.ReactElement {
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className={`${TH_CLASS} w-[40%]`}>
+                <th className={`${TH_CLASS} w-[30%]`}>
                   {t('administration.workspaces.columns.name', 'Name')}
                 </th>
                 <th className={`${TH_CLASS} w-[20%]`}>
+                  {t('administration.workspaces.columns.code', 'Code')}
+                </th>
+                <th className={`${TH_CLASS} w-[15%]`}>
                   {t('administration.workspaces.columns.status', 'Status')}
                 </th>
-                <th className={`${TH_CLASS} w-[25%]`}>
+                <th className={`${TH_CLASS} w-[20%]`}>
                   {t('administration.workspaces.columns.created', 'Created')}
                 </th>
                 <th className={`${TH_CLASS} w-[15%]`}></th>
