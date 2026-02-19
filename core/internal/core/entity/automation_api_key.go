@@ -9,9 +9,9 @@ import (
 type AutomationAPIKey struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
-	KeyHash        string     `json:"-"`                    // SHA-256 hex (64 chars), never exposed
-	KeyPrefix      string     `json:"keyPrefix"`            // first 12 chars of raw key for display
-	AllowedTenants []string   `json:"allowedTenants"`       // nil/empty = access to all tenants
+	KeyHash        string     `json:"-"`              // SHA-256 hex (64 chars), never exposed
+	KeyPrefix      string     `json:"keyPrefix"`      // first 12 chars of raw key for display
+	AllowedTenants []string   `json:"allowedTenants"` // nil/empty = access to all tenants
 	IsActive       bool       `json:"isActive"`
 	CreatedBy      string     `json:"createdBy"`
 	LastUsedAt     *time.Time `json:"lastUsedAt,omitempty"`

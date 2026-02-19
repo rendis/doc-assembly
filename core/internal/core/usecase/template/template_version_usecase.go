@@ -118,4 +118,8 @@ type TemplateVersionUseCase interface {
 	// PromoteVersion promotes a published version from sandbox to production.
 	// Can create a new template (NEW_TEMPLATE mode) or add as a new version to existing template (NEW_VERSION mode).
 	PromoteVersion(ctx context.Context, cmd PromoteVersionCommand) (*PromoteVersionResult, error)
+
+	// UpdateVersionContent updates the content of a DRAFT version after validating injectables.
+	// Returns an error if the version is not in DRAFT status or if injectable validation fails.
+	UpdateVersionContent(ctx context.Context, versionID string, content json.RawMessage) error
 }

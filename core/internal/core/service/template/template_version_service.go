@@ -467,6 +467,43 @@ func (s *TemplateVersionService) ProcessScheduledArchivals(ctx context.Context) 
 	return nil
 }
 
+// UpdateVersionContent updates the content of a DRAFT version after validating injectables.
+func (s *TemplateVersionService) UpdateVersionContent(ctx context.Context, versionID string, content json.RawMessage) error {
+	// 1. Load the version to verify it exists and get workspaceID
+	version, err := s.versionRepo.FindByID(ctx, versionID)
+	if err != nil {
+		return fmt.Errorf("finding version: %w", err)
+	}
+
+	// 2. Verify the version can be edited — only DRAFT versions can have content updated
+	if err := version.CanEdit(); err != nil {
+		return err
+	}
+
+	// 3. Load the template to get the workspaceID
+	template, err := s.templateRepo.FindByID(ctx, version.TemplateID)
+	if err != nil {
+		return fmt.Errorf("finding template: %w", err)
+	}
+
+	// 4. Validate injectables belong to the workspace
+	result := s.contentValidator.ValidateForPublish(ctx, template.WorkspaceID, versionID, content)
+	if !result.Valid {
+		return toContentValidationError(result)
+	}
+
+	// 5. Persist the content
+	now := time.Now().UTC()
+	version.ContentStructure = content
+	version.UpdatedAt = &now
+	if err = s.versionRepo.Update(ctx, version); err != nil {
+		return fmt.Errorf("updating version content: %w", err)
+	}
+
+	slog.InfoContext(ctx, "template version content updated", slog.String("version_id", versionID))
+	return nil
+}
+
 // PromoteVersion promotes a published version from sandbox to production.
 func (s *TemplateVersionService) PromoteVersion(ctx context.Context, cmd templateuc.PromoteVersionCommand) (*templateuc.PromoteVersionResult, error) {
 	sourceVersion, err := s.versionRepo.FindByID(ctx, cmd.SourceVersionID)
