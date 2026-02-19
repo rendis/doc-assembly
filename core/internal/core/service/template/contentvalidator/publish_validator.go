@@ -130,6 +130,7 @@ func (s *Service) validatePublish(
 		s.validateSignerRoles,
 		s.validateVariables,
 		s.validateSignatures,
+		s.validateInteractiveFields,
 		s.validateConditionals,
 		s.validateWorkflow,
 	}

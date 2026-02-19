@@ -69,6 +69,19 @@ const (
 	ErrCodeInvalidPreviousRoleMode = "INVALID_PREVIOUS_ROLE_MODE"
 	ErrCodeInvalidPreviousRoleRef  = "INVALID_PREVIOUS_ROLE_REF"
 
+	// Interactive field errors
+	ErrCodeInvalidInteractiveAttrs   = "INVALID_INTERACTIVE_ATTRS"
+	ErrCodeInvalidInteractiveType    = "INVALID_INTERACTIVE_FIELD_TYPE"
+	ErrCodeEmptyInteractiveLabel     = "EMPTY_INTERACTIVE_LABEL"
+	ErrCodeEmptyInteractiveRoleID    = "EMPTY_INTERACTIVE_ROLE_ID"
+	ErrCodeInvalidInteractiveRoleRef = "INVALID_INTERACTIVE_ROLE_REF"
+	ErrCodeInsufficientOptions       = "INSUFFICIENT_OPTIONS"
+	ErrCodeEmptyOptionLabel          = "EMPTY_OPTION_LABEL"
+	ErrCodeEmptyOptionID             = "EMPTY_OPTION_ID"
+	ErrCodeDuplicateOptionID         = "DUPLICATE_OPTION_ID"
+	ErrCodeInvalidMaxLength          = "INVALID_MAX_LENGTH"
+	ErrCodeDuplicateInteractiveField = "DUPLICATE_INTERACTIVE_FIELD"
+
 	// Context errors
 	ErrCodeValidationCancelled = "VALIDATION_CANCELLED"
 )
@@ -76,11 +89,12 @@ const (
 // Warning codes for content validation.
 // These codes are returned in ValidationWarning.Code for non-blocking issues.
 const (
-	WarnCodeDeprecatedVersion = "DEPRECATED_VERSION"
-	WarnCodeExpressionWarning = "EXPRESSION_WARNING"
-	WarnCodeUnusedVariable    = "UNUSED_VARIABLE"
-	WarnCodeNoSignerRoles     = "NO_SIGNER_ROLES"
-	WarnCodeNoSignatures      = "NO_SIGNATURES"
+	WarnCodeDeprecatedVersion               = "DEPRECATED_VERSION"
+	WarnCodeExpressionWarning               = "EXPRESSION_WARNING"
+	WarnCodeUnusedVariable                  = "UNUSED_VARIABLE"
+	WarnCodeNoSignerRoles                   = "NO_SIGNER_ROLES"
+	WarnCodeNoSignatures                    = "NO_SIGNATURES"
+	WarnCodeInteractiveFieldsNoUnsignedRole = "INTERACTIVE_FIELDS_NO_UNSIGNED_ROLE"
 )
 
 // sanitizeJSONError converts raw JSON parse errors to user-friendly messages.

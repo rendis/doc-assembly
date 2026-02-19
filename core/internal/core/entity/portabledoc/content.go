@@ -45,11 +45,12 @@ const (
 	// List types
 	NodeTypeListInjector = "listInjector" // Dynamic list from system injector
 	// Table types
-	NodeTypeTableInjector = "tableInjector" // Dynamic table from system injector
-	NodeTypeTable         = "table"         // Editable table (user-created)
-	NodeTypeTableRow      = "tableRow"
-	NodeTypeTableCell     = "tableCell"
-	NodeTypeTableHeader   = "tableHeader"
+	NodeTypeTableInjector    = "tableInjector" // Dynamic table from system injector
+	NodeTypeTable            = "table"         // Editable table (user-created)
+	NodeTypeTableRow         = "tableRow"
+	NodeTypeTableCell        = "tableCell"
+	NodeTypeTableHeader      = "tableHeader"
+	NodeTypeInteractiveField = "interactiveField"
 )
 
 // Mark type constants.

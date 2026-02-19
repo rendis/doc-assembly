@@ -102,6 +102,21 @@ func ParseLogicRule(v any) (*LogicRule, error) {
 	return &lr, nil
 }
 
+// ParseInteractiveFieldAttrs parses node attrs into InteractiveFieldAttrs.
+func ParseInteractiveFieldAttrs(attrs map[string]any) (*InteractiveFieldAttrs, error) {
+	data, err := json.Marshal(attrs)
+	if err != nil {
+		return nil, err
+	}
+
+	var ifa InteractiveFieldAttrs
+	if err := json.Unmarshal(data, &ifa); err != nil {
+		return nil, err
+	}
+
+	return &ifa, nil
+}
+
 // Serialize converts Document to JSON.
 func (d *Document) Serialize() (json.RawMessage, error) {
 	return json.Marshal(d)
