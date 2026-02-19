@@ -35,6 +35,7 @@ export const Permission = {
   SYSTEM_AUDIT_VIEW: 'system:audit:view',
   SYSTEM_INJECTABLES_VIEW: 'system:injectables:view',
   SYSTEM_INJECTABLES_MANAGE: 'system:injectables:manage',
+  SYSTEM_API_KEYS_MANAGE: 'system:api_keys:manage',
 
   // Workspace Management
   WORKSPACE_VIEW: 'workspace:view',
@@ -183,6 +184,7 @@ export const SYSTEM_RULES: Record<SystemRole, Permission[]> = {
     Permission.SYSTEM_AUDIT_VIEW,
     Permission.SYSTEM_INJECTABLES_VIEW,
     Permission.SYSTEM_INJECTABLES_MANAGE,
+    Permission.SYSTEM_API_KEYS_MANAGE,
     Permission.TENANT_CREATE,
     Permission.TENANT_MANAGE_SETTINGS,
     Permission.TENANT_MANAGE_WORKSPACES,

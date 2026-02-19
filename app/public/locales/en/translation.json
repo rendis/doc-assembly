@@ -1207,9 +1207,74 @@
       "tenants": "Tenants",
       "users": "Users",
       "injectables": "Injectables",
-      "audit": "Audit",
+      "apiKeys": "API Keys",
       "documentTypes": "Document Types",
       "workspaces": "Workspaces"
+    },
+    "apiKeys": {
+      "description": "Manage automation API keys for machine-to-machine access.",
+      "newKey": "New API Key",
+      "loadError": "Failed to load API keys",
+      "empty": "No API keys found",
+      "revokeSuccess": "API key revoked",
+      "revokeError": "Failed to revoke API key",
+      "updateSuccess": "API key updated",
+      "updateError": "Failed to update API key",
+      "createSuccess": "API key created",
+      "createError": "Failed to create API key",
+      "confirmRevoke": "Revoke this API key? This cannot be undone.",
+      "columns": {
+        "prefix": "Prefix",
+        "name": "Name",
+        "tenants": "Allowed Tenants",
+        "status": "Status",
+        "lastUsed": "Last Used",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "revoked": "Revoked"
+      },
+      "tenants": {
+        "global": "Global",
+        "restricted": "{{count}} tenant(s)"
+      },
+      "never": "Never",
+      "rawKey": {
+        "title": "Save your API Key",
+        "warning": "This key will only be shown once. Copy it now and store it somewhere safe — you will not be able to retrieve it again.",
+        "keyLabel": "Your new API key",
+        "copyButton": "Copy",
+        "copied": "Copied!",
+        "confirmLabel": "I have copied the key and stored it safely",
+        "closeButton": "Close"
+      },
+      "form": {
+        "createTitle": "Create API Key",
+        "editTitle": "Edit API Key",
+        "createDescription": "Create a new automation API key for machine-to-machine access.",
+        "editDescription": "Update the name or tenant restrictions for this key.",
+        "name": "Key Name",
+        "namePlaceholder": "e.g. CI/CD Pipeline",
+        "nameRequired": "Name is required",
+        "allowedTenants": "Allowed Tenants",
+        "allowedTenantsHint": "Leave empty for global access (all tenants).",
+        "allowedTenantsPlaceholder": "Select tenants..."
+      },
+      "audit": {
+        "title": "Audit Log",
+        "empty": "No activity recorded yet for this key.",
+        "loadError": "Failed to load audit log",
+        "columns": {
+          "date": "Date",
+          "method": "Method",
+          "path": "Path",
+          "action": "Action",
+          "resource": "Resource",
+          "status": "Status"
+        }
+      }
     },
     "documentTypes": {
       "description": "Manage document types and their configurations.",

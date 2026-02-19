@@ -1207,9 +1207,74 @@
       "tenants": "Tenants",
       "users": "Usuarios",
       "injectables": "Inyectables",
-      "audit": "Auditoría",
+      "apiKeys": "API Keys",
       "documentTypes": "Tipos de Documento",
       "workspaces": "Workspaces"
+    },
+    "apiKeys": {
+      "description": "Gestiona las API keys de automatización para acceso machine-to-machine.",
+      "newKey": "Nueva API Key",
+      "loadError": "Error al cargar las API keys",
+      "empty": "No se encontraron API keys",
+      "revokeSuccess": "API key revocada",
+      "revokeError": "Error al revocar la API key",
+      "updateSuccess": "API key actualizada",
+      "updateError": "Error al actualizar la API key",
+      "createSuccess": "API key creada",
+      "createError": "Error al crear la API key",
+      "confirmRevoke": "¿Revocar esta API key? Esta acción no se puede deshacer.",
+      "columns": {
+        "prefix": "Prefijo",
+        "name": "Nombre",
+        "tenants": "Tenants Permitidos",
+        "status": "Estado",
+        "lastUsed": "Último Uso",
+        "created": "Creado",
+        "actions": "Acciones"
+      },
+      "status": {
+        "active": "Activa",
+        "revoked": "Revocada"
+      },
+      "tenants": {
+        "global": "Global",
+        "restricted": "{{count}} tenant(s)"
+      },
+      "never": "Nunca",
+      "rawKey": {
+        "title": "Guarda tu API Key",
+        "warning": "Esta clave solo se mostrará una vez. Cópiala ahora y guárdala en un lugar seguro — no podrás recuperarla después.",
+        "keyLabel": "Tu nueva API key",
+        "copyButton": "Copiar",
+        "copied": "¡Copiado!",
+        "confirmLabel": "He copiado la clave y la he guardado de forma segura",
+        "closeButton": "Cerrar"
+      },
+      "form": {
+        "createTitle": "Crear API Key",
+        "editTitle": "Editar API Key",
+        "createDescription": "Crea una nueva API key de automatización para acceso machine-to-machine.",
+        "editDescription": "Actualiza el nombre o las restricciones de tenant de esta clave.",
+        "name": "Nombre de la Key",
+        "namePlaceholder": "ej. Pipeline CI/CD",
+        "nameRequired": "El nombre es obligatorio",
+        "allowedTenants": "Tenants Permitidos",
+        "allowedTenantsHint": "Deja vacío para acceso global (todos los tenants).",
+        "allowedTenantsPlaceholder": "Selecciona tenants..."
+      },
+      "audit": {
+        "title": "Log de Auditoría",
+        "empty": "No hay actividad registrada para esta key.",
+        "loadError": "Error al cargar el log de auditoría",
+        "columns": {
+          "date": "Fecha",
+          "method": "Método",
+          "path": "Ruta",
+          "action": "Acción",
+          "resource": "Recurso",
+          "status": "Estado"
+        }
+      }
     },
     "documentTypes": {
       "description": "Gestiona los tipos de documento y sus configuraciones.",
