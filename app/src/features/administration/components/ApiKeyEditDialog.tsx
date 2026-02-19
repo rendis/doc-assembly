@@ -44,8 +44,8 @@ export function ApiKeyEditDialog({ open, keyData, onClose }: ApiKeyEditDialogPro
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent key={keyData?.id} className="max-w-md">
+    <Dialog key={keyData?.id} open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
             {t('administration.apiKeys.form.editTitle', 'Edit API Key')}

@@ -168,7 +168,21 @@
       "draft": "Draft",
       "any": "Any"
     },
-    "versions": "Versions",
+    "versions": {
+      "actions": {
+        "copyId": "Copy Version ID",
+        "promote": "Promote to Production",
+        "delete": "Delete",
+        "publishNow": "Publish Now",
+        "schedule": "Schedule",
+        "archive": "Archive",
+        "clone": "Clone version",
+        "cancelSchedule": "Cancel Schedule"
+      },
+      "renamed": "Version renamed",
+      "renameFailed": "Failed to rename version",
+      "idCopied": "Version ID copied to clipboard"
+    },
     "version": "version",
     "versionsLabel": "versions",
     "lastModified": "Last Modified",
@@ -285,21 +299,6 @@
       "title": "Cancel Scheduled Publication",
       "message": "Are you sure you want to cancel the scheduled publication of version {{version}}?",
       "confirm": "Cancel Schedule"
-    },
-    "versions": {
-      "actions": {
-        "copyId": "Copy Version ID",
-        "promote": "Promote to Production",
-        "delete": "Delete",
-        "publishNow": "Publish Now",
-        "schedule": "Schedule",
-        "archive": "Archive",
-        "clone": "Clone version",
-        "cancelSchedule": "Cancel Schedule"
-      },
-      "renamed": "Version renamed",
-      "renameFailed": "Failed to rename version",
-      "idCopied": "Version ID copied to clipboard"
     },
     "promoteDialog": {
       "title": "Promote to Production",
@@ -1274,7 +1273,8 @@
           "resource": "Resource",
           "status": "Status"
         }
-      }
+      },
+      "revoke": "Revoke"
     },
     "documentTypes": {
       "description": "Manage document types and their configurations.",
@@ -1489,7 +1489,7 @@
     "publicDesc": "Global",
     "tenant": "Tenant",
     "tenantDesc": "Organization",
-    "workspace": "Workspace",
+    "workspace": "workspace",
     "workspaceDesc": "Specific",
     "tenantId": "Tenant ID",
     "workspaceId": "Workspace ID",
@@ -1522,7 +1522,6 @@
     "filterPlaceholder": "Filter by name...",
     "noRule": "No rule",
     "workspaces": "workspaces",
-    "workspace": "workspace",
     "noMatchingAssignments": "No assignments match your search",
     "inheritedFromGlobal": "Inherited from global",
     "selectOrganization": "Select Organization",

@@ -212,7 +212,7 @@ export function ApiKeysTab(): React.ReactElement {
                                 onClick={() => handleRevoke(key)}
                               >
                                 <ShieldOff className="mr-2 h-4 w-4" />
-                                Revoke
+                                {t('administration.apiKeys.revoke', 'Revoke')}
                               </DropdownMenuItem>
                             </>
                           )}

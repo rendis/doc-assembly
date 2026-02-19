@@ -168,7 +168,21 @@
       "draft": "Borrador",
       "any": "Cualquiera"
     },
-    "versions": "Versiones",
+    "versions": {
+      "actions": {
+        "copyId": "Copiar ID de versión",
+        "promote": "Promover a Producción",
+        "delete": "Eliminar",
+        "publishNow": "Publicar Ahora",
+        "schedule": "Programar",
+        "archive": "Archivar",
+        "clone": "Clonar versión",
+        "cancelSchedule": "Cancelar Programación"
+      },
+      "renamed": "Versión renombrada",
+      "renameFailed": "Error al renombrar versión",
+      "idCopied": "ID de versión copiado al portapapeles"
+    },
     "version": "versión",
     "versionsLabel": "versiones",
     "lastModified": "Última Modificación",
@@ -285,21 +299,6 @@
       "title": "Cancelar Publicación Agendada",
       "message": "¿Estás seguro de que deseas cancelar la publicación agendada de la versión {{version}}?",
       "confirm": "Cancelar Programación"
-    },
-    "versions": {
-      "actions": {
-        "copyId": "Copiar ID de versión",
-        "promote": "Promover a Producción",
-        "delete": "Eliminar",
-        "publishNow": "Publicar Ahora",
-        "schedule": "Programar",
-        "archive": "Archivar",
-        "clone": "Clonar versión",
-        "cancelSchedule": "Cancelar Programación"
-      },
-      "renamed": "Versión renombrada",
-      "renameFailed": "Error al renombrar versión",
-      "idCopied": "ID de versión copiado al portapapeles"
     },
     "promoteDialog": {
       "title": "Promover a Producción",
@@ -1274,7 +1273,8 @@
           "resource": "Recurso",
           "status": "Estado"
         }
-      }
+      },
+      "revoke": "Revocar"
     },
     "documentTypes": {
       "description": "Gestiona los tipos de documento y sus configuraciones.",
@@ -1489,7 +1489,7 @@
     "publicDesc": "Global",
     "tenant": "Tenant",
     "tenantDesc": "Organización",
-    "workspace": "Workspace",
+    "workspace": "workspace",
     "workspaceDesc": "Específico",
     "tenantId": "ID del Tenant",
     "workspaceId": "ID del Workspace",
@@ -1522,7 +1522,6 @@
     "filterPlaceholder": "Filtrar por nombre...",
     "noRule": "Sin regla",
     "workspaces": "workspaces",
-    "workspace": "workspace",
     "noMatchingAssignments": "No hay asignaciones que coincidan con tu búsqueda",
     "inheritedFromGlobal": "Heredado de global",
     "selectOrganization": "Seleccionar Organización",
