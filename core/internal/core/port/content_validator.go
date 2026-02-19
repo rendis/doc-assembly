@@ -36,6 +36,12 @@ type ContentValidator interface {
 	// Empty content is considered valid for drafts.
 	ValidateForDraft(ctx context.Context, content []byte) *ContentValidationResult
 
+	// ValidateForContentUpdate performs format and injectable validation for saving draft content.
+	// It validates JSON parseability, document structure (version, meta, pageConfig),
+	// and injectable accessibility — but does NOT require signer roles or signatures.
+	// Empty content is considered valid.
+	ValidateForContentUpdate(ctx context.Context, workspaceID, versionID string, content []byte) *ContentValidationResult
+
 	// ValidateForPublish performs complete business logic validation.
 	// This includes:
 	// - Document structure validation

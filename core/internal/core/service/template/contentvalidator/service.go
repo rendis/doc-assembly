@@ -55,6 +55,17 @@ func (s *Service) ValidateForDraft(ctx context.Context, content []byte) *port.Co
 	return validateDraft(content)
 }
 
+// ValidateForContentUpdate validates format and injectables for saving draft content.
+// It checks: JSON parseability, document structure, and injectable accessibility.
+// Signer roles, signatures, and workflow are NOT validated (publish-only concerns).
+func (s *Service) ValidateForContentUpdate(
+	ctx context.Context,
+	workspaceID, versionID string,
+	content []byte,
+) *port.ContentValidationResult {
+	return s.validateContentUpdate(ctx, workspaceID, versionID, content)
+}
+
 // ValidateForPublish performs complete validation for publish mode.
 func (s *Service) ValidateForPublish(
 	ctx context.Context,

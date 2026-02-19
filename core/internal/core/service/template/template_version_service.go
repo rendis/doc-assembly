@@ -467,7 +467,7 @@ func (s *TemplateVersionService) ProcessScheduledArchivals(ctx context.Context) 
 	return nil
 }
 
-// UpdateVersionContent updates the content of a DRAFT version after validating injectables.
+// UpdateVersionContent updates the content of a DRAFT version after validating format and injectables.
 func (s *TemplateVersionService) UpdateVersionContent(ctx context.Context, versionID string, content json.RawMessage) error {
 	// 1. Load the version to verify it exists and get workspaceID
 	version, err := s.versionRepo.FindByID(ctx, versionID)
@@ -486,8 +486,8 @@ func (s *TemplateVersionService) UpdateVersionContent(ctx context.Context, versi
 		return fmt.Errorf("finding template: %w", err)
 	}
 
-	// 4. Validate injectables belong to the workspace
-	result := s.contentValidator.ValidateForPublish(ctx, template.WorkspaceID, versionID, content)
+	// 4. Validate format and injectables (not full publish validation — signer roles not required yet)
+	result := s.contentValidator.ValidateForContentUpdate(ctx, template.WorkspaceID, versionID, content)
 	if !result.Valid {
 		return toContentValidationError(result)
 	}
