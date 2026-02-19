@@ -73,6 +73,8 @@ func NewHTTPServer(
 	webhookController *controller.WebhookController,
 	internalDocController *controller.InternalDocumentController,
 	publicSigningController *controller.PublicSigningController,
+	automationKeyController *controller.AutomationKeyController,
+	automationController *controller.AutomationController,
 	renderAuthenticator port.RenderAuthenticator,
 	frontendFS fs.FS,
 ) *HTTPServer {
@@ -110,9 +112,11 @@ func NewHTTPServer(
 	registerPanelControllers(v1, middlewareProvider, adminController, meController,
 		tenantController, documentTypeController, workspaceController,
 		injectableController, templateController, documentController)
+	automationKeyController.RegisterRoutes(v1)
 
 	webhookController.RegisterRoutes(base)
 	publicSigningController.RegisterRoutes(base)
+	automationController.RegisterRoutes(engine)
 	setupRenderRoutes(base, cfg, renderAuthenticator, requestTimeout)
 
 	// Serve embedded SPA if frontendFS is provided, otherwise return 404 for unmatched routes.

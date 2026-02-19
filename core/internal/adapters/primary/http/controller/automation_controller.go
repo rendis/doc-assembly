@@ -52,6 +52,7 @@ func NewAutomationController(
 	templateMapper *mapper.TemplateMapper,
 	versionMapper *mapper.TemplateVersionMapper,
 	injectableMapper *mapper.InjectableMapper,
+	docTypeMapper *mapper.DocumentTypeMapper,
 ) *AutomationController {
 	return &AutomationController{
 		tenantUC:          tenantUC,
@@ -65,7 +66,7 @@ func NewAutomationController(
 		templateMapper:    templateMapper,
 		versionMapper:     versionMapper,
 		injectableMapper:  injectableMapper,
-		docTypeMapper:     mapper.NewDocumentTypeMapper(),
+		docTypeMapper:     docTypeMapper,
 	}
 }
 
@@ -168,8 +169,9 @@ func (ctrl *AutomationController) listWorkspaces(c *gin.Context) {
 		return
 	}
 
+	// automation API returns all workspaces, using a high limit
 	filters := port.WorkspaceFilters{
-		Limit:  100,
+		Limit:  1000,
 		Offset: 0,
 	}
 
@@ -241,7 +243,7 @@ func (ctrl *AutomationController) listTemplates(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ctrl.templateMapper.ToListResponse(templates, len(templates), 0))
+	c.JSON(http.StatusOK, dto.NewListResponse(ctrl.templateMapper.ToListItemResponseList(templates)))
 }
 
 // createTemplate creates a new template in a workspace.

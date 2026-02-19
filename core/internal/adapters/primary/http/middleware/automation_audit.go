@@ -91,7 +91,7 @@ func (w *responseStatusWriter) WriteHeader(code int) {
 
 func (w *responseStatusWriter) WriteHeaderNow() {
 	w.ResponseWriter.WriteHeaderNow()
-	w.status = w.ResponseWriter.Status()
+	w.status = w.Status()
 }
 
 // extractOptionalParam returns a pointer to the path param value, or nil if not present.
@@ -105,7 +105,20 @@ func extractOptionalParam(c *gin.Context, paramName string) *string {
 
 // inferResourceAction infers resource type, resource ID, and action from the HTTP method and path.
 func inferResourceAction(method, path string, params gin.Params) (resourceType, resourceID *string, action *string) {
-	// Determine action from method
+	lower := strings.ToLower(path)
+	act := inferAction(method, lower)
+	rt := inferResourceType(lower)
+
+	if rt != "" {
+		resourceType = &rt
+	}
+	action = &act
+	resourceID = inferResourceID(params)
+	return
+}
+
+// inferAction maps HTTP method and path suffix to an audit action string.
+func inferAction(method, lowerPath string) string {
 	var act string
 	switch method {
 	case http.MethodPost:
@@ -120,49 +133,47 @@ func inferResourceAction(method, path string, params gin.Params) (resourceType, 
 		act = method
 	}
 
-	// Override action for publish/archive suffixes
-	lower := strings.ToLower(path)
 	switch {
-	case strings.HasSuffix(lower, "/publish"):
+	case strings.HasSuffix(lowerPath, "/publish"):
 		act = "PUBLISH"
-	case strings.HasSuffix(lower, "/archive"):
+	case strings.HasSuffix(lowerPath, "/archive"):
 		act = "ARCHIVE"
-	case strings.HasSuffix(lower, "/content") && method == http.MethodPut:
+	case strings.HasSuffix(lowerPath, "/content") && method == http.MethodPut:
 		act = "UPDATE_CONTENT"
 	}
+	return act
+}
 
-	// Determine resource type from path segments
-	var rt string
+// inferResourceType determines the resource type from the path.
+func inferResourceType(lowerPath string) string {
 	switch {
-	case strings.Contains(lower, "/versions"):
-		rt = "VERSION"
-	case strings.Contains(lower, "/templates"):
-		rt = "TEMPLATE"
-	case strings.Contains(lower, "/workspaces"):
-		rt = "WORKSPACE"
-	case strings.Contains(lower, "/tenants"):
-		rt = "TENANT"
-	case strings.Contains(lower, "/injectables"):
-		rt = "INJECTABLE"
-	case strings.Contains(lower, "/document-types"):
-		rt = "DOCUMENT_TYPE"
+	case strings.Contains(lowerPath, "/versions"):
+		return "VERSION"
+	case strings.Contains(lowerPath, "/templates"):
+		return "TEMPLATE"
+	case strings.Contains(lowerPath, "/workspaces"):
+		return "WORKSPACE"
+	case strings.Contains(lowerPath, "/tenants"):
+		return "TENANT"
+	case strings.Contains(lowerPath, "/injectables"):
+		return "INJECTABLE"
+	case strings.Contains(lowerPath, "/document-types"):
+		return "DOCUMENT_TYPE"
+	default:
+		return ""
 	}
+}
 
-	if rt != "" {
-		resourceType = &rt
-	}
-	action = &act
-
-	// Determine resource ID: prefer versionId > templateId > workspaceId > tenantId
+// inferResourceID extracts the most specific resource ID from path params.
+// Priority: versionId > templateId > workspaceId > tenantId
+func inferResourceID(params gin.Params) *string {
 	for _, paramName := range []string{"versionId", "templateId", "workspaceId", "tenantId"} {
 		for _, p := range params {
 			if p.Key == paramName && p.Value != "" {
 				v := p.Value
-				resourceID = &v
-				return
+				return &v
 			}
 		}
 	}
-
-	return
+	return nil
 }

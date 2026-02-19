@@ -12,6 +12,8 @@ import (
 	httpmapper "github.com/rendis/doc-assembly/core/internal/adapters/primary/http/mapper"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
 	"github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres"
+	automationapikeyrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/automation_api_key_repo"
+	automationauditlogrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/automation_audit_log_repo"
 	documentaccesstokenrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_access_token_repo"
 	documenteventrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_event_repo"
 	documentfieldresponserepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_field_response_repo"
@@ -51,6 +53,7 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/core/service/rendering/pdfrenderer"
 	templatesvc "github.com/rendis/doc-assembly/core/internal/core/service/template"
 	"github.com/rendis/doc-assembly/core/internal/core/service/template/contentvalidator"
+	automationuc "github.com/rendis/doc-assembly/core/internal/core/usecase/automation"
 	documentuc "github.com/rendis/doc-assembly/core/internal/core/usecase/document"
 	"github.com/rendis/doc-assembly/core/internal/extensions/injectors/datetime"
 	"github.com/rendis/doc-assembly/core/internal/frontend"
@@ -125,6 +128,10 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	documentEventRepo := documenteventrepo.New(pool)
 	documentFieldResponseRepo := documentfieldresponserepo.New(pool)
 	documentAccessTokenRepo := documentaccesstokenrepo.New(pool)
+
+	// --- Repositories: Automation ---
+	automationAPIKeyRepo := automationapikeyrepo.New(pool)
+	automationAuditLogRepo := automationauditlogrepo.New(pool)
 
 	// --- Middleware ---
 	middlewareProvider := middleware.NewProvider(
@@ -221,12 +228,16 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		pdfRenderer, signingProvider, storageAdapter, eventEmitter,
 	)
 
+	// --- Use Cases: Automation ---
+	automationAPIKeyUC := automationuc.NewAPIKeyUseCase(automationAPIKeyRepo, automationAuditLogRepo)
+
 	// --- HTTP Mappers ---
 	injectableMapper := httpmapper.NewInjectableMapper()
 	templateVersionMapper := httpmapper.NewTemplateVersionMapper(injectableMapper)
 	tagMapper := httpmapper.NewTagMapper()
 	folderMapper := httpmapper.NewFolderMapper()
 	templateMapper := httpmapper.NewTemplateMapper(templateVersionMapper, tagMapper, folderMapper)
+	docTypeMapper := httpmapper.NewDocumentTypeMapper()
 
 	// --- Controllers ---
 	workspaceCtrl := controller.NewWorkspaceController(
@@ -246,6 +257,13 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	webhookCtrl := controller.NewWebhookController(documentSvc, webhookHandlers)
 	internalDocCtrl := controller.NewInternalDocumentController(internalDocSvc)
 	publicSigningCtrl := controller.NewPublicSigningController(preSigningSvc)
+	automationKeyCtrl := controller.NewAutomationKeyController(automationAPIKeyUC)
+	automationCtrl := controller.NewAutomationController(
+		tenantSvc, workspaceSvc, injectableSvc,
+		templateSvc, templateVersionSvc, documentTypeSvc,
+		automationAPIKeyRepo, automationAuditLogRepo,
+		templateMapper, templateVersionMapper, injectableMapper, docTypeMapper,
+	)
 
 	// --- Render Authenticator ---
 	renderAuth := e.renderAuthenticator
@@ -268,6 +286,8 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		webhookCtrl,
 		internalDocCtrl,
 		publicSigningCtrl,
+		automationKeyCtrl,
+		automationCtrl,
 		renderAuth,
 		frontendFS,
 	)
