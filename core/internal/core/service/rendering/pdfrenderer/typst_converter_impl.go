@@ -1,6 +1,7 @@
 package pdfrenderer
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 type typstConverter struct {
 	injectables              map[string]any
 	injectableDefaults       map[string]string
+	fieldResponses           map[string]json.RawMessage // fieldID -> response JSON
 	tokens                   TypstDesignTokens
 	signerRoleValues         map[string]port.SignerRoleValue
 	signerRoles              map[string]portabledoc.SignerRole // roleID -> SignerRole
@@ -37,6 +39,7 @@ func NewTypstConverterFactory(tokens TypstDesignTokens) ConverterFactory {
 		injectableDefaults map[string]string,
 		signerRoleValues map[string]port.SignerRoleValue,
 		signerRoles []portabledoc.SignerRole,
+		fieldResponses map[string]json.RawMessage,
 	) TypstConverter {
 		roleMap := make(map[string]portabledoc.SignerRole, len(signerRoles))
 		for _, role := range signerRoles {
@@ -46,6 +49,7 @@ func NewTypstConverterFactory(tokens TypstDesignTokens) ConverterFactory {
 		return &typstConverter{
 			injectables:        injectables,
 			injectableDefaults: injectableDefaults,
+			fieldResponses:     fieldResponses,
 			tokens:             tokens,
 			signerRoleValues:   signerRoleValues,
 			signerRoles:        roleMap,
@@ -136,30 +140,31 @@ type typstNodeHandler func(node portabledoc.Node) string
 
 func (c *typstConverter) getNodeHandler(nodeType string) typstNodeHandler {
 	handlers := map[string]typstNodeHandler{
-		portabledoc.NodeTypeParagraph:     c.paragraph,
-		portabledoc.NodeTypeHeading:       c.heading,
-		portabledoc.NodeTypeBlockquote:    c.blockquote,
-		portabledoc.NodeTypeCodeBlock:     c.codeBlock,
-		portabledoc.NodeTypeHR:            c.horizontalRule,
-		portabledoc.NodeTypeBulletList:    c.bulletList,
-		portabledoc.NodeTypeOrderedList:   c.orderedList,
-		portabledoc.NodeTypeTaskList:      c.taskList,
-		portabledoc.NodeTypeListItem:      c.listItem,
-		portabledoc.NodeTypeTaskItem:      c.taskItem,
-		portabledoc.NodeTypeInjector:      c.injector,
-		portabledoc.NodeTypeConditional:   c.conditional,
-		portabledoc.NodeTypeSignature:     c.signature,
-		portabledoc.NodeTypePageBreak:     c.pageBreak,
-		portabledoc.NodeTypeImage:         c.image,
-		portabledoc.NodeTypeCustomImage:   c.image,
-		portabledoc.NodeTypeText:          c.text,
-		portabledoc.NodeTypeListInjector:  c.listInjector,
-		portabledoc.NodeTypeTableInjector: c.tableInjector,
-		portabledoc.NodeTypeTable:         c.table,
-		portabledoc.NodeTypeTableRow:      c.tableRow,
-		portabledoc.NodeTypeTableCell:     c.tableCellData,
-		portabledoc.NodeTypeTableHeader:   c.tableCellHeader,
-		portabledoc.NodeTypeHardBreak:     c.hardBreak,
+		portabledoc.NodeTypeParagraph:        c.paragraph,
+		portabledoc.NodeTypeHeading:          c.heading,
+		portabledoc.NodeTypeBlockquote:       c.blockquote,
+		portabledoc.NodeTypeCodeBlock:        c.codeBlock,
+		portabledoc.NodeTypeHR:               c.horizontalRule,
+		portabledoc.NodeTypeBulletList:       c.bulletList,
+		portabledoc.NodeTypeOrderedList:      c.orderedList,
+		portabledoc.NodeTypeTaskList:         c.taskList,
+		portabledoc.NodeTypeListItem:         c.listItem,
+		portabledoc.NodeTypeTaskItem:         c.taskItem,
+		portabledoc.NodeTypeInjector:         c.injector,
+		portabledoc.NodeTypeConditional:      c.conditional,
+		portabledoc.NodeTypeSignature:        c.signature,
+		portabledoc.NodeTypePageBreak:        c.pageBreak,
+		portabledoc.NodeTypeImage:            c.image,
+		portabledoc.NodeTypeCustomImage:      c.image,
+		portabledoc.NodeTypeText:             c.text,
+		portabledoc.NodeTypeListInjector:     c.listInjector,
+		portabledoc.NodeTypeTableInjector:    c.tableInjector,
+		portabledoc.NodeTypeTable:            c.table,
+		portabledoc.NodeTypeTableRow:         c.tableRow,
+		portabledoc.NodeTypeTableCell:        c.tableCellData,
+		portabledoc.NodeTypeTableHeader:      c.tableCellHeader,
+		portabledoc.NodeTypeHardBreak:        c.hardBreak,
+		portabledoc.NodeTypeInteractiveField: c.interactiveField,
 	}
 	return handlers[nodeType]
 }
@@ -594,6 +599,127 @@ func (c *typstConverter) hardBreak(_ portabledoc.Node) string {
 	// Typst line break: backslash at end of line
 	// This creates a hard line break within the same paragraph
 	return "\\\n"
+}
+
+// --- Interactive Field Nodes ---
+
+// interactiveField renders an interactive field node (checkbox, radio, or text) to Typst.
+func (c *typstConverter) interactiveField(node portabledoc.Node) string {
+	attrs, err := portabledoc.ParseInteractiveFieldAttrs(node.Attrs)
+	if err != nil {
+		return ""
+	}
+
+	var sb strings.Builder
+	sb.WriteString("#block[\n")
+
+	// Render label if present
+	if attrs.Label != "" {
+		sb.WriteString(fmt.Sprintf("  #text(weight: \"bold\")[%s]\n", escapeTypst(attrs.Label)))
+		sb.WriteString("  #v(2pt)\n")
+	}
+
+	switch attrs.FieldType {
+	case portabledoc.InteractiveFieldTypeCheckbox:
+		sb.WriteString(c.renderCheckboxField(attrs))
+	case portabledoc.InteractiveFieldTypeRadio:
+		sb.WriteString(c.renderRadioField(attrs))
+	case portabledoc.InteractiveFieldTypeText:
+		sb.WriteString(c.renderTextField(attrs))
+	}
+
+	sb.WriteString("]\n")
+	return sb.String()
+}
+
+// renderCheckboxField renders checkbox options with checked/unchecked indicators.
+func (c *typstConverter) renderCheckboxField(attrs *portabledoc.InteractiveFieldAttrs) string {
+	selectedIDs := c.resolveSelectedOptionIDs(attrs.ID)
+
+	items := make([]string, 0, len(attrs.Options))
+	for _, opt := range attrs.Options {
+		if selectedIDs[opt.ID] {
+			items = append(items, fmt.Sprintf("[☑ %s]", escapeTypst(opt.Label)))
+		} else {
+			items = append(items, fmt.Sprintf("[☐ %s]", escapeTypst(opt.Label)))
+		}
+	}
+
+	return fmt.Sprintf("  #stack(spacing: 4pt, %s)\n", strings.Join(items, ", "))
+}
+
+// renderRadioField renders radio options with selected/unselected indicators.
+func (c *typstConverter) renderRadioField(attrs *portabledoc.InteractiveFieldAttrs) string {
+	selectedIDs := c.resolveSelectedOptionIDs(attrs.ID)
+
+	items := make([]string, 0, len(attrs.Options))
+	for _, opt := range attrs.Options {
+		if selectedIDs[opt.ID] {
+			items = append(items, fmt.Sprintf("[◉ %s]", escapeTypst(opt.Label)))
+		} else {
+			items = append(items, fmt.Sprintf("[○ %s]", escapeTypst(opt.Label)))
+		}
+	}
+
+	return fmt.Sprintf("  #stack(spacing: 4pt, %s)\n", strings.Join(items, ", "))
+}
+
+// renderTextField renders a text field with its response value or placeholder.
+func (c *typstConverter) renderTextField(attrs *portabledoc.InteractiveFieldAttrs) string {
+	text := c.resolveTextResponse(attrs.ID)
+	if text != "" {
+		return fmt.Sprintf("  %s\n", escapeTypst(text))
+	}
+
+	// No response: show placeholder in gray
+	if attrs.Placeholder != "" {
+		return fmt.Sprintf("  #text(fill: gray)[%s]\n", escapeTypst(attrs.Placeholder))
+	}
+
+	return ""
+}
+
+// checkboxResponse is used to unmarshal checkbox/radio field responses.
+type checkboxResponse struct {
+	SelectedOptionIDs []string `json:"selectedOptionIds"`
+}
+
+// textResponse is used to unmarshal text field responses.
+type textResponse struct {
+	Text string `json:"text"`
+}
+
+// resolveSelectedOptionIDs looks up and parses selectedOptionIds from field responses.
+func (c *typstConverter) resolveSelectedOptionIDs(fieldID string) map[string]bool {
+	raw, ok := c.fieldResponses[fieldID]
+	if !ok || len(raw) == 0 {
+		return nil
+	}
+
+	var resp checkboxResponse
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return nil
+	}
+
+	result := make(map[string]bool, len(resp.SelectedOptionIDs))
+	for _, id := range resp.SelectedOptionIDs {
+		result[id] = true
+	}
+	return result
+}
+
+// resolveTextResponse looks up and parses text from field responses.
+func (c *typstConverter) resolveTextResponse(fieldID string) string {
+	raw, ok := c.fieldResponses[fieldID]
+	if !ok || len(raw) == 0 {
+		return ""
+	}
+
+	var resp textResponse
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return ""
+	}
+	return resp.Text
 }
 
 // --- Text Node ---

@@ -2,6 +2,7 @@ package pdfrenderer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -21,6 +22,7 @@ type ConverterFactory func(
 	injectableDefaults map[string]string,
 	signerRoleValues map[string]port.SignerRoleValue,
 	signerRoles []portabledoc.SignerRole,
+	fieldResponses map[string]json.RawMessage,
 ) TypstConverter
 
 // Service implements the PDFRenderer interface using Typst.
@@ -85,8 +87,14 @@ func (s *Service) RenderPreview(ctx context.Context, req *port.RenderPreviewRequ
 		injectableDefaults = make(map[string]string)
 	}
 
+	// Ensure field responses map is not nil
+	fieldResponses := req.FieldResponses
+	if fieldResponses == nil {
+		fieldResponses = make(map[string]json.RawMessage)
+	}
+
 	// Create converter for this request
-	converter := s.converterFactory(req.Injectables, injectableDefaults, signerRoleValues, req.Document.SignerRoles)
+	converter := s.converterFactory(req.Injectables, injectableDefaults, signerRoleValues, req.Document.SignerRoles, fieldResponses)
 
 	// Build Typst document
 	builder := NewTypstBuilder(converter, s.tokens)

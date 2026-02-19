@@ -255,7 +255,7 @@ func TestDefaultDesignTokens_FontStackIncludesLiberation(t *testing.T) {
 func TestTypstBuilder_TypographyIncludesFallbackFonts(t *testing.T) {
 	tokens := DefaultDesignTokens()
 	factory := NewTypstConverterFactory(tokens)
-	conv := factory(map[string]any{}, map[string]string{}, nil, nil)
+	conv := factory(map[string]any{}, map[string]string{}, nil, nil, nil)
 
 	doc := &portabledoc.Document{
 		Meta:       portabledoc.Meta{Title: "Test", Language: "en"},
@@ -279,7 +279,7 @@ func TestTypstBuilder_TypographyIncludesFallbackFonts(t *testing.T) {
 func TestTypstBuilder_DocumentWithInlineFont(t *testing.T) {
 	tokens := DefaultDesignTokens()
 	factory := NewTypstConverterFactory(tokens)
-	conv := factory(map[string]any{}, map[string]string{}, nil, nil)
+	conv := factory(map[string]any{}, map[string]string{}, nil, nil, nil)
 
 	doc := &portabledoc.Document{
 		Meta:       portabledoc.Meta{Title: "Test", Language: "en"},

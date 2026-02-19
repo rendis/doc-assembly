@@ -1,6 +1,7 @@
 package pdfrenderer
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -40,7 +41,7 @@ func newTestConverter(injectables map[string]any, defaults map[string]string) *t
 		defaults = map[string]string{}
 	}
 	factory := NewTypstConverterFactory(DefaultDesignTokens())
-	conv := factory(injectables, defaults, nil, nil)
+	conv := factory(injectables, defaults, nil, nil, nil)
 	return conv.(*typstConverter)
 }
 
@@ -1135,7 +1136,7 @@ func TestTypstBuilder_Build(t *testing.T) {
 	}
 
 	factory := NewTypstConverterFactory(DefaultDesignTokens())
-	conv := factory(nil, nil, nil, nil)
+	conv := factory(nil, nil, nil, nil, nil)
 	builder := NewTypstBuilder(conv, DefaultDesignTokens())
 	got, _, _ := builder.Build(doc)
 
@@ -1168,7 +1169,7 @@ func TestTypstBuilder_CustomPageSize(t *testing.T) {
 	}
 
 	factory := NewTypstConverterFactory(DefaultDesignTokens())
-	conv := factory(nil, nil, nil, nil)
+	conv := factory(nil, nil, nil, nil, nil)
 	builder := NewTypstBuilder(conv, DefaultDesignTokens())
 	got, _, _ := builder.Build(doc)
 
@@ -1197,7 +1198,7 @@ func TestTypstBuilder_PageCount(t *testing.T) {
 	}
 
 	factory := NewTypstConverterFactory(DefaultDesignTokens())
-	conv := factory(nil, nil, nil, nil)
+	conv := factory(nil, nil, nil, nil, nil)
 	builder := NewTypstBuilder(conv, DefaultDesignTokens())
 	_, pageCount, _ := builder.Build(doc)
 
@@ -1456,5 +1457,259 @@ func TestCapSignatureLineWidth(t *testing.T) {
 	})
 }
 
+// --- Interactive Field Tests ---
+
+func newTestConverterWithFieldResponses(fieldResponses map[string]json.RawMessage) *typstConverter {
+	factory := NewTypstConverterFactory(DefaultDesignTokens())
+	conv := factory(nil, nil, nil, nil, fieldResponses)
+	return conv.(*typstConverter)
+}
+
+func interactiveFieldNode(attrs map[string]any) portabledoc.Node {
+	return portabledoc.Node{
+		Type:  portabledoc.NodeTypeInteractiveField,
+		Attrs: attrs,
+	}
+}
+
+func TestTypstConverter_InteractiveFieldCheckbox_NoResponse(t *testing.T) {
+	c := newTestConverterWithFieldResponses(nil)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_1",
+		"fieldType": "checkbox",
+		"label":     "Select toppings",
+		"options": []any{
+			map[string]any{"id": "opt_a", "label": "Cheese"},
+			map[string]any{"id": "opt_b", "label": "Pepperoni"},
+		},
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, `#text(weight: "bold")[Select toppings]`) {
+		t.Errorf("expected label, got:\n%s", got)
+	}
+	if !strings.Contains(got, "☐ Cheese") {
+		t.Errorf("expected unchecked Cheese, got:\n%s", got)
+	}
+	if !strings.Contains(got, "☐ Pepperoni") {
+		t.Errorf("expected unchecked Pepperoni, got:\n%s", got)
+	}
+	if strings.Contains(got, "☑") {
+		t.Errorf("no options should be checked without response, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldCheckbox_WithResponse(t *testing.T) {
+	responses := map[string]json.RawMessage{
+		"field_1": json.RawMessage(`{"selectedOptionIds":["opt_b"]}`),
+	}
+	c := newTestConverterWithFieldResponses(responses)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_1",
+		"fieldType": "checkbox",
+		"label":     "Select toppings",
+		"options": []any{
+			map[string]any{"id": "opt_a", "label": "Cheese"},
+			map[string]any{"id": "opt_b", "label": "Pepperoni"},
+		},
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "☐ Cheese") {
+		t.Errorf("expected unchecked Cheese, got:\n%s", got)
+	}
+	if !strings.Contains(got, "☑ Pepperoni") {
+		t.Errorf("expected checked Pepperoni, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldCheckbox_MultipleSelected(t *testing.T) {
+	responses := map[string]json.RawMessage{
+		"field_1": json.RawMessage(`{"selectedOptionIds":["opt_a","opt_b"]}`),
+	}
+	c := newTestConverterWithFieldResponses(responses)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_1",
+		"fieldType": "checkbox",
+		"options": []any{
+			map[string]any{"id": "opt_a", "label": "A"},
+			map[string]any{"id": "opt_b", "label": "B"},
+			map[string]any{"id": "opt_c", "label": "C"},
+		},
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "☑ A") {
+		t.Errorf("expected checked A, got:\n%s", got)
+	}
+	if !strings.Contains(got, "☑ B") {
+		t.Errorf("expected checked B, got:\n%s", got)
+	}
+	if !strings.Contains(got, "☐ C") {
+		t.Errorf("expected unchecked C, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldRadio_NoResponse(t *testing.T) {
+	c := newTestConverterWithFieldResponses(nil)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_2",
+		"fieldType": "radio",
+		"label":     "Pick one",
+		"options": []any{
+			map[string]any{"id": "opt_x", "label": "Option X"},
+			map[string]any{"id": "opt_y", "label": "Option Y"},
+		},
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "○ Option X") {
+		t.Errorf("expected unselected Option X, got:\n%s", got)
+	}
+	if !strings.Contains(got, "○ Option Y") {
+		t.Errorf("expected unselected Option Y, got:\n%s", got)
+	}
+	if strings.Contains(got, "◉") {
+		t.Errorf("no radio should be selected without response, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldRadio_WithResponse(t *testing.T) {
+	responses := map[string]json.RawMessage{
+		"field_2": json.RawMessage(`{"selectedOptionIds":["opt_x"]}`),
+	}
+	c := newTestConverterWithFieldResponses(responses)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_2",
+		"fieldType": "radio",
+		"label":     "Pick one",
+		"options": []any{
+			map[string]any{"id": "opt_x", "label": "Option X"},
+			map[string]any{"id": "opt_y", "label": "Option Y"},
+		},
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "◉ Option X") {
+		t.Errorf("expected selected Option X, got:\n%s", got)
+	}
+	if !strings.Contains(got, "○ Option Y") {
+		t.Errorf("expected unselected Option Y, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldText_NoResponse(t *testing.T) {
+	c := newTestConverterWithFieldResponses(nil)
+	node := interactiveFieldNode(map[string]any{
+		"id":          "field_3",
+		"fieldType":   "text",
+		"label":       "Your name",
+		"placeholder": "Enter your name",
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, `#text(weight: "bold")[Your name]`) {
+		t.Errorf("expected label, got:\n%s", got)
+	}
+	if !strings.Contains(got, `#text(fill: gray)[Enter your name]`) {
+		t.Errorf("expected placeholder in gray, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldText_WithResponse(t *testing.T) {
+	responses := map[string]json.RawMessage{
+		"field_3": json.RawMessage(`{"text":"John Doe"}`),
+	}
+	c := newTestConverterWithFieldResponses(responses)
+	node := interactiveFieldNode(map[string]any{
+		"id":          "field_3",
+		"fieldType":   "text",
+		"label":       "Your name",
+		"placeholder": "Enter your name",
+	})
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "John Doe") {
+		t.Errorf("expected response text, got:\n%s", got)
+	}
+	if strings.Contains(got, "placeholder") {
+		t.Errorf("should not show placeholder when response exists, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldText_EmptyPlaceholder(t *testing.T) {
+	c := newTestConverterWithFieldResponses(nil)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_4",
+		"fieldType": "text",
+	})
+	got := c.convertNode(node)
+
+	// Should still produce a block, just without placeholder
+	if !strings.Contains(got, "#block[") {
+		t.Errorf("expected block wrapper, got:\n%s", got)
+	}
+	if strings.Contains(got, "fill: gray") {
+		t.Errorf("should not have gray text without placeholder, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldNoLabel(t *testing.T) {
+	c := newTestConverterWithFieldResponses(nil)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_5",
+		"fieldType": "checkbox",
+		"options": []any{
+			map[string]any{"id": "opt_1", "label": "Yes"},
+		},
+	})
+	got := c.convertNode(node)
+
+	if strings.Contains(got, `weight: "bold"`) {
+		t.Errorf("should not render label when empty, got:\n%s", got)
+	}
+	if !strings.Contains(got, "#stack") {
+		t.Errorf("should still render options, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldText_SpecialChars(t *testing.T) {
+	responses := map[string]json.RawMessage{
+		"field_6": json.RawMessage(`{"text":"Price is $100 #tag"}`),
+	}
+	c := newTestConverterWithFieldResponses(responses)
+	node := interactiveFieldNode(map[string]any{
+		"id":        "field_6",
+		"fieldType": "text",
+		"label":     "Amount & notes",
+	})
+	got := c.convertNode(node)
+
+	// Should escape special Typst characters
+	if !strings.Contains(got, "\\$") {
+		t.Errorf("expected escaped $, got:\n%s", got)
+	}
+	if !strings.Contains(got, "\\#") {
+		t.Errorf("expected escaped #, got:\n%s", got)
+	}
+}
+
+func TestTypstConverter_InteractiveFieldInvalidAttrs(t *testing.T) {
+	c := newTestConverterWithFieldResponses(nil)
+	// Missing required attrs - ParseInteractiveFieldAttrs should still work
+	// but produce an empty result
+	node := portabledoc.Node{
+		Type:  portabledoc.NodeTypeInteractiveField,
+		Attrs: map[string]any{},
+	}
+	got := c.convertNode(node)
+
+	// Should produce a block (empty field type defaults to no options/text)
+	if !strings.Contains(got, "#block[") {
+		t.Errorf("expected block wrapper even for empty attrs, got:\n%s", got)
+	}
+}
+
 // Ensure unused import is satisfied
 var _ = port.SignatureField{}
+var _ = entity.ListValue{}

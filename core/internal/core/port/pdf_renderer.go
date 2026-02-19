@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity/portabledoc"
 )
@@ -23,6 +24,11 @@ type RenderPreviewRequest struct {
 	// SignerRoleValues contains resolved values for signer roles.
 	// Keys are role IDs, values contain name and email.
 	SignerRoleValues map[string]SignerRoleValue
+
+	// FieldResponses contains responses to interactive fields.
+	// Keys are field IDs, values are the response JSON
+	// (e.g., {"selectedOptionIds":["id1"]} or {"text":"value"}).
+	FieldResponses map[string]json.RawMessage
 }
 
 // SignerRoleValue contains the resolved name and email for a signer role.
