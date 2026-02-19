@@ -4,6 +4,11 @@ import type { SigningDocumentStatus } from '../types'
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   DRAFT: { label: 'Draft', className: 'bg-muted text-muted-foreground' },
+  AWAITING_INPUT: {
+    label: 'Awaiting Input',
+    className:
+      'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  },
   PENDING_PROVIDER: {
     label: 'Processing',
     className:

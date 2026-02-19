@@ -1521,7 +1521,19 @@
         "downloadPdf": "Download PDF",
         "copySigningUrl": "Copy Signing URL",
         "remind": "Send Reminder"
-      }
+      },
+      "preSigningLink": "Pre-Signing Link",
+      "copyLink": "Copy Link",
+      "copied": "Copied",
+      "linkCopied": "Link copied to clipboard",
+      "copyError": "Failed to copy link",
+      "regenerateLink": "Regenerate Link",
+      "regenerateWarning": "Regenerating will invalidate the current link. The signer will need the new link to access the form.",
+      "tokenRegenerated": "New link generated successfully",
+      "regenerateError": "Failed to regenerate link",
+      "tokenExpires": "Expires: {{date}}",
+      "awaitingInputMessage": "Waiting for signer to complete interactive fields.",
+      "fieldResponses": "Field Responses"
     },
     "cancel": {
       "title": "Cancel Document",
@@ -1539,10 +1551,15 @@
       "noPublishedVersions": "No published versions available",
       "recipientName": "Recipient Name",
       "recipientEmail": "Recipient Email",
-      "send": "Send for Signing"
+      "send": "Send for Signing",
+      "awaitingInputTitle": "Waiting for Signer Input",
+      "awaitingInputMessage": "Document created. Waiting for signer to complete interactive fields.",
+      "preSigningUrl": "Pre-Signing URL",
+      "goToDocument": "Go to Document"
     },
     "status": {
       "DRAFT": "Draft",
+      "AWAITING_INPUT": "Awaiting Input",
       "PENDING_PROVIDER": "Processing",
       "PENDING": "Pending",
       "IN_PROGRESS": "In Progress",

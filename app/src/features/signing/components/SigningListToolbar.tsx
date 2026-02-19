@@ -6,6 +6,7 @@ import { SigningDocumentStatus } from '../types'
 
 const ALL_STATUSES: { value: string; label: string }[] = [
   { value: SigningDocumentStatus.DRAFT, label: 'Draft' },
+  { value: SigningDocumentStatus.AWAITING_INPUT, label: 'Awaiting Input' },
   { value: SigningDocumentStatus.PENDING_PROVIDER, label: 'Processing' },
   { value: SigningDocumentStatus.PENDING, label: 'Pending' },
   { value: SigningDocumentStatus.IN_PROGRESS, label: 'In Progress' },

@@ -1521,7 +1521,19 @@
         "downloadPdf": "Descargar PDF",
         "copySigningUrl": "Copiar URL de Firma",
         "remind": "Enviar Recordatorio"
-      }
+      },
+      "preSigningLink": "Enlace de Pre-Firma",
+      "copyLink": "Copiar Enlace",
+      "copied": "Copiado",
+      "linkCopied": "Enlace copiado al portapapeles",
+      "copyError": "Error al copiar el enlace",
+      "regenerateLink": "Regenerar Enlace",
+      "regenerateWarning": "Regenerar invalidará el enlace actual. El firmante necesitará el nuevo enlace para acceder al formulario.",
+      "tokenRegenerated": "Nuevo enlace generado exitosamente",
+      "regenerateError": "Error al regenerar el enlace",
+      "tokenExpires": "Expira: {{date}}",
+      "awaitingInputMessage": "Esperando que el firmante complete los campos interactivos.",
+      "fieldResponses": "Respuestas de Campos"
     },
     "cancel": {
       "title": "Cancelar Documento",
@@ -1539,10 +1551,15 @@
       "noPublishedVersions": "No hay versiones publicadas disponibles",
       "recipientName": "Nombre del Destinatario",
       "recipientEmail": "Correo del Destinatario",
-      "send": "Enviar para Firma"
+      "send": "Enviar para Firma",
+      "awaitingInputTitle": "Esperando Respuesta del Firmante",
+      "awaitingInputMessage": "Documento creado. Esperando que el firmante complete los campos interactivos.",
+      "preSigningUrl": "URL de Pre-Firma",
+      "goToDocument": "Ir al Documento"
     },
     "status": {
       "DRAFT": "Borrador",
+      "AWAITING_INPUT": "Esperando Respuesta",
       "PENDING_PROVIDER": "Procesando",
       "PENDING": "Pendiente",
       "IN_PROGRESS": "En Progreso",

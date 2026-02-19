@@ -1,8 +1,18 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, ChevronLeft, ChevronRight, Send } from 'lucide-react'
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Copy,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
+import { SigningDocumentStatus } from '../types'
+import type { SigningDocumentDetail } from '../types'
 import { useTemplateWithVersions } from '@/features/templates/hooks/useTemplateDetail'
 import { useCreateDocument } from '../hooks/useSigningDocuments'
 import type {
@@ -38,6 +48,9 @@ export function CreateDocumentWizard({
   const [title, setTitle] = useState('')
   const [values, setValues] = useState<Record<string, unknown>>({})
   const [recipients, setRecipients] = useState<DocumentRecipientCommand[]>([])
+  const [awaitingInputResult, setAwaitingInputResult] =
+    useState<SigningDocumentDetail | null>(null)
+  const [resultLinkCopied, setResultLinkCopied] = useState(false)
 
   const { data: templateDetail } = useTemplateWithVersions(templateId)
 
@@ -72,6 +85,8 @@ export function CreateDocumentWizard({
     setTitle('')
     setValues({})
     setRecipients([])
+    setAwaitingInputResult(null)
+    setResultLinkCopied(false)
   }, [])
 
   const handleOpenChange = useCallback(
@@ -141,6 +156,17 @@ export function CreateDocumentWizard({
     }
   }
 
+  const handleCopyResultLink = async () => {
+    if (!awaitingInputResult?.preSigningUrl) return
+    try {
+      await navigator.clipboard.writeText(awaitingInputResult.preSigningUrl)
+      setResultLinkCopied(true)
+      setTimeout(() => setResultLinkCopied(false), 2000)
+    } catch {
+      // Silently fail
+    }
+  }
+
   const handleSubmit = async () => {
     const request: CreateDocumentRequest = {
       templateVersionId: versionId,
@@ -151,8 +177,15 @@ export function CreateDocumentWizard({
 
     try {
       const doc = await createDocument.mutateAsync(request)
-      onOpenChange(false)
-      onSuccess?.(doc.id)
+      if (
+        doc.status === SigningDocumentStatus.AWAITING_INPUT &&
+        doc.preSigningUrl
+      ) {
+        setAwaitingInputResult(doc)
+      } else {
+        onOpenChange(false)
+        onSuccess?.(doc.id)
+      }
     } catch {
       // Error handled by mutation
     }
@@ -211,8 +244,57 @@ export function CreateDocumentWizard({
 
           {/* Body */}
           <div className="max-h-[60vh] overflow-y-auto p-6">
+            {/* Awaiting Input Success Screen */}
+            {awaitingInputResult && (
+              <div className="space-y-6">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-full bg-amber-500/10 p-2">
+                    <Clock size={20} className="text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-mono text-sm font-medium uppercase tracking-wider text-foreground">
+                      {t(
+                        'signing.wizard.awaitingInputTitle',
+                        'Waiting for Signer Input',
+                      )}
+                    </h3>
+                    <p className="mt-1 text-sm font-light text-muted-foreground">
+                      {t(
+                        'signing.wizard.awaitingInputMessage',
+                        'Document created. Waiting for signer to complete interactive fields.',
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pre-signing URL */}
+                <div className="space-y-3">
+                  <label className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                    {t('signing.wizard.preSigningUrl', 'Pre-Signing URL')}
+                  </label>
+                  <div className="break-all rounded-sm border border-border bg-muted/50 p-3 font-mono text-xs text-muted-foreground">
+                    {awaitingInputResult.preSigningUrl}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyResultLink}
+                    className="inline-flex items-center gap-2 rounded-none border border-border px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                  >
+                    {resultLinkCopied ? (
+                      <CheckCircle2 size={14} />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                    {resultLinkCopied
+                      ? t('signing.detail.copied', 'Copied')
+                      : t('signing.detail.copyLink', 'Copy Link')}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Title field (shown in version step) */}
-            {step === 'version' && (
+            {!awaitingInputResult && step === 'version' && (
               <div className="mb-6">
                 <label
                   htmlFor="document-title"
@@ -237,7 +319,7 @@ export function CreateDocumentWizard({
               </div>
             )}
 
-            {step === 'version' && (
+            {!awaitingInputResult && step === 'version' && (
               <WizardStepVersion
                 templateId={templateId}
                 versionId={versionId}
@@ -245,21 +327,21 @@ export function CreateDocumentWizard({
                 onVersionChange={setVersionId}
               />
             )}
-            {step === 'values' && (
+            {!awaitingInputResult && step === 'values' && (
               <WizardStepValues
                 injectables={injectables}
                 values={values}
                 onValuesChange={setValues}
               />
             )}
-            {step === 'recipients' && (
+            {!awaitingInputResult && step === 'recipients' && (
               <WizardStepRecipients
                 signerRoles={signerRoles}
                 recipients={recipients}
                 onRecipientsChange={setRecipients}
               />
             )}
-            {step === 'review' && (
+            {!awaitingInputResult && step === 'review' && (
               <WizardStepReview
                 templateTitle={templateDetail?.title ?? ''}
                 version={selectedVersion}
@@ -273,44 +355,63 @@ export function CreateDocumentWizard({
 
           {/* Footer */}
           <div className="flex justify-between border-t border-border p-6">
-            <div>
-              {stepIndex > 0 && (
+            {awaitingInputResult ? (
+              <>
+                <div />
                 <button
                   type="button"
-                  onClick={handleBack}
-                  disabled={createDocument.isPending}
-                  className="flex items-center gap-1 rounded-none border border-border bg-background px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                  onClick={() => {
+                    onOpenChange(false)
+                    onSuccess?.(awaitingInputResult.id)
+                  }}
+                  className="flex items-center gap-1 rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  {t('common.back', 'Back')}
-                </button>
-              )}
-            </div>
-            <div>
-              {step !== 'review' ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={!canProceed}
-                  className="flex items-center gap-1 rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-                >
-                  {t('common.next', 'Next')}
+                  {t('signing.wizard.goToDocument', 'Go to Document')}
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={createDocument.isPending}
-                  className="flex items-center gap-2 rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                  {createDocument.isPending
-                    ? t('common.sending', 'Sending...')
-                    : t('signing.wizard.submit', 'Send for Signing')}
-                </button>
-              )}
-            </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  {stepIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      disabled={createDocument.isPending}
+                      className="flex items-center gap-1 rounded-none border border-border bg-background px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      {t('common.back', 'Back')}
+                    </button>
+                  )}
+                </div>
+                <div>
+                  {step !== 'review' ? (
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      disabled={!canProceed}
+                      className="flex items-center gap-1 rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                    >
+                      {t('common.next', 'Next')}
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={createDocument.isPending}
+                      className="flex items-center gap-2 rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {createDocument.isPending
+                        ? t('common.sending', 'Sending...')
+                        : t('signing.wizard.submit', 'Send for Signing')}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

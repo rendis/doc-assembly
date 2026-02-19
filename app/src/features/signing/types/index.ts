@@ -1,6 +1,7 @@
 // Document statuses matching backend
 export const SigningDocumentStatus = {
   DRAFT: 'DRAFT',
+  AWAITING_INPUT: 'AWAITING_INPUT',
   PENDING_PROVIDER: 'PENDING_PROVIDER',
   PENDING: 'PENDING',
   IN_PROGRESS: 'IN_PROGRESS',
@@ -47,8 +48,23 @@ export interface SigningDocumentListItem {
   updatedAt: string
 }
 
+export interface AccessTokenInfo {
+  token: string
+  expiresAt: string
+}
+
+export interface FieldResponse {
+  fieldId: string
+  label: string
+  fieldType: string
+  value: unknown
+}
+
 export interface SigningDocumentDetail extends SigningDocumentListItem {
   recipients: SigningRecipient[]
+  preSigningUrl?: string
+  accessToken?: AccessTokenInfo
+  fieldResponses?: FieldResponse[]
 }
 
 export interface CreateDocumentRequest {
@@ -90,6 +106,11 @@ export interface DocumentEvent {
 export interface SigningURLResponse {
   signingUrl: string
   expiresAt?: string
+}
+
+export interface RegenerateTokenResponse {
+  token: string
+  preSigningUrl: string
 }
 
 export interface DocumentListFilters {

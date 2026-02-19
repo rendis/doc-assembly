@@ -13,6 +13,13 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  Copy,
+  Link,
+  RotateCw,
+  CheckCircle2,
+  User,
+  Mail,
+  FileText,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
@@ -22,6 +29,7 @@ import { signingApi } from '../api/signing-api'
 import {
   useSigningDocument,
   useRefreshDocument,
+  useRegenerateToken,
 } from '../hooks/useSigningDocuments'
 import { SigningStatusBadge } from './SigningStatusBadge'
 import { RecipientTable } from './RecipientTable'
@@ -59,9 +67,12 @@ export function SigningDetailPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [eventsOpen, setEventsOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const { data: document, isLoading, error } = useSigningDocument(documentId)
   const refreshMutation = useRefreshDocument()
+  const regenerateTokenMutation = useRegenerateToken()
 
   const handleBackToList = () => {
     const wsId = currentWorkspace?.id ?? workspaceId
@@ -116,10 +127,55 @@ export function SigningDetailPage() {
     }
   }
 
+  const handleCopyLink = async () => {
+    if (!document?.preSigningUrl) return
+    try {
+      await navigator.clipboard.writeText(document.preSigningUrl)
+      setLinkCopied(true)
+      toast({
+        title: t('signing.detail.linkCopied', 'Link copied to clipboard'),
+      })
+      setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error', 'Error'),
+        description: t(
+          'signing.detail.copyError',
+          'Failed to copy link',
+        ),
+      })
+    }
+  }
+
+  const handleRegenerateToken = async () => {
+    try {
+      await regenerateTokenMutation.mutateAsync(documentId)
+      setRegenerateConfirmOpen(false)
+      toast({
+        title: t(
+          'signing.detail.tokenRegenerated',
+          'New link generated successfully',
+        ),
+      })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error', 'Error'),
+        description: t(
+          'signing.detail.regenerateError',
+          'Failed to regenerate link',
+        ),
+      })
+    }
+  }
+
   const isTerminal = document
     ? TERMINAL_STATUSES.includes(document.status)
     : false
   const isCompleted = document?.status === SigningDocumentStatus.COMPLETED
+  const isAwaitingInput =
+    document?.status === SigningDocumentStatus.AWAITING_INPUT
 
   // Loading state
   if (isLoading) {
@@ -298,6 +354,146 @@ export function SigningDetailPage() {
                 </div>
               </dl>
             </div>
+
+            {/* Pre-Signing Link (AWAITING_INPUT) */}
+            {isAwaitingInput && document.preSigningUrl && (
+              <div className="border border-amber-500/30 bg-amber-500/5 p-6">
+                <h2 className="mb-4 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                  <Link size={12} />
+                  {t('signing.detail.preSigningLink', 'Pre-Signing Link')}
+                </h2>
+
+                {/* Recipient info */}
+                {document.recipients.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <User size={14} className="text-muted-foreground" />
+                      <span>{document.recipients[0].name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail size={14} />
+                      <span>{document.recipients[0].email}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* URL display */}
+                <div className="mb-3 break-all rounded-sm border border-border bg-background p-3 font-mono text-xs text-muted-foreground">
+                  {document.preSigningUrl}
+                </div>
+
+                {/* Token expiry */}
+                {document.accessToken?.expiresAt && (
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    {t('signing.detail.tokenExpires', 'Expires: {{date}}', {
+                      date: formatDate(document.accessToken.expiresAt),
+                    })}
+                  </p>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleCopyLink}
+                    className="inline-flex items-center gap-2 rounded-none border border-border px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                  >
+                    {linkCopied ? (
+                      <CheckCircle2 size={12} />
+                    ) : (
+                      <Copy size={12} />
+                    )}
+                    {linkCopied
+                      ? t('signing.detail.copied', 'Copied')
+                      : t('signing.detail.copyLink', 'Copy Link')}
+                  </button>
+
+                  <button
+                    onClick={() => setRegenerateConfirmOpen(true)}
+                    disabled={regenerateTokenMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-none border border-border px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <RotateCw
+                      size={12}
+                      className={
+                        regenerateTokenMutation.isPending
+                          ? 'animate-spin'
+                          : ''
+                      }
+                    />
+                    {t('signing.detail.regenerateLink', 'Regenerate Link')}
+                  </button>
+                </div>
+
+                {/* Regenerate confirmation */}
+                {regenerateConfirmOpen && (
+                  <div className="mt-3 rounded-sm border border-destructive/30 bg-destructive/5 p-3">
+                    <p className="mb-3 text-sm text-destructive">
+                      {t(
+                        'signing.detail.regenerateWarning',
+                        'Regenerating will invalidate the current link. The signer will need the new link to access the form.',
+                      )}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setRegenerateConfirmOpen(false)}
+                        className="rounded-none border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                      >
+                        {t('common.cancel', 'Cancel')}
+                      </button>
+                      <button
+                        onClick={handleRegenerateToken}
+                        disabled={regenerateTokenMutation.isPending}
+                        className="inline-flex items-center gap-1 rounded-none bg-destructive px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
+                      >
+                        {regenerateTokenMutation.isPending && (
+                          <Loader2 size={10} className="animate-spin" />
+                        )}
+                        {t('common.confirm', 'Confirm')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Awaiting input message (when no preSigningUrl yet) */}
+            {isAwaitingInput && !document.preSigningUrl && (
+              <div className="border border-amber-500/30 bg-amber-500/5 p-6">
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  {t(
+                    'signing.detail.awaitingInputMessage',
+                    'Waiting for signer to complete interactive fields.',
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Field Responses (after signer submission) */}
+            {document.fieldResponses && document.fieldResponses.length > 0 && (
+              <div className="border border-border bg-background p-6">
+                <h2 className="mb-4 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  <FileText size={12} />
+                  {t('signing.detail.fieldResponses', 'Field Responses')}
+                </h2>
+                <dl className="space-y-3">
+                  {document.fieldResponses.map((response) => (
+                    <div key={response.fieldId}>
+                      <dt className="mb-0.5 text-xs text-muted-foreground">
+                        {response.label}
+                        <span className="ml-1.5 rounded-sm border px-1 py-0.5 font-mono text-[9px] uppercase text-muted-foreground/70">
+                          {response.fieldType}
+                        </span>
+                      </dt>
+                      <dd className="text-sm text-foreground">
+                        {Array.isArray(response.value)
+                          ? response.value.join(', ')
+                          : String(response.value ?? '-')}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
           </div>
 
           {/* Right Panel: Recipients + Events */}
