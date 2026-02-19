@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,12 +24,8 @@ interface ApiKeyEditDialogProps {
 export function ApiKeyEditDialog({ open, keyData, onClose }: ApiKeyEditDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
-  const [name, setName] = useState('')
+  const [name, setName] = useState(keyData?.name ?? '')
   const updateKey = useUpdateAutomationKey()
-
-  useEffect(() => {
-    if (keyData) setName(keyData.name)
-  }, [keyData])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -49,7 +45,7 @@ export function ApiKeyEditDialog({ open, keyData, onClose }: ApiKeyEditDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent key={keyData?.id} className="max-w-md">
         <DialogHeader>
           <DialogTitle>
             {t('administration.apiKeys.form.editTitle', 'Edit API Key')}
