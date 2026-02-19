@@ -2,6 +2,8 @@ package document
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -27,6 +29,7 @@ func NewDocumentService(
 	eventEmitter *EventEmitter,
 	notificationSvc *NotificationService,
 	expirationDays int,
+	accessTokenRepo port.DocumentAccessTokenRepository,
 ) documentuc.DocumentUseCase {
 	return &DocumentService{
 		documentRepo:    documentRepo,
@@ -39,6 +42,7 @@ func NewDocumentService(
 		eventEmitter:    eventEmitter,
 		notificationSvc: notificationSvc,
 		expirationDays:  expirationDays,
+		accessTokenRepo: accessTokenRepo,
 	}
 }
 
@@ -54,9 +58,12 @@ type DocumentService struct {
 	eventEmitter    *EventEmitter
 	notificationSvc *NotificationService
 	expirationDays  int
+	accessTokenRepo port.DocumentAccessTokenRepository
 }
 
 // CreateAndSendDocument creates a document, generates the PDF, and sends it for signing.
+// If the template has interactive fields and exactly one unsigned signer, the document
+// is placed in AWAITING_INPUT status with an access token instead of rendering/uploading.
 func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documentuc.CreateDocumentCommand) (*entity.DocumentWithRecipients, error) {
 	if err := s.validateOperationType(ctx, cmd); err != nil {
 		return nil, err
@@ -75,6 +82,17 @@ func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documen
 	recipients, err := s.createRecipients(ctx, document.ID, cmd.Recipients)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if document should enter the pre-signing (AWAITING_INPUT) flow.
+	if s.shouldAwaitInput(version, roleMap) {
+		if err := s.transitionToAwaitingInput(ctx, document, version, recipients, roleMap); err != nil {
+			return nil, err
+		}
+		return &entity.DocumentWithRecipients{
+			Document:   *document,
+			Recipients: recipients,
+		}, nil
 	}
 
 	pdfData, sigFields, err := s.renderPDF(ctx, version, cmd)
@@ -1239,6 +1257,202 @@ func (s *DocumentService) SendReminder(ctx context.Context, documentID string) e
 // parsePortableDocument is a helper to parse document content.
 func parsePortableDocument(content json.RawMessage) (*portabledoc.Document, error) {
 	return portabledoc.Parse(content)
+}
+
+// shouldAwaitInput checks whether the document should enter the AWAITING_INPUT flow.
+// This is true when the template content contains interactive fields AND there is
+// exactly one unsigned signer role (i.e., one "real" signer who hasn't pre-signed).
+func (s *DocumentService) shouldAwaitInput(
+	version *entity.TemplateVersion,
+	_ map[string]*entity.TemplateVersionSignerRole,
+) bool {
+	if version.ContentStructure == nil {
+		return false
+	}
+
+	doc, err := parsePortableDocument(version.ContentStructure)
+	if err != nil {
+		return false
+	}
+
+	if !doc.HasNodeOfType(portabledoc.NodeTypeInteractiveField) {
+		return false
+	}
+
+	unsignedCount := countUnsignedSigners(doc)
+	return unsignedCount == 1
+}
+
+// countUnsignedSigners walks all signature nodes in the document and counts
+// signature items that do NOT already have an image (i.e., are not pre-signed).
+func countUnsignedSigners(doc *portabledoc.Document) int {
+	count := 0
+	for _, node := range doc.CollectNodesOfType(portabledoc.NodeTypeSignature) {
+		sigs, ok := extractSignatureItems(node)
+		if !ok {
+			continue
+		}
+		for _, sig := range sigs {
+			if !sig.IsSigned() && sig.HasRole() {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+// extractSignatureItems extracts SignatureItem entries from a signature node's attrs.
+func extractSignatureItems(node portabledoc.Node) ([]portabledoc.SignatureItem, bool) {
+	sa, err := portabledoc.ParseSignatureAttrs(node.Attrs)
+	if err != nil {
+		return nil, false
+	}
+	return sa.Signatures, true
+}
+
+// transitionToAwaitingInput marks the document as AWAITING_INPUT and creates an access token
+// for the real signer (the single unsigned recipient).
+func (s *DocumentService) transitionToAwaitingInput(
+	ctx context.Context,
+	document *entity.Document,
+	version *entity.TemplateVersion,
+	recipients []*entity.DocumentRecipient,
+	roleMap map[string]*entity.TemplateVersionSignerRole,
+) error {
+	if err := document.MarkAsAwaitingInput(); err != nil {
+		return fmt.Errorf("marking document as awaiting input: %w", err)
+	}
+
+	if err := s.documentRepo.Update(ctx, document); err != nil {
+		return fmt.Errorf("updating document to awaiting input: %w", err)
+	}
+
+	// Find the single real signer recipient.
+	recipientID := findRealSignerRecipientID(version, recipients, roleMap)
+	if recipientID == "" && len(recipients) > 0 {
+		// Fallback: use first recipient if we cannot determine the unsigned one.
+		recipientID = recipients[0].ID
+	}
+
+	token, err := generateAccessToken()
+	if err != nil {
+		return fmt.Errorf("generating access token: %w", err)
+	}
+
+	ttlDays := portabledoc.DefaultPreSigningTTLDays
+	if version.ContentStructure != nil {
+		doc, parseErr := parsePortableDocument(version.ContentStructure)
+		if parseErr == nil && doc.SigningWorkflow != nil && doc.SigningWorkflow.PreSigningTTLDays > 0 {
+			ttlDays = doc.SigningWorkflow.PreSigningTTLDays
+		}
+	}
+
+	accessToken := &entity.DocumentAccessToken{
+		DocumentID:  document.ID,
+		RecipientID: recipientID,
+		Token:       token,
+		ExpiresAt:   time.Now().UTC().Add(time.Duration(ttlDays) * 24 * time.Hour),
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	if err := s.accessTokenRepo.Create(ctx, accessToken); err != nil {
+		return fmt.Errorf("creating access token: %w", err)
+	}
+
+	s.eventEmitter.EmitDocumentEvent(ctx, document.ID, entity.EventDocumentCreated, entity.ActorUser, "", "", string(entity.DocumentStatusDraft), nil)
+
+	slog.InfoContext(ctx, "document awaiting interactive field input",
+		slog.String("document_id", document.ID),
+		slog.String("recipient_id", recipientID),
+		slog.Int("ttl_days", ttlDays),
+	)
+
+	return nil
+}
+
+// findRealSignerRecipientID matches the unsigned signer role from the portable doc to a
+// document recipient and returns its ID. Uses the roleMap to bridge portable doc role IDs
+// to DB signer role IDs via anchor strings.
+func findRealSignerRecipientID(
+	version *entity.TemplateVersion,
+	recipients []*entity.DocumentRecipient,
+	roleMap map[string]*entity.TemplateVersionSignerRole,
+) string {
+	if version.ContentStructure == nil {
+		return ""
+	}
+
+	doc, err := parsePortableDocument(version.ContentStructure)
+	if err != nil {
+		return ""
+	}
+
+	anchorToDBRoleID := buildAnchorToDBRoleMap(roleMap)
+	unsignedPortableRoleIDs := collectUnsignedPortableRoleIDs(doc)
+
+	return matchUnsignedRoleToRecipient(doc.SignerRoles, unsignedPortableRoleIDs, anchorToDBRoleID, recipients)
+}
+
+// buildAnchorToDBRoleMap builds a reverse map from anchor string to DB role ID.
+func buildAnchorToDBRoleMap(roleMap map[string]*entity.TemplateVersionSignerRole) map[string]string {
+	m := make(map[string]string, len(roleMap))
+	for _, role := range roleMap {
+		if role.AnchorString != "" {
+			m[role.AnchorString] = role.ID
+		}
+	}
+	return m
+}
+
+// collectUnsignedPortableRoleIDs finds portable doc role IDs that have no pre-signed image.
+func collectUnsignedPortableRoleIDs(doc *portabledoc.Document) map[string]bool {
+	ids := make(map[string]bool)
+	for _, node := range doc.CollectNodesOfType(portabledoc.NodeTypeSignature) {
+		sigs, ok := extractSignatureItems(node)
+		if !ok {
+			continue
+		}
+		for _, sig := range sigs {
+			if !sig.IsSigned() && sig.HasRole() {
+				ids[sig.GetRoleID()] = true
+			}
+		}
+	}
+	return ids
+}
+
+// matchUnsignedRoleToRecipient maps an unsigned portable doc role to its document recipient ID.
+func matchUnsignedRoleToRecipient(
+	signerRoles []portabledoc.SignerRole,
+	unsignedIDs map[string]bool,
+	anchorToDBRoleID map[string]string,
+	recipients []*entity.DocumentRecipient,
+) string {
+	for _, sr := range signerRoles {
+		if !unsignedIDs[sr.ID] {
+			continue
+		}
+		anchor := portabledoc.GenerateAnchorString(sr.Label)
+		dbRoleID := anchorToDBRoleID[anchor]
+		if dbRoleID == "" {
+			continue
+		}
+		for _, r := range recipients {
+			if r.TemplateVersionRoleID == dbRoleID {
+				return r.ID
+			}
+		}
+	}
+	return ""
+}
+
+// generateAccessToken creates a cryptographically random hex-encoded token (128 chars).
+func generateAccessToken() (string, error) {
+	b := make([]byte, 64)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generating random bytes: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }
 
 // Verify DocumentService implements DocumentUseCase

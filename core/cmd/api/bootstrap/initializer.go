@@ -12,7 +12,9 @@ import (
 	httpmapper "github.com/rendis/doc-assembly/core/internal/adapters/primary/http/mapper"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
 	"github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres"
+	documentaccesstokenrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_access_token_repo"
 	documenteventrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_event_repo"
+	documentfieldresponserepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_field_response_repo"
 	documentrecipientrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
 	documenttyperepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_type_repo"
@@ -121,6 +123,8 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	documentRepo := documentrepo.New(pool)
 	documentRecipientRepo := documentrecipientrepo.New(pool)
 	documentEventRepo := documenteventrepo.New(pool)
+	_ = documentfieldresponserepo.New(pool) // Will be wired in Phase 6 (pre-signing public API)
+	documentAccessTokenRepo := documentaccesstokenrepo.New(pool)
 
 	// --- Middleware ---
 	middlewareProvider := middleware.NewProvider(
@@ -200,6 +204,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		pdfRenderer, signingProvider, storageAdapter,
 		eventEmitter, notificationSvc,
 		cfg.Scheduler.ExpirationDays,
+		documentAccessTokenRepo,
 	)
 	injectableResolver := injectablesvc.NewInjectableResolverService(injReg)
 	documentGenerator := documentsvc.NewDocumentGenerator(
@@ -208,6 +213,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	)
 	internalDocSvc := documentsvc.NewInternalDocumentService(
 		documentGenerator, documentRepo, documentRecipientRepo, pdfRenderer, signingProvider,
+		documentAccessTokenRepo,
 	)
 
 	// --- HTTP Mappers ---

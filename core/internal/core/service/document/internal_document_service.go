@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	portable_doc "github.com/rendis/doc-assembly/core/internal/core/entity/portabledoc"
@@ -20,6 +21,7 @@ type InternalDocumentService struct {
 	recipientRepo   port.DocumentRecipientRepository
 	pdfRenderer     port.PDFRenderer
 	signingProvider port.SigningProvider
+	accessTokenRepo port.DocumentAccessTokenRepository
 }
 
 // NewInternalDocumentService creates a new InternalDocumentService.
@@ -29,6 +31,7 @@ func NewInternalDocumentService(
 	recipientRepo port.DocumentRecipientRepository,
 	pdfRenderer port.PDFRenderer,
 	signingProvider port.SigningProvider,
+	accessTokenRepo port.DocumentAccessTokenRepository,
 ) document_uc.InternalDocumentUseCase {
 	return &InternalDocumentService{
 		generator:       generator,
@@ -36,12 +39,15 @@ func NewInternalDocumentService(
 		recipientRepo:   recipientRepo,
 		pdfRenderer:     pdfRenderer,
 		signingProvider: signingProvider,
+		accessTokenRepo: accessTokenRepo,
 	}
 }
 
 // CreateDocument implements usecase.InternalDocumentUseCase.
 // It creates a document using the extension system, renders the PDF,
 // and uploads directly to the signing provider returning signing URLs.
+// If the template has interactive fields and exactly one unsigned signer,
+// the document enters AWAITING_INPUT status instead.
 func (s *InternalDocumentService) CreateDocument(
 	ctx context.Context,
 	cmd document_uc.InternalCreateCommand,
@@ -55,6 +61,14 @@ func (s *InternalDocumentService) CreateDocument(
 	}
 
 	if len(result.Recipients) == 0 {
+		return s.buildResponse(result), nil
+	}
+
+	// Check if document should enter the pre-signing (AWAITING_INPUT) flow.
+	if s.shouldAwaitInput(result) {
+		if err := s.transitionToAwaitingInput(ctx, result); err != nil {
+			return nil, err
+		}
 		return s.buildResponse(result), nil
 	}
 
@@ -317,4 +331,97 @@ func (s *InternalDocumentService) buildSignerRoleValues(
 		}
 	}
 	return values
+}
+
+// shouldAwaitInput checks whether the document should enter the AWAITING_INPUT flow.
+func (s *InternalDocumentService) shouldAwaitInput(result *DocumentGenerationResult) bool {
+	if result.PortableDoc == nil {
+		return false
+	}
+
+	if !result.PortableDoc.HasNodeOfType(portable_doc.NodeTypeInteractiveField) {
+		return false
+	}
+
+	return countUnsignedSigners(result.PortableDoc) == 1
+}
+
+// transitionToAwaitingInput marks the document as AWAITING_INPUT and creates an access token.
+func (s *InternalDocumentService) transitionToAwaitingInput(
+	ctx context.Context,
+	result *DocumentGenerationResult,
+) error {
+	doc := result.Document
+
+	if err := doc.MarkAsAwaitingInput(); err != nil {
+		return fmt.Errorf("marking document as awaiting input: %w", err)
+	}
+
+	if err := s.documentRepo.Update(ctx, doc); err != nil {
+		return fmt.Errorf("updating document to awaiting input: %w", err)
+	}
+
+	// Find the real signer recipient via anchor matching.
+	recipientID := s.findRealSignerRecipient(result)
+	if recipientID == "" && len(result.Recipients) > 0 {
+		recipientID = result.Recipients[0].ID
+	}
+
+	token, err := generateAccessToken()
+	if err != nil {
+		return fmt.Errorf("generating access token: %w", err)
+	}
+
+	ttlDays := portable_doc.DefaultPreSigningTTLDays
+	if result.PortableDoc.SigningWorkflow != nil && result.PortableDoc.SigningWorkflow.PreSigningTTLDays > 0 {
+		ttlDays = result.PortableDoc.SigningWorkflow.PreSigningTTLDays
+	}
+
+	accessToken := &entity.DocumentAccessToken{
+		DocumentID:  doc.ID,
+		RecipientID: recipientID,
+		Token:       token,
+		ExpiresAt:   time.Now().UTC().Add(time.Duration(ttlDays) * 24 * time.Hour),
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	if err := s.accessTokenRepo.Create(ctx, accessToken); err != nil {
+		return fmt.Errorf("creating access token: %w", err)
+	}
+
+	slog.InfoContext(ctx, "document awaiting interactive field input",
+		slog.String("document_id", doc.ID),
+		slog.String("recipient_id", recipientID),
+		slog.Int("ttl_days", ttlDays),
+	)
+
+	return nil
+}
+
+// findRealSignerRecipient matches the unsigned signer from the portable doc to a recipient.
+func (s *InternalDocumentService) findRealSignerRecipient(result *DocumentGenerationResult) string {
+	if result.PortableDoc == nil || result.Version == nil {
+		return ""
+	}
+
+	anchorToDBRoleID := buildVersionAnchorMap(result.Version.SignerRoles)
+	unsignedPortableRoleIDs := collectUnsignedPortableRoleIDs(result.PortableDoc)
+
+	return matchUnsignedRoleToRecipient(
+		result.PortableDoc.SignerRoles,
+		unsignedPortableRoleIDs,
+		anchorToDBRoleID,
+		result.Recipients,
+	)
+}
+
+// buildVersionAnchorMap builds anchor -> DB role ID map from version signer roles.
+func buildVersionAnchorMap(signerRoles []*entity.TemplateVersionSignerRole) map[string]string {
+	m := make(map[string]string, len(signerRoles))
+	for _, role := range signerRoles {
+		if role.AnchorString != "" {
+			m[role.AnchorString] = role.ID
+		}
+	}
+	return m
 }

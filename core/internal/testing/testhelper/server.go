@@ -14,6 +14,7 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/controller"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/mapper"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
+	documentaccesstokenrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_access_token_repo"
 	documenteventrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_event_repo"
 	documentrecipientrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
@@ -149,6 +150,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	noopNotifier := noopnotification.New()
 	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo)
 
+	// Access token repo
+	docAccessTokenRepo := documentaccesstokenrepo.New(pool)
+
 	// Document service
 	documentService := documentsvc.NewDocumentService(
 		docRepo,
@@ -161,6 +165,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		eventEmitter,
 		notificationSvc,
 		30, // expirationDays
+		docAccessTokenRepo,
 	)
 
 	// Create mappers
