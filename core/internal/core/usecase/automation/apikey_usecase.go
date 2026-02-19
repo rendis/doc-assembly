@@ -104,7 +104,7 @@ func (s *apiKeyService) GetKey(ctx context.Context, id string) (*entity.Automati
 		return nil, fmt.Errorf("find api key by id: %w", err)
 	}
 	if key == nil {
-		return nil, fmt.Errorf("api key not found")
+		return nil, entity.ErrAPIKeyNotFound
 	}
 	return key, nil
 }
@@ -116,7 +116,7 @@ func (s *apiKeyService) UpdateKey(ctx context.Context, id string, name string, a
 		return nil, fmt.Errorf("find api key by id: %w", err)
 	}
 	if key == nil {
-		return nil, fmt.Errorf("api key not found")
+		return nil, entity.ErrAPIKeyNotFound
 	}
 	key.Name = name
 	key.AllowedTenants = allowedTenants

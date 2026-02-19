@@ -274,6 +274,11 @@ var (
 	ErrRendererBusy = errors.New("PDF renderer is at capacity, try again shortly")
 )
 
+// Automation API key errors.
+var (
+	ErrAPIKeyNotFound = errors.New("api key not found")
+)
+
 // ContentValidationError wraps multiple validation errors from content validation.
 type ContentValidationError struct {
 	Errors   []ContentValidationItem

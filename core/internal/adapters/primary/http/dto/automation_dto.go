@@ -62,6 +62,7 @@ type AutomationAuditLogResponse struct {
 // AutomationCreateWorkspaceRequest is the request body for POST /automation/tenants/:tenantId/workspaces.
 type AutomationCreateWorkspaceRequest struct {
 	Name        string `json:"name"        binding:"required"`
+	Code        string `json:"code"` // Optional; auto-generated from name if not provided.
 	Description string `json:"description"`
 }
 

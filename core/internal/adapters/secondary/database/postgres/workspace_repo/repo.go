@@ -138,8 +138,14 @@ func (r *Repository) FindByTenantPaginated(ctx context.Context, tenantID string,
 		return nil, 0, fmt.Errorf("counting workspaces: %w", err)
 	}
 
+	// Convert empty UserID to nil so the LEFT JOIN condition receives NULL (not invalid UUID).
+	var userID interface{}
+	if filters.UserID != "" {
+		userID = filters.UserID
+	}
+
 	// Query with unified ordering (similarity when Query provided, access history otherwise)
-	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, filters.UserID, filters.Query, filters.Limit, filters.Offset, filters.Status)
+	rows, err := r.pool.Query(ctx, queryFindByTenantPaginated, tenantID, userID, filters.Query, filters.Limit, filters.Offset, filters.Status)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying workspaces: %w", err)
 	}

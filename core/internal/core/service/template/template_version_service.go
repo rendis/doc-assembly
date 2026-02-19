@@ -433,7 +433,7 @@ func (s *TemplateVersionService) ProcessScheduledPublications(ctx context.Contex
 	}
 
 	for _, version := range versions {
-		if err := s.PublishVersion(ctx, version.ID, "system"); err != nil {
+		if err := s.PublishVersion(ctx, version.ID, ""); err != nil {
 			slog.ErrorContext(ctx, "failed to process scheduled publication",
 				slog.String("version_id", version.ID),
 				slog.Any("error", err),
@@ -454,7 +454,7 @@ func (s *TemplateVersionService) ProcessScheduledArchivals(ctx context.Context) 
 	}
 
 	for _, version := range versions {
-		if err := s.ArchiveVersion(ctx, version.ID, "system"); err != nil {
+		if err := s.ArchiveVersion(ctx, version.ID, ""); err != nil {
 			slog.ErrorContext(ctx, "failed to process scheduled archival",
 				slog.String("version_id", version.ID),
 				slog.Any("error", err),

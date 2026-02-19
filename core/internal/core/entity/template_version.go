@@ -111,7 +111,9 @@ func (tv *TemplateVersion) Publish(userID string) {
 	now := time.Now().UTC()
 	tv.Status = VersionStatusPublished
 	tv.PublishedAt = &now
-	tv.PublishedBy = &userID
+	if userID != "" {
+		tv.PublishedBy = &userID
+	}
 	tv.ScheduledPublishAt = nil
 	tv.UpdatedAt = &now
 }
@@ -121,7 +123,9 @@ func (tv *TemplateVersion) Archive(userID string) {
 	now := time.Now().UTC()
 	tv.Status = VersionStatusArchived
 	tv.ArchivedAt = &now
-	tv.ArchivedBy = &userID
+	if userID != "" {
+		tv.ArchivedBy = &userID
+	}
 	tv.ScheduledArchiveAt = nil
 	tv.UpdatedAt = &now
 }

@@ -2,9 +2,12 @@ package controller
 
 import (
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/dto"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/mapper"
@@ -16,6 +19,9 @@ import (
 	organizationuc "github.com/rendis/doc-assembly/core/internal/core/usecase/organization"
 	templateuc "github.com/rendis/doc-assembly/core/internal/core/usecase/template"
 )
+
+// nonAlphanumericRe matches any character that is not uppercase A-Z or 0-9.
+var nonAlphanumericRe = regexp.MustCompile(`[^A-Z0-9]+`)
 
 const (
 	// automationRequestTimeout is a generous timeout for automation API requests.
@@ -198,11 +204,18 @@ func (ctrl *AutomationController) createWorkspace(c *gin.Context) {
 		return
 	}
 
+	// Derive workspace code: use provided code or generate one from the name.
+	code := req.Code
+	if code == "" {
+		code = generateWorkspaceCode(req.Name)
+	}
+
 	cmd := organizationuc.CreateWorkspaceCommand{
 		TenantID:  &tenantID,
 		Name:      req.Name,
+		Code:      code,
 		Type:      entity.WorkspaceTypeClient,
-		CreatedBy: "automation",
+		CreatedBy: "",
 	}
 
 	workspace, err := ctrl.workspaceUC.CreateWorkspace(c.Request.Context(), cmd)
@@ -259,7 +272,7 @@ func (ctrl *AutomationController) createTemplate(c *gin.Context) {
 	cmd := templateuc.CreateTemplateCommand{
 		WorkspaceID: workspaceID,
 		Title:       req.Name,
-		CreatedBy:   "automation",
+		CreatedBy:   "", // automation API has no user context — stored as NULL
 	}
 
 	template, version, err := ctrl.templateUC.CreateTemplate(c.Request.Context(), cmd)
@@ -399,12 +412,11 @@ func (ctrl *AutomationController) createVersion(c *gin.Context) {
 		return
 	}
 
-	automationUser := "automation"
 	cmd := templateuc.CreateVersionCommand{
 		TemplateID:  templateID,
 		Name:        req.Name,
 		Description: &req.Description,
-		CreatedBy:   &automationUser,
+		CreatedBy:   nil, // automation API has no user context — stored as NULL
 	}
 
 	version, err := ctrl.templateVersionUC.CreateVersion(c.Request.Context(), cmd)
@@ -458,7 +470,7 @@ func (ctrl *AutomationController) updateVersion(c *gin.Context) {
 func (ctrl *AutomationController) publishVersion(c *gin.Context) {
 	versionID := c.Param("versionId")
 
-	if err := ctrl.templateVersionUC.PublishVersion(c.Request.Context(), versionID, "automation"); err != nil {
+	if err := ctrl.templateVersionUC.PublishVersion(c.Request.Context(), versionID, ""); err != nil {
 		HandleError(c, err)
 		return
 	}
@@ -470,7 +482,7 @@ func (ctrl *AutomationController) publishVersion(c *gin.Context) {
 func (ctrl *AutomationController) archiveVersion(c *gin.Context) {
 	versionID := c.Param("versionId")
 
-	if err := ctrl.templateVersionUC.ArchiveVersion(c.Request.Context(), versionID, "automation"); err != nil {
+	if err := ctrl.templateVersionUC.ArchiveVersion(c.Request.Context(), versionID, ""); err != nil {
 		HandleError(c, err)
 		return
 	}
@@ -489,6 +501,24 @@ func (ctrl *AutomationController) getVersionContent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ctrl.versionMapper.ToDetailResponse(details))
+}
+
+// generateWorkspaceCode produces a valid workspace code from a human-readable name.
+// It uppercases the name, replaces runs of non-alphanumeric characters with underscores,
+// and trims leading/trailing underscores. A short UUID suffix ensures uniqueness.
+func generateWorkspaceCode(name string) string {
+	upper := strings.ToUpper(name)
+	clean := nonAlphanumericRe.ReplaceAllString(upper, "_")
+	clean = strings.Trim(clean, "_")
+	if len(clean) > 30 {
+		clean = clean[:30]
+	}
+	if clean == "" {
+		clean = "WS"
+	}
+	// Append short UUID segment for uniqueness within a tenant.
+	suffix := strings.ToUpper(strings.ReplaceAll(uuid.NewString()[:8], "-", ""))
+	return clean + "_" + suffix
 }
 
 // updateVersionContent replaces the content structure of a DRAFT version.

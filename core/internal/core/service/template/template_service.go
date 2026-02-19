@@ -64,7 +64,11 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, cmd templateuc.Cre
 	template.ID = id
 
 	// Create initial draft version
-	version := entity.NewTemplateVersion(template.ID, 1, "Initial Version", &cmd.CreatedBy)
+	var createdBy *string
+	if cmd.CreatedBy != "" {
+		createdBy = &cmd.CreatedBy
+	}
+	version := entity.NewTemplateVersion(template.ID, 1, "Initial Version", createdBy)
 	version.ID = uuid.NewString()
 	version.ContentStructure = cmd.ContentStructure
 

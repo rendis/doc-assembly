@@ -128,10 +128,13 @@ func CreateTestWorkspace(t *testing.T, pool *pgxpool.Pool, tenantID *string, nam
 	workspaceID := uuid.NewString()
 	now := time.Now().UTC()
 
+	// Generate a unique workspace code from the first 8 chars of the UUID.
+	code := "WS_" + workspaceID[:8]
+
 	_, err := pool.Exec(ctx, `
-		INSERT INTO tenancy.workspaces (id, tenant_id, name, type, status, settings, created_at)
+		INSERT INTO tenancy.workspaces (id, tenant_id, name, code, type, status, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		workspaceID, tenantID, name, wsType, entity.WorkspaceStatusActive, "{}", now)
+		workspaceID, tenantID, name, code, wsType, entity.WorkspaceStatusActive, now)
 	require.NoError(t, err, "failed to create test workspace")
 
 	return workspaceID
@@ -477,7 +480,7 @@ func PublishTestVersion(t *testing.T, pool *pgxpool.Pool, versionID string) {
 
 // CreateTestAutomationKey inserts an API key directly into automation.api_keys.
 // Returns (keyID, rawKey). The raw key has format "doca_<64 hex chars>" and is never stored.
-func CreateTestAutomationKey(t *testing.T, pool *pgxpool.Pool, name string, allowedTenants []string, createdBy string) (keyID, rawKey string) {
+func CreateTestAutomationKey(t *testing.T, pool *pgxpool.Pool, name string, allowedTenants []string) (keyID, rawKey string) {
 	t.Helper()
 	ctx := context.Background()
 
@@ -496,9 +499,9 @@ func CreateTestAutomationKey(t *testing.T, pool *pgxpool.Pool, name string, allo
 
 	err = pool.QueryRow(ctx, `
 		INSERT INTO automation.api_keys (name, key_hash, key_prefix, allowed_tenants, is_active, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, gen_random_uuid())
 		RETURNING id`,
-		name, keyHash, keyPrefix, tenants, true, createdBy,
+		name, keyHash, keyPrefix, tenants, true,
 	).Scan(&keyID)
 	require.NoError(t, err, "failed to create test automation key")
 	return keyID, rawKey

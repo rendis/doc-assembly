@@ -77,7 +77,10 @@ func (s *InjectableService) ListInjectables(
 	allInjectables = append(allInjectables, providerInjectables...)
 
 	// Merge groups (registry groups + provider groups)
-	registryGroups := s.injectorRegistry.GetAllGroups()
+	var registryGroups []port.GroupConfig
+	if s.injectorRegistry != nil {
+		registryGroups = s.injectorRegistry.GetAllGroups()
+	}
 	allGroups := make([]port.GroupConfig, 0, len(registryGroups)+len(providerGroups))
 	allGroups = append(allGroups, registryGroups...)
 	allGroups = append(allGroups, providerGroups...)

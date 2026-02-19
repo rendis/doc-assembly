@@ -81,11 +81,10 @@ func TestAutomationKeyController_ListKeys(t *testing.T) {
 	_ = ts
 
 	// Pre-create 2 keys via fixture
-	creatorID := "test-list-keys"
-	keyID1, _ := testhelper.CreateTestAutomationKey(t, pool, "list-key-1", nil, creatorID)
+	keyID1, _ := testhelper.CreateTestAutomationKey(t, pool, "list-key-1", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID1) })
 
-	keyID2, _ := testhelper.CreateTestAutomationKey(t, pool, "list-key-2", nil, creatorID)
+	keyID2, _ := testhelper.CreateTestAutomationKey(t, pool, "list-key-2", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID2) })
 
 	resp, body := client.GET("/api/v1/automation-keys/")
@@ -111,7 +110,7 @@ func TestAutomationKeyController_GetKey(t *testing.T) {
 	ts, client := superadminClient(t)
 	_ = ts
 
-	keyID, _ := testhelper.CreateTestAutomationKey(t, pool, "get-key-test", nil, "test-get")
+	keyID, _ := testhelper.CreateTestAutomationKey(t, pool, "get-key-test", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID) })
 
 	t.Run("success returns key by id", func(t *testing.T) {
@@ -137,7 +136,7 @@ func TestAutomationKeyController_UpdateKey(t *testing.T) {
 	ts, client := superadminClient(t)
 	_ = ts
 
-	keyID, _ := testhelper.CreateTestAutomationKey(t, pool, "original-name", nil, "test-update")
+	keyID, _ := testhelper.CreateTestAutomationKey(t, pool, "original-name", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID) })
 
 	t.Run("success updates key name", func(t *testing.T) {
@@ -172,7 +171,7 @@ func TestAutomationKeyController_RevokeKey(t *testing.T) {
 	tenantID := testhelper.CreateTestTenant(t, pool, "Revoke Test Tenant", "RVKT1")
 	t.Cleanup(func() { testhelper.CleanupTenant(t, pool, tenantID) })
 
-	keyID, rawKey := testhelper.CreateTestAutomationKey(t, pool, "revoke-key-test", nil, "test-revoke")
+	keyID, rawKey := testhelper.CreateTestAutomationKey(t, pool, "revoke-key-test", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID) })
 
 	t.Run("success returns 204", func(t *testing.T) {
@@ -196,7 +195,7 @@ func TestAutomationKeyController_GetAuditLog(t *testing.T) {
 	tenantID := testhelper.CreateTestTenant(t, pool, "Audit Test Tenant", "ADTT1")
 	t.Cleanup(func() { testhelper.CleanupTenant(t, pool, tenantID) })
 
-	keyID, rawKey := testhelper.CreateTestAutomationKey(t, pool, "audit-key-test", nil, "test-audit")
+	keyID, rawKey := testhelper.CreateTestAutomationKey(t, pool, "audit-key-test", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID) })
 
 	t.Run("empty list initially", func(t *testing.T) {

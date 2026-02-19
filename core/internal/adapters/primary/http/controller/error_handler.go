@@ -76,7 +76,8 @@ func is404Error(err error) bool {
 		errors.Is(err, entity.ErrTenantNotFound) ||
 		errors.Is(err, entity.ErrTenantMemberNotFound) ||
 		errors.Is(err, entity.ErrSystemRoleNotFound) ||
-		errors.Is(err, entity.ErrDocumentTypeNotFound)
+		errors.Is(err, entity.ErrDocumentTypeNotFound) ||
+		errors.Is(err, entity.ErrAPIKeyNotFound)
 }
 
 // is409Error returns true if the error should result in a 409 Conflict response.

@@ -33,7 +33,7 @@ func newAutomationEnv(t *testing.T) *automationEnv {
 	pool := testhelper.GetTestPool(t)
 	ts := testhelper.NewTestServer(t, pool)
 
-	keyID, rawKey := testhelper.CreateTestAutomationKey(t, pool, "test-key", nil, "test")
+	keyID, rawKey := testhelper.CreateTestAutomationKey(t, pool, "test-key", nil)
 	t.Cleanup(func() { testhelper.CleanupAutomationKey(t, pool, keyID) })
 
 	tenantID := testhelper.CreateTestTenant(t, pool, "Acme Corp", "ACME")
@@ -76,7 +76,7 @@ func TestAutomationController_Auth(t *testing.T) {
 	})
 
 	t.Run("revoked key", func(t *testing.T) {
-		revokedKeyID, revokedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "revoked-key", nil, "test")
+		revokedKeyID, revokedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "revoked-key", nil)
 		t.Cleanup(func() { testhelper.CleanupAutomationKey(t, env.pool, revokedKeyID) })
 
 		// Revoke the key directly in the database.
@@ -116,7 +116,7 @@ func TestAutomationController_ListTenants(t *testing.T) {
 	})
 
 	t.Run("tenant-scoped key sees only allowed tenant", func(t *testing.T) {
-		scopedKeyID, scopedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "scoped-key", []string{env.tenantID}, "test")
+		scopedKeyID, scopedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "scoped-key", []string{env.tenantID})
 		t.Cleanup(func() { testhelper.CleanupAutomationKey(t, env.pool, scopedKeyID) })
 
 		scopedClient := testhelper.NewHTTPClient(t, env.ts.URL()).WithAutomationKey(scopedRawKey)
@@ -132,7 +132,7 @@ func TestAutomationController_ListTenants(t *testing.T) {
 		otherTenantID := testhelper.CreateTestTenant(t, env.pool, "Other Corp", "OTHER")
 		t.Cleanup(func() { testhelper.CleanupTenant(t, env.pool, otherTenantID) })
 
-		scopedKeyID, scopedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "scoped-other-key", []string{otherTenantID}, "test")
+		scopedKeyID, scopedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "scoped-other-key", []string{otherTenantID})
 		t.Cleanup(func() { testhelper.CleanupAutomationKey(t, env.pool, scopedKeyID) })
 
 		scopedClient := testhelper.NewHTTPClient(t, env.ts.URL()).WithAutomationKey(scopedRawKey)
@@ -187,7 +187,7 @@ func TestAutomationController_Workspaces(t *testing.T) {
 		t.Cleanup(func() { testhelper.CleanupTenant(t, env.pool, otherTenantID) })
 
 		// Key is scoped to otherTenantID, so accessing env.tenantID should be forbidden.
-		scopedKeyID, scopedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "scope-ws-key", []string{otherTenantID}, "test")
+		scopedKeyID, scopedRawKey := testhelper.CreateTestAutomationKey(t, env.pool, "scope-ws-key", []string{otherTenantID})
 		t.Cleanup(func() { testhelper.CleanupAutomationKey(t, env.pool, scopedKeyID) })
 
 		scopedClient := testhelper.NewHTTPClient(t, env.ts.URL()).WithAutomationKey(scopedRawKey)
@@ -333,20 +333,17 @@ func TestAutomationController_VersionLifecycle(t *testing.T) {
 	contentResp, _ := env.client.GET(getContentPath)
 	assert.Equal(t, http.StatusOK, contentResp.StatusCode)
 
-	// Step 6: PUT content with valid minimal TipTap JSON.
+	// Step 6: PUT content with valid minimal portabledoc JSON.
 	putContentPath := fmt.Sprintf("/api/v1/automation/templates/%s/versions/%s/content", templateID, versionID)
-	putResp, _ := env.client.PUT(putContentPath, map[string]interface{}{
-		"contentStructure": map[string]interface{}{
-			"type":    "doc",
-			"content": []interface{}{},
-		},
+	putResp, putBody := env.client.PUT(putContentPath, map[string]interface{}{
+		"contentStructure": minimalPortabledoc(),
 	})
-	assert.Equal(t, http.StatusOK, putResp.StatusCode)
+	assert.Equal(t, http.StatusOK, putResp.StatusCode, "put content body: %s", string(putBody))
 
 	// Step 7: Publish version.
 	publishPath := fmt.Sprintf("/api/v1/automation/templates/%s/versions/%s/publish", templateID, versionID)
-	publishResp, _ := env.client.POST(publishPath, nil)
-	assert.Equal(t, http.StatusNoContent, publishResp.StatusCode)
+	publishResp, publishBody := env.client.POST(publishPath, nil)
+	assert.Equal(t, http.StatusNoContent, publishResp.StatusCode, "publish body: %s", string(publishBody))
 
 	// Step 8: Archive version.
 	archivePath := fmt.Sprintf("/api/v1/automation/templates/%s/versions/%s/archive", templateID, versionID)
@@ -381,11 +378,80 @@ func TestAutomationController_UpdateContentNonDraft(t *testing.T) {
 	// Attempt to update content of a published version — must fail.
 	putContentPath := fmt.Sprintf("/api/v1/automation/templates/%s/versions/%s/content", templateID, versionID)
 	resp, _ := env.client.PUT(putContentPath, map[string]interface{}{
-		"contentStructure": map[string]interface{}{
-			"type":    "doc",
-			"content": []interface{}{},
-		},
+		"contentStructure": minimalPortabledoc(),
 	})
 	assert.NotEqual(t, http.StatusOK, resp.StatusCode, "updating content of a published version should fail")
 	assert.GreaterOrEqual(t, resp.StatusCode, http.StatusBadRequest, "expected a 4xx error status")
+}
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+// minimalPortabledoc returns the smallest valid portabledoc structure that passes
+// both content-update and publish validation:
+//   - version, meta.title, pageConfig dimensions (required fields)
+//   - one signer role with text name/email fields
+//   - one signature node in the content referencing that role
+func minimalPortabledoc() map[string]interface{} {
+	roleID := "role-001"
+	sigID := "sig-001"
+	return map[string]interface{}{
+		"version": "1.1.0",
+		"meta": map[string]interface{}{
+			"title":    "Test Document",
+			"language": "en",
+		},
+		"pageConfig": map[string]interface{}{
+			"formatId": "A4",
+			"width":    595.0,
+			"height":   842.0,
+			"margins": map[string]interface{}{
+				"top":    20.0,
+				"bottom": 20.0,
+				"left":   20.0,
+				"right":  20.0,
+			},
+		},
+		"variableIds": []interface{}{},
+		"signerRoles": []interface{}{
+			map[string]interface{}{
+				"id":    roleID,
+				"label": "Signer",
+				"order": 1,
+				"name": map[string]interface{}{
+					"type":  "text",
+					"value": "Test Signer",
+				},
+				"email": map[string]interface{}{
+					"type":  "text",
+					"value": "signer@test.com",
+				},
+			},
+		},
+		"content": map[string]interface{}{
+			"type": "doc",
+			"content": []interface{}{
+				map[string]interface{}{
+					"type": "signature",
+					"attrs": map[string]interface{}{
+						"count":     1,
+						"layout":    "single-center",
+						"lineWidth": "md",
+						"signatures": []interface{}{
+							map[string]interface{}{
+								"id":     sigID,
+								"roleId": roleID,
+								"label":  "Signer",
+							},
+						},
+					},
+				},
+			},
+		},
+		"exportInfo": map[string]interface{}{
+			"exportedAt": "2026-01-01T00:00:00Z",
+			"sourceApp":  "automation-test",
+		},
+	}
 }
