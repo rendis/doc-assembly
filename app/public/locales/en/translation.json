@@ -1582,5 +1582,39 @@
       "refreshSelected": "Refresh Selected",
       "cancelConfirm": "Are you sure you want to cancel {{count}} documents?"
     }
+  },
+  "publicSigning": {
+    "loading": "Loading document...",
+    "from": "From",
+    "to": "To",
+    "interactiveField": "Interactive Field",
+    "signatureBlock": "Signature",
+    "noLabel": "No label",
+    "required": "Required",
+    "otherSigner": "Other signer",
+    "noOptions": "No options defined",
+    "untitledOption": "Untitled option",
+    "textPlaceholder": "Type your answer here...",
+    "fieldRequired": "This field is required",
+    "agreement": "I have read and reviewed the document above and confirm that my responses are accurate.",
+    "submit": "Generate and Sign Contract",
+    "submitting": "Generating contract...",
+    "validationSummary": "Please complete {{count}} required field(s) before submitting.",
+    "errors": {
+      "invalidToken": "This link is not valid. Please check that you have the correct URL.",
+      "invalidTokenTitle": "Invalid Link",
+      "expired": "This link has expired. Please request a new link from the sender.",
+      "expiredTitle": "Link Expired",
+      "alreadyUsed": "This form has already been completed. No further action is needed.",
+      "alreadyUsedTitle": "Already Completed",
+      "serverError": "Something went wrong. Please try again later.",
+      "errorTitle": "Error",
+      "submitFailed": "Failed to submit your responses. Please try again."
+    },
+    "success": {
+      "title": "Contract Generated",
+      "message": "Your responses have been recorded and the contract has been generated. You will be redirected to sign the document.",
+      "goToSigning": "Go to Signing"
+    }
   }
 }

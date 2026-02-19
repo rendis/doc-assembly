@@ -20,6 +20,7 @@ import { Route as WorkspaceWorkspaceIdSigningRouteImport } from './routes/worksp
 import { Route as WorkspaceWorkspaceIdSettingsRouteImport } from './routes/workspace.$workspaceId/settings'
 import { Route as WorkspaceWorkspaceIdDocumentsRouteImport } from './routes/workspace.$workspaceId/documents'
 import { Route as WorkspaceWorkspaceIdAdministrationRouteImport } from './routes/workspace.$workspaceId/administration'
+import { Route as PublicSignTokenRouteImport } from './routes/public.sign.$token'
 import { Route as WorkspaceWorkspaceIdTemplatesIndexRouteImport } from './routes/workspace.$workspaceId/templates.index'
 import { Route as WorkspaceWorkspaceIdSigningIndexRouteImport } from './routes/workspace.$workspaceId/signing.index'
 import { Route as WorkspaceWorkspaceIdTemplatesTemplateIdRouteImport } from './routes/workspace.$workspaceId/templates.$templateId'
@@ -89,6 +90,11 @@ const WorkspaceWorkspaceIdAdministrationRoute =
     path: '/administration',
     getParentRoute: () => WorkspaceWorkspaceIdRoute,
   } as any)
+const PublicSignTokenRoute = PublicSignTokenRouteImport.update({
+  id: '/public/sign/$token',
+  path: '/public/sign/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceWorkspaceIdTemplatesIndexRoute =
   WorkspaceWorkspaceIdTemplatesIndexRouteImport.update({
     id: '/',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/select-tenant': typeof SelectTenantRoute
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRouteWithChildren
+  '/public/sign/$token': typeof PublicSignTokenRoute
   '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
   '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/select-tenant': typeof SelectTenantRoute
+  '/public/sign/$token': typeof PublicSignTokenRoute
   '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
   '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/select-tenant': typeof SelectTenantRoute
   '/workspace/$workspaceId': typeof WorkspaceWorkspaceIdRouteWithChildren
+  '/public/sign/$token': typeof PublicSignTokenRoute
   '/workspace/$workspaceId/administration': typeof WorkspaceWorkspaceIdAdministrationRoute
   '/workspace/$workspaceId/documents': typeof WorkspaceWorkspaceIdDocumentsRoute
   '/workspace/$workspaceId/settings': typeof WorkspaceWorkspaceIdSettingsRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/select-tenant'
     | '/workspace/$workspaceId'
+    | '/public/sign/$token'
     | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/select-tenant'
+    | '/public/sign/$token'
     | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/select-tenant'
     | '/workspace/$workspaceId'
+    | '/public/sign/$token'
     | '/workspace/$workspaceId/administration'
     | '/workspace/$workspaceId/documents'
     | '/workspace/$workspaceId/settings'
@@ -243,6 +255,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SelectTenantRoute: typeof SelectTenantRoute
   WorkspaceWorkspaceIdRoute: typeof WorkspaceWorkspaceIdRouteWithChildren
+  PublicSignTokenRoute: typeof PublicSignTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/workspace/$workspaceId/administration'
       preLoaderRoute: typeof WorkspaceWorkspaceIdAdministrationRouteImport
       parentRoute: typeof WorkspaceWorkspaceIdRoute
+    }
+    '/public/sign/$token': {
+      id: '/public/sign/$token'
+      path: '/public/sign/$token'
+      fullPath: '/public/sign/$token'
+      preLoaderRoute: typeof PublicSignTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/workspace/$workspaceId/templates/': {
       id: '/workspace/$workspaceId/templates/'
@@ -442,6 +462,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SelectTenantRoute: SelectTenantRoute,
   WorkspaceWorkspaceIdRoute: WorkspaceWorkspaceIdRouteWithChildren,
+  PublicSignTokenRoute: PublicSignTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

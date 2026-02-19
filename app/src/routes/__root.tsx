@@ -8,7 +8,7 @@ export const Route = createRootRoute({
   component: RootLayout,
 })
 
-const PUBLIC_ROUTES = ['/login']
+const PUBLIC_ROUTES = ['/login', '/public']
 
 function RootLayout() {
   const navigate = useNavigate()

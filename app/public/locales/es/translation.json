@@ -1582,5 +1582,39 @@
       "refreshSelected": "Actualizar Seleccionados",
       "cancelConfirm": "¿Estás seguro de que deseas cancelar {{count}} documentos?"
     }
+  },
+  "publicSigning": {
+    "loading": "Cargando documento...",
+    "from": "De",
+    "to": "Para",
+    "interactiveField": "Campo Interactivo",
+    "signatureBlock": "Firma",
+    "noLabel": "Sin etiqueta",
+    "required": "Obligatorio",
+    "otherSigner": "Otro firmante",
+    "noOptions": "Sin opciones definidas",
+    "untitledOption": "Opcion sin titulo",
+    "textPlaceholder": "Escribe tu respuesta aqui...",
+    "fieldRequired": "Este campo es obligatorio",
+    "agreement": "He leido y revisado el documento anterior y confirmo que mis respuestas son correctas.",
+    "submit": "Generar y Firmar Contrato",
+    "submitting": "Generando contrato...",
+    "validationSummary": "Por favor completa {{count}} campo(s) obligatorio(s) antes de enviar.",
+    "errors": {
+      "invalidToken": "Este enlace no es valido. Verifica que tienes la URL correcta.",
+      "invalidTokenTitle": "Enlace Invalido",
+      "expired": "Este enlace ha expirado. Solicita un nuevo enlace al remitente.",
+      "expiredTitle": "Enlace Expirado",
+      "alreadyUsed": "Este formulario ya fue completado. No se requiere ninguna accion adicional.",
+      "alreadyUsedTitle": "Ya Completado",
+      "serverError": "Algo salio mal. Intenta de nuevo mas tarde.",
+      "errorTitle": "Error",
+      "submitFailed": "No se pudieron enviar tus respuestas. Intenta de nuevo."
+    },
+    "success": {
+      "title": "Contrato Generado",
+      "message": "Tus respuestas han sido registradas y el contrato ha sido generado. Seras redirigido para firmar el documento.",
+      "goToSigning": "Ir a Firmar"
+    }
   }
 }
