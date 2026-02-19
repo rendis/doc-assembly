@@ -6,6 +6,11 @@ export { ConditionalExtension, ConditionalComponent } from './Conditional'
 export { ImageExtension, ImageComponent, ImageAlignSelector } from './Image'
 export { PageBreakHR, PageBreakHRComponent } from './PageBreak'
 export {
+  InteractiveFieldExtension,
+  InteractiveFieldComponent,
+  InteractiveFieldConfigDialog,
+} from './InteractiveField'
+export {
   SlashCommandsExtension,
   slashCommandsSuggestion,
   SLASH_COMMANDS,
@@ -50,3 +55,9 @@ export type { SlashCommand, SlashCommandsOptions } from './SlashCommands'
 export type { TableStylesAttrs, TableAttrs, TableCellAttrs } from './Table'
 export type { TableInjectorAttrs, TableInjectorOptions } from './TableInjector'
 export type { ListInjectorAttrs, ListInjectorOptions } from './ListInjector'
+export type {
+  InteractiveFieldAttrs,
+  InteractiveFieldType,
+  InteractiveFieldOption,
+  SetInteractiveFieldOptions,
+} from './InteractiveField'

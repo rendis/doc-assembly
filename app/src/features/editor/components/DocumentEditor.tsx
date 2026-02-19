@@ -33,6 +33,7 @@ import {
 } from '../extensions/Table'
 import { TableInjectorExtension } from '../extensions/TableInjector'
 import { ListInjectorExtension } from '../extensions/ListInjector'
+import { InteractiveFieldExtension } from '../extensions/InteractiveField'
 import { StoredMarksPersistenceExtension } from '../extensions/StoredMarksPersistence'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { VariableFormatDialog } from './VariableFormatDialog'
@@ -150,6 +151,7 @@ export function DocumentEditor({
       TableCellExtension,
       TableInjectorExtension,
       ListInjectorExtension,
+      InteractiveFieldExtension,
     ],
     // Use stored content on recreation, initial content on first render
     // eslint-disable-next-line react-hooks/refs -- Intentional: preserve content across editor recreations

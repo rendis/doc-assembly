@@ -960,6 +960,8 @@
       "tableDesc": "Insert a table",
       "variable": "Variable",
       "variableDesc": "Insert variable",
+      "interactiveField": "Interactive Field",
+      "interactiveFieldDesc": "Add checkbox, radio, or text field",
       "noCommandsFound": "No commands found",
       "groups": {
         "basic": "Basic",
@@ -980,6 +982,42 @@
     "injectable": {
       "errors": {
         "roleDeleted": "The associated role was deleted"
+      }
+    },
+    "interactiveField": {
+      "title": "Interactive Field",
+      "types": {
+        "checkbox": "Checkbox",
+        "radio": "Radio",
+        "text": "Text"
+      },
+      "noOptions": "No options defined",
+      "untitledOption": "Untitled option",
+      "textPlaceholder": "Text input...",
+      "noLabel": "No label",
+      "noRole": "No role assigned",
+      "deletedRole": "Deleted role",
+      "required": "Required",
+      "configure": "Configure field",
+      "config": {
+        "title": "Interactive Field",
+        "description": "Configure the interactive field for signers",
+        "fieldType": "Field Type",
+        "role": "Assigned Role",
+        "selectRole": "Select a role...",
+        "noRole": "No role",
+        "label": "Label / Question",
+        "labelPlaceholder": "e.g. Do you agree with the terms?",
+        "required": "This field is required",
+        "options": "Options",
+        "noOptionsYet": "No options yet. Add at least one.",
+        "optionPlaceholder": "Option {{number}}",
+        "addOption": "Add option",
+        "textSettings": "Text Field Settings",
+        "placeholder": "Placeholder",
+        "placeholderHint": "Text shown when field is empty",
+        "maxLength": "Max length",
+        "maxLengthHint": "0 = unlimited"
       }
     },
     "import": {

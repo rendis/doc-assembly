@@ -14,6 +14,7 @@ import {
   GitBranch,
   Variable,
   Table2,
+  FormInput,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Editor } from '@tiptap/core'
@@ -184,6 +185,17 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: (editor) => {
       // Insert @ to trigger the mentions menu with available variables
       editor.chain().focus().insertContent('@').run()
+    },
+  },
+  {
+    id: 'interactiveField',
+    titleKey: 'editor.slashCommands.interactiveField',
+    descriptionKey: 'editor.slashCommands.interactiveFieldDesc',
+    icon: FormInput,
+    groupKey: 'editor.slashCommands.groups.documents',
+    aliases: ['checkbox', 'radio', 'input', 'form', 'interactive', 'campo'],
+    action: (editor) => {
+      editor.chain().focus().setInteractiveField().run()
     },
   },
 ]

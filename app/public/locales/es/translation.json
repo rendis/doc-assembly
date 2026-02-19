@@ -960,6 +960,8 @@
       "tableDesc": "Insertar una tabla",
       "variable": "Variable",
       "variableDesc": "Insertar variable",
+      "interactiveField": "Campo interactivo",
+      "interactiveFieldDesc": "Agregar campo de checkbox, radio o texto",
       "noCommandsFound": "No se encontraron comandos",
       "groups": {
         "basic": "Básico",
@@ -980,6 +982,42 @@
     "injectable": {
       "errors": {
         "roleDeleted": "El rol asociado fue eliminado"
+      }
+    },
+    "interactiveField": {
+      "title": "Campo interactivo",
+      "types": {
+        "checkbox": "Casilla",
+        "radio": "Opción",
+        "text": "Texto"
+      },
+      "noOptions": "Sin opciones definidas",
+      "untitledOption": "Opción sin título",
+      "textPlaceholder": "Entrada de texto...",
+      "noLabel": "Sin etiqueta",
+      "noRole": "Sin rol asignado",
+      "deletedRole": "Rol eliminado",
+      "required": "Obligatorio",
+      "configure": "Configurar campo",
+      "config": {
+        "title": "Campo interactivo",
+        "description": "Configura el campo interactivo para firmantes",
+        "fieldType": "Tipo de campo",
+        "role": "Rol asignado",
+        "selectRole": "Seleccionar un rol...",
+        "noRole": "Sin rol",
+        "label": "Etiqueta / Pregunta",
+        "labelPlaceholder": "Ej: ¿Acepta los términos y condiciones?",
+        "required": "Este campo es obligatorio",
+        "options": "Opciones",
+        "noOptionsYet": "Sin opciones aún. Agrega al menos una.",
+        "optionPlaceholder": "Opción {{number}}",
+        "addOption": "Agregar opción",
+        "textSettings": "Configuración de campo de texto",
+        "placeholder": "Texto de ejemplo",
+        "placeholderHint": "Texto mostrado cuando el campo está vacío",
+        "maxLength": "Largo máximo",
+        "maxLengthHint": "0 = sin límite"
       }
     },
     "import": {
