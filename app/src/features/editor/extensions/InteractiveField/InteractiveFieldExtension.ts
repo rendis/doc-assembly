@@ -3,6 +3,7 @@ import { ReactNodeViewRenderer } from '@tiptap/react'
 import { InteractiveFieldComponent } from './InteractiveFieldComponent'
 
 export type InteractiveFieldType = 'checkbox' | 'radio' | 'text'
+export type InteractiveFieldLayout = 'vertical' | 'inline'
 
 export interface InteractiveFieldOption {
   id: string
@@ -18,6 +19,7 @@ export interface InteractiveFieldAttrs {
   options: InteractiveFieldOption[]
   placeholder: string
   maxLength: number
+  optionsLayout: InteractiveFieldLayout
 }
 
 export interface SetInteractiveFieldOptions {
@@ -29,6 +31,7 @@ export interface SetInteractiveFieldOptions {
   options?: InteractiveFieldOption[]
   placeholder?: string
   maxLength?: number
+  optionsLayout?: InteractiveFieldLayout
 }
 
 declare module '@tiptap/core' {
@@ -93,6 +96,9 @@ export const InteractiveFieldExtension = Node.create({
       },
       maxLength: {
         default: 0,
+      },
+      optionsLayout: {
+        default: 'vertical',
       },
     }
   },
@@ -161,6 +167,7 @@ export const InteractiveFieldExtension = Node.create({
             options: [],
             placeholder: '',
             maxLength: 0,
+            optionsLayout: 'vertical',
             ...options,
           }
 

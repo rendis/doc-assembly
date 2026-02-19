@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { useSignerRolesStore } from '../../stores/signer-roles-store'
 import type {
   InteractiveFieldAttrs,
+  InteractiveFieldLayout,
   InteractiveFieldType,
   InteractiveFieldOption,
 } from './InteractiveFieldExtension'
@@ -34,6 +35,27 @@ interface InteractiveFieldConfigDialogProps {
 }
 
 const FIELD_TYPES: InteractiveFieldType[] = ['checkbox', 'radio', 'text']
+
+const TYPE_ICONS: Record<InteractiveFieldType, React.ReactNode> = {
+  checkbox: <span className="inline-block h-3 w-3 rounded-sm border border-current" />,
+  radio: <span className="inline-block h-3 w-3 rounded-full border border-current" />,
+  text: <span className="font-mono text-[10px] leading-none">Aa</span>,
+}
+
+const LAYOUT_ICONS: Record<InteractiveFieldLayout, React.ReactNode> = {
+  vertical: (
+    <span className="flex flex-col gap-0.5">
+      <span className="inline-block h-0.5 w-3 rounded bg-current" />
+      <span className="inline-block h-0.5 w-3 rounded bg-current" />
+    </span>
+  ),
+  inline: (
+    <span className="flex flex-row gap-0.5">
+      <span className="inline-block h-2.5 w-0.5 rounded bg-current" />
+      <span className="inline-block h-2.5 w-0.5 rounded bg-current" />
+    </span>
+  ),
+}
 
 /**
  * Inner form component that receives initial values as props.
@@ -60,6 +82,7 @@ function InteractiveFieldForm({
   )
   const [placeholder, setPlaceholder] = useState(attrs.placeholder)
   const [maxLength, setMaxLength] = useState(attrs.maxLength)
+  const [optionsLayout, setOptionsLayout] = useState<InteractiveFieldLayout>(attrs.optionsLayout ?? 'vertical')
 
   const handleAddOption = useCallback(() => {
     setOptions((prev) => [
@@ -93,6 +116,7 @@ function InteractiveFieldForm({
       placeholder: fieldType === 'text' ? placeholder : '',
       maxLength: fieldType === 'text' ? maxLength : 0,
       options: fieldType === 'checkbox' || fieldType === 'radio' ? options : [],
+      optionsLayout: isChoiceType ? optionsLayout : 'vertical',
     }
 
     onSave(updatedAttrs)
@@ -139,10 +163,16 @@ function InteractiveFieldForm({
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {t(`editor.interactiveField.types.${ft}`)}
+                  <span className="flex items-center justify-center gap-1.5">
+                    {TYPE_ICONS[ft]}
+                    {t(`editor.interactiveField.types.${ft}`)}
+                  </span>
                 </button>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              {t(`editor.interactiveField.config.typeDescriptions.${fieldType}`)}
+            </p>
           </div>
 
           {/* Role Assignment */}
@@ -195,6 +225,32 @@ function InteractiveFieldForm({
             </Label>
           </div>
 
+          {/* Options layout selector (checkbox / radio) */}
+          {isChoiceType && (
+            <div className="space-y-1">
+              <Label className="text-xs font-medium uppercase tracking-wider">
+                {t('editor.interactiveField.config.optionsLayout')}
+              </Label>
+              <div className="flex gap-1 p-1 bg-muted rounded-md">
+                {(['vertical', 'inline'] as const).map((layout) => (
+                  <button
+                    key={layout}
+                    type="button"
+                    onClick={() => setOptionsLayout(layout)}
+                    className={`flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1.5 ${
+                      optionsLayout === layout
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {LAYOUT_ICONS[layout]}
+                    {t(`editor.interactiveField.config.layouts.${layout}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Options editor (checkbox / radio) */}
           {isChoiceType && (
             <div className="space-y-3 border border-border p-4 rounded">
@@ -211,9 +267,11 @@ function InteractiveFieldForm({
               <div className="space-y-2">
                 {options.map((opt, idx) => (
                   <div key={opt.id} className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-5 text-right shrink-0">
-                      {idx + 1}.
-                    </span>
+                    {fieldType === 'checkbox' ? (
+                      <input type="checkbox" disabled className="h-3.5 w-3.5 shrink-0 accent-foreground" />
+                    ) : (
+                      <input type="radio" disabled className="h-3.5 w-3.5 shrink-0 accent-foreground" />
+                    )}
                     <Input
                       value={opt.label}
                       onChange={(e) => handleOptionLabelChange(opt.id, e.target.value)}

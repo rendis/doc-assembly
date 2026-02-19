@@ -638,14 +638,14 @@ func (c *typstConverter) renderCheckboxField(attrs *portabledoc.InteractiveField
 
 	items := make([]string, 0, len(attrs.Options))
 	for _, opt := range attrs.Options {
+		sym := "☐"
 		if selectedIDs[opt.ID] {
-			items = append(items, fmt.Sprintf("[☑ %s]", escapeTypst(opt.Label)))
-		} else {
-			items = append(items, fmt.Sprintf("[☐ %s]", escapeTypst(opt.Label)))
+			sym = "☑"
 		}
+		items = append(items, fmt.Sprintf("[%s %s]", sym, escapeTypst(opt.Label)))
 	}
 
-	return fmt.Sprintf("  #stack(spacing: 4pt, %s)\n", strings.Join(items, ", "))
+	return c.renderOptionsStack(attrs.GetOptionsLayout(), items)
 }
 
 // renderRadioField renders radio options with selected/unselected indicators.
@@ -654,14 +654,25 @@ func (c *typstConverter) renderRadioField(attrs *portabledoc.InteractiveFieldAtt
 
 	items := make([]string, 0, len(attrs.Options))
 	for _, opt := range attrs.Options {
+		sym := "○"
 		if selectedIDs[opt.ID] {
-			items = append(items, fmt.Sprintf("[◉ %s]", escapeTypst(opt.Label)))
-		} else {
-			items = append(items, fmt.Sprintf("[○ %s]", escapeTypst(opt.Label)))
+			sym = "◉"
 		}
+		items = append(items, fmt.Sprintf("[%s %s]", sym, escapeTypst(opt.Label)))
 	}
 
-	return fmt.Sprintf("  #stack(spacing: 4pt, %s)\n", strings.Join(items, ", "))
+	return c.renderOptionsStack(attrs.GetOptionsLayout(), items)
+}
+
+// renderOptionsStack renders options using #stack with direction and spacing based on layout.
+func (c *typstConverter) renderOptionsStack(layout string, items []string) string {
+	dir := "ttb"
+	spacing := "4pt"
+	if layout == portabledoc.InteractiveFieldLayoutInline {
+		dir = "ltr"
+		spacing = "8pt"
+	}
+	return fmt.Sprintf("  #stack(dir: %s, spacing: %s, %s)\n", dir, spacing, strings.Join(items, ", "))
 }
 
 // renderTextField renders a text field with its response value or placeholder.

@@ -1017,7 +1017,17 @@
         "placeholder": "Placeholder",
         "placeholderHint": "Text shown when field is empty",
         "maxLength": "Max length",
-        "maxLengthHint": "0 = unlimited"
+        "maxLengthHint": "0 = unlimited",
+        "typeDescriptions": {
+          "checkbox": "Multiple selections allowed. Each option shows a square checkbox (☑).",
+          "radio": "Single selection only. Each option shows a round button (●).",
+          "text": "Free text input. The signer types their answer."
+        },
+        "optionsLayout": "Options Layout",
+        "layouts": {
+          "vertical": "Vertical",
+          "inline": "Inline"
+        }
       }
     },
     "import": {

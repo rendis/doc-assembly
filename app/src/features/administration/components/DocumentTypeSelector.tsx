@@ -40,9 +40,12 @@ export function DocumentTypeSelector({
   const { data: documentTypesData } = useDocumentTypes(1, 100)
   const documentTypes = documentTypesData?.data ?? []
 
-  const displayName = currentTypeName
-    ? getLocalizedName(currentTypeName, i18n.language)
-    : null
+  const selectedType = documentTypes.find((dt) => dt.id === currentTypeId) ?? null
+  const displayName = selectedType
+    ? getLocalizedName(selectedType.name, i18n.language)
+    : currentTypeName
+      ? getLocalizedName(currentTypeName, i18n.language)
+      : null
 
   const handleSelect = async (documentTypeId: string | null) => {
     if (documentTypeId === currentTypeId) {

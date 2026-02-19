@@ -1017,7 +1017,17 @@
         "placeholder": "Texto de ejemplo",
         "placeholderHint": "Texto mostrado cuando el campo está vacío",
         "maxLength": "Largo máximo",
-        "maxLengthHint": "0 = sin límite"
+        "maxLengthHint": "0 = sin límite",
+        "typeDescriptions": {
+          "checkbox": "Selección múltiple. Cada opción muestra una casilla cuadrada (☑).",
+          "radio": "Selección única. Cada opción muestra un botón redondo (●).",
+          "text": "Entrada de texto libre. El firmante escribe su respuesta."
+        },
+        "optionsLayout": "Disposición de opciones",
+        "layouts": {
+          "vertical": "Vertical",
+          "inline": "En línea"
+        }
       }
     },
     "import": {
