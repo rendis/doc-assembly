@@ -14,12 +14,13 @@ import (
 
 // HTTPClient wraps http.Client with test helpers for making HTTP requests.
 type HTTPClient struct {
-	t           *testing.T
-	client      *http.Client
-	baseURL     string
-	authHeader  string
-	tenantID    string
-	workspaceID string
+	t             *testing.T
+	client        *http.Client
+	baseURL       string
+	authHeader    string
+	tenantID      string
+	workspaceID   string
+	automationKey string
 }
 
 // NewHTTPClient creates a new test HTTP client.
@@ -34,36 +35,52 @@ func NewHTTPClient(t *testing.T, baseURL string) *HTTPClient {
 // WithAuth returns a new HTTPClient with the specified Authorization header.
 func (c *HTTPClient) WithAuth(bearer string) *HTTPClient {
 	return &HTTPClient{
-		t:           c.t,
-		client:      c.client,
-		baseURL:     c.baseURL,
-		authHeader:  bearer,
-		tenantID:    c.tenantID,
-		workspaceID: c.workspaceID,
+		t:             c.t,
+		client:        c.client,
+		baseURL:       c.baseURL,
+		authHeader:    bearer,
+		tenantID:      c.tenantID,
+		workspaceID:   c.workspaceID,
+		automationKey: c.automationKey,
 	}
 }
 
 // WithTenantID returns a new HTTPClient with the specified X-Tenant-ID header.
 func (c *HTTPClient) WithTenantID(tenantID string) *HTTPClient {
 	return &HTTPClient{
-		t:           c.t,
-		client:      c.client,
-		baseURL:     c.baseURL,
-		authHeader:  c.authHeader,
-		tenantID:    tenantID,
-		workspaceID: c.workspaceID,
+		t:             c.t,
+		client:        c.client,
+		baseURL:       c.baseURL,
+		authHeader:    c.authHeader,
+		tenantID:      tenantID,
+		workspaceID:   c.workspaceID,
+		automationKey: c.automationKey,
 	}
 }
 
 // WithWorkspaceID returns a new HTTPClient with the specified X-Workspace-ID header.
 func (c *HTTPClient) WithWorkspaceID(workspaceID string) *HTTPClient {
 	return &HTTPClient{
-		t:           c.t,
-		client:      c.client,
-		baseURL:     c.baseURL,
-		authHeader:  c.authHeader,
-		tenantID:    c.tenantID,
-		workspaceID: workspaceID,
+		t:             c.t,
+		client:        c.client,
+		baseURL:       c.baseURL,
+		authHeader:    c.authHeader,
+		tenantID:      c.tenantID,
+		workspaceID:   workspaceID,
+		automationKey: c.automationKey,
+	}
+}
+
+// WithAutomationKey returns a new HTTPClient with the specified X-Automation-Key header.
+func (c *HTTPClient) WithAutomationKey(rawKey string) *HTTPClient {
+	return &HTTPClient{
+		t:             c.t,
+		client:        c.client,
+		baseURL:       c.baseURL,
+		authHeader:    c.authHeader,
+		tenantID:      c.tenantID,
+		workspaceID:   c.workspaceID,
+		automationKey: rawKey,
 	}
 }
 
@@ -90,6 +107,9 @@ func (c *HTTPClient) Do(method, path string, body interface{}) (*http.Response, 
 	}
 	if c.workspaceID != "" {
 		req.Header.Set("X-Workspace-ID", c.workspaceID)
+	}
+	if c.automationKey != "" {
+		req.Header.Set("X-Automation-Key", c.automationKey)
 	}
 
 	resp, err := c.client.Do(req)

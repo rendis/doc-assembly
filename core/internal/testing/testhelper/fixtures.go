@@ -4,6 +4,9 @@ package testhelper
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 	"time"
 
@@ -468,4 +471,43 @@ func PublishTestVersion(t *testing.T, pool *pgxpool.Pool, versionID string) {
 	ctx := context.Background()
 	_, err := pool.Exec(ctx, `UPDATE content.template_versions SET status = 'PUBLISHED' WHERE id = $1`, versionID)
 	require.NoError(t, err, "failed to publish version")
+}
+
+// --- Automation Fixtures ---
+
+// CreateTestAutomationKey inserts an API key directly into automation.api_keys.
+// Returns (keyID, rawKey). The raw key has format "doca_<64 hex chars>" and is never stored.
+func CreateTestAutomationKey(t *testing.T, pool *pgxpool.Pool, name string, allowedTenants []string, createdBy string) (keyID, rawKey string) {
+	t.Helper()
+	ctx := context.Background()
+
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	require.NoError(t, err, "failed to generate key bytes")
+	rawKey = "doca_" + hex.EncodeToString(b)
+	sum := sha256.Sum256([]byte(rawKey))
+	keyHash := hex.EncodeToString(sum[:])
+	keyPrefix := rawKey[:12]
+
+	var tenants interface{}
+	if len(allowedTenants) > 0 {
+		tenants = allowedTenants
+	}
+
+	err = pool.QueryRow(ctx, `
+		INSERT INTO automation.api_keys (name, key_hash, key_prefix, allowed_tenants, is_active, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id`,
+		name, keyHash, keyPrefix, tenants, true, createdBy,
+	).Scan(&keyID)
+	require.NoError(t, err, "failed to create test automation key")
+	return keyID, rawKey
+}
+
+// CleanupAutomationKey removes a test automation key and its audit log entries.
+func CleanupAutomationKey(t *testing.T, pool *pgxpool.Pool, keyID string) {
+	t.Helper()
+	ctx := context.Background()
+	_, _ = pool.Exec(ctx, "DELETE FROM automation.audit_log WHERE api_key_id = $1", keyID)
+	_, _ = pool.Exec(ctx, "DELETE FROM automation.api_keys WHERE id = $1", keyID)
 }

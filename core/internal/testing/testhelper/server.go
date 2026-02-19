@@ -14,11 +14,14 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/controller"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/mapper"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
+	automationapikeyrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/automation_api_key_repo"
+	automationauditlogrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/automation_audit_log_repo"
 	documentaccesstokenrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_access_token_repo"
 	documenteventrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_event_repo"
 	documentfieldresponserepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_field_response_repo"
 	documentrecipientrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
+	documenttyperepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_type_repo"
 	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
 	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
@@ -47,6 +50,7 @@ import (
 	organizationsvc "github.com/rendis/doc-assembly/core/internal/core/service/organization"
 	templatesvc "github.com/rendis/doc-assembly/core/internal/core/service/template"
 	contentvalidator "github.com/rendis/doc-assembly/core/internal/core/service/template/contentvalidator"
+	automationuc "github.com/rendis/doc-assembly/core/internal/core/usecase/automation"
 	"github.com/rendis/doc-assembly/core/internal/infra/config"
 )
 
@@ -261,6 +265,26 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Public signing routes (no auth, registered on engine root)
 	publicSigningController.RegisterRoutes(engine)
+
+	// --- Automation infrastructure ---
+	automationKeyRepo := automationapikeyrepo.New(pool)
+	automationAuditRepo := automationauditlogrepo.New(pool)
+	apiKeyUseCase := automationuc.NewAPIKeyUseCase(automationKeyRepo, automationAuditRepo)
+	documentTypeRepo := documenttyperepo.New(pool)
+	documentTypeService := catalogsvc.NewDocumentTypeService(documentTypeRepo, templateRepo)
+	docTypeMapper := mapper.NewDocumentTypeMapper()
+
+	automationKeyCtrl := controller.NewAutomationKeyController(apiKeyUseCase)
+	automationCtrl := controller.NewAutomationController(
+		tenantService, workspaceService, injectableService,
+		templateService, templateVersionService, documentTypeService,
+		automationKeyRepo, automationAuditRepo,
+		templateMapper, templateVersionMapper, injectableMapper, docTypeMapper,
+	)
+
+	// Register automation routes
+	automationKeyCtrl.RegisterRoutes(v1)
+	automationCtrl.RegisterRoutes(engine)
 
 	// Create test server
 	server := httptest.NewServer(engine)
