@@ -123,7 +123,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	documentRepo := documentrepo.New(pool)
 	documentRecipientRepo := documentrecipientrepo.New(pool)
 	documentEventRepo := documenteventrepo.New(pool)
-	_ = documentfieldresponserepo.New(pool) // Will be wired in Phase 6 (pre-signing public API)
+	documentFieldResponseRepo := documentfieldresponserepo.New(pool)
 	documentAccessTokenRepo := documentaccesstokenrepo.New(pool)
 
 	// --- Middleware ---
@@ -215,6 +215,11 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		documentGenerator, documentRepo, documentRecipientRepo, pdfRenderer, signingProvider,
 		documentAccessTokenRepo,
 	)
+	preSigningSvc := documentsvc.NewPreSigningService(
+		documentAccessTokenRepo, documentFieldResponseRepo,
+		documentRepo, documentRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		pdfRenderer, signingProvider, storageAdapter, eventEmitter,
+	)
 
 	// --- HTTP Mappers ---
 	injectableMapper := httpmapper.NewInjectableMapper()
@@ -237,9 +242,10 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	meCtrl := controller.NewMeController(tenantSvc, tenantMemberRepo, workspaceMemberRepo, userAccessHistorySvc)
 	tenantCtrl := controller.NewTenantController(tenantSvc, workspaceSvc, tenantMemberSvc)
 	documentTypeCtrl := controller.NewDocumentTypeController(documentTypeSvc, templateSvc, templateMapper)
-	documentCtrl := controller.NewDocumentController(documentSvc, eventEmitter)
+	documentCtrl := controller.NewDocumentController(documentSvc, preSigningSvc, eventEmitter)
 	webhookCtrl := controller.NewWebhookController(documentSvc, webhookHandlers)
 	internalDocCtrl := controller.NewInternalDocumentController(internalDocSvc)
+	publicSigningCtrl := controller.NewPublicSigningController(preSigningSvc)
 
 	// --- Render Authenticator ---
 	renderAuth := e.renderAuthenticator
@@ -261,6 +267,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		documentCtrl,
 		webhookCtrl,
 		internalDocCtrl,
+		publicSigningCtrl,
 		renderAuth,
 		frontendFS,
 	)

@@ -20,16 +20,19 @@ import (
 // DocumentController handles document HTTP requests.
 type DocumentController struct {
 	documentUC   documentuc.DocumentUseCase
+	preSigningUC documentuc.PreSigningUseCase
 	eventEmitter *documentsvc.EventEmitter
 }
 
 // NewDocumentController creates a new document controller.
 func NewDocumentController(
 	documentUC documentuc.DocumentUseCase,
+	preSigningUC documentuc.PreSigningUseCase,
 	eventEmitter *documentsvc.EventEmitter,
 ) *DocumentController {
 	return &DocumentController{
 		documentUC:   documentUC,
+		preSigningUC: preSigningUC,
 		eventEmitter: eventEmitter,
 	}
 }
@@ -73,6 +76,9 @@ func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup) {
 
 		// Send reminder to pending recipients
 		docs.POST("/:documentId/remind", middleware.RequireOperator(), c.SendReminder)
+
+		// Regenerate pre-signing access token
+		docs.POST("/:documentId/regenerate-token", middleware.RequireOperator(), c.RegenerateAccessToken)
 	}
 }
 
@@ -500,4 +506,31 @@ func (c *DocumentController) GetDocumentEvents(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, responses)
+}
+
+// RegenerateAccessToken regenerates the pre-signing access token for a document.
+// @Summary Regenerate pre-signing access token
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param documentId path string true "Document ID"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/documents/{documentId}/regenerate-token [post]
+func (c *DocumentController) RegenerateAccessToken(ctx *gin.Context) {
+	documentID := ctx.Param("documentId")
+
+	token, err := c.preSigningUC.RegenerateToken(ctx.Request.Context(), documentID)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"token":     token.Token,
+		"expiresAt": token.ExpiresAt.Format("2006-01-02T15:04:05Z07:00"),
+	})
 }

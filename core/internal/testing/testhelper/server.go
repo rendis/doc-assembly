@@ -16,6 +16,7 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
 	documentaccesstokenrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_access_token_repo"
 	documenteventrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_event_repo"
+	documentfieldresponserepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_field_response_repo"
 	documentrecipientrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_recipient_repo"
 	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
 	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
@@ -150,8 +151,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	noopNotifier := noopnotification.New()
 	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo)
 
-	// Access token repo
+	// Access token repo + field response repo
 	docAccessTokenRepo := documentaccesstokenrepo.New(pool)
+	docFieldResponseRepo := documentfieldresponserepo.New(pool)
 
 	// Document service
 	documentService := documentsvc.NewDocumentService(
@@ -166,6 +168,13 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		notificationSvc,
 		30, // expirationDays
 		docAccessTokenRepo,
+	)
+
+	// Pre-signing service
+	preSigningService := documentsvc.NewPreSigningService(
+		docAccessTokenRepo, docFieldResponseRepo,
+		docRepo, docRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		mockPDFRenderer, mockSigningAdapter, storageAdapter, eventEmitter,
 	)
 
 	// Create mappers
@@ -213,7 +222,8 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	)
 
 	// Create controllers - Document & Webhook
-	documentController := controller.NewDocumentController(documentService, eventEmitter)
+	documentController := controller.NewDocumentController(documentService, preSigningService, eventEmitter)
+	publicSigningController := controller.NewPublicSigningController(preSigningService)
 	webhookHandlers := map[string]port.WebhookHandler{
 		"mock": mockSigningAdapter,
 	}
@@ -248,6 +258,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Webhook routes (no auth, registered on engine root)
 	webhookController.RegisterRoutes(engine)
+
+	// Public signing routes (no auth, registered on engine root)
+	publicSigningController.RegisterRoutes(engine)
 
 	// Create test server
 	server := httptest.NewServer(engine)

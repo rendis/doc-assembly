@@ -57,6 +57,8 @@ type HTTPServer struct {
 }
 
 // NewHTTPServer creates a new HTTP server with all routes and middleware configured.
+//
+//nolint:funlen // constructor wiring — many injected controllers
 func NewHTTPServer(
 	cfg *config.Config,
 	middlewareProvider *middleware.Provider,
@@ -70,6 +72,7 @@ func NewHTTPServer(
 	documentController *controller.DocumentController,
 	webhookController *controller.WebhookController,
 	internalDocController *controller.InternalDocumentController,
+	publicSigningController *controller.PublicSigningController,
 	renderAuthenticator port.RenderAuthenticator,
 	frontendFS fs.FS,
 ) *HTTPServer {
@@ -109,6 +112,7 @@ func NewHTTPServer(
 		injectableController, templateController, documentController)
 
 	webhookController.RegisterRoutes(base)
+	publicSigningController.RegisterRoutes(base)
 	setupRenderRoutes(base, cfg, renderAuthenticator, requestTimeout)
 
 	// Serve embedded SPA if frontendFS is provided, otherwise return 404 for unmatched routes.
@@ -403,7 +407,7 @@ func stripBasePath(reqPath, basePath string) (string, bool) {
 
 // isBackendPath returns true if the path belongs to backend-owned prefixes.
 func isBackendPath(p string) bool {
-	return strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/swagger/") || strings.HasPrefix(p, "/webhooks/")
+	return strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/swagger/") || strings.HasPrefix(p, "/webhooks/") || strings.HasPrefix(p, "/public/")
 }
 
 // spaHandler returns a Gin handler that serves the embedded SPA frontend.
