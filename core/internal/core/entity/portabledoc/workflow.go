@@ -2,9 +2,13 @@ package portabledoc
 
 // WorkflowConfig defines the signing workflow configuration.
 type WorkflowConfig struct {
-	OrderMode     string             `json:"orderMode"` // "parallel" | "sequential"
-	Notifications NotificationConfig `json:"notifications"`
+	OrderMode        string             `json:"orderMode"` // "parallel" | "sequential"
+	Notifications    NotificationConfig `json:"notifications"`
+	PreSigningTTLDays int               `json:"preSigningTTLDays,omitempty"` // access token expiration for pre-signing form, default 7
 }
+
+// DefaultPreSigningTTLDays is the default expiration in days for pre-signing access tokens.
+const DefaultPreSigningTTLDays = 7
 
 // NotificationConfig defines notification settings.
 type NotificationConfig struct {

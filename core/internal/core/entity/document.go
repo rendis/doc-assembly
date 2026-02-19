@@ -130,10 +130,26 @@ func (d *Document) IsExpired() bool {
 	return d.ExpiresAt != nil && time.Now().After(*d.ExpiresAt)
 }
 
+// MarkAsAwaitingInput transitions the document to AWAITING_INPUT status.
+// This means the document has interactive fields that require recipient input before signing.
+func (d *Document) MarkAsAwaitingInput() error {
+	if d.Status != DocumentStatusDraft {
+		return ErrInvalidDocumentStatusTransition
+	}
+	d.Status = DocumentStatusAwaitingInput
+	d.touch()
+	return nil
+}
+
+// IsAwaitingInput returns true if the document is waiting for interactive field input.
+func (d *Document) IsAwaitingInput() bool {
+	return d.Status == DocumentStatusAwaitingInput
+}
+
 // MarkAsPendingProvider transitions the document to PENDING_PROVIDER status.
 // This means the PDF is saved and waiting for the worker to upload to the signing provider.
 func (d *Document) MarkAsPendingProvider() error {
-	if d.Status != DocumentStatusDraft {
+	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusAwaitingInput {
 		return ErrInvalidDocumentStatusTransition
 	}
 	d.Status = DocumentStatusPendingProvider
