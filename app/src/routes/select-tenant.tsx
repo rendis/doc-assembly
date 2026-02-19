@@ -110,7 +110,8 @@ function SelectTenantPage() {
     selectedTenant?.id ?? null,
     workspacePage,
     ITEMS_PER_PAGE,
-    selectedTenant ? effectiveQuery : undefined
+    selectedTenant ? effectiveQuery : undefined,
+    'ACTIVE'
   )
 
   // Pagination metadata

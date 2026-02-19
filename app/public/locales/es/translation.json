@@ -1058,10 +1058,15 @@
       },
       "roles": {
         "owner": "Propietario",
+        "ownerDesc": "Acceso completo incluyendo archivar, gestión de miembros y cambio de roles.",
         "admin": "Administrador",
+        "adminDesc": "Acceso completo excepto archivar workspace y gestionar roles de miembros.",
         "editor": "Editor",
+        "editorDesc": "Crear y editar plantillas, versiones e inyectables. No puede gestionar miembros.",
         "operator": "Operador",
-        "viewer": "Visualizador"
+        "operatorDesc": "Crear y gestionar documentos. No puede crear ni editar plantillas.",
+        "viewer": "Visualizador",
+        "viewerDesc": "Ver plantillas, documentos y miembros. Acceso de solo lectura."
       },
       "actions": {
         "makeOwner": "Hacer Propietario",
@@ -1334,6 +1339,14 @@
         "user": "Usuario",
         "details": "Detalles",
         "timestamp": "Fecha"
+      }
+    },
+    "members": {
+      "roles": {
+        "admin": "Administrador",
+        "adminDesc": "Crear y gestionar workspaces dentro de este tenant.",
+        "owner": "Propietario",
+        "ownerDesc": "Administración completa del tenant incluyendo configuración y gestión de workspaces."
       }
     }
   },

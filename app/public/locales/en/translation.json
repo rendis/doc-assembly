@@ -1058,10 +1058,15 @@
       },
       "roles": {
         "owner": "Owner",
+        "ownerDesc": "Full access including archive, member management and role changes.",
         "admin": "Admin",
+        "adminDesc": "Full access except archive workspace and manage member roles.",
         "editor": "Editor",
+        "editorDesc": "Create and edit templates, versions and injectables. Cannot manage members.",
         "operator": "Operator",
-        "viewer": "Viewer"
+        "operatorDesc": "Create and manage documents. Cannot create or edit templates.",
+        "viewer": "Viewer",
+        "viewerDesc": "View templates, documents and members. Read-only access."
       },
       "actions": {
         "makeOwner": "Make Owner",
@@ -1334,6 +1339,14 @@
         "user": "User",
         "details": "Details",
         "timestamp": "Timestamp"
+      }
+    },
+    "members": {
+      "roles": {
+        "admin": "Admin",
+        "adminDesc": "Create and manage workspaces within this tenant.",
+        "owner": "Owner",
+        "ownerDesc": "Full tenant administration including settings and workspace management."
       }
     }
   },

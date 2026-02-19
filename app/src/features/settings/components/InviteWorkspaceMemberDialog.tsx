@@ -6,6 +6,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
@@ -22,11 +28,11 @@ interface InviteWorkspaceMemberDialogProps {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const ROLE_OPTIONS = [
-  { value: 'VIEWER', labelKey: 'settings.members.roles.viewer', fallback: 'Viewer' },
-  { value: 'OPERATOR', labelKey: 'settings.members.roles.operator', fallback: 'Operator' },
-  { value: 'EDITOR', labelKey: 'settings.members.roles.editor', fallback: 'Editor' },
-  { value: 'ADMIN', labelKey: 'settings.members.roles.admin', fallback: 'Admin' },
-  { value: 'OWNER', labelKey: 'settings.members.roles.owner', fallback: 'Owner' },
+  { value: 'VIEWER', labelKey: 'settings.members.roles.viewer', fallback: 'Viewer', descKey: 'settings.members.roles.viewerDesc', descFallback: 'View templates, documents and members. Read-only access.' },
+  { value: 'OPERATOR', labelKey: 'settings.members.roles.operator', fallback: 'Operator', descKey: 'settings.members.roles.operatorDesc', descFallback: 'Create and manage documents. Cannot create or edit templates.' },
+  { value: 'EDITOR', labelKey: 'settings.members.roles.editor', fallback: 'Editor', descKey: 'settings.members.roles.editorDesc', descFallback: 'Create and edit templates, versions and injectables. Cannot manage members.' },
+  { value: 'ADMIN', labelKey: 'settings.members.roles.admin', fallback: 'Admin', descKey: 'settings.members.roles.adminDesc', descFallback: 'Full access except archive workspace and manage member roles.' },
+  { value: 'OWNER', labelKey: 'settings.members.roles.owner', fallback: 'Owner', descKey: 'settings.members.roles.ownerDesc', descFallback: 'Full access including archive, member management and role changes.' },
 ]
 
 export function InviteWorkspaceMemberDialog({
@@ -167,24 +173,32 @@ function InviteWorkspaceMemberDialogContent({
           <label className="mb-1.5 block text-sm font-medium">
             {t('settings.members.invite.role', 'Role')} *
           </label>
-          <div className="flex flex-wrap gap-2">
-            {ROLE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setRole(option.value)}
-                className={cn(
-                  'rounded-sm border px-3 py-2 font-mono text-xs uppercase tracking-wider transition-colors',
-                  role === option.value
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                )}
-                disabled={isLoading}
-              >
-                {t(option.labelKey, option.fallback)}
-              </button>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <div className="flex flex-wrap gap-2">
+              {ROLE_OPTIONS.map((option) => (
+                <Tooltip key={option.value}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setRole(option.value)}
+                      className={cn(
+                        'rounded-sm border px-3 py-2 font-mono text-xs uppercase tracking-wider transition-colors',
+                        role === option.value
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                      )}
+                      disabled={isLoading}
+                    >
+                      {t(option.labelKey, option.fallback)}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[220px] text-center">
+                    <p className="text-xs">{t(option.descKey, option.descFallback)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

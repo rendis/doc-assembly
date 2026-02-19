@@ -6,6 +6,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
@@ -22,8 +28,8 @@ interface AddTenantMemberDialogProps {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const ROLE_OPTIONS = [
-  { value: 'TENANT_ADMIN', labelKey: 'administration.members.roles.admin', fallback: 'Admin' },
-  { value: 'TENANT_OWNER', labelKey: 'administration.members.roles.owner', fallback: 'Owner' },
+  { value: 'TENANT_ADMIN', labelKey: 'administration.members.roles.admin', fallback: 'Admin', descKey: 'administration.members.roles.adminDesc', descFallback: 'Create and manage workspaces within this tenant.' },
+  { value: 'TENANT_OWNER', labelKey: 'administration.members.roles.owner', fallback: 'Owner', descKey: 'administration.members.roles.ownerDesc', descFallback: 'Full tenant administration including settings and workspace management.' },
 ]
 
 export function AddTenantMemberDialog({
@@ -146,24 +152,32 @@ function AddTenantMemberDialogContent({
           <label className="mb-1.5 block text-sm font-medium">
             {t('administration.members.form.role', 'Role')} *
           </label>
-          <div className="flex gap-2">
-            {ROLE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setRole(option.value)}
-                className={cn(
-                  'flex-1 rounded-sm border px-3 py-2 font-mono text-xs uppercase tracking-wider transition-colors',
-                  role === option.value
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                )}
-                disabled={isLoading}
-              >
-                {t(option.labelKey, option.fallback)}
-              </button>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <div className="flex gap-2">
+              {ROLE_OPTIONS.map((option) => (
+                <Tooltip key={option.value}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setRole(option.value)}
+                      className={cn(
+                        'flex-1 rounded-sm border px-3 py-2 font-mono text-xs uppercase tracking-wider transition-colors',
+                        role === option.value
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                      )}
+                      disabled={isLoading}
+                    >
+                      {t(option.labelKey, option.fallback)}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[220px] text-center">
+                    <p className="text-xs">{t(option.descKey, option.descFallback)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
