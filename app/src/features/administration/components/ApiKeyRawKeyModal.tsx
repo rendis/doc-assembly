@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -38,6 +39,9 @@ export function ApiKeyRawKeyModal({ rawKey, onClose }: ApiKeyRawKeyModalProps) {
             <ShieldAlert className="h-5 w-5 text-amber-500" />
             {t('administration.apiKeys.rawKey.title', 'Save your API Key')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('administration.apiKeys.rawKey.description', 'Copy and save your API key')}
+          </DialogDescription>
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">

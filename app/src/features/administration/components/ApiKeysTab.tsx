@@ -161,14 +161,14 @@ export function ApiKeysTab(): React.ReactElement {
                     <td className="p-4 font-mono text-xs">{key.keyPrefix}…</td>
                     <td className="p-4 text-sm font-medium">{key.name}</td>
                     <td className="p-4 text-sm">
-                      {key.allowedTenants.length === 0 ? (
+                      {(key.allowedTenants?.length ?? 0) === 0 ? (
                         <span className="text-muted-foreground">
                           {t('administration.apiKeys.tenants.global', 'Global')}
                         </span>
                       ) : (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
                           {t('administration.apiKeys.tenants.restricted', '{{count}} tenant(s)', {
-                            count: key.allowedTenants.length,
+                            count: key.allowedTenants?.length ?? 0,
                           })}
                         </span>
                       )}

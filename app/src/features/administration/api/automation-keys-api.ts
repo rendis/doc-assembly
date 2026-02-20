@@ -6,7 +6,7 @@ export interface AutomationKey {
   id: string
   name: string
   keyPrefix: string
-  allowedTenants: string[]
+  allowedTenants: string[] | null
   isActive: boolean
   createdBy: string
   lastUsedAt?: string
