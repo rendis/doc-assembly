@@ -56,7 +56,7 @@ export interface UpdateKeyRequest {
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
-const BASE = '/admin/automation-keys'
+const BASE = '/automation-keys'
 
 export async function listAutomationKeys(): Promise<ListKeysResponse> {
   const res = await apiClient.get<ListKeysResponse>(BASE)

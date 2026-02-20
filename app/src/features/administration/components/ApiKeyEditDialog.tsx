@@ -1,16 +1,15 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/use-toast'
 import type { AutomationKey } from '../api/automation-keys-api'
 import { useUpdateAutomationKey } from '../hooks/useAutomationKeys'
@@ -22,14 +21,42 @@ interface ApiKeyEditDialogProps {
 }
 
 export function ApiKeyEditDialog({ open, keyData, onClose }: ApiKeyEditDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      {open && keyData && (
+        <ApiKeyEditDialogContent keyData={keyData} onClose={onClose} />
+      )}
+    </Dialog>
+  )
+}
+
+function ApiKeyEditDialogContent({
+  keyData,
+  onClose,
+}: {
+  keyData: AutomationKey
+  onClose: () => void
+}) {
   const { t } = useTranslation()
   const { toast } = useToast()
-  const [name, setName] = useState(keyData?.name ?? '')
+  const [name, setName] = useState(keyData.name)
+  const [nameError, setNameError] = useState('')
   const updateKey = useUpdateAutomationKey()
 
-  async function handleSubmit(e: React.FormEvent) {
+  const isLoading = updateKey.isPending
+
+  const validateForm = (): boolean => {
+    if (!name.trim()) {
+      setNameError(t('administration.apiKeys.form.nameRequired', 'Name is required'))
+      return false
+    }
+    setNameError('')
+    return true
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!keyData || !name.trim()) return
+    if (!validateForm()) return
 
     try {
       await updateKey.mutateAsync({ id: keyData.id, data: { name: name.trim() } })
@@ -37,51 +64,68 @@ export function ApiKeyEditDialog({ open, keyData, onClose }: ApiKeyEditDialogPro
       onClose()
     } catch {
       toast({
-        title: t('administration.apiKeys.updateError', 'Failed to update API key'),
         variant: 'destructive',
+        title: t('common.error', 'Error'),
+        description: t('administration.apiKeys.updateError', 'Failed to update API key'),
       })
     }
   }
 
   return (
-    <Dialog key={keyData?.id} open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {t('administration.apiKeys.form.editTitle', 'Edit API Key')}
-          </DialogTitle>
-          <DialogDescription>
-            {t(
-              'administration.apiKeys.form.editDescription',
-              'Update the name or tenant restrictions for this key.'
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>
+          {t('administration.apiKeys.form.editTitle', 'Edit API Key')}
+        </DialogTitle>
+        <DialogDescription>
+          {t(
+            'administration.apiKeys.form.editDescription',
+            'Update the name or tenant restrictions for this key.'
+          )}
+        </DialogDescription>
+      </DialogHeader>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            {t('administration.apiKeys.form.name', 'Key Name')} *
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+              setNameError('')
+            }}
+            className={cn(
+              'w-full rounded-sm border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-foreground',
+              nameError ? 'border-destructive' : 'border-border'
             )}
-          </DialogDescription>
-        </DialogHeader>
+            disabled={isLoading}
+            autoFocus
+          />
+          {nameError && <p className="mt-1 text-xs text-destructive">{nameError}</p>}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-key-name">
-              {t('administration.apiKeys.form.name', 'Key Name')}
-            </Label>
-            <Input
-              id="edit-key-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t('common.cancel', 'Cancel')}
-            </Button>
-            <Button type="submit" disabled={!name.trim() || updateKey.isPending}>
-              {updateKey.isPending ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-sm border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            {t('common.cancel', 'Cancel')}
+          </button>
+          <button
+            type="submit"
+            disabled={!name.trim() || isLoading}
+            className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+          >
+            {isLoading && <Loader2 size={16} className="animate-spin" />}
+            {isLoading ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
+          </button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   )
 }

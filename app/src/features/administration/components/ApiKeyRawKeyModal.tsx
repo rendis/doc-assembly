@@ -1,7 +1,3 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Check, Copy, ShieldAlert } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,6 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Check, Copy, ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ApiKeyRawKeyModalProps {
   rawKey: string
@@ -30,7 +29,7 @@ export function ApiKeyRawKeyModal({ rawKey, onClose }: ApiKeyRawKeyModalProps) {
   return (
     <Dialog open onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-lg"
+        className="sm:max-w-lg"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -52,21 +51,25 @@ export function ApiKeyRawKeyModal({ rawKey, onClose }: ApiKeyRawKeyModalProps) {
           <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             {t('administration.apiKeys.rawKey.keyLabel', 'Your new API key')}
           </div>
-          <div className="flex items-center gap-2 rounded-md border bg-muted p-3">
+          <div className="flex items-center gap-2 rounded-sm border border-border bg-muted p-3">
             <code className="flex-1 break-all text-sm">{rawKey}</code>
-            <Button size="sm" variant="outline" onClick={handleCopy} className="shrink-0">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-sm border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-background"
+            >
               {copied ? (
                 <>
-                  <Check className="mr-1 h-3.5 w-3.5" />
+                  <Check className="h-3.5 w-3.5" />
                   {t('administration.apiKeys.rawKey.copied', 'Copied!')}
                 </>
               ) : (
                 <>
-                  <Copy className="mr-1 h-3.5 w-3.5" />
+                  <Copy className="h-3.5 w-3.5" />
                   {t('administration.apiKeys.rawKey.copyButton', 'Copy')}
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -84,9 +87,14 @@ export function ApiKeyRawKeyModal({ rawKey, onClose }: ApiKeyRawKeyModalProps) {
         </label>
 
         <DialogFooter>
-          <Button onClick={onClose} disabled={!confirmed}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={!confirmed}
+            className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+          >
             {t('administration.apiKeys.rawKey.closeButton', 'Close')}
-          </Button>
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

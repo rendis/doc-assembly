@@ -233,7 +233,7 @@ export function ApiKeysTab(): React.ReactElement {
       {/* Dialogs */}
       <ApiKeyCreateDialog
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onOpenChange={(v) => setCreateOpen(v)}
         onCreated={handleCreated}
       />
       <ApiKeyEditDialog
