@@ -19,7 +19,6 @@ export const SlashCommandsExtension = Extension.create<SlashCommandsOptions>({
     return {
       suggestion: {
         char: '/',
-        startOfLine: false,
         command: ({
           editor,
           range,
@@ -46,7 +45,7 @@ export const SlashCommandsExtension = Extension.create<SlashCommandsOptions>({
         items: ({ query }: { query: string }) => filterCommands(query, i18n.t.bind(i18n)),
         char: '/',
         allowSpaces: true,
-        allowedPrefixes: null,
+        startOfLine: true,
       }),
     ]
   },

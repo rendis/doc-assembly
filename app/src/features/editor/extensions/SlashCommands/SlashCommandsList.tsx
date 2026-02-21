@@ -56,6 +56,7 @@ export const SlashCommandsList = forwardRef<SlashCommandsListRef, SlashCommandsL
         }
 
         if (event.key === 'Enter') {
+          if (flatItems.length === 0) return false
           selectItem(selectedIndex)
           return true
         }
