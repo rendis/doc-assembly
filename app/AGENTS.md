@@ -39,9 +39,9 @@ This is a React 19 + TypeScript SPA for a multi-tenant document assembly platfor
   - Three role levels: System (SUPERADMIN), Tenant (OWNER/ADMIN), Workspace (OWNER/ADMIN/EDITOR/OPERATOR/VIEWER)
   - `usePermission()` hook checks permissions against current context
   - `<PermissionGuard>` component for declarative UI permission control
-- **Matriz de Permisos**: Documentación detallada en `../doc-engine/docs/authorization-matrix.md`
+- **Matriz de Permisos**: Documentación detallada en `../core/docs/authorization-matrix.md`
 
-> **IMPORTANTE**: Antes de implementar validaciones de permisos, controles de acceso, uso de `<PermissionGuard>` o `usePermission()`, **SIEMPRE** consulta la matriz de autorización (`../doc-engine/docs/authorization-matrix.md`) para conocer los permisos exactos por endpoint y los roles mínimos requeridos para cada operación.
+> **IMPORTANTE**: Antes de implementar validaciones de permisos, controles de acceso, uso de `<PermissionGuard>` o `usePermission()`, **SIEMPRE** consulta la matriz de autorización (`../core/docs/authorization-matrix.md`) para conocer los permisos exactos por endpoint y los roles mínimos requeridos para cada operación.
 
 ### API Layer
 
@@ -56,7 +56,7 @@ This is a React 19 + TypeScript SPA for a multi-tenant document assembly platfor
 >
 >    **Si el MCP no está disponible**, sugiere al usuario instalarlo siguiendo la guía: `docs/mcp_setup.md`
 >
-> 2. **Archivo YAML (Fallback)**: Solo si el MCP no está disponible y no se puede instalar, consulta directamente `../doc-engine/docs/swagger.yaml`. **Advertencia**: El archivo swagger es muy extenso (~3000+ líneas), lo que consume mucho contexto.
+> 2. **Archivo YAML (Fallback)**: Solo si el MCP no está disponible y no se puede instalar, consulta directamente `../core/docs/swagger.yaml`. **Advertencia**: El archivo swagger es muy extenso (~3000+ líneas), lo que consume mucho contexto.
 
 ### Feature Structure
 
@@ -67,7 +67,17 @@ Features are organized in `src/features/` with consistent structure:
 - `hooks/` - Feature hooks
 - `types/` - TypeScript interfaces
 
-Current features: `auth`, `tenants`, `workspaces`, `documents`, `editor`
+Current features: `auth`, `tenants`, `workspaces`, `documents`, `editor`, `signing`, `public-signing`
+
+### Public Routes (No Auth)
+
+Routes under `src/features/public-signing/` handle unauthenticated signing flows:
+- `PublicDocumentAccessPage` — email verification gate (`/public/doc/{id}`)
+- `PublicSigningPage` — token-based signing (`/public/sign/{token}`)
+- `EmbeddedSigningFrame` — signing provider iframe
+- `PDFPreview` — on-demand PDF rendering
+
+These routes do NOT use Keycloak auth or tenant headers. API calls go through a separate axios instance without auth interceptors.
 
 ### Styling
 
@@ -97,6 +107,7 @@ VITE_KEYCLOAK_URL         # Keycloak server URL
 VITE_KEYCLOAK_REALM       # Keycloak realm name
 VITE_KEYCLOAK_CLIENT_ID   # Keycloak client ID
 VITE_USE_MOCK_AUTH        # Set to "true" to skip Keycloak (dev only)
+VITE_BASE_PATH            # Base path for public URLs (default: empty)
 ```
 
 ## Path Aliases

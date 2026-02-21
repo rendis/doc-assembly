@@ -11,22 +11,22 @@ This file provides guidance to Agents Code when working with code in this reposi
 ## Monorepo Structure
 
 ```
-apps/doc-engine/    → Go backend (Hexagonal Architecture, Gin, Wire DI)
-apps/web-client/    → React SPA (TanStack Router, Zustand, TipTap)
-db/                 → Liquibase migrations (PostgreSQL)
-scripts/            → Tooling reutilizable por agents y CI
+core/       → Go backend (Hexagonal Architecture, Gin, Wire DI)
+app/        → React SPA (TanStack Router, Zustand, TipTap)
+db/         → Liquibase migrations (PostgreSQL)
+scripts/    → Tooling reutilizable por agents y CI
 ```
 
 ## Component AGENTS.md
 
 Each component has its own AGENTS.md with build commands, architecture details, and coding patterns. **Always read the relevant AGENTS.md before working on that component.**
 
-| Component | Path                        | When to Read                               |
-| --------- | --------------------------- | ------------------------------------------ |
-| Backend   | `apps/doc-engine/AGENTS.md` | Go code, endpoints, services, repos, tests |
-| Frontend  | `apps/web-client/AGENTS.md` | React components, routes, state, styling   |
-| Database  | `db/AGENTS.md`              | Migrations, schema understanding           |
-| Scripts   | `scripts/`                  | Tooling: docml2json, etc.                  |
+| Component | Path             | When to Read                               |
+| --------- | ---------------- | ------------------------------------------ |
+| Backend   | `core/AGENTS.md` | Go code, endpoints, services, repos, tests |
+| Frontend  | `app/AGENTS.md`  | React components, routes, state, styling   |
+| Database  | `db/AGENTS.md`   | Migrations, schema understanding           |
+| Scripts   | `scripts/`       | Tooling: docml2json, etc.                  |
 
 ## Architecture (Cross-Component)
 
@@ -58,11 +58,23 @@ HTTP Request
 
 ### Frontend RBAC
 
-Permission rules defined in `src/features/auth/rbac/rules.ts`. Always use `usePermission()` hook or `<PermissionGuard>` component. Check `apps/doc-engine/docs/authorization-matrix.md` for correct role requirements per endpoint before implementing permission checks.
+Permission rules defined in `src/features/auth/rbac/rules.ts`. Always use `usePermission()` hook or `<PermissionGuard>` component. Check `core/docs/authorization-matrix.md` for correct role requirements per endpoint before implementing permission checks.
+
+### Public Signing Flow (No Auth)
+
+Public endpoints (`/public/*`) require NO authentication. Two flows:
+- **Email verification gate**: `/public/doc/{id}` → enter email → receive token via email
+- **Token-based signing**: `/public/sign/{token}` → preview PDF → sign via embedded iframe
+
+Token types: `SIGNING` (direct sign, no form) vs `PRE_SIGNING` (fill form first).
+Anti-enumeration: `RequestAccess` always returns 200 regardless of email match.
+Admin can invalidate all tokens via `POST /documents/{id}/invalidate-tokens`.
+
+**Documentation**: `core/docs/public-signing-flow.md` (Mermaid diagrams, endpoints, security)
 
 ### OpenAPI Spec
 
-When working with API contracts, prefer using `mcp__doc-engine-api__*` tools to query the swagger interactively. Fallback: read `apps/doc-engine/docs/swagger.yaml` directly (large file, ~3000+ lines).
+When working with API contracts, prefer using `mcp__doc-engine-api__*` tools to query the swagger interactively. Fallback: read `core/docs/swagger.yaml` directly (large file, ~3000+ lines).
 
 ## Cross-Component Patterns
 
@@ -99,9 +111,9 @@ Managed by Liquibase in `db/`. **Agents must NEVER modify `db/src/` files direct
 
 ## PR Checklist
 
-1. `make build && make test && make lint` in `apps/doc-engine/`
-2. `pnpm build && pnpm lint` in `apps/web-client/`
-3. `go build -tags=integration ./...` in `apps/doc-engine/` (verify integration tests compile)
+1. `make build && make test && make lint` in `core/`
+2. `pnpm build && pnpm lint` in `app/`
+3. `go build -tags=integration ./...` in `core/` (verify integration tests compile)
 4. Update `authorization-matrix.md` if endpoints changed
 5. Update `extensibility-guide.md` if injector/mapper interfaces changed
 6. Run `make gen` if extensibility markers changed

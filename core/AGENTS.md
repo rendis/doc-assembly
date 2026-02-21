@@ -62,6 +62,7 @@ Go microservice following **Hexagonal Architecture** (Ports and Adapters).
     - **organization**: `tenant.go`, `workspace.go`, `user.go`
     - **injectable**: `injectable.go`, `system_injectable.go`
     - **catalog**: `folder.go`, `tag.go`
+    - **signing**: `document_access_token.go`
     - **access**: `user_access_history.go`
     - **shared**: `enum.go`, `errors.go`, `format.go`, `injector_context.go`
 - **`internal/core/port/`** - Output port interfaces (repository contracts)
@@ -132,7 +133,7 @@ Wire handles DI in `internal/infra/di.go`. After adding new services/repositorie
 10. Run `make wire` to regenerate DI
 
 **Domain folders:** When adding usecases/services, place them in the appropriate domain:
-- `document` - Document creation, signing, webhooks
+- `document` - Document creation, signing, email verification gate, token-based signing, webhooks
 - `template` - Template CRUD, versioning, content validation
 - `organization` - Tenants, workspaces, members
 - `injectable` - Injectable definitions and assignments
@@ -260,6 +261,28 @@ The project includes an extensibility system for custom injectors, mappers, and 
 - `internal/extensions/mappers/` - Request mapper
 - `internal/extensions/init.go` - Init function
 - `settings/injectors.i18n.yaml` - Injector translations for frontend
+
+## Public Signing Flow
+
+Public document signing uses email verification + token-based access (no JWT auth).
+
+**Key services:**
+- `internal/core/service/document/document_access_service.go` — `RequestAccess()`, email gate
+- `internal/core/service/document/pre_signing_service.go` — `GetPublicSigningPage()`, `SubmitPreSigningForm()`, `ProceedToSigning()`, `InvalidateTokens()`
+- `internal/core/service/document/notification_service.go` — `NotifyDocumentCreated()`, `SendAccessLink()`
+
+**Key controllers:**
+- `internal/adapters/primary/http/controller/public_document_access_controller.go` — `/public/doc/*`
+- `internal/adapters/primary/http/controller/public_signing_controller.go` — `/public/sign/*`
+
+**Patterns:**
+- Anti-enumeration: `RequestAccess` returns nil (200) for invalid emails, missing docs, rate limits
+- Token types: `SIGNING` (no interactive fields) vs `PRE_SIGNING` (has interactive fields)
+- Tokens: 128-char hex, single-use (`used_at`), expiring (configurable TTL)
+- Rate limiting: per document+recipient pair, configurable in `settings/app.yaml` → `public_access`
+- `buildSigningURL()` fallback: active token → `/public/doc/{docID}`
+
+**Documentation:** `docs/public-signing-flow.md`
 
 ## Mandatory Documentation Updates
 
