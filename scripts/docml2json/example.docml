@@ -1,0 +1,42 @@
+---meta---
+title: Autorización Clases de Religión
+description: Autorización o rechazo de participación en clases de Religión.
+language: es
+page: LETTER
+margins: 72
+
+---roles---
+apoderado: Apoderado/a [order:1]
+
+---workflow---
+mode: sequential
+
+---content---
+@center [campus_name|Nombre Establecimiento]
+@center **AUTORIZACIÓN CLASES DE RELIGIÓN**
+@center **AÑO ACADÉMICO [academic_period_year|Año Académico]**
+
+Según lo dispuesto en el Decreto Supremo N° 924/1983 del Ministerio de Educación, todos los establecimientos educacionales del país deben ofrecer clases de Religión con carácter optativo para los alumnos y sus familias.
+
+**Datos del Estudiante:**
+
+| Dato | Valor |
+| Nombre | [student_first_name|Nombre Estudiante] [student_first_last_name|Apellido Estudiante] |
+| RUT | [student_id_number|RUT Estudiante] |
+| Curso | [grade_name|Curso] |
+
+En conformidad con lo anterior, yo, [legalguardian_first_name|Primer Nombre Apoderado/a] [legalguardian_first_last_name|Primer Apellido Apoderado/a], RUT [legalguardian_id_number|RUT Apoderado/a], declaro lo siguiente:
+
+**DECISIÓN RESPECTO A CLASES DE RELIGIÓN**
+
+@checkbox(apoderado) Autorización Clases de Religión
+  | AUTORIZO a mi pupilo/a a participar en clases de Religión
+  | NO AUTORIZO a mi pupilo/a a participar en clases de Religión
+
+@signature(single-center, md)
+  | apoderado: Firma Apoderado/a | Apoderado/a
+
+**FIRMA ELECTRÓNICA**
+Este documento es suscrito mediante firma electrónica simple o avanzada, conforme a la Ley N° 19.799.
+
+**Fecha de firma electrónica:** [today|Fecha de Firma]

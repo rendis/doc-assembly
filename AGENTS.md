@@ -14,6 +14,7 @@ This file provides guidance to Agents Code when working with code in this reposi
 apps/doc-engine/    → Go backend (Hexagonal Architecture, Gin, Wire DI)
 apps/web-client/    → React SPA (TanStack Router, Zustand, TipTap)
 db/                 → Liquibase migrations (PostgreSQL)
+scripts/            → Tooling reutilizable por agents y CI
 ```
 
 ## Component AGENTS.md
@@ -25,6 +26,7 @@ Each component has its own AGENTS.md with build commands, architecture details, 
 | Backend   | `apps/doc-engine/AGENTS.md` | Go code, endpoints, services, repos, tests |
 | Frontend  | `apps/web-client/AGENTS.md` | React components, routes, state, styling   |
 | Database  | `db/AGENTS.md`              | Migrations, schema understanding           |
+| Scripts   | `scripts/`                  | Tooling: docml2json, etc.                  |
 
 ## Architecture (Cross-Component)
 
@@ -128,3 +130,25 @@ Managed by Liquibase in `db/`. **Agents must NEVER modify `db/src/` files direct
 
 - Not syncing OpenAPI spec after backend changes (`make swagger`)
 - Inconsistent error handling between layers
+
+## Scripts & Tools
+
+### docml2json — Metalanguage to PortableDocument JSON
+
+**Path**: `scripts/docml2json/`
+
+Converts `.docml` text files into valid PortableDocument v1.1.0 JSON importable by the editor.
+
+```bash
+python3 scripts/docml2json/docml2json.py input.docml              # → input.json
+python3 scripts/docml2json/docml2json.py input.docml -o out.json   # explicit output
+python3 scripts/docml2json/docml2json.py *.docml                   # batch mode
+```
+
+| File | Description |
+|------|-------------|
+| `docml2json.py` | Conversion script (Python 3, no dependencies) |
+| `DOCML-REFERENCIA.md` | Full metalanguage syntax reference |
+| `example.docml` | Complete working example with all node types |
+
+**When to use**: Creating or bulk-generating document templates without hand-crafting ~500-1400 line JSON files. Supports paragraphs, headings, lists, tables, injectors (variables), checkboxes, signatures, marks (bold/italic/underline), alignment, page breaks, and horizontal rules.

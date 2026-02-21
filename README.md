@@ -45,6 +45,7 @@ doc-assembly/
     doc-engine/     Go backend (Hexagonal Architecture, Gin, Wire DI)
     web-client/     React SPA (TanStack Router, Zustand, TipTap)
   db/               Liquibase migrations (PostgreSQL 16)
+  scripts/          Tooling (docml2json, etc.)
 ```
 
 | Component      | Stack                                                    | Docs                                   |
@@ -52,6 +53,7 @@ doc-assembly/
 | **doc-engine** | Go 1.25, Gin, pgx/v5, Wire                               | [AGENTS.md](apps/doc-engine/AGENTS.md) |
 | **web-client** | React 19, TypeScript, TanStack Router, Zustand, TipTap 3 | [AGENTS.md](apps/web-client/AGENTS.md) |
 | **db**         | Liquibase, PostgreSQL 16, pgcrypto                       | [DATABASE.md](db/DATABASE.md)          |
+| **scripts**    | Python 3 tooling                                         | [docml2json](scripts/docml2json/)      |
 
 ## Architecture
 
@@ -296,6 +298,7 @@ The container exposes port `8080`.
 | Design System         | [`apps/web-client/docs/design_system.md`](apps/web-client/docs/design_system.md)               |
 | Database Schema       | [`db/DATABASE.md`](db/DATABASE.md)                                                             |
 | OpenAPI Spec          | [`apps/doc-engine/docs/swagger.yaml`](apps/doc-engine/docs/swagger.yaml)                       |
+| docml2json Reference  | [`scripts/docml2json/DOCML-REFERENCIA.md`](scripts/docml2json/DOCML-REFERENCIA.md)             |
 
 ## License
 
