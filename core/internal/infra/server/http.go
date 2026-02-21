@@ -72,6 +72,7 @@ func NewHTTPServer(
 	documentController *controller.DocumentController,
 	webhookController *controller.WebhookController,
 	internalDocController *controller.InternalDocumentController,
+	publicDocAccessController *controller.PublicDocumentAccessController,
 	publicSigningController *controller.PublicSigningController,
 	automationKeyController *controller.AutomationKeyController,
 	automationController *controller.AutomationController,
@@ -115,6 +116,14 @@ func NewHTTPServer(
 	automationKeyController.RegisterRoutes(v1)
 
 	webhookController.RegisterRoutes(base)
+
+	// Public document access routes (email-verification gate, no auth, no CSP needed).
+	publicDocAccessController.RegisterRoutes(base)
+
+	// CSP middleware for public signing routes — allows iframe from signing provider domain.
+	if cfg.Signing.SigningBaseURL != "" {
+		base.Use(signingCSPMiddleware(cfg.Signing.SigningBaseURL))
+	}
 	publicSigningController.RegisterRoutes(base)
 	automationController.RegisterRoutes(engine)
 	setupRenderRoutes(base, cfg, renderAuthenticator, requestTimeout)
@@ -389,6 +398,19 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+// signingCSPMiddleware adds Content-Security-Policy headers for pages that embed the signing
+// provider in an iframe. Only applied to /public/sign/* routes.
+func signingCSPMiddleware(signingBaseURL string) gin.HandlerFunc {
+	csp := fmt.Sprintf("frame-src %s; frame-ancestors 'self'", signingBaseURL)
+	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/public/sign/") ||
+			strings.Contains(c.Request.URL.Path, "/public/sign/") {
+			c.Header("Content-Security-Policy", csp)
+		}
 		c.Next()
 	}
 }

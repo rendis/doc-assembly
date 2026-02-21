@@ -15,7 +15,7 @@ import (
 	documentuc "github.com/rendis/doc-assembly/core/internal/core/usecase/document"
 )
 
-// PreSigningService implements the pre-signing form use case.
+// PreSigningService implements the public signing use case.
 type PreSigningService struct {
 	accessTokenRepo   port.DocumentAccessTokenRepository
 	fieldResponseRepo port.DocumentFieldResponseRepository
@@ -27,6 +27,7 @@ type PreSigningService struct {
 	signingProvider   port.SigningProvider
 	storageAdapter    port.StorageAdapter
 	eventEmitter      *EventEmitter
+	publicURL         string
 }
 
 // NewPreSigningService creates a new PreSigningService.
@@ -41,6 +42,7 @@ func NewPreSigningService(
 	signingProvider port.SigningProvider,
 	storageAdapter port.StorageAdapter,
 	eventEmitter *EventEmitter,
+	publicURL string,
 ) documentuc.PreSigningUseCase {
 	return &PreSigningService{
 		accessTokenRepo:   accessTokenRepo,
@@ -53,11 +55,116 @@ func NewPreSigningService(
 		signingProvider:   signingProvider,
 		storageAdapter:    storageAdapter,
 		eventEmitter:      eventEmitter,
+		publicURL:         publicURL,
 	}
 }
 
-// GetPreSigningForm validates the token and returns the form data.
-func (s *PreSigningService) GetPreSigningForm(ctx context.Context, token string) (*documentuc.PreSigningFormDTO, error) {
+// GetPublicSigningPage returns the current signing page state based on document status and token type.
+func (s *PreSigningService) GetPublicSigningPage(ctx context.Context, token string) (*documentuc.PublicSigningResponse, error) {
+	accessToken, wasUsed, err := s.validateTokenAllowUsed(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+	if err != nil {
+		return nil, fmt.Errorf("finding document: %w", err)
+	}
+
+	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
+	if err != nil {
+		return nil, fmt.Errorf("finding recipient: %w", err)
+	}
+
+	title := documentTitle(doc)
+
+	// Terminal states — always accessible, even with used tokens.
+	if doc.IsCompleted() {
+		return &documentuc.PublicSigningResponse{
+			Step:          documentuc.StepCompleted,
+			DocumentTitle: title,
+			RecipientName: recipient.Name,
+		}, nil
+	}
+	if doc.IsDeclined() {
+		return &documentuc.PublicSigningResponse{
+			Step:          documentuc.StepDeclined,
+			DocumentTitle: title,
+			RecipientName: recipient.Name,
+		}, nil
+	}
+
+	// Non-terminal states require an unused token.
+	if wasUsed {
+		return nil, fmt.Errorf("access token has already been used")
+	}
+
+	// Path B: AWAITING_INPUT + PRE_SIGNING token.
+	if doc.IsAwaitingInput() && accessToken.IsPreSigning() {
+		// If field responses already saved → show PDF preview; otherwise show form.
+		if s.hasFieldResponses(ctx, doc.ID) {
+			return s.buildPreviewPDFResponse(doc, recipient, title, accessToken.Token)
+		}
+		return s.buildPreviewFormResponse(ctx, doc, recipient, title)
+	}
+
+	// Path A: AWAITING_INPUT + SIGNING token → show PDF preview.
+	if doc.IsAwaitingInput() && accessToken.IsSigning() {
+		return s.buildPreviewPDFResponse(doc, recipient, title, accessToken.Token)
+	}
+
+	// Doc already sent to provider → show signing iframe.
+	if doc.IsPending() || doc.IsInProgress() {
+		return s.buildSigningResponse(ctx, doc, recipient, accessToken, title)
+	}
+
+	return nil, fmt.Errorf("document is not in a valid state for signing")
+}
+
+// SubmitPreSigningForm validates responses, saves them, renders PDF, sends to provider,
+// and returns the signing page state with embedded URL.
+func (s *PreSigningService) SubmitPreSigningForm(
+	ctx context.Context,
+	token string,
+	responses []documentuc.FieldResponseInput,
+) (*documentuc.PublicSigningResponse, error) {
+	accessToken, err := s.validateToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, recipient, version, portableDoc, err := s.loadSubmissionContext(ctx, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map DB role to portable doc role for field extraction.
+	portableRoleID := s.findPortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
+	fieldDefs := extractInteractiveFieldsForRole(portableDoc, portableRoleID)
+
+	// Validate responses against field definitions.
+	if err := s.validateResponses(responses, fieldDefs); err != nil {
+		return nil, err
+	}
+
+	// Save responses (no render/upload yet — deferred to ProceedToSigning).
+	if err := s.saveFieldResponses(ctx, doc.ID, recipient.ID, responses, fieldDefs); err != nil {
+		return nil, fmt.Errorf("saving field responses: %w", err)
+	}
+
+	slog.InfoContext(ctx, "pre-signing form submitted, responses saved",
+		slog.String("document_id", doc.ID),
+		slog.String("recipient_id", recipient.ID),
+	)
+
+	// Return PDF preview step so the signer can review before proceeding.
+	title := documentTitle(doc)
+	return s.buildPreviewPDFResponse(doc, recipient, title, accessToken.Token)
+}
+
+// ProceedToSigning renders the PDF, uploads to the signing provider, and returns the
+// embedded signing URL. Accepts both SIGNING (Path A) and PRE_SIGNING (Path B) tokens.
+func (s *PreSigningService) ProceedToSigning(ctx context.Context, token string) (*documentuc.PublicSigningResponse, error) {
 	accessToken, err := s.validateToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -73,6 +180,116 @@ func (s *PreSigningService) GetPreSigningForm(ctx context.Context, token string)
 		return nil, fmt.Errorf("finding recipient: %w", err)
 	}
 
+	// If document is still AWAITING_INPUT, render PDF and upload to provider.
+	if doc.IsAwaitingInput() {
+		version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
+		if err != nil {
+			return nil, fmt.Errorf("finding template version: %w", err)
+		}
+
+		portableDoc, err := parsePortableDocument(version.ContentStructure)
+		if err != nil {
+			return nil, fmt.Errorf("parsing document content: %w", err)
+		}
+
+		fieldResponses := loadFieldResponseMap(ctx, s.fieldResponseRepo, doc.ID)
+
+		if err := s.renderAndSendToProvider(ctx, doc, version, portableDoc, fieldResponses); err != nil {
+			return nil, err
+		}
+
+		slog.InfoContext(ctx, "document rendered and sent to provider via ProceedToSigning",
+			slog.String("document_id", doc.ID),
+			slog.String("recipient_id", recipient.ID),
+		)
+	}
+
+	if !doc.IsPending() && !doc.IsInProgress() && !doc.IsPendingProvider() {
+		return nil, fmt.Errorf("document is not pending signing")
+	}
+
+	// Check signing order.
+	if waitResp := s.checkSigningOrder(ctx, doc, recipient); waitResp != nil {
+		return waitResp, nil
+	}
+
+	title := documentTitle(doc)
+	return s.buildSigningResponse(ctx, doc, recipient, accessToken, title)
+}
+
+// CompleteEmbeddedSigning marks the token as used after embedded signing is completed.
+func (s *PreSigningService) CompleteEmbeddedSigning(ctx context.Context, token string) error {
+	accessToken, err := s.validateToken(ctx, token)
+	if err != nil {
+		return err
+	}
+
+	if err := s.accessTokenRepo.MarkAsUsed(ctx, accessToken.ID); err != nil {
+		return fmt.Errorf("marking token as used: %w", err)
+	}
+
+	slog.InfoContext(ctx, "embedded signing completed, token marked as used",
+		slog.String("document_id", accessToken.DocumentID),
+		slog.String("recipient_id", accessToken.RecipientID),
+	)
+
+	return nil
+}
+
+// RefreshEmbeddedURL refreshes an expired embedded signing URL.
+func (s *PreSigningService) RefreshEmbeddedURL(ctx context.Context, token string) (*documentuc.PublicSigningResponse, error) {
+	accessToken, err := s.validateToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+	if err != nil {
+		return nil, fmt.Errorf("finding document: %w", err)
+	}
+
+	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
+	if err != nil {
+		return nil, fmt.Errorf("finding recipient: %w", err)
+	}
+
+	title := documentTitle(doc)
+	return s.buildSigningResponse(ctx, doc, recipient, accessToken, title)
+}
+
+// InvalidateTokens invalidates all active tokens for a document in AWAITING_INPUT status.
+func (s *PreSigningService) InvalidateTokens(ctx context.Context, documentID string) error {
+	doc, err := s.documentRepo.FindByID(ctx, documentID)
+	if err != nil {
+		return fmt.Errorf("finding document: %w", err)
+	}
+	if !doc.IsAwaitingInput() {
+		return fmt.Errorf("document is not in AWAITING_INPUT status")
+	}
+
+	if err := s.accessTokenRepo.InvalidateByDocumentID(ctx, documentID); err != nil {
+		return fmt.Errorf("invalidating existing tokens: %w", err)
+	}
+
+	slog.InfoContext(ctx, "access tokens invalidated",
+		slog.String("document_id", documentID),
+	)
+
+	return nil
+}
+
+// RenderPreviewPDF renders the document PDF on-demand for preview without storing it.
+func (s *PreSigningService) RenderPreviewPDF(ctx context.Context, token string) ([]byte, error) {
+	accessToken, err := s.validateToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+	if err != nil {
+		return nil, fmt.Errorf("finding document: %w", err)
+	}
+
 	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
 	if err != nil {
 		return nil, fmt.Errorf("finding template version: %w", err)
@@ -86,82 +303,196 @@ func (s *PreSigningService) GetPreSigningForm(ctx context.Context, token string)
 		return nil, fmt.Errorf("document has no content")
 	}
 
-	// Resolve injectable values from document snapshot.
+	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
+	if err != nil {
+		return nil, fmt.Errorf("loading recipients: %w", err)
+	}
+
+	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("loading signer roles: %w", err)
+	}
+
+	signerRoleValues := buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles)
+
+	var injectables map[string]any
+	if doc.InjectedValuesSnapshot != nil {
+		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectables)
+	}
+
+	fieldResponses := loadFieldResponseMap(ctx, s.fieldResponseRepo, doc.ID)
+
+	renderResult, err := s.pdfRenderer.RenderPreview(ctx, &port.RenderPreviewRequest{
+		Document:         portableDoc,
+		Injectables:      injectables,
+		SignerRoleValues: signerRoleValues,
+		FieldResponses:   fieldResponses,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("rendering preview PDF: %w", err)
+	}
+
+	return renderResult.PDF, nil
+}
+
+// hasFieldResponses checks whether field responses have been saved for a document.
+func (s *PreSigningService) hasFieldResponses(ctx context.Context, documentID string) bool {
+	responses, err := s.fieldResponseRepo.FindByDocumentID(ctx, documentID)
+	if err != nil {
+		return false
+	}
+	return len(responses) > 0
+}
+
+// --- Response builders ---
+
+// buildPreviewFormResponse builds a preview response with the pre-signing form (Path B).
+func (s *PreSigningService) buildPreviewFormResponse(
+	ctx context.Context,
+	doc *entity.Document,
+	recipient *entity.DocumentRecipient,
+	title string,
+) (*documentuc.PublicSigningResponse, error) {
+	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("finding template version: %w", err)
+	}
+
+	portableDoc, err := parsePortableDocument(version.ContentStructure)
+	if err != nil {
+		return nil, fmt.Errorf("parsing document content: %w", err)
+	}
+	if portableDoc == nil {
+		return nil, fmt.Errorf("document has no content")
+	}
+
 	content, err := s.resolveContent(portableDoc, doc)
 	if err != nil {
 		return nil, fmt.Errorf("resolving content: %w", err)
 	}
 
-	// Map DB role ID to portable doc role ID for field filtering.
-	portableRoleID := s.findPortableRoleID(version, portableDoc, recipient.TemplateVersionRoleID)
-
-	// Extract interactive fields for this recipient's role.
+	portableRoleID := s.findPortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
 	fields := extractInteractiveFieldsForRole(portableDoc, portableRoleID)
 
-	title := ""
-	if doc.Title != nil {
-		title = *doc.Title
-	}
-
-	return &documentuc.PreSigningFormDTO{
-		DocumentTitle:  title,
-		DocumentStatus: string(doc.Status),
-		RecipientName:  recipient.Name,
-		RecipientEmail: recipient.Email,
-		RoleID:         recipient.TemplateVersionRoleID,
-		Content:        content,
-		Fields:         fields,
+	return &documentuc.PublicSigningResponse{
+		Step:          documentuc.StepPreview,
+		DocumentTitle: title,
+		RecipientName: recipient.Name,
+		Form: &documentuc.PreSigningFormDTO{
+			DocumentTitle:  title,
+			DocumentStatus: string(doc.Status),
+			RecipientName:  recipient.Name,
+			RecipientEmail: recipient.Email,
+			RoleID:         recipient.TemplateVersionRoleID,
+			Content:        content,
+			Fields:         fields,
+		},
 	}, nil
 }
 
-// SubmitPreSigningForm validates responses, saves them, renders PDF, and sends to signing provider.
-func (s *PreSigningService) SubmitPreSigningForm(
-	ctx context.Context,
+// buildPreviewPDFResponse builds a preview response with the PDF URL for on-demand rendering.
+func (s *PreSigningService) buildPreviewPDFResponse(
+	doc *entity.Document,
+	recipient *entity.DocumentRecipient,
+	title string,
 	token string,
-	responses []documentuc.FieldResponseInput,
-) (string, error) {
-	accessToken, err := s.validateToken(ctx, token)
-	if err != nil {
-		return "", err
-	}
-
-	doc, recipient, version, portableDoc, err := s.loadSubmissionContext(ctx, accessToken)
-	if err != nil {
-		return "", err
-	}
-
-	// Map DB role to portable doc role for field extraction.
-	portableRoleID := s.findPortableRoleID(version, portableDoc, recipient.TemplateVersionRoleID)
-	fieldDefs := extractInteractiveFieldsForRole(portableDoc, portableRoleID)
-
-	// Validate responses against field definitions.
-	if err := s.validateResponses(responses, fieldDefs); err != nil {
-		return "", err
-	}
-
-	// Save responses.
-	if err := s.saveFieldResponses(ctx, doc.ID, recipient.ID, responses, fieldDefs); err != nil {
-		return "", fmt.Errorf("saving field responses: %w", err)
-	}
-
-	// Mark token as used.
-	if err := s.accessTokenRepo.MarkAsUsed(ctx, accessToken.ID); err != nil {
-		return "", fmt.Errorf("marking token as used: %w", err)
-	}
-
-	// Render PDF with field responses and upload to signing provider.
-	signingURL, err := s.renderAndSendToProvider(ctx, doc, version, portableDoc, buildFieldResponseMap(responses))
-	if err != nil {
-		return "", err
-	}
-
-	slog.InfoContext(ctx, "pre-signing form submitted, document sent for signing",
-		slog.String("document_id", doc.ID),
-		slog.String("recipient_id", recipient.ID),
-	)
-
-	return signingURL, nil
+) (*documentuc.PublicSigningResponse, error) {
+	return &documentuc.PublicSigningResponse{
+		Step:          documentuc.StepPreview,
+		DocumentTitle: title,
+		RecipientName: recipient.Name,
+		PdfURL:        fmt.Sprintf("/public/sign/%s/pdf", token),
+	}, nil
 }
+
+// buildSigningResponse builds a signing response with the embedded signing URL.
+func (s *PreSigningService) buildSigningResponse(
+	ctx context.Context,
+	doc *entity.Document,
+	recipient *entity.DocumentRecipient,
+	accessToken *entity.DocumentAccessToken,
+	title string,
+) (*documentuc.PublicSigningResponse, error) {
+	if recipient.SignerRecipientID == nil || doc.SignerDocumentID == nil {
+		return nil, fmt.Errorf("document is not registered with a signing provider")
+	}
+
+	callbackURL := s.buildCallbackURL(accessToken.Token)
+
+	embeddedResult, err := s.signingProvider.GetEmbeddedSigningURL(ctx, &port.GetEmbeddedSigningURLRequest{
+		ProviderDocumentID:  *doc.SignerDocumentID,
+		ProviderRecipientID: *recipient.SignerRecipientID,
+		CallbackURL:         callbackURL,
+	})
+	if err != nil {
+		// Fallback: if embedding not supported, return direct URL.
+		if recipient.SigningURL != nil {
+			return &documentuc.PublicSigningResponse{
+				Step:          documentuc.StepSigning,
+				DocumentTitle: title,
+				RecipientName: recipient.Name,
+				FallbackURL:   *recipient.SigningURL,
+			}, nil
+		}
+		return nil, fmt.Errorf("getting embedded signing URL: %w", err)
+	}
+
+	return &documentuc.PublicSigningResponse{
+		Step:               documentuc.StepSigning,
+		DocumentTitle:      title,
+		RecipientName:      recipient.Name,
+		EmbeddedSigningURL: embeddedResult.EmbeddedURL,
+	}, nil
+}
+
+// checkSigningOrder checks if previous signers have completed. Returns a waiting response or nil.
+func (s *PreSigningService) checkSigningOrder(
+	ctx context.Context,
+	doc *entity.Document,
+	recipient *entity.DocumentRecipient,
+) *documentuc.PublicSigningResponse {
+	recipientsWithRoles, err := s.recipientRepo.FindByDocumentIDWithRoles(ctx, doc.ID)
+	if err != nil {
+		return nil
+	}
+
+	// Find this recipient's order.
+	var myOrder int
+	for _, r := range recipientsWithRoles {
+		if r.ID == recipient.ID {
+			myOrder = r.SignerOrder
+			break
+		}
+	}
+
+	// Order 0 or 1 means first signer — no need to wait.
+	if myOrder <= 1 {
+		return nil
+	}
+
+	for _, r := range recipientsWithRoles {
+		if r.SignerOrder < myOrder && !r.IsSigned() {
+			title := documentTitle(doc)
+			return &documentuc.PublicSigningResponse{
+				Step:               documentuc.StepWaiting,
+				DocumentTitle:      title,
+				RecipientName:      recipient.Name,
+				WaitingForPrevious: true,
+				SigningPosition:    myOrder,
+				TotalSigners:       len(recipientsWithRoles),
+			}
+		}
+	}
+
+	return nil
+}
+
+// buildCallbackURL constructs the signing callback bridge URL.
+func (s *PreSigningService) buildCallbackURL(token string) string {
+	return fmt.Sprintf("%s/public/sign/%s/signing-callback", s.publicURL, token)
+}
+
+// --- Existing internal helpers (unchanged logic) ---
 
 // loadSubmissionContext loads the document, recipient, version, and portable doc for a form submission.
 func (s *PreSigningService) loadSubmissionContext(
@@ -197,104 +528,6 @@ func (s *PreSigningService) loadSubmissionContext(
 	return doc, recipient, version, portableDoc, nil
 }
 
-// RegenerateToken creates a new access token for a document in AWAITING_INPUT status.
-func (s *PreSigningService) RegenerateToken(ctx context.Context, documentID string) (*entity.DocumentAccessToken, error) {
-	doc, err := s.documentRepo.FindByID(ctx, documentID)
-	if err != nil {
-		return nil, fmt.Errorf("finding document: %w", err)
-	}
-	if !doc.IsAwaitingInput() {
-		return nil, fmt.Errorf("document is not in AWAITING_INPUT status")
-	}
-
-	// Invalidate existing tokens.
-	if err := s.accessTokenRepo.InvalidateByDocumentID(ctx, documentID); err != nil {
-		return nil, fmt.Errorf("invalidating existing tokens: %w", err)
-	}
-
-	// Resolve the recipient who should receive the new token.
-	recipientID, err := s.resolveSignerRecipientID(ctx, doc)
-	if err != nil {
-		return nil, err
-	}
-
-	// Generate new token.
-	tokenStr, err := generateAccessToken()
-	if err != nil {
-		return nil, fmt.Errorf("generating access token: %w", err)
-	}
-
-	ttlDays := s.resolvePreSigningTTL(doc.TemplateVersionID)
-
-	accessToken := &entity.DocumentAccessToken{
-		DocumentID:  documentID,
-		RecipientID: recipientID,
-		Token:       tokenStr,
-		ExpiresAt:   time.Now().UTC().Add(time.Duration(ttlDays) * 24 * time.Hour),
-		CreatedAt:   time.Now().UTC(),
-	}
-
-	if err := s.accessTokenRepo.Create(ctx, accessToken); err != nil {
-		return nil, fmt.Errorf("creating access token: %w", err)
-	}
-
-	slog.InfoContext(ctx, "access token regenerated",
-		slog.String("document_id", documentID),
-		slog.String("recipient_id", recipientID),
-		slog.Int("ttl_days", ttlDays),
-	)
-
-	return accessToken, nil
-}
-
-// resolveSignerRecipientID finds the real signer recipient for a document.
-func (s *PreSigningService) resolveSignerRecipientID(ctx context.Context, doc *entity.Document) (string, error) {
-	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
-	if err != nil {
-		return "", fmt.Errorf("finding recipients: %w", err)
-	}
-	if len(recipients) == 0 {
-		return "", fmt.Errorf("no recipients found for document")
-	}
-
-	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
-	if err != nil {
-		return "", fmt.Errorf("finding template version: %w", err)
-	}
-
-	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
-	if err != nil {
-		return "", fmt.Errorf("finding signer roles: %w", err)
-	}
-
-	roleMap := make(map[string]*entity.TemplateVersionSignerRole, len(signerRoles))
-	for _, role := range signerRoles {
-		roleMap[role.ID] = role
-	}
-
-	recipientID := findRealSignerRecipientID(version, recipients, roleMap)
-	if recipientID == "" {
-		recipientID = recipients[0].ID
-	}
-
-	return recipientID, nil
-}
-
-// resolvePreSigningTTL returns the pre-signing TTL from the workflow config, or the default.
-func (s *PreSigningService) resolvePreSigningTTL(templateVersionID string) int {
-	version, err := s.versionRepo.FindByID(context.Background(), templateVersionID)
-	if err != nil || version.ContentStructure == nil {
-		return portabledoc.DefaultPreSigningTTLDays
-	}
-
-	pDoc, err := parsePortableDocument(version.ContentStructure)
-	if err != nil || pDoc == nil || pDoc.SigningWorkflow == nil || pDoc.SigningWorkflow.PreSigningTTLDays <= 0 {
-		return portabledoc.DefaultPreSigningTTLDays
-	}
-
-	return pDoc.SigningWorkflow.PreSigningTTLDays
-}
-
 // validateToken checks that a token exists, is not expired, and is not used.
 func (s *PreSigningService) validateToken(ctx context.Context, token string) (*entity.DocumentAccessToken, error) {
 	if token == "" {
@@ -317,31 +550,49 @@ func (s *PreSigningService) validateToken(ctx context.Context, token string) (*e
 	return accessToken, nil
 }
 
+// validateTokenAllowUsed is like validateToken but permits already-used tokens.
+// Returns the token and whether it was already used. Expiry is only enforced
+// for unused tokens — a used token can always proceed so GetPublicSigningPage
+// can display terminal states (completed/declined).
+func (s *PreSigningService) validateTokenAllowUsed(ctx context.Context, token string) (*entity.DocumentAccessToken, bool, error) {
+	if token == "" {
+		return nil, false, entity.ErrMissingToken
+	}
+
+	accessToken, err := s.accessTokenRepo.FindByToken(ctx, token)
+	if err != nil {
+		return nil, false, entity.ErrInvalidToken
+	}
+
+	wasUsed := accessToken.UsedAt != nil
+
+	if !wasUsed && time.Now().UTC().After(accessToken.ExpiresAt) {
+		return nil, false, entity.ErrTokenExpired
+	}
+
+	return accessToken, wasUsed, nil
+}
+
 // resolveContent serializes the portable doc content with injected values applied.
-// Returns the full portable doc content as JSON.
 func (s *PreSigningService) resolveContent(portableDoc *portabledoc.Document, doc *entity.Document) (json.RawMessage, error) {
-	// Return the raw content as-is. The frontend will render it with injectable
-	// values from the document snapshot. For now we return the ProseMirror content.
 	if portableDoc.Content == nil {
 		return nil, fmt.Errorf("document has no ProseMirror content")
 	}
-
 	return json.Marshal(portableDoc.Content)
 }
 
 // findPortableRoleID maps a DB signer role ID to the portable doc role ID.
 func (s *PreSigningService) findPortableRoleID(
+	ctx context.Context,
 	version *entity.TemplateVersion,
 	portableDoc *portabledoc.Document,
 	dbRoleID string,
 ) string {
-	// Load the signer roles for the version to get anchor strings.
-	signerRoles, err := s.signerRoleRepo.FindByVersionID(context.Background(), version.ID)
+	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, version.ID)
 	if err != nil {
 		return ""
 	}
 
-	// Find the anchor string for this DB role ID.
 	var anchor string
 	for _, role := range signerRoles {
 		if role.ID == dbRoleID {
@@ -353,7 +604,6 @@ func (s *PreSigningService) findPortableRoleID(
 		return ""
 	}
 
-	// Find the portable doc role ID that maps to this anchor.
 	for _, sr := range portableDoc.SignerRoles {
 		if portabledoc.GenerateAnchorString(sr.Label) == anchor {
 			return sr.ID
@@ -373,7 +623,6 @@ func extractInteractiveFieldsForRole(doc *portabledoc.Document, roleID string) [
 			continue
 		}
 
-		// Filter by role if a roleID is specified.
 		if roleID != "" && attrs.RoleID != roleID {
 			continue
 		}
@@ -397,26 +646,22 @@ func (s *PreSigningService) validateResponses(
 	responses []documentuc.FieldResponseInput,
 	fieldDefs []documentuc.InteractiveFieldDTO,
 ) error {
-	// Build a map of field definitions by ID.
 	defByID := make(map[string]documentuc.InteractiveFieldDTO, len(fieldDefs))
 	for _, def := range fieldDefs {
 		defByID[def.ID] = def
 	}
 
-	// Build a set of submitted field IDs.
 	submittedIDs := make(map[string]bool, len(responses))
 	for _, resp := range responses {
 		submittedIDs[resp.FieldID] = true
 	}
 
-	// Check that all required fields are submitted.
 	for _, def := range fieldDefs {
 		if def.Required && !submittedIDs[def.ID] {
 			return fmt.Errorf("required field %q (%s) is missing", def.Label, def.ID)
 		}
 	}
 
-	// Validate each response.
 	for _, resp := range responses {
 		def, ok := defByID[resp.FieldID]
 		if !ok {
@@ -443,17 +688,14 @@ func validateSingleResponse(resp documentuc.FieldResponseInput, def documentuc.I
 	}
 }
 
-// selectionResponse is the expected JSON structure for checkbox/radio responses.
 type selectionResponse struct {
 	SelectedOptionIDs []string `json:"selectedOptionIds"`
 }
 
-// textResponse is the expected JSON structure for text responses.
 type textResponse struct {
 	Text string `json:"text"`
 }
 
-// validateSelectionResponse validates a checkbox or radio response.
 func validateSelectionResponse(responseJSON json.RawMessage, def documentuc.InteractiveFieldDTO) error {
 	var resp selectionResponse
 	if err := json.Unmarshal(responseJSON, &resp); err != nil {
@@ -464,7 +706,6 @@ func validateSelectionResponse(responseJSON json.RawMessage, def documentuc.Inte
 		return fmt.Errorf("radio field must have at most one selected option")
 	}
 
-	// Build valid option IDs set.
 	validIDs := make(map[string]bool, len(def.Options))
 	for _, opt := range def.Options {
 		validIDs[opt.ID] = true
@@ -479,7 +720,6 @@ func validateSelectionResponse(responseJSON json.RawMessage, def documentuc.Inte
 	return nil
 }
 
-// validateTextResponse validates a text response.
 func validateTextResponse(responseJSON json.RawMessage, def documentuc.InteractiveFieldDTO) error {
 	var resp textResponse
 	if err := json.Unmarshal(responseJSON, &resp); err != nil {
@@ -493,14 +733,12 @@ func validateTextResponse(responseJSON json.RawMessage, def documentuc.Interacti
 	return nil
 }
 
-// saveFieldResponses persists the field responses.
 func (s *PreSigningService) saveFieldResponses(
 	ctx context.Context,
 	documentID, recipientID string,
 	responses []documentuc.FieldResponseInput,
 	fieldDefs []documentuc.InteractiveFieldDTO,
 ) error {
-	// Build field type lookup.
 	typeByID := make(map[string]string, len(fieldDefs))
 	for _, def := range fieldDefs {
 		typeByID[def.ID] = def.FieldType
@@ -525,39 +763,26 @@ func (s *PreSigningService) saveFieldResponses(
 	return nil
 }
 
-// buildFieldResponseMap converts responses to the map format expected by the renderer.
-func buildFieldResponseMap(responses []documentuc.FieldResponseInput) map[string]json.RawMessage {
-	m := make(map[string]json.RawMessage, len(responses))
-	for _, resp := range responses {
-		m[resp.FieldID] = resp.Response
-	}
-	return m
-}
-
 // renderAndSendToProvider renders the PDF with field responses and sends to the signing provider.
-// Returns the signing URL for the recipient.
 func (s *PreSigningService) renderAndSendToProvider(
 	ctx context.Context,
 	doc *entity.Document,
 	version *entity.TemplateVersion,
 	portableDoc *portabledoc.Document,
 	fieldResponses map[string]json.RawMessage,
-) (string, error) {
-	// Load recipients and signer roles.
+) error {
 	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
 	if err != nil {
-		return "", fmt.Errorf("loading recipients: %w", err)
+		return fmt.Errorf("loading recipients: %w", err)
 	}
 
 	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
 	if err != nil {
-		return "", fmt.Errorf("loading signer roles: %w", err)
+		return fmt.Errorf("loading signer roles: %w", err)
 	}
 
-	// Build signer role values for rendering (map portable doc role IDs -> name/email).
-	signerRoleValues := s.buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles)
+	signerRoleValues := buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles)
 
-	// Build injected values from document snapshot.
 	var injectables map[string]any
 	if doc.InjectedValuesSnapshot != nil {
 		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectables)
@@ -570,30 +795,23 @@ func (s *PreSigningService) renderAndSendToProvider(
 		FieldResponses:   fieldResponses,
 	})
 	if err != nil {
-		return "", fmt.Errorf("rendering PDF: %w", err)
+		return fmt.Errorf("rendering PDF: %w", err)
 	}
 
-	// Store rendered PDF and transition to PENDING_PROVIDER.
 	storagePath := fmt.Sprintf("documents/%s/%s/pre-signed.pdf", doc.WorkspaceID, doc.ID)
 	if err := s.storageAdapter.Upload(ctx, storagePath, renderResult.PDF, "application/pdf"); err != nil {
-		return "", fmt.Errorf("storing PDF: %w", err)
+		return fmt.Errorf("storing PDF: %w", err)
 	}
 	doc.SetPDFPath(storagePath)
 
 	if err := doc.MarkAsPendingProvider(); err != nil {
-		return "", fmt.Errorf("marking document as pending provider: %w", err)
+		return fmt.Errorf("marking document as pending provider: %w", err)
 	}
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		return "", fmt.Errorf("updating document status: %w", err)
+		return fmt.Errorf("updating document status: %w", err)
 	}
 
-	// Upload to signing provider.
-	signingURL, err := s.uploadToProvider(ctx, doc, recipients, signerRoles, portableDoc, renderResult)
-	if err != nil {
-		return "", err
-	}
-
-	return signingURL, nil
+	return s.uploadToProvider(ctx, doc, recipients, signerRoles, portableDoc, renderResult)
 }
 
 // uploadToProvider uploads the rendered PDF to the signing provider and finalizes the document.
@@ -604,10 +822,12 @@ func (s *PreSigningService) uploadToProvider(
 	signerRoles []*entity.TemplateVersionSignerRole,
 	portableDoc *portabledoc.Document,
 	renderResult *port.RenderPreviewResult,
-) (string, error) {
-	title := doc.ID
-	if doc.Title != nil {
-		title = *doc.Title
+) error {
+	title := documentTitle(doc)
+
+	sigFields := mapSignatureFieldPositions(renderResult.SignatureFields, signerRoles, portableDoc.SignerRoles)
+	if len(sigFields) == 0 {
+		sigFields = buildDefaultSignatureFieldPositions(recipients)
 	}
 
 	uploadResult, err := s.signingProvider.UploadDocument(ctx, &port.UploadDocumentRequest{
@@ -615,117 +835,45 @@ func (s *PreSigningService) uploadToProvider(
 		Title:           title,
 		Recipients:      buildSigningRecipients(recipients),
 		ExternalRef:     doc.ID,
-		SignatureFields: s.mapSignatureFields(renderResult.SignatureFields, signerRoles, portableDoc),
+		SignatureFields: sigFields,
 	})
 	if err != nil {
 		_ = doc.MarkAsError()
 		_ = s.documentRepo.Update(ctx, doc)
-		return "", fmt.Errorf("uploading to signing provider: %w", err)
+		return fmt.Errorf("uploading to signing provider: %w", err)
 	}
 
-	// Update document with provider info and mark as PENDING.
 	doc.SetSignerInfo(uploadResult.ProviderName, uploadResult.ProviderDocumentID)
 	if err := doc.MarkAsPending(); err != nil {
-		return "", fmt.Errorf("marking document as pending: %w", err)
+		return fmt.Errorf("marking document as pending: %w", err)
 	}
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		return "", fmt.Errorf("updating document: %w", err)
+		return fmt.Errorf("updating document: %w", err)
 	}
 
-	// Update recipients with provider IDs and signing URLs.
 	s.updateRecipientsFromResult(ctx, recipients, uploadResult.Recipients)
 
-	// Emit events.
 	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventDocumentSent, entity.ActorSystem, "",
 		string(entity.DocumentStatusAwaitingInput), string(entity.DocumentStatusPending), nil)
 
-	return s.findRecipientSigningURL(recipients), nil
+	return nil
 }
 
-// buildSignerRoleValues maps recipient data to portable doc role IDs for PDF rendering.
-func (s *PreSigningService) buildSignerRoleValues(
-	recipients []*entity.DocumentRecipient,
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-	portableDocRoles []portabledoc.SignerRole,
-) map[string]port.SignerRoleValue {
-	// DB role ID -> anchor string.
-	dbRoleToAnchor := make(map[string]string, len(dbSignerRoles))
-	for _, role := range dbSignerRoles {
-		dbRoleToAnchor[role.ID] = role.AnchorString
-	}
-
-	// Anchor string -> portable doc role ID.
-	anchorToPortableID := make(map[string]string, len(portableDocRoles))
-	for _, role := range portableDocRoles {
-		anchor := portabledoc.GenerateAnchorString(role.Label)
-		anchorToPortableID[anchor] = role.ID
-	}
-
-	values := make(map[string]port.SignerRoleValue, len(recipients))
-	for _, r := range recipients {
-		anchor := dbRoleToAnchor[r.TemplateVersionRoleID]
-		portableDocRoleID := anchorToPortableID[anchor]
-		if portableDocRoleID != "" {
-			values[portableDocRoleID] = port.SignerRoleValue{
-				Name:  r.Name,
-				Email: r.Email,
-			}
-		}
-	}
-	return values
-}
-
-// mapSignatureFields converts render result signature fields to provider positions.
-func (s *PreSigningService) mapSignatureFields(
-	fields []port.SignatureField,
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-	portableDoc *portabledoc.Document,
-) []port.SignatureFieldPosition {
-	if len(fields) == 0 {
-		return nil
-	}
-
-	// anchor string -> DB role ID
-	anchorToDBRoleID := make(map[string]string, len(dbSignerRoles))
-	for _, role := range dbSignerRoles {
-		if role.AnchorString != "" {
-			anchorToDBRoleID[role.AnchorString] = role.ID
-		}
-	}
-
-	// portable doc role ID -> anchor string
-	portableIDToAnchor := make(map[string]string, len(portableDoc.SignerRoles))
-	for _, role := range portableDoc.SignerRoles {
-		anchor := portabledoc.GenerateAnchorString(role.Label)
-		portableIDToAnchor[role.ID] = anchor
-	}
-
-	positions := make([]port.SignatureFieldPosition, 0, len(fields))
-	for _, f := range fields {
-		// The field's RoleID is a portable doc role ID. Map it to a DB role ID.
-		anchor := portableIDToAnchor[f.RoleID]
-		if anchor == "" {
-			// Try AnchorString directly.
-			anchor = f.AnchorString
-		}
-
-		dbRoleID := anchorToDBRoleID[anchor]
-		if dbRoleID == "" {
-			continue
-		}
-
-		posX, posY := convertFieldToProviderPosition(f)
-		positions = append(positions, port.SignatureFieldPosition{
-			RoleID:    dbRoleID,
-			Page:      f.Page,
-			PositionX: posX,
-			PositionY: posY,
-			Width:     f.Width,
-			Height:    f.Height,
+// buildDefaultSignatureFieldPositions generates fallback signature field positions when
+// the renderer doesn't extract explicit positions. Each recipient gets a field on page 1.
+func buildDefaultSignatureFieldPositions(recipients []*entity.DocumentRecipient) []port.SignatureFieldPosition {
+	fields := make([]port.SignatureFieldPosition, 0, len(recipients))
+	for i, r := range recipients {
+		fields = append(fields, port.SignatureFieldPosition{
+			RoleID:    r.TemplateVersionRoleID,
+			Page:      1,
+			PositionX: 10,
+			PositionY: float64(70 + i*12),
+			Width:     30,
+			Height:    5,
 		})
 	}
-
-	return positions
+	return fields
 }
 
 // updateRecipientsFromResult updates recipients with provider IDs and signing URLs.
@@ -762,16 +910,6 @@ func (s *PreSigningService) updateRecipientsFromResult(
 			)
 		}
 	}
-}
-
-// findRecipientSigningURL finds the first available signing URL from the recipients.
-func (s *PreSigningService) findRecipientSigningURL(recipients []*entity.DocumentRecipient) string {
-	for _, r := range recipients {
-		if r.SigningURL != nil && *r.SigningURL != "" {
-			return *r.SigningURL
-		}
-	}
-	return ""
 }
 
 // Verify PreSigningService implements PreSigningUseCase.

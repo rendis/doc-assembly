@@ -3,9 +3,9 @@ package portabledoc
 // InteractiveFieldAttrs represents interactive field attributes in a document.
 type InteractiveFieldAttrs struct {
 	ID            string              `json:"id"`
-	FieldType     string              `json:"fieldType"`               // "checkbox" | "radio" | "text"
+	FieldType     string              `json:"fieldType"` // "checkbox" | "radio" | "text"
 	RoleID        string              `json:"roleId"`
-	Label         string              `json:"label"`                   // question/title
+	Label         string              `json:"label"` // question/title
 	Required      bool                `json:"required"`
 	Options       []InteractiveOption `json:"options,omitempty"`       // checkbox/radio
 	Placeholder   string              `json:"placeholder,omitempty"`   // text

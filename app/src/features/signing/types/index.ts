@@ -48,11 +48,6 @@ export interface SigningDocumentListItem {
   updatedAt: string
 }
 
-export interface AccessTokenInfo {
-  token: string
-  expiresAt: string
-}
-
 export interface FieldResponse {
   fieldId: string
   label: string
@@ -62,8 +57,6 @@ export interface FieldResponse {
 
 export interface SigningDocumentDetail extends SigningDocumentListItem {
   recipients: SigningRecipient[]
-  preSigningUrl?: string
-  accessToken?: AccessTokenInfo
   fieldResponses?: FieldResponse[]
 }
 
@@ -106,11 +99,6 @@ export interface DocumentEvent {
 export interface SigningURLResponse {
   signingUrl: string
   expiresAt?: string
-}
-
-export interface RegenerateTokenResponse {
-  token: string
-  preSigningUrl: string
 }
 
 export interface DocumentListFilters {

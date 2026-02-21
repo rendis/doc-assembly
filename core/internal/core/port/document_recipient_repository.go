@@ -29,6 +29,9 @@ type DocumentRecipientRepository interface {
 	// FindByDocumentAndRole finds a recipient by document ID and role ID.
 	FindByDocumentAndRole(ctx context.Context, documentID, roleID string) (*entity.DocumentRecipient, error)
 
+	// FindByDocumentAndEmail finds a recipient by document ID and email (case-insensitive).
+	FindByDocumentAndEmail(ctx context.Context, documentID, email string) (*entity.DocumentRecipient, error)
+
 	// Update updates a document recipient.
 	Update(ctx context.Context, recipient *entity.DocumentRecipient) error
 

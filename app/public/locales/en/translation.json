@@ -1597,17 +1597,15 @@
         "copySigningUrl": "Copy Signing URL",
         "remind": "Send Reminder"
       },
-      "preSigningLink": "Pre-Signing Link",
+      "publicDocLink": "Public Document Link",
       "copyLink": "Copy Link",
       "copied": "Copied",
       "linkCopied": "Link copied to clipboard",
       "copyError": "Failed to copy link",
-      "regenerateLink": "Regenerate Link",
-      "regenerateWarning": "Regenerating will invalidate the current link. The signer will need the new link to access the form.",
-      "tokenRegenerated": "New link generated successfully",
-      "regenerateError": "Failed to regenerate link",
-      "tokenExpires": "Expires: {{date}}",
-      "awaitingInputMessage": "Waiting for signer to complete interactive fields.",
+      "invalidateTokens": "Invalidate Tokens",
+      "invalidateWarning": "This will invalidate all active access tokens. Recipients will need to request a new link via email.",
+      "tokensInvalidated": "Tokens invalidated successfully",
+      "invalidateError": "Failed to invalidate tokens",
       "fieldResponses": "Field Responses"
     },
     "cancel": {
@@ -1684,12 +1682,54 @@
       "alreadyUsedTitle": "Already Completed",
       "serverError": "Something went wrong. Please try again later.",
       "errorTitle": "Error",
-      "submitFailed": "Failed to submit your responses. Please try again."
+      "submitFailed": "Failed to submit your responses. Please try again.",
+      "iframeLoadFailed": "Failed to load the signing interface. Please refresh the page or try again later."
+    },
+    "loadingSigning": "Loading signing interface...",
+    "completed": {
+      "title": "Signing Complete",
+      "message": "\"{{title}}\" has been signed successfully. You may close this page."
+    },
+    "declined": {
+      "title": "Signing Declined",
+      "message": "You have declined to sign \"{{title}}\". If this was a mistake, please contact the sender."
+    },
+    "waiting": {
+      "title": "Waiting for Previous Signers",
+      "message": "You are signer {{position}} of {{total}}. The document will be ready for your signature once previous signers have completed.",
+      "autoRefresh": "This page will refresh automatically."
+    },
+    "preview": {
+      "readyToSign": "This document is ready for {{name}} to sign.",
+      "proceedToSigning": "Proceed to Signing",
+      "pdfLoading": "Loading document preview...",
+      "pdfError": "Failed to load document preview",
+      "pageOf": "Page {{current}} of {{total}}"
+    },
+    "proceeding": {
+      "title": "Preparing document for signing...",
+      "warning": "Please do not close or refresh this page"
     },
     "success": {
       "title": "Contract Generated",
       "message": "Your responses have been recorded and the contract has been generated. You will be redirected to sign the document.",
       "goToSigning": "Go to Signing"
+    },
+    "access": {
+      "title": "Verify Your Email",
+      "description": "Enter your email address to receive a secure signing link.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "sendLink": "Send Signing Link",
+      "sending": "Sending...",
+      "checkEmail": "Check Your Email",
+      "checkEmailDescription": "If your email is associated with this document, you will receive a signing link shortly. Please check your inbox (and spam folder).",
+      "requestAgain": "Request Again",
+      "requestAgainIn": "Request again in {{seconds}}s",
+      "notFound": "Document Not Found",
+      "notFoundDescription": "This document does not exist or is no longer available.",
+      "unavailable": "Document Unavailable",
+      "unavailableDescription": "This document is no longer available for signing."
     }
   }
 }

@@ -78,7 +78,7 @@ func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup) {
 		docs.POST("/:documentId/remind", middleware.RequireOperator(), c.SendReminder)
 
 		// Regenerate pre-signing access token
-		docs.POST("/:documentId/regenerate-token", middleware.RequireOperator(), c.RegenerateAccessToken)
+		docs.POST("/:documentId/invalidate-tokens", middleware.RequireOperator(), c.InvalidateTokens)
 	}
 }
 
@@ -508,8 +508,8 @@ func (c *DocumentController) GetDocumentEvents(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, responses)
 }
 
-// RegenerateAccessToken regenerates the pre-signing access token for a document.
-// @Summary Regenerate pre-signing access token
+// InvalidateTokens invalidates all active access tokens for a document.
+// @Summary Invalidate all access tokens for a document
 // @Tags Documents
 // @Accept json
 // @Produce json
@@ -519,18 +519,16 @@ func (c *DocumentController) GetDocumentEvents(ctx *gin.Context) {
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /api/v1/documents/{documentId}/regenerate-token [post]
-func (c *DocumentController) RegenerateAccessToken(ctx *gin.Context) {
+// @Router /api/v1/documents/{documentId}/invalidate-tokens [post]
+func (c *DocumentController) InvalidateTokens(ctx *gin.Context) {
 	documentID := ctx.Param("documentId")
 
-	token, err := c.preSigningUC.RegenerateToken(ctx.Request.Context(), documentID)
-	if err != nil {
+	if err := c.preSigningUC.InvalidateTokens(ctx.Request.Context(), documentID); err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"token":     token.Token,
-		"expiresAt": token.ExpiresAt.Format("2006-01-02T15:04:05Z07:00"),
+		"message": "Tokens invalidated",
 	})
 }

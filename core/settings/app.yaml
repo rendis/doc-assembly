@@ -6,6 +6,7 @@ environment: development
 
 server:
   port: "8080"
+  public_url: ""      # DOC_ENGINE_SERVER_PUBLIC_URL - Public-facing URL for signing links (e.g. https://app.example.com)
   read_timeout: 30    # seconds
   write_timeout: 30   # seconds
   shutdown_timeout: 10 # seconds
@@ -89,6 +90,12 @@ typst:
   image_cache_dir: ""                    # DOC_ENGINE_TYPST_IMAGE_CACHE_DIR - Image cache directory (empty = temp)
   image_cache_max_age_seconds: 300       # DOC_ENGINE_TYPST_IMAGE_CACHE_MAX_AGE_SECONDS - Cache TTL (5 min)
   image_cache_cleanup_interval_seconds: 60  # DOC_ENGINE_TYPST_IMAGE_CACHE_CLEANUP_INTERVAL_SECONDS
+
+# Public document access (email-verification gate for signing)
+public_access:
+  rate_limit_max: 3             # DOC_ENGINE_PUBLIC_ACCESS_RATE_LIMIT_MAX - Max access requests per recipient per window
+  rate_limit_window_min: 60     # DOC_ENGINE_PUBLIC_ACCESS_RATE_LIMIT_WINDOW_MIN - Rate limit window in minutes
+  token_ttl_hours: 48           # DOC_ENGINE_PUBLIC_ACCESS_TOKEN_TTL_HOURS - Access token TTL in hours
 
 # Email notification configuration
 notification:

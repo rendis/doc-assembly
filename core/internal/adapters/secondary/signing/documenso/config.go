@@ -44,6 +44,7 @@ func (c *Config) Validate() error {
 	if strings.TrimSpace(c.SigningBaseURL) == "" {
 		// Remove /api/v2 or /api/v1 suffix to get the base signing URL
 		signingBase := c.BaseURL
+		signingBase = strings.TrimSuffix(signingBase, "/api/v2-beta")
 		signingBase = strings.TrimSuffix(signingBase, "/api/v2")
 		signingBase = strings.TrimSuffix(signingBase, "/api/v1")
 		c.SigningBaseURL = signingBase

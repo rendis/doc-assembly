@@ -19,6 +19,7 @@ type Config struct {
 	Bootstrap    BootstrapConfig    `mapstructure:"bootstrap"`
 	Scheduler    SchedulerConfig    `mapstructure:"scheduler"`
 	Notification NotificationConfig `mapstructure:"notification"`
+	PublicAccess PublicAccessConfig `mapstructure:"public_access"`
 
 	// DummyAuthUserID is the internal DB user ID for dummy auth mode.
 	// Set at runtime after seeding the dummy user (not loaded from YAML).
@@ -29,6 +30,7 @@ type Config struct {
 type ServerConfig struct {
 	Port            string     `mapstructure:"port"`
 	BasePath        string     `mapstructure:"base_path"`
+	PublicURL       string     `mapstructure:"public_url"` // Public-facing URL for signing links in emails
 	ReadTimeout     int        `mapstructure:"read_timeout"`
 	WriteTimeout    int        `mapstructure:"write_timeout"`
 	ShutdownTimeout int        `mapstructure:"shutdown_timeout"`
@@ -247,4 +249,11 @@ type NotificationConfig struct {
 	Port     int    `mapstructure:"port"`     // SMTP port
 	Username string `mapstructure:"username"` // SMTP username
 	Password string `mapstructure:"password"` // SMTP password
+}
+
+// PublicAccessConfig holds configuration for public document access (email-verification gate).
+type PublicAccessConfig struct {
+	RateLimitMax       int `mapstructure:"rate_limit_max"`        // Max access requests per recipient per window
+	RateLimitWindowMin int `mapstructure:"rate_limit_window_min"` // Rate limit window in minutes
+	TokenTTLHours      int `mapstructure:"token_ttl_hours"`       // Access token TTL in hours
 }

@@ -30,35 +30,38 @@ func NewDocumentService(
 	notificationSvc *NotificationService,
 	expirationDays int,
 	accessTokenRepo port.DocumentAccessTokenRepository,
+	fieldResponseRepo port.DocumentFieldResponseRepository,
 ) documentuc.DocumentUseCase {
 	return &DocumentService{
-		documentRepo:    documentRepo,
-		recipientRepo:   recipientRepo,
-		versionRepo:     versionRepo,
-		signerRoleRepo:  signerRoleRepo,
-		pdfRenderer:     pdfRenderer,
-		signingProvider: signingProvider,
-		storageAdapter:  storageAdapter,
-		eventEmitter:    eventEmitter,
-		notificationSvc: notificationSvc,
-		expirationDays:  expirationDays,
-		accessTokenRepo: accessTokenRepo,
+		documentRepo:      documentRepo,
+		recipientRepo:     recipientRepo,
+		versionRepo:       versionRepo,
+		signerRoleRepo:    signerRoleRepo,
+		pdfRenderer:       pdfRenderer,
+		signingProvider:   signingProvider,
+		storageAdapter:    storageAdapter,
+		eventEmitter:      eventEmitter,
+		notificationSvc:   notificationSvc,
+		expirationDays:    expirationDays,
+		accessTokenRepo:   accessTokenRepo,
+		fieldResponseRepo: fieldResponseRepo,
 	}
 }
 
 // DocumentService implements document business logic.
 type DocumentService struct {
-	documentRepo    port.DocumentRepository
-	recipientRepo   port.DocumentRecipientRepository
-	versionRepo     port.TemplateVersionRepository
-	signerRoleRepo  port.TemplateVersionSignerRoleRepository
-	pdfRenderer     port.PDFRenderer
-	signingProvider port.SigningProvider
-	storageAdapter  port.StorageAdapter
-	eventEmitter    *EventEmitter
-	notificationSvc *NotificationService
-	expirationDays  int
-	accessTokenRepo port.DocumentAccessTokenRepository
+	documentRepo      port.DocumentRepository
+	recipientRepo     port.DocumentRecipientRepository
+	versionRepo       port.TemplateVersionRepository
+	signerRoleRepo    port.TemplateVersionSignerRoleRepository
+	pdfRenderer       port.PDFRenderer
+	signingProvider   port.SigningProvider
+	storageAdapter    port.StorageAdapter
+	eventEmitter      *EventEmitter
+	notificationSvc   *NotificationService
+	expirationDays    int
+	accessTokenRepo   port.DocumentAccessTokenRepository
+	fieldResponseRepo port.DocumentFieldResponseRepository
 }
 
 // CreateAndSendDocument creates a document, generates the PDF, and sends it for signing.
@@ -69,8 +72,7 @@ func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documen
 		return nil, err
 	}
 
-	version, roleMap, err := s.validateTemplateAndRoles(ctx, cmd)
-	if err != nil {
+	if _, _, err := s.validateTemplateAndRoles(ctx, cmd); err != nil {
 		return nil, err
 	}
 
@@ -84,36 +86,13 @@ func (s *DocumentService) CreateAndSendDocument(ctx context.Context, cmd documen
 		return nil, err
 	}
 
-	// Check if document should enter the pre-signing (AWAITING_INPUT) flow.
-	if s.shouldAwaitInput(version, roleMap) {
-		if err := s.transitionToAwaitingInput(ctx, document, version, recipients, roleMap); err != nil {
-			return nil, err
-		}
-		return &entity.DocumentWithRecipients{
-			Document:   *document,
-			Recipients: recipients,
-		}, nil
-	}
-
-	pdfData, sigFields, err := s.renderPDF(ctx, version, cmd)
-	if err != nil {
+	// All documents enter AWAITING_INPUT. Tokens are generated on-demand
+	// via the email-verification flow (DocumentAccessService).
+	if err := s.transitionToAwaitingInput(ctx, document); err != nil {
 		return nil, err
 	}
 
-	err = s.sendToSigningProvider(ctx, document, recipients, roleMap, cmd, pdfData, sigFields)
-	if err != nil {
-		return nil, err
-	}
-
-	slog.InfoContext(ctx, "document created and sent for signing",
-		slog.String("document_id", document.ID),
-		slog.String("provider_document_id", *document.SignerDocumentID),
-		slog.String("provider", *document.SignerProvider),
-		slog.Int("recipient_count", len(recipients)),
-	)
-
-	s.eventEmitter.EmitDocumentEvent(ctx, document.ID, entity.EventDocumentCreated, entity.ActorUser, "", "", string(entity.DocumentStatusDraft), nil)
-	s.eventEmitter.EmitDocumentEvent(ctx, document.ID, entity.EventDocumentSent, entity.ActorSystem, "", string(entity.DocumentStatusDraft), string(entity.DocumentStatusPending), nil)
+	s.notificationSvc.NotifyDocumentCreated(ctx, document.ID)
 
 	return &entity.DocumentWithRecipients{
 		Document:   *document,
@@ -262,8 +241,10 @@ func (s *DocumentService) createRecipients(ctx context.Context, docID string, cm
 	return recipients, nil
 }
 
-// renderPDF generates the PDF for the document and returns extracted signature field positions.
-func (s *DocumentService) renderPDF(ctx context.Context, version *entity.TemplateVersion, cmd documentuc.CreateDocumentCommand) ([]byte, []port.SignatureField, error) {
+// renderPDF generates the PDF for the document and returns extracted signature field positions
+// along with the portable doc signer roles (for anchor resolution).
+// documentID is used to load field responses for documents with interactive fields.
+func (s *DocumentService) renderPDF(ctx context.Context, version *entity.TemplateVersion, cmd documentuc.CreateDocumentCommand, documentID string) ([]byte, []port.SignatureField, []portabledoc.SignerRole, error) {
 	signerRoleValues := make(map[string]port.SignerRoleValue)
 	for _, r := range cmd.Recipients {
 		signerRoleValues[r.RoleID] = port.SignerRoleValue{
@@ -275,22 +256,25 @@ func (s *DocumentService) renderPDF(ctx context.Context, version *entity.Templat
 	renderReq := &port.RenderPreviewRequest{
 		Injectables:      cmd.InjectedValues,
 		SignerRoleValues: signerRoleValues,
+		FieldResponses:   loadFieldResponseMap(ctx, s.fieldResponseRepo, documentID),
 	}
 
+	var portableDocRoles []portabledoc.SignerRole
 	if version.ContentStructure != nil {
 		doc, err := parsePortableDocument(version.ContentStructure)
 		if err != nil {
-			return nil, nil, fmt.Errorf("parsing document content: %w", err)
+			return nil, nil, nil, fmt.Errorf("parsing document content: %w", err)
 		}
 		renderReq.Document = doc
+		portableDocRoles = doc.SignerRoles
 	}
 
 	renderResult, err := s.pdfRenderer.RenderPreview(ctx, renderReq)
 	if err != nil {
-		return nil, nil, fmt.Errorf("rendering PDF: %w", err)
+		return nil, nil, nil, fmt.Errorf("rendering PDF: %w", err)
 	}
 
-	return renderResult.PDF, renderResult.SignatureFields, nil
+	return renderResult.PDF, renderResult.SignatureFields, portableDocRoles, nil
 }
 
 // sendToSigningProvider uploads the document to the signing provider and updates statuses.
@@ -302,10 +286,15 @@ func (s *DocumentService) sendToSigningProvider(
 	cmd documentuc.CreateDocumentCommand,
 	pdfData []byte,
 	sigFields []port.SignatureField,
+	portableDocRoles []portabledoc.SignerRole,
 ) error {
 	signingRecipients := s.buildSigningRecipients(cmd.Recipients, roleMap)
 
-	signatureFields := s.mapExtractedSignatureFields(sigFields, roleMap)
+	roles := make([]*entity.TemplateVersionSignerRole, 0, len(roleMap))
+	for _, role := range roleMap {
+		roles = append(roles, role)
+	}
+	signatureFields := mapSignatureFieldPositions(sigFields, roles, portableDocRoles)
 	if len(signatureFields) == 0 {
 		signatureFields = s.buildSignatureFieldPositions(cmd.Recipients)
 	}
@@ -373,47 +362,6 @@ func convertFieldToProviderPosition(f port.SignatureField) (posX, posY float64) 
 	posX = max(0, min(posX, 100-f.Width))
 	posY = max(0, min(posY, 100-f.Height))
 	return posX, posY
-}
-
-// mapExtractedSignatureFields maps PDF-extracted signature fields to signing provider positions.
-// Converts portable doc role IDs to DB role IDs via AnchorString matching.
-// If raw PDF coordinates are available, converts them to provider percentages with Y offset.
-func (s *DocumentService) mapExtractedSignatureFields(
-	fields []port.SignatureField,
-	roleMap map[string]*entity.TemplateVersionSignerRole,
-) []port.SignatureFieldPosition {
-	if len(fields) == 0 {
-		return nil
-	}
-
-	// Build reverse map: anchorString → DB role ID
-	anchorToRoleID := make(map[string]string, len(roleMap))
-	for _, role := range roleMap {
-		if role.AnchorString != "" {
-			anchorToRoleID[role.AnchorString] = role.ID
-		}
-	}
-
-	positions := make([]port.SignatureFieldPosition, 0, len(fields))
-	for _, f := range fields {
-		dbRoleID, ok := anchorToRoleID[f.AnchorString]
-		if !ok || dbRoleID == "" {
-			continue
-		}
-
-		posX, posY := convertFieldToProviderPosition(f)
-
-		positions = append(positions, port.SignatureFieldPosition{
-			RoleID:    dbRoleID,
-			Page:      f.Page,
-			PositionX: posX,
-			PositionY: posY,
-			Width:     f.Width,
-			Height:    f.Height,
-		})
-	}
-
-	return positions
 }
 
 // buildSignatureFieldPositions generates default signature field positions for recipients.
@@ -800,10 +748,7 @@ func (s *DocumentService) uploadPendingProviderDocument(ctx context.Context, doc
 		return fmt.Errorf("loading recipients for document %s: %w", doc.ID, err)
 	}
 
-	title := doc.ID
-	if doc.Title != nil {
-		title = *doc.Title
-	}
+	title := documentTitle(doc)
 
 	result, err := s.signingProvider.UploadDocument(ctx, &port.UploadDocumentRequest{
 		PDF:        pdfData,
@@ -1129,7 +1074,7 @@ func (s *DocumentService) retryWithResend(ctx context.Context, doc *entity.Docum
 
 	cmd := s.buildRetryCommand(doc, recipients)
 
-	pdfData, sigFields, err := s.renderPDF(ctx, version, cmd)
+	pdfData, sigFields, portableDocRoles, err := s.renderPDF(ctx, version, cmd, doc.ID)
 	if err != nil {
 		slog.WarnContext(ctx, "retry: failed to render PDF",
 			slog.String("document_id", doc.ID),
@@ -1139,7 +1084,7 @@ func (s *DocumentService) retryWithResend(ctx context.Context, doc *entity.Docum
 		return
 	}
 
-	if err := s.sendToSigningProvider(ctx, doc, recipients, roleMap, cmd, pdfData, sigFields); err != nil {
+	if err := s.sendToSigningProvider(ctx, doc, recipients, roleMap, cmd, pdfData, sigFields, portableDocRoles); err != nil {
 		slog.WarnContext(ctx, "retry: failed to send to signing provider",
 			slog.String("document_id", doc.ID),
 			slog.String("error", err.Error()),
@@ -1259,30 +1204,6 @@ func parsePortableDocument(content json.RawMessage) (*portabledoc.Document, erro
 	return portabledoc.Parse(content)
 }
 
-// shouldAwaitInput checks whether the document should enter the AWAITING_INPUT flow.
-// This is true when the template content contains interactive fields AND there is
-// exactly one unsigned signer role (i.e., one "real" signer who hasn't pre-signed).
-func (s *DocumentService) shouldAwaitInput(
-	version *entity.TemplateVersion,
-	_ map[string]*entity.TemplateVersionSignerRole,
-) bool {
-	if version.ContentStructure == nil {
-		return false
-	}
-
-	doc, err := parsePortableDocument(version.ContentStructure)
-	if err != nil {
-		return false
-	}
-
-	if !doc.HasNodeOfType(portabledoc.NodeTypeInteractiveField) {
-		return false
-	}
-
-	unsignedCount := countUnsignedSigners(doc)
-	return unsignedCount == 1
-}
-
 // countUnsignedSigners walks all signature nodes in the document and counts
 // signature items that do NOT already have an image (i.e., are not pre-signed).
 func countUnsignedSigners(doc *portabledoc.Document) int {
@@ -1310,14 +1231,11 @@ func extractSignatureItems(node portabledoc.Node) ([]portabledoc.SignatureItem, 
 	return sa.Signatures, true
 }
 
-// transitionToAwaitingInput marks the document as AWAITING_INPUT and creates an access token
-// for the real signer (the single unsigned recipient).
+// transitionToAwaitingInput marks the document as AWAITING_INPUT.
+// Tokens are now generated on-demand via the email-verification flow (DocumentAccessService).
 func (s *DocumentService) transitionToAwaitingInput(
 	ctx context.Context,
 	document *entity.Document,
-	version *entity.TemplateVersion,
-	recipients []*entity.DocumentRecipient,
-	roleMap map[string]*entity.TemplateVersionSignerRole,
 ) error {
 	if err := document.MarkAsAwaitingInput(); err != nil {
 		return fmt.Errorf("marking document as awaiting input: %w", err)
@@ -1327,123 +1245,13 @@ func (s *DocumentService) transitionToAwaitingInput(
 		return fmt.Errorf("updating document to awaiting input: %w", err)
 	}
 
-	// Find the single real signer recipient.
-	recipientID := findRealSignerRecipientID(version, recipients, roleMap)
-	if recipientID == "" && len(recipients) > 0 {
-		// Fallback: use first recipient if we cannot determine the unsigned one.
-		recipientID = recipients[0].ID
-	}
-
-	token, err := generateAccessToken()
-	if err != nil {
-		return fmt.Errorf("generating access token: %w", err)
-	}
-
-	ttlDays := portabledoc.DefaultPreSigningTTLDays
-	if version.ContentStructure != nil {
-		doc, parseErr := parsePortableDocument(version.ContentStructure)
-		if parseErr == nil && doc.SigningWorkflow != nil && doc.SigningWorkflow.PreSigningTTLDays > 0 {
-			ttlDays = doc.SigningWorkflow.PreSigningTTLDays
-		}
-	}
-
-	accessToken := &entity.DocumentAccessToken{
-		DocumentID:  document.ID,
-		RecipientID: recipientID,
-		Token:       token,
-		ExpiresAt:   time.Now().UTC().Add(time.Duration(ttlDays) * 24 * time.Hour),
-		CreatedAt:   time.Now().UTC(),
-	}
-
-	if err := s.accessTokenRepo.Create(ctx, accessToken); err != nil {
-		return fmt.Errorf("creating access token: %w", err)
-	}
-
 	s.eventEmitter.EmitDocumentEvent(ctx, document.ID, entity.EventDocumentCreated, entity.ActorUser, "", "", string(entity.DocumentStatusDraft), nil)
 
-	slog.InfoContext(ctx, "document awaiting interactive field input",
+	slog.InfoContext(ctx, "document awaiting input",
 		slog.String("document_id", document.ID),
-		slog.String("recipient_id", recipientID),
-		slog.Int("ttl_days", ttlDays),
 	)
 
 	return nil
-}
-
-// findRealSignerRecipientID matches the unsigned signer role from the portable doc to a
-// document recipient and returns its ID. Uses the roleMap to bridge portable doc role IDs
-// to DB signer role IDs via anchor strings.
-func findRealSignerRecipientID(
-	version *entity.TemplateVersion,
-	recipients []*entity.DocumentRecipient,
-	roleMap map[string]*entity.TemplateVersionSignerRole,
-) string {
-	if version.ContentStructure == nil {
-		return ""
-	}
-
-	doc, err := parsePortableDocument(version.ContentStructure)
-	if err != nil {
-		return ""
-	}
-
-	anchorToDBRoleID := buildAnchorToDBRoleMap(roleMap)
-	unsignedPortableRoleIDs := collectUnsignedPortableRoleIDs(doc)
-
-	return matchUnsignedRoleToRecipient(doc.SignerRoles, unsignedPortableRoleIDs, anchorToDBRoleID, recipients)
-}
-
-// buildAnchorToDBRoleMap builds a reverse map from anchor string to DB role ID.
-func buildAnchorToDBRoleMap(roleMap map[string]*entity.TemplateVersionSignerRole) map[string]string {
-	m := make(map[string]string, len(roleMap))
-	for _, role := range roleMap {
-		if role.AnchorString != "" {
-			m[role.AnchorString] = role.ID
-		}
-	}
-	return m
-}
-
-// collectUnsignedPortableRoleIDs finds portable doc role IDs that have no pre-signed image.
-func collectUnsignedPortableRoleIDs(doc *portabledoc.Document) map[string]bool {
-	ids := make(map[string]bool)
-	for _, node := range doc.CollectNodesOfType(portabledoc.NodeTypeSignature) {
-		sigs, ok := extractSignatureItems(node)
-		if !ok {
-			continue
-		}
-		for _, sig := range sigs {
-			if !sig.IsSigned() && sig.HasRole() {
-				ids[sig.GetRoleID()] = true
-			}
-		}
-	}
-	return ids
-}
-
-// matchUnsignedRoleToRecipient maps an unsigned portable doc role to its document recipient ID.
-func matchUnsignedRoleToRecipient(
-	signerRoles []portabledoc.SignerRole,
-	unsignedIDs map[string]bool,
-	anchorToDBRoleID map[string]string,
-	recipients []*entity.DocumentRecipient,
-) string {
-	for _, sr := range signerRoles {
-		if !unsignedIDs[sr.ID] {
-			continue
-		}
-		anchor := portabledoc.GenerateAnchorString(sr.Label)
-		dbRoleID := anchorToDBRoleID[anchor]
-		if dbRoleID == "" {
-			continue
-		}
-		for _, r := range recipients {
-			if r.TemplateVersionRoleID == dbRoleID {
-				return r.ID
-			}
-		}
-	}
-	return ""
 }
 
 // generateAccessToken creates a cryptographically random hex-encoded token (128 chars).

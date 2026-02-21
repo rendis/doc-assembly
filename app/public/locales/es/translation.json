@@ -1597,17 +1597,15 @@
         "copySigningUrl": "Copiar URL de Firma",
         "remind": "Enviar Recordatorio"
       },
-      "preSigningLink": "Enlace de Pre-Firma",
+      "publicDocLink": "Enlace Público del Documento",
       "copyLink": "Copiar Enlace",
       "copied": "Copiado",
       "linkCopied": "Enlace copiado al portapapeles",
       "copyError": "Error al copiar el enlace",
-      "regenerateLink": "Regenerar Enlace",
-      "regenerateWarning": "Regenerar invalidará el enlace actual. El firmante necesitará el nuevo enlace para acceder al formulario.",
-      "tokenRegenerated": "Nuevo enlace generado exitosamente",
-      "regenerateError": "Error al regenerar el enlace",
-      "tokenExpires": "Expira: {{date}}",
-      "awaitingInputMessage": "Esperando que el firmante complete los campos interactivos.",
+      "invalidateTokens": "Invalidar Tokens",
+      "invalidateWarning": "Esto invalidará todos los tokens de acceso activos. Los destinatarios deberán solicitar un nuevo enlace por correo electrónico.",
+      "tokensInvalidated": "Tokens invalidados exitosamente",
+      "invalidateError": "Error al invalidar tokens",
       "fieldResponses": "Respuestas de Campos"
     },
     "cancel": {
@@ -1684,12 +1682,54 @@
       "alreadyUsedTitle": "Ya Completado",
       "serverError": "Algo salio mal. Intenta de nuevo mas tarde.",
       "errorTitle": "Error",
-      "submitFailed": "No se pudieron enviar tus respuestas. Intenta de nuevo."
+      "submitFailed": "No se pudieron enviar tus respuestas. Intenta de nuevo.",
+      "iframeLoadFailed": "No se pudo cargar la interfaz de firma. Actualiza la pagina o intenta mas tarde."
+    },
+    "loadingSigning": "Cargando interfaz de firma...",
+    "completed": {
+      "title": "Firma Completada",
+      "message": "\"{{title}}\" ha sido firmado exitosamente. Puedes cerrar esta pagina."
+    },
+    "declined": {
+      "title": "Firma Rechazada",
+      "message": "Has rechazado firmar \"{{title}}\". Si fue un error, contacta al remitente."
+    },
+    "waiting": {
+      "title": "Esperando Firmantes Anteriores",
+      "message": "Eres el firmante {{position}} de {{total}}. El documento estara listo para tu firma una vez que los firmantes anteriores hayan completado.",
+      "autoRefresh": "Esta pagina se actualizara automaticamente."
+    },
+    "preview": {
+      "readyToSign": "Este documento esta listo para que {{name}} firme.",
+      "proceedToSigning": "Proceder a Firmar",
+      "pdfLoading": "Cargando vista previa del documento...",
+      "pdfError": "No se pudo cargar la vista previa del documento",
+      "pageOf": "Pagina {{current}} de {{total}}"
+    },
+    "proceeding": {
+      "title": "Preparando documento para firma...",
+      "warning": "Por favor no cierre ni actualice esta pagina"
     },
     "success": {
       "title": "Contrato Generado",
       "message": "Tus respuestas han sido registradas y el contrato ha sido generado. Seras redirigido para firmar el documento.",
       "goToSigning": "Ir a Firmar"
+    },
+    "access": {
+      "title": "Verifica Tu Correo",
+      "description": "Ingresa tu correo electronico para recibir un enlace seguro de firma.",
+      "emailLabel": "Correo electronico",
+      "emailPlaceholder": "tu@ejemplo.com",
+      "sendLink": "Enviar Enlace de Firma",
+      "sending": "Enviando...",
+      "checkEmail": "Revisa Tu Correo",
+      "checkEmailDescription": "Si tu correo esta asociado con este documento, recibiras un enlace de firma en breve. Revisa tu bandeja de entrada (y la carpeta de spam).",
+      "requestAgain": "Solicitar de Nuevo",
+      "requestAgainIn": "Solicitar de nuevo en {{seconds}}s",
+      "notFound": "Documento No Encontrado",
+      "notFoundDescription": "Este documento no existe o ya no esta disponible.",
+      "unavailable": "Documento No Disponible",
+      "unavailableDescription": "Este documento ya no esta disponible para firma."
     }
   }
 }

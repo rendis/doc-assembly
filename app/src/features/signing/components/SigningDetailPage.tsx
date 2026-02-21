@@ -15,7 +15,7 @@ import {
   Loader2,
   Copy,
   Link,
-  RotateCw,
+  ShieldOff,
   CheckCircle2,
   User,
   Mail,
@@ -29,7 +29,7 @@ import { signingApi } from '../api/signing-api'
 import {
   useSigningDocument,
   useRefreshDocument,
-  useRegenerateToken,
+  useInvalidateTokens,
 } from '../hooks/useSigningDocuments'
 import { SigningStatusBadge } from './SigningStatusBadge'
 import { RecipientTable } from './RecipientTable'
@@ -67,12 +67,12 @@ export function SigningDetailPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [eventsOpen, setEventsOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false)
+  const [invalidateConfirmOpen, setInvalidateConfirmOpen] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
   const { data: document, isLoading, error } = useSigningDocument(documentId)
   const refreshMutation = useRefreshDocument()
-  const regenerateTokenMutation = useRegenerateToken()
+  const invalidateTokensMutation = useInvalidateTokens()
 
   const handleBackToList = () => {
     const wsId = currentWorkspace?.id ?? workspaceId
@@ -127,10 +127,11 @@ export function SigningDetailPage() {
     }
   }
 
+  const publicDocUrl = `${window.location.origin}${import.meta.env.VITE_BASE_PATH || ''}/public/doc/${documentId}`
+
   const handleCopyLink = async () => {
-    if (!document?.preSigningUrl) return
     try {
-      await navigator.clipboard.writeText(document.preSigningUrl)
+      await navigator.clipboard.writeText(publicDocUrl)
       setLinkCopied(true)
       toast({
         title: t('signing.detail.linkCopied', 'Link copied to clipboard'),
@@ -148,14 +149,14 @@ export function SigningDetailPage() {
     }
   }
 
-  const handleRegenerateToken = async () => {
+  const handleInvalidateTokens = async () => {
     try {
-      await regenerateTokenMutation.mutateAsync(documentId)
-      setRegenerateConfirmOpen(false)
+      await invalidateTokensMutation.mutateAsync(documentId)
+      setInvalidateConfirmOpen(false)
       toast({
         title: t(
-          'signing.detail.tokenRegenerated',
-          'New link generated successfully',
+          'signing.detail.tokensInvalidated',
+          'Tokens invalidated successfully',
         ),
       })
     } catch {
@@ -163,8 +164,8 @@ export function SigningDetailPage() {
         variant: 'destructive',
         title: t('common.error', 'Error'),
         description: t(
-          'signing.detail.regenerateError',
-          'Failed to regenerate link',
+          'signing.detail.invalidateError',
+          'Failed to invalidate tokens',
         ),
       })
     }
@@ -355,12 +356,12 @@ export function SigningDetailPage() {
               </dl>
             </div>
 
-            {/* Pre-Signing Link (AWAITING_INPUT) */}
-            {isAwaitingInput && document.preSigningUrl && (
+            {/* Public Document Link (AWAITING_INPUT) */}
+            {isAwaitingInput && (
               <div className="border border-amber-500/30 bg-amber-500/5 p-6">
                 <h2 className="mb-4 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-widest text-amber-600 dark:text-amber-400">
                   <Link size={12} />
-                  {t('signing.detail.preSigningLink', 'Pre-Signing Link')}
+                  {t('signing.detail.publicDocLink', 'Public Document Link')}
                 </h2>
 
                 {/* Recipient info */}
@@ -379,17 +380,8 @@ export function SigningDetailPage() {
 
                 {/* URL display */}
                 <div className="mb-3 break-all rounded-sm border border-border bg-background p-3 font-mono text-xs text-muted-foreground">
-                  {document.preSigningUrl}
+                  {publicDocUrl}
                 </div>
-
-                {/* Token expiry */}
-                {document.accessToken?.expiresAt && (
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    {t('signing.detail.tokenExpires', 'Expires: {{date}}', {
-                      date: formatDate(document.accessToken.expiresAt),
-                    })}
-                  </p>
-                )}
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
@@ -408,44 +400,37 @@ export function SigningDetailPage() {
                   </button>
 
                   <button
-                    onClick={() => setRegenerateConfirmOpen(true)}
-                    disabled={regenerateTokenMutation.isPending}
+                    onClick={() => setInvalidateConfirmOpen(true)}
+                    disabled={invalidateTokensMutation.isPending}
                     className="inline-flex items-center gap-2 rounded-none border border-border px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
                   >
-                    <RotateCw
-                      size={12}
-                      className={
-                        regenerateTokenMutation.isPending
-                          ? 'animate-spin'
-                          : ''
-                      }
-                    />
-                    {t('signing.detail.regenerateLink', 'Regenerate Link')}
+                    <ShieldOff size={12} />
+                    {t('signing.detail.invalidateTokens', 'Invalidate Tokens')}
                   </button>
                 </div>
 
-                {/* Regenerate confirmation */}
-                {regenerateConfirmOpen && (
+                {/* Invalidate confirmation */}
+                {invalidateConfirmOpen && (
                   <div className="mt-3 rounded-sm border border-destructive/30 bg-destructive/5 p-3">
                     <p className="mb-3 text-sm text-destructive">
                       {t(
-                        'signing.detail.regenerateWarning',
-                        'Regenerating will invalidate the current link. The signer will need the new link to access the form.',
+                        'signing.detail.invalidateWarning',
+                        'This will invalidate all active access tokens. Recipients will need to request a new link via email.',
                       )}
                     </p>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setRegenerateConfirmOpen(false)}
+                        onClick={() => setInvalidateConfirmOpen(false)}
                         className="rounded-none border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
                       >
                         {t('common.cancel', 'Cancel')}
                       </button>
                       <button
-                        onClick={handleRegenerateToken}
-                        disabled={regenerateTokenMutation.isPending}
+                        onClick={handleInvalidateTokens}
+                        disabled={invalidateTokensMutation.isPending}
                         className="inline-flex items-center gap-1 rounded-none bg-destructive px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
                       >
-                        {regenerateTokenMutation.isPending && (
+                        {invalidateTokensMutation.isPending && (
                           <Loader2 size={10} className="animate-spin" />
                         )}
                         {t('common.confirm', 'Confirm')}
@@ -453,18 +438,6 @@ export function SigningDetailPage() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Awaiting input message (when no preSigningUrl yet) */}
-            {isAwaitingInput && !document.preSigningUrl && (
-              <div className="border border-amber-500/30 bg-amber-500/5 p-6">
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  {t(
-                    'signing.detail.awaitingInputMessage',
-                    'Waiting for signer to complete interactive fields.',
-                  )}
-                </p>
               </div>
             )}
 

@@ -41,6 +41,25 @@ export default defineConfig(() => {
           target: 'http://localhost:8080',
           changeOrigin: true,
         },
+        [`${proxyPrefix}/public/sign`]: {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          // Only proxy XHR/fetch requests (not browser navigation)
+          bypass(req) {
+            if (req.headers.accept?.includes('text/html')) {
+              return req.url // Skip proxy, let Vite serve the SPA
+            }
+          },
+        },
+        [`${proxyPrefix}/public/doc`]: {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          bypass(req) {
+            if (req.headers.accept?.includes('text/html')) {
+              return req.url
+            }
+          },
+        },
         [`${proxyPrefix}/health`]: {
           target: 'http://localhost:8080',
         },

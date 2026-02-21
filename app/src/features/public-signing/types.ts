@@ -1,8 +1,8 @@
 /**
- * Types for the public pre-signing page.
+ * Types for the public signing page.
  *
  * These mirror the backend DTO returned by GET /public/sign/:token
- * and the request body for POST /public/sign/:token.
+ * and the request/response bodies for the signing flow endpoints.
  */
 
 export interface InteractiveFieldOption {
@@ -30,14 +30,31 @@ export interface SignerInfo {
 
 export interface PreSigningFormData {
   documentTitle: string
-  operatorName: string
-  signer: SignerInfo
+  documentStatus: string
+  recipientName: string
+  recipientEmail: string
+  roleId: string
   /** ProseMirror JSON document content with injectors already resolved */
   content: Record<string, unknown>
   /** Interactive field definitions that belong to THIS signer */
   fields: InteractiveFieldDefinition[]
-  /** All interactive field definitions (including other roles) */
-  allFields: InteractiveFieldDefinition[]
+}
+
+/**
+ * PublicSigningResponse mirrors the backend PublicSigningResponse.
+ * The `step` field determines which UI to render.
+ */
+export interface PublicSigningResponse {
+  step: 'preview' | 'signing' | 'waiting' | 'completed' | 'declined'
+  form?: PreSigningFormData
+  pdfUrl?: string
+  embeddedSigningUrl?: string
+  documentTitle: string
+  recipientName: string
+  waitingForPrevious?: boolean
+  signingPosition?: number
+  totalSigners?: number
+  fallbackUrl?: string
 }
 
 export interface FieldResponsePayload {
@@ -49,8 +66,14 @@ export interface FieldResponsePayload {
   }
 }
 
-export interface SubmitPreSigningResponse {
-  signingUrl: string
+/**
+ * DocumentAccessInfo mirrors the backend PublicDocumentInfoResponse.
+ * Used by the public document access page (email-verification gate).
+ */
+export interface DocumentAccessInfo {
+  documentId: string
+  documentTitle: string
+  status: 'active' | 'completed' | 'expired'
 }
 
 /**

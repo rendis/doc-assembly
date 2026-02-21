@@ -48,6 +48,14 @@ const (
 		WHERE document_id = $1 AND template_version_role_id = $2
 	`
 
+	queryFindByDocumentAndEmail = `
+		SELECT id, document_id, template_version_role_id, name, email,
+			   signer_recipient_id, signing_url, status, signed_at, created_at, updated_at
+		FROM execution.document_recipients
+		WHERE document_id = $1 AND LOWER(email) = LOWER($2)
+		LIMIT 1
+	`
+
 	queryUpdate = `
 		UPDATE execution.document_recipients
 		SET name = $2, email = $3, signer_recipient_id = $4, signing_url = $5, status = $6,

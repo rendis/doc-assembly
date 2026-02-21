@@ -205,13 +205,14 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 
 	// --- Services: Document ---
 	eventEmitter := documentsvc.NewEventEmitter(documentEventRepo)
-	notificationSvc := documentsvc.NewNotificationService(notificationProvider, documentRecipientRepo, documentRepo)
+	publicURL := cfg.Server.PublicURL
+	notificationSvc := documentsvc.NewNotificationService(notificationProvider, documentRecipientRepo, documentRepo, documentAccessTokenRepo, publicURL)
 	documentSvc := documentsvc.NewDocumentService(
 		documentRepo, documentRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
 		pdfRenderer, signingProvider, storageAdapter,
 		eventEmitter, notificationSvc,
 		cfg.Scheduler.ExpirationDays,
-		documentAccessTokenRepo,
+		documentAccessTokenRepo, documentFieldResponseRepo,
 	)
 	injectableResolver := injectablesvc.NewInjectableResolverService(injReg)
 	documentGenerator := documentsvc.NewDocumentGenerator(
@@ -225,7 +226,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	preSigningSvc := documentsvc.NewPreSigningService(
 		documentAccessTokenRepo, documentFieldResponseRepo,
 		documentRepo, documentRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
-		pdfRenderer, signingProvider, storageAdapter, eventEmitter,
+		pdfRenderer, signingProvider, storageAdapter, eventEmitter, publicURL,
 	)
 
 	// --- Use Cases: Automation ---
@@ -256,7 +257,26 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	documentCtrl := controller.NewDocumentController(documentSvc, preSigningSvc, eventEmitter)
 	webhookCtrl := controller.NewWebhookController(documentSvc, webhookHandlers)
 	internalDocCtrl := controller.NewInternalDocumentController(internalDocSvc)
-	publicSigningCtrl := controller.NewPublicSigningController(preSigningSvc)
+	// --- Document Access Service (email-verification gate) ---
+	paCfg := &cfg.PublicAccess
+	rateLimitMax := paCfg.RateLimitMax
+	if rateLimitMax <= 0 {
+		rateLimitMax = 3
+	}
+	rateLimitWindowMin := paCfg.RateLimitWindowMin
+	if rateLimitWindowMin <= 0 {
+		rateLimitWindowMin = 60
+	}
+	tokenTTLHours := paCfg.TokenTTLHours
+	if tokenTTLHours <= 0 {
+		tokenTTLHours = 48
+	}
+	documentAccessSvc := documentsvc.NewDocumentAccessService(
+		documentRepo, documentRecipientRepo, templateVersionRepo, documentAccessTokenRepo,
+		notificationSvc, publicURL, rateLimitMax, rateLimitWindowMin, tokenTTLHours,
+	)
+	publicDocAccessCtrl := controller.NewPublicDocumentAccessController(documentAccessSvc)
+	publicSigningCtrl := controller.NewPublicSigningController(preSigningSvc, publicURL)
 	automationKeyCtrl := controller.NewAutomationKeyController(automationAPIKeyUC)
 	automationCtrl := controller.NewAutomationController(
 		tenantSvc, workspaceSvc, injectableSvc,
@@ -285,6 +305,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		documentCtrl,
 		webhookCtrl,
 		internalDocCtrl,
+		publicDocAccessCtrl,
 		publicSigningCtrl,
 		automationKeyCtrl,
 		automationCtrl,

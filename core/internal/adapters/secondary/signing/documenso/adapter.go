@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
@@ -390,6 +391,28 @@ func (a *Adapter) GetSigningURL(ctx context.Context, req *port.GetSigningURLRequ
 	}
 
 	return nil, fmt.Errorf("recipient %s not found in envelope", req.ProviderRecipientID)
+}
+
+// GetEmbeddedSigningURL returns the signing URL suitable for iframe embedding.
+// Documenso does not natively support redirect-based callbacks, so CallbackURL is ignored.
+// Detection of completion relies on webhooks + polling.
+func (a *Adapter) GetEmbeddedSigningURL(ctx context.Context, req *port.GetEmbeddedSigningURLRequest) (*port.GetEmbeddedSigningURLResult, error) {
+	signingResult, err := a.GetSigningURL(ctx, &port.GetSigningURLRequest{
+		ProviderDocumentID:  req.ProviderDocumentID,
+		ProviderRecipientID: req.ProviderRecipientID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Replace /sign/ with /embed/sign/ for iframe embedding
+	embeddedURL := strings.Replace(signingResult.SigningURL, "/sign/", "/embed/sign/", 1)
+
+	return &port.GetEmbeddedSigningURLResult{
+		EmbeddedURL:    embeddedURL,
+		FrameSrcDomain: a.config.SigningBaseURL,
+		ExpiresAt:      signingResult.ExpiresAt,
+	}, nil
 }
 
 // GetDocumentStatus retrieves the current status of a document from Documenso.

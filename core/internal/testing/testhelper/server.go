@@ -150,14 +150,15 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	storageAdapter, err := localstorage.New(storageDir)
 	require.NoError(t, err, "failed to create local storage adapter")
 
-	// Event emitter + notification
-	eventEmitter := documentsvc.NewEventEmitter(docEventRepo)
-	noopNotifier := noopnotification.New()
-	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo)
-
 	// Access token repo + field response repo
 	docAccessTokenRepo := documentaccesstokenrepo.New(pool)
 	docFieldResponseRepo := documentfieldresponserepo.New(pool)
+
+	// Event emitter + notification
+	eventEmitter := documentsvc.NewEventEmitter(docEventRepo)
+	noopNotifier := noopnotification.New()
+	testPublicURL := "http://localhost:8080"
+	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo, docAccessTokenRepo, testPublicURL)
 
 	// Document service
 	documentService := documentsvc.NewDocumentService(
@@ -172,6 +173,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		notificationSvc,
 		30, // expirationDays
 		docAccessTokenRepo,
+		docFieldResponseRepo,
 	)
 
 	// Pre-signing service
@@ -179,6 +181,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		docAccessTokenRepo, docFieldResponseRepo,
 		docRepo, docRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
 		mockPDFRenderer, mockSigningAdapter, storageAdapter, eventEmitter,
+		testPublicURL,
 	)
 
 	// Create mappers
@@ -227,7 +230,13 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Create controllers - Document & Webhook
 	documentController := controller.NewDocumentController(documentService, preSigningService, eventEmitter)
-	publicSigningController := controller.NewPublicSigningController(preSigningService)
+	// Document access service (email-verification gate)
+	documentAccessService := documentsvc.NewDocumentAccessService(
+		docRepo, docRecipientRepo, templateVersionRepo, docAccessTokenRepo,
+		notificationSvc, testPublicURL, 3, 60, 48,
+	)
+	publicDocAccessController := controller.NewPublicDocumentAccessController(documentAccessService)
+	publicSigningController := controller.NewPublicSigningController(preSigningService, testPublicURL)
 	webhookHandlers := map[string]port.WebhookHandler{
 		"mock": mockSigningAdapter,
 	}
@@ -262,6 +271,9 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 
 	// Webhook routes (no auth, registered on engine root)
 	webhookController.RegisterRoutes(engine)
+
+	// Public document access routes (email-verification gate, no auth)
+	publicDocAccessController.RegisterRoutes(engine)
 
 	// Public signing routes (no auth, registered on engine root)
 	publicSigningController.RegisterRoutes(engine)

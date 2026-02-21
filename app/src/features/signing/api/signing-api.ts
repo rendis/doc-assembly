@@ -7,7 +7,6 @@ import type {
   DocumentEvent,
   SigningURLResponse,
   DocumentListFilters,
-  RegenerateTokenResponse,
 } from '../types'
 
 const BASE_PATH = '/documents'
@@ -60,8 +59,8 @@ export const signingApi = {
       .get<Blob>(`${BASE_PATH}/${docId}/pdf`, { responseType: 'blob' })
       .then((r) => r.data),
 
-  regenerateToken: (docId: string) =>
+  invalidateTokens: (docId: string) =>
     apiClient
-      .post<RegenerateTokenResponse>(`${BASE_PATH}/${docId}/regenerate-token`)
+      .post<void>(`${BASE_PATH}/${docId}/invalidate-tokens`)
       .then((r) => r.data),
 }

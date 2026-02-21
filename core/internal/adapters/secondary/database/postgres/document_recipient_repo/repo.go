@@ -204,6 +204,32 @@ func (r *Repository) FindBySignerRecipientID(ctx context.Context, signerRecipien
 	return recipient, nil
 }
 
+// FindByDocumentAndEmail finds a recipient by document ID and email (case-insensitive).
+func (r *Repository) FindByDocumentAndEmail(ctx context.Context, documentID, email string) (*entity.DocumentRecipient, error) {
+	recipient := &entity.DocumentRecipient{}
+	err := r.pool.QueryRow(ctx, queryFindByDocumentAndEmail, documentID, email).Scan(
+		&recipient.ID,
+		&recipient.DocumentID,
+		&recipient.TemplateVersionRoleID,
+		&recipient.Name,
+		&recipient.Email,
+		&recipient.SignerRecipientID,
+		&recipient.SigningURL,
+		&recipient.Status,
+		&recipient.SignedAt,
+		&recipient.CreatedAt,
+		&recipient.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, entity.ErrDocumentRecipientNotFound
+		}
+		return nil, fmt.Errorf("finding document recipient by document and email: %w", err)
+	}
+
+	return recipient, nil
+}
+
 // FindByDocumentAndRole finds a recipient by document ID and role ID.
 func (r *Repository) FindByDocumentAndRole(ctx context.Context, documentID, roleID string) (*entity.DocumentRecipient, error) {
 	recipient := &entity.DocumentRecipient{}

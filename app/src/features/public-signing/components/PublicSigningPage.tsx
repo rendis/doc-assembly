@@ -5,7 +5,15 @@ import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import TextAlign from '@tiptap/extension-text-align'
-import { Box, Loader2, AlertCircle, CheckCircle2, Send } from 'lucide-react'
+import {
+  Box,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Send,
+  Clock,
+  XCircle,
+} from 'lucide-react'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -28,22 +36,25 @@ import { ListInjectorExtension } from '@/features/editor/extensions/ListInjector
 import { InteractiveFieldExtension } from '@/features/editor/extensions/InteractiveField'
 
 import {
-  getPreSigningForm,
+  getPublicSigningPage,
   submitPreSigningForm,
+  proceedToSigning,
 } from '../api/public-signing-api'
 import { createPublicInteractiveFieldComponent } from './PublicInteractiveField'
 import { PublicSignatureBlock } from './PublicSignatureBlock'
+import { EmbeddedSigningFrame } from './EmbeddedSigningFrame'
+import { PDFPreview } from './PDFPreview'
 import type {
-  PreSigningFormData,
+  PublicSigningResponse,
   FieldResponses,
   FieldResponsePayload,
 } from '../types'
 
 type PageState =
   | { status: 'loading' }
-  | { status: 'loaded'; data: PreSigningFormData }
-  | { status: 'submitting'; data: PreSigningFormData }
-  | { status: 'success'; signingUrl: string }
+  | { status: 'loaded'; data: PublicSigningResponse }
+  | { status: 'submitting'; data: PublicSigningResponse }
+  | { status: 'proceeding'; data: PublicSigningResponse }
   | { status: 'error'; code: string; message: string }
 
 interface PublicSigningPageProps {
@@ -60,61 +71,18 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     new Set(),
   )
 
-  // Load form data
+  // Load signing page state.
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const data = await getPreSigningForm(token)
+        const data = await getPublicSigningPage(token)
         if (!cancelled) {
           setPageState({ status: 'loaded', data })
         }
       } catch (err) {
         if (cancelled) return
-        if (axios.isAxiosError(err)) {
-          const status = err.response?.status
-          const body = err.response?.data as
-            | { code?: string; message?: string }
-            | undefined
-          if (status === 404) {
-            setPageState({
-              status: 'error',
-              code: 'NOT_FOUND',
-              message:
-                body?.message ||
-                t('publicSigning.errors.invalidToken'),
-            })
-          } else if (status === 410) {
-            setPageState({
-              status: 'error',
-              code: 'EXPIRED',
-              message:
-                body?.message || t('publicSigning.errors.expired'),
-            })
-          } else if (status === 409) {
-            setPageState({
-              status: 'error',
-              code: 'ALREADY_USED',
-              message:
-                body?.message ||
-                t('publicSigning.errors.alreadyUsed'),
-            })
-          } else {
-            setPageState({
-              status: 'error',
-              code: 'SERVER_ERROR',
-              message:
-                body?.message ||
-                t('publicSigning.errors.serverError'),
-            })
-          }
-        } else {
-          setPageState({
-            status: 'error',
-            code: 'UNKNOWN',
-            message: t('publicSigning.errors.serverError'),
-          })
-        }
+        handleLoadError(err, setPageState, t)
       }
     }
     load()
@@ -123,7 +91,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     }
   }, [token, t])
 
-  // Handle response changes
+  // Handle response changes.
   const handleResponseChange = useCallback(
     (
       fieldId: string,
@@ -134,7 +102,6 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
         ...prev,
         [fieldId]: { fieldType, response },
       }))
-      // Clear validation error for this field when user interacts
       setValidationErrors((prev) => {
         if (!prev.has(fieldId)) return prev
         const next = new Set(prev)
@@ -145,11 +112,12 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     [],
   )
 
-  // Validate fields
+  // Validate fields.
   const validate = useCallback(
-    (data: PreSigningFormData): Set<string> => {
+    (form: PublicSigningResponse): Set<string> => {
       const errors = new Set<string>()
-      for (const field of data.fields) {
+      const fields = form.form?.fields ?? []
+      for (const field of fields) {
         if (!field.required) continue
         const resp = responses[field.id]
         if (!resp) {
@@ -166,7 +134,6 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
             errors.add(field.id)
           }
         } else {
-          // checkbox or radio
           if (
             !resp.response.selectedOptionIds ||
             resp.response.selectedOptionIds.length === 0
@@ -180,7 +147,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     [responses],
   )
 
-  // Handle submit
+  // Handle form submit (Path B).
   const handleSubmit = useCallback(async () => {
     if (pageState.status !== 'loaded') return
     const data = pageState.data
@@ -197,7 +164,8 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     setPageState({ status: 'submitting', data })
 
     try {
-      const payload: FieldResponsePayload[] = data.fields.map((field) => {
+      const fields = data.form?.fields ?? []
+      const payload: FieldResponsePayload[] = fields.map((field) => {
         const resp = responses[field.id]
         return {
           fieldId: field.id,
@@ -207,30 +175,53 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
       })
 
       const result = await submitPreSigningForm(token, payload)
-      setPageState({ status: 'success', signingUrl: result.signingUrl })
-
-      // Redirect to signing provider
-      window.location.href = result.signingUrl
+      setPageState({ status: 'loaded', data: result })
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const body = err.response?.data as
-          | { message?: string }
-          | undefined
-        setPageState({
-          status: 'error',
-          code: 'SUBMIT_ERROR',
-          message:
-            body?.message || t('publicSigning.errors.submitFailed'),
-        })
-      } else {
-        setPageState({
-          status: 'error',
-          code: 'UNKNOWN',
-          message: t('publicSigning.errors.submitFailed'),
-        })
-      }
+      handleSubmitError(err, setPageState, t)
     }
   }, [pageState, agreed, responses, token, validate, t])
+
+  // Handle proceed to signing (Path A).
+  const handleProceed = useCallback(async () => {
+    if (pageState.status !== 'loaded') return
+
+    setPageState({ status: 'proceeding', data: pageState.data })
+
+    try {
+      const result = await proceedToSigning(token)
+      setPageState({ status: 'loaded', data: result })
+    } catch (err) {
+      handleSubmitError(err, setPageState, t)
+    }
+  }, [pageState, token, t])
+
+  // Handle signing completion.
+  const handleSigningComplete = useCallback(() => {
+    setPageState({
+      status: 'loaded',
+      data: {
+        step: 'completed',
+        documentTitle:
+          pageState.status === 'loaded' ? pageState.data.documentTitle : '',
+        recipientName:
+          pageState.status === 'loaded' ? pageState.data.recipientName : '',
+      },
+    })
+  }, [pageState])
+
+  // Handle signing decline.
+  const handleSigningDecline = useCallback(() => {
+    setPageState({
+      status: 'loaded',
+      data: {
+        step: 'declined',
+        documentTitle:
+          pageState.status === 'loaded' ? pageState.data.documentTitle : '',
+        recipientName:
+          pageState.status === 'loaded' ? pageState.data.recipientName : '',
+      },
+    })
+  }, [pageState])
 
   // --- RENDER ---
 
@@ -242,69 +233,91 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     return <ErrorScreen code={pageState.code} message={pageState.message} />
   }
 
-  if (pageState.status === 'success') {
-    return <SuccessScreen signingUrl={pageState.signingUrl} />
+  const data =
+    pageState.status === 'loaded'
+      ? pageState.data
+      : pageState.status === 'submitting' || pageState.status === 'proceeding'
+        ? pageState.data
+        : null
+
+  if (!data) return <LoadingScreen />
+
+  // Step: completed.
+  if (data.step === 'completed') {
+    return <CompletedScreen documentTitle={data.documentTitle} />
   }
 
-  const data = pageState.data
-  const isSubmitting = pageState.status === 'submitting'
-  const hasFields = data.fields.length > 0
+  // Step: declined.
+  if (data.step === 'declined') {
+    return <DeclinedScreen documentTitle={data.documentTitle} />
+  }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center border-2 border-foreground text-foreground">
-              <Box size={14} fill="currentColor" />
+  // Step: waiting for previous signers.
+  if (data.step === 'waiting') {
+    return (
+      <WaitingScreen
+        documentTitle={data.documentTitle}
+        recipientName={data.recipientName}
+        position={data.signingPosition ?? 0}
+        total={data.totalSigners ?? 0}
+        token={token}
+        onReady={(newData) => setPageState({ status: 'loaded', data: newData })}
+      />
+    )
+  }
+
+  // Step: signing (embedded iframe).
+  if (data.step === 'signing') {
+    if (data.fallbackUrl) {
+      return <FallbackRedirect url={data.fallbackUrl} />
+    }
+
+    return (
+      <PageShell documentTitle={data.documentTitle}>
+        <EmbeddedSigningFrame
+          url={data.embeddedSigningUrl!}
+          token={token}
+          onComplete={handleSigningComplete}
+          onDecline={handleSigningDecline}
+        />
+      </PageShell>
+    )
+  }
+
+  // Step: preview.
+  // Path B: has form with interactive fields.
+  if (data.form && data.form.fields.length > 0) {
+    const isSubmitting = pageState.status === 'submitting'
+    return (
+      <PageShell documentTitle={data.documentTitle}>
+        <div className="mx-auto max-w-4xl px-6 py-8">
+          <div className="mb-8 space-y-2">
+            <h1 className="text-2xl font-semibold text-foreground">
+              {data.documentTitle}
+            </h1>
+            <div className="text-sm text-muted-foreground">
+              <span>
+                {t('publicSigning.to')}: {data.recipientName}
+              </span>
             </div>
-            <span className="font-display text-sm font-bold uppercase tracking-tight text-foreground">
-              Doc-Assembly
-            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <LanguageSelector />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
 
-      {/* Document header */}
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-8 space-y-2">
-          <h1 className="text-2xl font-semibold text-foreground">
-            {data.documentTitle}
-          </h1>
-          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <span>
-              {t('publicSigning.from')}: {data.operatorName}
-            </span>
-            <span>
-              {t('publicSigning.to')}: {data.signer.name} (
-              {data.signer.email})
-            </span>
+          {/* Document content (TipTap read-only editor) */}
+          <div className="mb-8 rounded-lg border border-border bg-card shadow-sm">
+            <div className="p-8">
+              <DocumentViewer
+                content={data.form.content}
+                signerRoleId={data.form.roleId}
+                responses={responses}
+                onResponseChange={handleResponseChange}
+                validationErrors={validationErrors}
+                submitted={submitted}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Document content (TipTap read-only editor) */}
-        <div className="mb-8 rounded-lg border border-border bg-card shadow-sm">
-          <div className="p-8">
-            <DocumentViewer
-              content={data.content}
-              signerRoleId={data.signer.roleId}
-              responses={responses}
-              onResponseChange={handleResponseChange}
-              validationErrors={validationErrors}
-              submitted={submitted}
-            />
-          </div>
-        </div>
-
-        {/* Agreement + Submit */}
-        {hasFields && (
+          {/* Agreement + Submit */}
           <div className="mb-12 space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm">
-            {/* Agreement checkbox */}
             <label className="flex items-start gap-3 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -318,7 +331,6 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               </span>
             </label>
 
-            {/* Validation summary */}
             {submitted && validationErrors.size > 0 && (
               <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 <AlertCircle size={16} />
@@ -330,7 +342,6 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               </div>
             )}
 
-            {/* Submit button */}
             <button
               type="button"
               onClick={handleSubmit}
@@ -355,20 +366,74 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               )}
             </button>
           </div>
-        )}
+        </div>
+      </PageShell>
+    )
+  }
+
+  // Path A / Path B after submit: show real PDF preview with proceed button.
+  return (
+    <PageShell documentTitle={data.documentTitle}>
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <PDFPreview
+          token={token}
+          documentTitle={data.documentTitle}
+          recipientName={data.recipientName}
+          onProceed={handleProceed}
+          isLoading={pageState.status === 'proceeding'}
+        />
       </div>
 
-      {/* Footer */}
+      {/* Loading overlay while uploading to provider */}
+      {pageState.status === 'proceeding' && <ProceedingOverlay />}
+    </PageShell>
+  )
+}
+
+// --- Shell & Sub-components ---
+
+function PageShell({
+  children,
+}: {
+  documentTitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center border-2 border-foreground text-foreground">
+              <Box size={14} fill="currentColor" />
+            </div>
+            <span className="font-display text-sm font-bold uppercase tracking-tight text-foreground">
+              Doc-Assembly
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+
+      {children}
+
       <footer className="border-t border-border py-6 text-center">
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
-          Doc-Assembly — {t('footer.secureEnvironment')}
+          Doc-Assembly
         </span>
       </footer>
     </div>
   )
 }
 
-// --- Sub-components ---
+function FallbackRedirect({ url }: { url: string }) {
+  useEffect(() => {
+    window.location.href = url
+  }, [url])
+  return <LoadingScreen />
+}
 
 function LoadingScreen() {
   const { t } = useTranslation()
@@ -405,24 +470,109 @@ function ErrorScreen({ code, message }: { code: string; message: string }) {
   )
 }
 
-function SuccessScreen({ signingUrl }: { signingUrl: string }) {
+function CompletedScreen({ documentTitle }: { documentTitle: string }) {
   const { t } = useTranslation()
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="mx-auto max-w-md text-center space-y-4">
         <CheckCircle2 size={48} className="mx-auto text-green-600" />
         <h1 className="text-xl font-semibold text-foreground">
-          {t('publicSigning.success.title')}
+          {t('publicSigning.completed.title')}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {t('publicSigning.success.message')}
+          {t('publicSigning.completed.message', { title: documentTitle })}
         </p>
-        <a
-          href={signingUrl}
-          className="inline-block rounded-none bg-foreground px-8 py-3 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90"
-        >
-          {t('publicSigning.success.goToSigning')}
-        </a>
+      </div>
+    </div>
+  )
+}
+
+function DeclinedScreen({ documentTitle }: { documentTitle: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="mx-auto max-w-md text-center space-y-4">
+        <XCircle size={48} className="mx-auto text-destructive" />
+        <h1 className="text-xl font-semibold text-foreground">
+          {t('publicSigning.declined.title')}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t('publicSigning.declined.message', { title: documentTitle })}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function WaitingScreen({
+  documentTitle,
+  recipientName,
+  position,
+  total,
+  token,
+  onReady,
+}: {
+  documentTitle: string
+  recipientName: string
+  position: number
+  total: number
+  token: string
+  onReady: (data: PublicSigningResponse) => void
+}) {
+  const { t } = useTranslation()
+
+  // Poll every 30s to check if previous signers completed.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await getPublicSigningPage(token)
+        if (res.step !== 'waiting') {
+          onReady(res)
+        }
+      } catch {
+        // Ignore — will retry next interval.
+      }
+    }, 30_000)
+
+    return () => clearInterval(interval)
+  }, [token, onReady])
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="mx-auto max-w-md text-center space-y-4">
+        <Clock size={48} className="mx-auto text-muted-foreground" />
+        <h1 className="text-xl font-semibold text-foreground">
+          {t('publicSigning.waiting.title')}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t('publicSigning.waiting.message', {
+            name: recipientName,
+            position,
+            total,
+            title: documentTitle,
+          })}
+        </p>
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60">
+          <Loader2 size={14} className="animate-spin" />
+          <span>{t('publicSigning.waiting.autoRefresh')}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProceedingOverlay() {
+  const { t } = useTranslation()
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Loader2 size={40} className="animate-spin text-primary" />
+        <p className="text-base font-medium text-foreground">
+          {t('publicSigning.proceeding.title')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t('publicSigning.proceeding.warning')}
+        </p>
       </div>
     </div>
   )
@@ -453,7 +603,6 @@ function DocumentViewer({
 }: DocumentViewerProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
-  // Create the public interactive field component with the context baked in
   const PublicFieldComponent = useMemo(
     () =>
       createPublicInteractiveFieldComponent({
@@ -466,16 +615,14 @@ function DocumentViewer({
     [signerRoleId, responses, onResponseChange, validationErrors, submitted],
   )
 
-  // Create a custom InteractiveField extension that uses our public component
   const PublicInteractiveFieldExtension = useMemo(
     () =>
       InteractiveFieldExtension.extend({
         addNodeView() {
           return ReactNodeViewRenderer(PublicFieldComponent, {
-            stopEvent: () => true, // Stop all events — we handle inputs ourselves
+            stopEvent: () => true,
           })
         },
-        // Remove keyboard shortcuts and commands not needed in read-only
         addKeyboardShortcuts() {
           return {}
         },
@@ -486,7 +633,6 @@ function DocumentViewer({
     [PublicFieldComponent],
   )
 
-  // Create a custom Signature extension that uses our read-only component
   const PublicSignatureExtension = useMemo(
     () =>
       SignatureExtension.extend({
@@ -544,15 +690,11 @@ function DocumentViewer({
         },
       },
     },
-    // Recreate editor when the public field component changes (responses update)
     [PublicInteractiveFieldExtension],
   )
 
-  // Update editor content without recreating when responses change
-  // The node views are reactive through the baked-in context
   useEffect(() => {
     if (!editor) return
-    // Re-render node views by triggering a no-op update
     editor.view.updateState(editor.view.state)
   }, [editor, responses, validationErrors, submitted])
 
@@ -569,4 +711,78 @@ function DocumentViewer({
       <EditorContent editor={editor} />
     </div>
   )
+}
+
+// --- Error handlers ---
+
+function handleLoadError(
+  err: unknown,
+  setPageState: React.Dispatch<React.SetStateAction<PageState>>,
+  t: (key: string) => string,
+) {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status
+    const body = err.response?.data as
+      | { code?: string; message?: string; error?: string }
+      | undefined
+    const errMsg = body?.message || body?.error || ''
+    if (errMsg.includes('expired')) {
+      setPageState({
+        status: 'error',
+        code: 'EXPIRED',
+        message: errMsg || t('publicSigning.errors.expired'),
+      })
+    } else if (errMsg.includes('already been used')) {
+      setPageState({
+        status: 'error',
+        code: 'ALREADY_USED',
+        message: errMsg || t('publicSigning.errors.alreadyUsed'),
+      })
+    } else if (status === 404) {
+      setPageState({
+        status: 'error',
+        code: 'NOT_FOUND',
+        message: errMsg || t('publicSigning.errors.invalidToken'),
+      })
+    } else if (status === 401) {
+      setPageState({
+        status: 'error',
+        code: 'NOT_FOUND',
+        message: errMsg || t('publicSigning.errors.invalidToken'),
+      })
+    } else {
+      setPageState({
+        status: 'error',
+        code: 'SERVER_ERROR',
+        message: errMsg || t('publicSigning.errors.serverError'),
+      })
+    }
+  } else {
+    setPageState({
+      status: 'error',
+      code: 'UNKNOWN',
+      message: t('publicSigning.errors.serverError'),
+    })
+  }
+}
+
+function handleSubmitError(
+  err: unknown,
+  setPageState: React.Dispatch<React.SetStateAction<PageState>>,
+  t: (key: string) => string,
+) {
+  if (axios.isAxiosError(err)) {
+    const body = err.response?.data as { message?: string } | undefined
+    setPageState({
+      status: 'error',
+      code: 'SUBMIT_ERROR',
+      message: body?.message || t('publicSigning.errors.submitFailed'),
+    })
+  } else {
+    setPageState({
+      status: 'error',
+      code: 'UNKNOWN',
+      message: t('publicSigning.errors.submitFailed'),
+    })
+  }
 }

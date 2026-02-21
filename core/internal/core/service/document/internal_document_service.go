@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	portable_doc "github.com/rendis/doc-assembly/core/internal/core/entity/portabledoc"
@@ -168,10 +167,7 @@ func (s *InternalDocumentService) buildUploadRequest(
 	result *DocumentGenerationResult,
 	renderResult *port.RenderPreviewResult,
 ) *port.UploadDocumentRequest {
-	title := result.Document.ID
-	if result.Document.Title != nil {
-		title = *result.Document.Title
-	}
+	title := documentTitle(result.Document)
 
 	// Build recipients for signing provider
 	recipients := make([]port.SigningRecipient, len(result.Recipients))
@@ -184,8 +180,11 @@ func (s *InternalDocumentService) buildUploadRequest(
 		}
 	}
 
-	// Map portable doc role IDs to DB role IDs for signature fields
-	signatureFields := s.mapSignatureFields(result, renderResult.SignatureFields)
+	var portableRoles []portable_doc.SignerRole
+	if result.PortableDoc != nil {
+		portableRoles = result.PortableDoc.SignerRoles
+	}
+	signatureFields := mapSignatureFieldPositions(renderResult.SignatureFields, result.Version.SignerRoles, portableRoles)
 
 	return &port.UploadDocumentRequest{
 		PDF:             renderResult.PDF,
@@ -193,48 +192,6 @@ func (s *InternalDocumentService) buildUploadRequest(
 		Recipients:      recipients,
 		SignatureFields: signatureFields,
 	}
-}
-
-// mapSignatureFields converts SignatureFields from portable doc role IDs to DB role IDs.
-func (s *InternalDocumentService) mapSignatureFields(
-	result *DocumentGenerationResult,
-	fields []port.SignatureField,
-) []port.SignatureFieldPosition {
-	// Build map: anchor string -> DB role ID
-	anchorToDBRoleID := make(map[string]string, len(result.Version.SignerRoles))
-	for _, role := range result.Version.SignerRoles {
-		anchorToDBRoleID[role.AnchorString] = role.ID
-	}
-
-	// Build map: portable doc role ID -> anchor string
-	portableIDToAnchor := make(map[string]string, len(result.PortableDoc.SignerRoles))
-	for _, role := range result.PortableDoc.SignerRoles {
-		anchor := portable_doc.GenerateAnchorString(role.Label)
-		portableIDToAnchor[role.ID] = anchor
-	}
-
-	// Convert fields
-	positions := make([]port.SignatureFieldPosition, 0, len(fields))
-	for _, f := range fields {
-		anchor := portableIDToAnchor[f.RoleID]
-		dbRoleID := anchorToDBRoleID[anchor]
-		if dbRoleID == "" {
-			continue
-		}
-
-		posX, posY := convertFieldToProviderPosition(f)
-
-		positions = append(positions, port.SignatureFieldPosition{
-			RoleID:    dbRoleID,
-			Page:      f.Page,
-			PositionX: posX,
-			PositionY: posY,
-			Width:     f.Width,
-			Height:    f.Height,
-		})
-	}
-
-	return positions
 }
 
 // updateRecipientsWithSigningURLs updates recipients with provider IDs and signing URLs.
@@ -272,7 +229,7 @@ func (s *InternalDocumentService) renderPDF(
 	ctx context.Context,
 	result *DocumentGenerationResult,
 ) (*port.RenderPreviewResult, error) {
-	signerRoleValues := s.buildSignerRoleValues(
+	signerRoleValues := buildSignerRoleValues(
 		result.Recipients,
 		result.Version.SignerRoles,
 		result.PortableDoc.SignerRoles,
@@ -298,41 +255,6 @@ func (s *InternalDocumentService) renderPDF(
 	return renderResult, nil
 }
 
-// buildSignerRoleValues builds the signer role values map from recipients.
-// Maps recipient data to portable doc role IDs (not DB role IDs) for PDF rendering.
-func (s *InternalDocumentService) buildSignerRoleValues(
-	recipients []*entity.DocumentRecipient,
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-	portableDocRoles []portable_doc.SignerRole,
-) map[string]port.SignerRoleValue {
-	// Create map: DB role ID -> anchor string
-	dbRoleToAnchor := make(map[string]string, len(dbSignerRoles))
-	for _, role := range dbSignerRoles {
-		dbRoleToAnchor[role.ID] = role.AnchorString
-	}
-
-	// Create map: anchor string -> portable doc role ID
-	anchorToPortableID := make(map[string]string, len(portableDocRoles))
-	for _, role := range portableDocRoles {
-		anchor := portable_doc.GenerateAnchorString(role.Label)
-		anchorToPortableID[anchor] = role.ID
-	}
-
-	// Build values using portable doc role IDs as keys
-	values := make(map[string]port.SignerRoleValue, len(recipients))
-	for _, r := range recipients {
-		anchor := dbRoleToAnchor[r.TemplateVersionRoleID]
-		portableDocRoleID := anchorToPortableID[anchor]
-		if portableDocRoleID != "" {
-			values[portableDocRoleID] = port.SignerRoleValue{
-				Name:  r.Name,
-				Email: r.Email,
-			}
-		}
-	}
-	return values
-}
-
 // shouldAwaitInput checks whether the document should enter the AWAITING_INPUT flow.
 func (s *InternalDocumentService) shouldAwaitInput(result *DocumentGenerationResult) bool {
 	if result.PortableDoc == nil {
@@ -346,7 +268,8 @@ func (s *InternalDocumentService) shouldAwaitInput(result *DocumentGenerationRes
 	return countUnsignedSigners(result.PortableDoc) == 1
 }
 
-// transitionToAwaitingInput marks the document as AWAITING_INPUT and creates an access token.
+// transitionToAwaitingInput marks the document as AWAITING_INPUT.
+// Tokens are now generated on-demand via the email-verification flow (DocumentAccessService).
 func (s *InternalDocumentService) transitionToAwaitingInput(
 	ctx context.Context,
 	result *DocumentGenerationResult,
@@ -361,67 +284,9 @@ func (s *InternalDocumentService) transitionToAwaitingInput(
 		return fmt.Errorf("updating document to awaiting input: %w", err)
 	}
 
-	// Find the real signer recipient via anchor matching.
-	recipientID := s.findRealSignerRecipient(result)
-	if recipientID == "" && len(result.Recipients) > 0 {
-		recipientID = result.Recipients[0].ID
-	}
-
-	token, err := generateAccessToken()
-	if err != nil {
-		return fmt.Errorf("generating access token: %w", err)
-	}
-
-	ttlDays := portable_doc.DefaultPreSigningTTLDays
-	if result.PortableDoc.SigningWorkflow != nil && result.PortableDoc.SigningWorkflow.PreSigningTTLDays > 0 {
-		ttlDays = result.PortableDoc.SigningWorkflow.PreSigningTTLDays
-	}
-
-	accessToken := &entity.DocumentAccessToken{
-		DocumentID:  doc.ID,
-		RecipientID: recipientID,
-		Token:       token,
-		ExpiresAt:   time.Now().UTC().Add(time.Duration(ttlDays) * 24 * time.Hour),
-		CreatedAt:   time.Now().UTC(),
-	}
-
-	if err := s.accessTokenRepo.Create(ctx, accessToken); err != nil {
-		return fmt.Errorf("creating access token: %w", err)
-	}
-
 	slog.InfoContext(ctx, "document awaiting interactive field input",
 		slog.String("document_id", doc.ID),
-		slog.String("recipient_id", recipientID),
-		slog.Int("ttl_days", ttlDays),
 	)
 
 	return nil
-}
-
-// findRealSignerRecipient matches the unsigned signer from the portable doc to a recipient.
-func (s *InternalDocumentService) findRealSignerRecipient(result *DocumentGenerationResult) string {
-	if result.PortableDoc == nil || result.Version == nil {
-		return ""
-	}
-
-	anchorToDBRoleID := buildVersionAnchorMap(result.Version.SignerRoles)
-	unsignedPortableRoleIDs := collectUnsignedPortableRoleIDs(result.PortableDoc)
-
-	return matchUnsignedRoleToRecipient(
-		result.PortableDoc.SignerRoles,
-		unsignedPortableRoleIDs,
-		anchorToDBRoleID,
-		result.Recipients,
-	)
-}
-
-// buildVersionAnchorMap builds anchor -> DB role ID map from version signer roles.
-func buildVersionAnchorMap(signerRoles []*entity.TemplateVersionSignerRole) map[string]string {
-	m := make(map[string]string, len(signerRoles))
-	for _, role := range signerRoles {
-		if role.AnchorString != "" {
-			m[role.AnchorString] = role.ID
-		}
-	}
-	return m
 }

@@ -2,10 +2,14 @@ package port
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 )
+
+// ErrEmbeddingNotSupported is returned when a provider does not support embedded signing URLs.
+var ErrEmbeddingNotSupported = errors.New("provider does not support embedded signing")
 
 // SigningProvider defines the interface for external document signing services.
 // Implementations handle the specifics of each provider (Documenso, DocuSign, PandaDoc, etc.)
@@ -17,6 +21,13 @@ type SigningProvider interface {
 
 	// GetSigningURL returns the URL where a specific recipient can sign the document.
 	GetSigningURL(ctx context.Context, req *GetSigningURLRequest) (*GetSigningURLResult, error)
+
+	// GetEmbeddedSigningURL returns a URL suitable for embedding in an iframe.
+	// The CallbackURL in the request is our signing-callback bridge endpoint.
+	// Providers that support redirect (DocuSign, PandaDoc) should incorporate it;
+	// providers that don't (Documenso) may ignore it and rely on webhook + polling.
+	// Returns ErrEmbeddingNotSupported if the provider cannot provide an embeddable URL.
+	GetEmbeddedSigningURL(ctx context.Context, req *GetEmbeddedSigningURLRequest) (*GetEmbeddedSigningURLResult, error)
 
 	// GetDocumentStatus retrieves the current status of a document from the provider.
 	GetDocumentStatus(ctx context.Context, providerDocumentID string) (*DocumentStatusResult, error)
@@ -137,6 +148,32 @@ type GetSigningURLResult struct {
 	SigningURL string
 
 	// ExpiresAt is when the signing URL expires (optional, provider-dependent).
+	ExpiresAt *time.Time
+}
+
+// GetEmbeddedSigningURLRequest contains the data needed to get an embeddable signing URL.
+type GetEmbeddedSigningURLRequest struct {
+	// ProviderDocumentID is the document ID from the signing provider.
+	ProviderDocumentID string
+
+	// ProviderRecipientID is the recipient ID from the signing provider.
+	ProviderRecipientID string
+
+	// CallbackURL is our signing-callback bridge endpoint.
+	// Providers that support redirect should append it as returnUrl/redirect.
+	// Format: {publicURL}/public/sign/{token}/signing-callback
+	CallbackURL string
+}
+
+// GetEmbeddedSigningURLResult contains the embedded signing URL and CSP info.
+type GetEmbeddedSigningURLResult struct {
+	// EmbeddedURL is the URL to load in an iframe for embedded signing.
+	EmbeddedURL string
+
+	// FrameSrcDomain is the domain to allow in CSP frame-src directive.
+	FrameSrcDomain string
+
+	// ExpiresAt is when the embedded URL expires (optional, provider-dependent).
 	ExpiresAt *time.Time
 }
 

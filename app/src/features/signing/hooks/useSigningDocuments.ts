@@ -63,11 +63,11 @@ export function useRefreshDocument() {
   })
 }
 
-export function useRegenerateToken() {
+export function useInvalidateTokens() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (docId: string) => signingApi.regenerateToken(docId),
+    mutationFn: (docId: string) => signingApi.invalidateTokens(docId),
     onSuccess: (_data, docId) => {
       queryClient.invalidateQueries({ queryKey: signingKeys.detail(docId) })
     },

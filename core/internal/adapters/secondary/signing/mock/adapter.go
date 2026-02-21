@@ -116,6 +116,21 @@ func (a *Adapter) GetSigningURL(_ context.Context, req *port.GetSigningURLReques
 	}, nil
 }
 
+// GetEmbeddedSigningURL returns a mock embeddable signing URL.
+func (a *Adapter) GetEmbeddedSigningURL(_ context.Context, req *port.GetEmbeddedSigningURLRequest) (*port.GetEmbeddedSigningURLResult, error) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	if _, ok := a.recipients[req.ProviderRecipientID]; !ok {
+		return nil, fmt.Errorf("mock: recipient %s not found", req.ProviderRecipientID)
+	}
+
+	return &port.GetEmbeddedSigningURLResult{
+		EmbeddedURL:    fmt.Sprintf("http://mock-signing/embed/%s", req.ProviderRecipientID),
+		FrameSrcDomain: "http://mock-signing",
+	}, nil
+}
+
 // GetDocumentStatus returns the current status of a mock document.
 func (a *Adapter) GetDocumentStatus(_ context.Context, providerDocumentID string) (*port.DocumentStatusResult, error) {
 	a.mu.RLock()
