@@ -81,8 +81,8 @@ export function DocumentEditor({
   // Get page config from store (for visual width and margins)
   const { pageSize, margins } = usePaginationStore()
 
-  // Ref to store current content before editor recreation
-  const contentRef = useRef<string>(initialContent)
+  // Ref to store current content before editor recreation (JSON preserves custom nodes)
+  const contentRef = useRef<string | Record<string, unknown>>(initialContent)
 
   // Key for editor recreation - only recreate when page width changes
   const editorKey = useMemo(
@@ -158,8 +158,8 @@ export function DocumentEditor({
     content: contentRef.current,
     editable,
     onUpdate: ({ editor }) => {
-      // Store current content for potential editor recreation
-      contentRef.current = editor.getHTML()
+      // Store JSON for editor recreation (HTML round-trip loses custom node data)
+      contentRef.current = editor.getJSON()
       onContentChange?.(editor.getHTML())
     },
     editorProps: {

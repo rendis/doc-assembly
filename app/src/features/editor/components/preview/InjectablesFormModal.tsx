@@ -8,7 +8,7 @@ import { useInjectables } from '../../hooks/useInjectables'
 import { useRoleInjectables } from '../../hooks/useRoleInjectables'
 import { usePreviewPDF } from '../../hooks/usePreviewPDF'
 import { useEmulatedValues } from '../../hooks/useEmulatedValues'
-import { emulateValue } from '../../services/injectable-emulator'
+import { emulateValue, emulateByType } from '../../services/injectable-emulator'
 import { generateConsistentRoleValues } from '../../services/role-injectable-generator'
 import { StandardInjectablesSection } from './StandardInjectablesSection'
 import { RoleInjectablesSection } from './RoleInjectablesSection'
@@ -218,6 +218,30 @@ export function InjectablesFormModal({
     },
     [getEmulatedValue]
   )
+
+  const handleGenerateRandom = useCallback(
+    (variableId: string) => {
+      const variable = documentVariables.find((v) => v.variableId === variableId)
+      if (!variable) return
+
+      const randomValue = emulateByType(variable.type)
+      if (randomValue !== null) {
+        setValues((prev) => ({ ...prev, [variableId]: randomValue }))
+      }
+    },
+    [documentVariables]
+  )
+
+  const handleFillAllRandom = useCallback(() => {
+    const newValues: Record<string, unknown> = {}
+    documentVariables.forEach((v) => {
+      const val = emulateByType(v.type)
+      if (val !== null) {
+        newValues[v.variableId] = val
+      }
+    })
+    setValues((prev) => ({ ...prev, ...newValues }))
+  }, [documentVariables])
 
   const handleGenerateAllRoles = useCallback(() => {
     const allGeneratedValues: Record<string, string> = {}
@@ -439,6 +463,8 @@ export function InjectablesFormModal({
                       values={values}
                       errors={errors}
                       onChange={handleChange}
+                      onGenerate={handleGenerateRandom}
+                      onFillAll={handleFillAllRandom}
                       disabled={isGenerating}
                     />
                   </div>
