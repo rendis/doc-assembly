@@ -81,10 +81,8 @@ func (b *TypstBuilder) pageSetup(config *portabledoc.PageConfig) string {
 	sb.WriteString(fmt.Sprintf("  margin: (top: %.1fpt, bottom: %.1fpt, left: %.1fpt, right: %.1fpt),\n",
 		marginTopPt, marginBottomPt, marginLeftPt, marginRightPt))
 
-	// Page numbering
-	if config.ShowPageNumbers {
-		sb.WriteString("  numbering: \"1\",\n")
-	}
+	// Page numbering (always enabled)
+	sb.WriteString("  numbering: \"1 / 1\",\n")
 
 	sb.WriteString(")\n\n")
 	return sb.String()

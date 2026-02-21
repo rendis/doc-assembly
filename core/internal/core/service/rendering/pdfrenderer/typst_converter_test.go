@@ -1143,7 +1143,7 @@ func TestTypstBuilder_Build(t *testing.T) {
 	checks := []string{
 		`#set page(`,
 		`paper: "a4"`,
-		`numbering: "1"`,
+		`numbering: "1 / 1"`,
 		`#set text(`,
 		`size: 12pt`,
 		`Hello world`,
