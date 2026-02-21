@@ -1,0 +1,400 @@
+# Public Signing Flow
+
+This document describes the complete flow for public document signing, from document creation through email verification to digital signature completion.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Flow 1: Document Creation](#flow-1-document-creation)
+- [Flow 2: Email Verification Gate](#flow-2-email-verification-gate)
+- [Flow 3: Token-Based Signing](#flow-3-token-based-signing)
+- [Flow 4: Admin Token Invalidation](#flow-4-admin-token-invalidation)
+- [Endpoints Reference](#endpoints-reference)
+- [Security](#security)
+- [Configuration](#configuration)
+
+---
+
+## Overview
+
+Documents use a **single shared public URL** per document instead of per-recipient signing URLs. Recipients visit the public URL, verify their email, receive a token-based signing link, and proceed through the signing flow.
+
+```
+Create Document
+  -> Notify recipients (email with /public/doc/{id})
+    -> Recipient visits public URL
+      -> Enters email -> Receives token link via email
+        -> Accesses /public/sign/{token}
+          -> Path A: PDF preview -> Sign (no interactive fields)
+          -> Path B: Fill form -> PDF preview -> Sign (interactive fields)
+```
+
+There are two signing paths based on whether the document template has interactive fields:
+
+| Path | Token Type | Interactive Fields | Flow |
+|------|-----------|-------------------|------|
+| **A** | `SIGNING` | No | Preview PDF -> Proceed to signing provider |
+| **B** | `PRE_SIGNING` | Yes | Fill form -> Preview PDF -> Proceed to signing provider |
+
+---
+
+## Architecture
+
+### High-Level Flow
+
+```mermaid
+flowchart TB
+    subgraph Admin["Admin (Authenticated)"]
+        A1[Create Document] --> A2[NotifyDocumentCreated]
+        A3[Invalidate Tokens]
+    end
+
+    subgraph Public["Public (No Auth)"]
+        B1[GET /public/doc/:id] --> B2[Show email form]
+        B2 --> B3[POST /public/doc/:id/request-access]
+        B3 --> B4{Email matches recipient?}
+        B4 -->|Yes| B5[Generate token + send email]
+        B4 -->|No| B6[Return 200 anyway]
+    end
+
+    subgraph Signing["Token-Based Signing"]
+        C1[GET /public/sign/:token] --> C2{Token type?}
+        C2 -->|SIGNING| C3[PDF Preview]
+        C2 -->|PRE_SIGNING| C4{Form submitted?}
+        C4 -->|No| C5[Show form]
+        C4 -->|Yes| C3
+        C5 --> C6[Submit form]
+        C6 --> C3
+        C3 --> C7[Proceed to signing]
+        C7 --> C8[Embedded signing iframe]
+        C8 --> C9[Complete]
+    end
+
+    A2 -->|Email with /public/doc/:id| B1
+    B5 -->|Email with /public/sign/:token| C1
+    A3 -.->|Invalidates tokens| Signing
+```
+
+### Component Map
+
+```
+Controller Layer                    Service Layer                    Repository Layer
+---------------------              -------------------              ------------------
+PublicDocAccessCtrl  ------------> DocumentAccessService ----------> DocumentRepository
+  GET  /public/doc/:id                GetPublicDocumentInfo          DocumentRecipientRepo
+  POST /public/doc/:id/request-access RequestAccess                  DocumentAccessTokenRepo
+                                        |                            TemplateVersionRepo
+                                        v
+                                   NotificationService
+                                        SendAccessLink
+                                        NotifyDocumentCreated
+
+PublicSigningCtrl  ----------------> PreSigningService -------------> DocumentRepository
+  GET  /public/sign/:token             GetPublicSigningPage           DocumentAccessTokenRepo
+  POST /public/sign/:token             SubmitPreSigningForm           FieldResponseRepo
+  POST /public/sign/:token/proceed     ProceedToSigning               SigningProvider
+  GET  /public/sign/:token/pdf         RenderPreviewPDF               PDFRenderer
+  POST /public/sign/:token/complete    CompleteEmbeddedSigning
+  GET  /public/sign/:token/refresh     RefreshEmbeddedURL
+
+DocumentCtrl (authenticated) -----> PreSigningService
+  POST /api/v1/documents/:id/         InvalidateTokens
+       invalidate-tokens
+```
+
+---
+
+## Flow 1: Document Creation
+
+When an admin creates a document, the system notifies all recipients with the public document URL.
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant API as DocumentController
+    participant Svc as DocumentService
+    participant Notif as NotificationService
+    participant Email as Email Provider
+    participant Recipient
+
+    Admin->>API: POST /api/v1/documents
+    API->>Svc: CreateAndSendDocument()
+    Svc->>Svc: validateTemplateAndRoles()
+    Svc->>Svc: createDocument() [status: DRAFT]
+    Svc->>Svc: createRecipients()
+    Svc->>Svc: transitionToAwaitingInput() [status: AWAITING_INPUT]
+    Svc->>Notif: NotifyDocumentCreated(documentID)
+    Notif->>Notif: buildSigningURL() per recipient
+    Note over Notif: No tokens exist yet -> fallback to /public/doc/{id}
+    Notif->>Email: Send "Document ready for signature" email
+    Email->>Recipient: Email with link to /public/doc/{documentID}
+    API-->>Admin: 200 OK (document created)
+```
+
+**Key files:**
+- `core/internal/core/service/document/document_service.go` — `CreateAndSendDocument()`
+- `core/internal/core/service/document/notification_service.go` — `NotifyDocumentCreated()`, `buildSigningURL()`
+- `core/internal/core/service/document/templates/signing_request.html` — email template
+
+---
+
+## Flow 2: Email Verification Gate
+
+The public document page acts as an email verification gate. Recipients enter their email, and if it matches a document recipient, a token is generated and sent via email.
+
+```mermaid
+sequenceDiagram
+    participant Signer as Recipient
+    participant Frontend as PublicDocumentAccessPage
+    participant API as PublicDocAccessController
+    participant Svc as DocumentAccessService
+    participant Notif as NotificationService
+    participant Email as Email Provider
+
+    Signer->>Frontend: Visit /public/doc/{documentID}
+    Frontend->>API: GET /public/doc/{documentID}
+    API->>Svc: GetPublicDocumentInfo()
+    Svc-->>Frontend: {documentTitle, status: "active"}
+
+    Signer->>Frontend: Enter email + click "Send Link"
+    Frontend->>API: POST /public/doc/{documentID}/request-access {email}
+    API->>Svc: RequestAccess(documentID, email)
+
+    Note over Svc: Always returns 200 (anti-enumeration)
+
+    Svc->>Svc: validateAccessRequest()
+    alt Document not found or terminal
+        Svc->>Svc: Log + return nil
+    else Email doesn't match any recipient
+        Svc->>Svc: Log + return nil
+    else Rate limit exceeded
+        Svc->>Svc: Log + return nil
+    else Valid request
+        Svc->>Svc: resolveTokenType()
+        Note over Svc: Interactive fields? PRE_SIGNING : SIGNING
+        Svc->>Svc: generateAccessToken() [128-char hex]
+        Svc->>Svc: Create DocumentAccessToken in DB
+        Svc->>Notif: SendAccessLink(recipient, doc, token)
+        Notif->>Email: Send "Your signing link" email
+        Email->>Signer: Email with /public/sign/{token}
+    end
+
+    API-->>Frontend: 200 {message: "If your email matches..."}
+    Frontend->>Frontend: Show "Check your email" + cooldown timer
+```
+
+**Key files:**
+- `core/internal/core/service/document/document_access_service.go` — `RequestAccess()`, `validateAccessRequest()`, `generateAndSendToken()`
+- `core/internal/adapters/primary/http/controller/public_document_access_controller.go` — routes
+- `core/internal/core/service/document/templates/access_link.html` — email template
+- `app/src/features/public-signing/components/PublicDocumentAccessPage.tsx` — frontend
+
+---
+
+## Flow 3: Token-Based Signing
+
+After receiving the token URL via email, the recipient accesses the signing page. The flow depends on the token type.
+
+### Path A: Direct Signing (SIGNING token, no interactive fields)
+
+```mermaid
+sequenceDiagram
+    participant Signer as Recipient
+    participant Frontend as PublicSigningPage
+    participant API as PublicSigningController
+    participant Svc as PreSigningService
+    participant Provider as Signing Provider
+
+    Signer->>Frontend: Click /public/sign/{token} from email
+    Frontend->>API: GET /public/sign/{token}
+    API->>Svc: GetPublicSigningPage(token)
+    Svc->>Svc: validateToken()
+    Svc-->>Frontend: {step: "preview", pdfUrl: "/public/sign/{token}/pdf"}
+
+    Frontend->>API: GET /public/sign/{token}/pdf
+    API->>Svc: RenderPreviewPDF(token)
+    Svc-->>Frontend: PDF bytes (rendered on-demand)
+
+    Signer->>Frontend: Click "Proceed to Sign"
+    Frontend->>API: POST /public/sign/{token}/proceed
+    API->>Svc: ProceedToSigning(token)
+    Svc->>Svc: renderAndSendToProvider()
+    Svc->>Provider: UploadDocument(PDF)
+    Provider-->>Svc: providerDocumentID, signingURL
+    Svc->>Svc: Mark document PENDING
+    Svc->>Provider: GetEmbeddedSigningURL()
+    Svc-->>Frontend: {step: "signing", embeddedSigningUrl: "..."}
+
+    Frontend->>Frontend: Load signing iframe
+    Signer->>Provider: Sign document in iframe
+    Provider->>Frontend: Redirect to /public/sign/{token}/signing-callback?status=signed
+    Frontend->>Frontend: postMessage to parent
+    Frontend->>API: POST /public/sign/{token}/complete
+    API->>Svc: CompleteEmbeddedSigning(token)
+    Svc->>Svc: Mark token as used
+```
+
+### Path B: Form + Signing (PRE_SIGNING token, interactive fields)
+
+```mermaid
+sequenceDiagram
+    participant Signer as Recipient
+    participant Frontend as PublicSigningPage
+    participant API as PublicSigningController
+    participant Svc as PreSigningService
+    participant Provider as Signing Provider
+
+    Signer->>Frontend: Click /public/sign/{token} from email
+    Frontend->>API: GET /public/sign/{token}
+    API->>Svc: GetPublicSigningPage(token)
+    Svc-->>Frontend: {step: "preview", form: {fields: [...]}}
+
+    Signer->>Frontend: Fill interactive fields
+    Frontend->>API: POST /public/sign/{token} {responses: [...]}
+    API->>Svc: SubmitPreSigningForm(token, responses)
+    Svc->>Svc: Validate responses
+    Svc->>Svc: Save field responses to DB
+    Svc-->>Frontend: {step: "preview", pdfUrl: "/public/sign/{token}/pdf"}
+
+    Frontend->>API: GET /public/sign/{token}/pdf
+    Svc-->>Frontend: PDF bytes (with form values injected)
+
+    Note over Signer,Provider: From here, same as Path A
+    Signer->>Frontend: Click "Proceed to Sign"
+    Frontend->>API: POST /public/sign/{token}/proceed
+    Svc->>Provider: Upload PDF + proceed to signing
+    Svc-->>Frontend: {step: "signing", embeddedSigningUrl: "..."}
+    Signer->>Provider: Sign in iframe
+```
+
+### Signing Page States
+
+```mermaid
+stateDiagram-v2
+    [*] --> preview: Token valid
+    preview --> form: PRE_SIGNING + no responses
+    form --> preview: Submit form responses
+    preview --> signing: Proceed to signing
+    signing --> completed: Signing finished
+    signing --> declined: Signer declined
+
+    [*] --> waiting: Earlier signers pending
+    waiting --> preview: Previous signers done
+
+    [*] --> completed: Token used + doc completed
+    [*] --> declined: Token used + doc declined
+    [*] --> error: Invalid/expired token
+```
+
+**Key files:**
+- `core/internal/core/service/document/pre_signing_service.go` — all signing methods
+- `core/internal/adapters/primary/http/controller/public_signing_controller.go` — routes
+- `app/src/features/public-signing/components/PublicSigningPage.tsx` — frontend
+
+---
+
+## Flow 4: Admin Token Invalidation
+
+Administrators can invalidate all active tokens for a document. Recipients with invalidated tokens cannot access the signing page and must request a new token via the email verification gate.
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Frontend as SigningDetailPage
+    participant API as DocumentController
+    participant Svc as PreSigningService
+    participant DB as Database
+
+    Admin->>Frontend: Click "Invalidate Tokens"
+    Frontend->>Frontend: Show confirmation dialog
+    Admin->>Frontend: Confirm
+    Frontend->>API: POST /api/v1/documents/{id}/invalidate-tokens
+    API->>Svc: InvalidateTokens(documentID)
+    Svc->>Svc: Validate document is AWAITING_INPUT
+    Svc->>DB: SET used_at = NOW() WHERE document_id = ? AND used_at IS NULL
+    Svc-->>API: OK
+    API-->>Frontend: 200 {message: "Tokens invalidated"}
+    Frontend->>Frontend: Toast "Tokens invalidated successfully"
+```
+
+After invalidation, the recipient can still access `/public/doc/{documentID}` and request a new token via email.
+
+**Key files:**
+- `core/internal/core/service/document/pre_signing_service.go` — `InvalidateTokens()`
+- `core/internal/adapters/primary/http/controller/document_controller.go` — route registration
+- `app/src/features/signing/components/SigningDetailPage.tsx` — admin UI
+
+---
+
+## Endpoints Reference
+
+### Public Endpoints (No Authentication)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/public/doc/{documentId}` | Get document info (title, status) |
+| `POST` | `/public/doc/{documentId}/request-access` | Request access link (email verification) |
+| `GET` | `/public/sign/{token}` | Get signing page state |
+| `POST` | `/public/sign/{token}` | Submit pre-signing form (Path B) |
+| `POST` | `/public/sign/{token}/proceed` | Render PDF + upload to provider |
+| `GET` | `/public/sign/{token}/pdf` | Render PDF preview (on-demand) |
+| `POST` | `/public/sign/{token}/complete` | Mark token as used after signing |
+| `GET` | `/public/sign/{token}/refresh` | Refresh expired embedded URL |
+| `GET` | `/public/sign/{token}/signing-callback` | Callback bridge (postMessage to parent) |
+
+### Authenticated Endpoints
+
+| Method | Path | Role | Purpose |
+|--------|------|------|---------|
+| `POST` | `/api/v1/documents` | Operator | Create document + send notifications |
+| `POST` | `/api/v1/documents/{id}/invalidate-tokens` | Operator | Invalidate all active tokens |
+
+---
+
+## Security
+
+### Anti-Email Enumeration
+
+`POST /public/doc/{id}/request-access` **always returns HTTP 200** regardless of whether the email matches a recipient. Attackers cannot determine valid email addresses.
+
+### Rate Limiting
+
+Token generation is rate-limited per document + recipient pair. If the limit is exceeded, the request silently succeeds (HTTP 200) without generating a token.
+
+| Config | Default | Description |
+|--------|---------|-------------|
+| `rate_limit_max` | 3 | Max tokens per window |
+| `rate_limit_window_min` | 60 | Window duration (minutes) |
+
+### Token Security
+
+- **Random**: 64 cryptographic random bytes, hex-encoded (128 characters)
+- **Single-use**: marked with `used_at` timestamp after signing completion
+- **Expiring**: configurable TTL (default 48 hours)
+- **Database-backed**: no client-side state or cookies
+
+### Signing Order
+
+Multi-signer documents enforce signing order. If earlier signers haven't signed, the current signer sees a "waiting" state with their position in the queue.
+
+---
+
+## Configuration
+
+Signing access settings in `core/settings/app.yaml`:
+
+```yaml
+public_access:
+  rate_limit_max: 3            # Max token requests per window
+  rate_limit_window_min: 60    # Rate limit window (minutes)
+  token_ttl_hours: 48          # Token expiration (hours)
+```
+
+Environment variable overrides:
+
+| Variable | Description |
+|----------|-------------|
+| `DOC_ENGINE_PUBLIC_ACCESS_RATE_LIMIT_MAX` | Max token requests per window |
+| `DOC_ENGINE_PUBLIC_ACCESS_RATE_LIMIT_WINDOW_MIN` | Rate limit window in minutes |
+| `DOC_ENGINE_PUBLIC_ACCESS_TOKEN_TTL_HOURS` | Token TTL in hours |

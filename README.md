@@ -206,13 +206,20 @@ cp apps/web-client/.env.example apps/web-client/.env
 
 ## Digital Signatures
 
-doc-assembly delegates digital signatures to external providers. The signing flow:
+doc-assembly delegates digital signatures to external providers. Each document has a **shared public URL** (`/public/doc/{id}`) that recipients use to verify their email and receive a signing link.
 
 ```
-Template (published) -> Document created -> PDF rendered with anchor text
-  -> PDF uploaded to signing provider -> Signing URLs generated per recipient
-    -> Recipients sign -> Webhooks update document status -> Sealed PDF stored
+Template (published)
+  -> Admin creates document
+    -> Recipients notified with public URL (/public/doc/{id})
+      -> Recipient visits URL, enters email
+        -> System verifies email, sends token link (/public/sign/{token})
+          -> Path A (no interactive fields): PDF preview -> Sign
+          -> Path B (interactive fields): Fill form -> PDF preview -> Sign
+            -> Signing provider handles signature -> Webhooks update status -> Sealed PDF stored
 ```
+
+For detailed flow documentation with sequence diagrams, see **[Public Signing Flow](core/docs/public-signing-flow.md)**.
 
 ### Supported Providers
 
@@ -293,6 +300,7 @@ The container exposes port `8080`.
 | Backend Architecture  | [`apps/doc-engine/docs/architecture.md`](apps/doc-engine/docs/architecture.md)                 |
 | Authentication Guide  | [`apps/doc-engine/docs/authentication-guide.md`](apps/doc-engine/docs/authentication-guide.md) |
 | Authorization Matrix  | [`apps/doc-engine/docs/authorization-matrix.md`](apps/doc-engine/docs/authorization-matrix.md) |
+| Public Signing Flow   | [`core/docs/public-signing-flow.md`](core/docs/public-signing-flow.md)                         |
 | Extensibility Guide   | [`apps/doc-engine/docs/extensibility-guide.md`](apps/doc-engine/docs/extensibility-guide.md)   |
 | Frontend Architecture | [`apps/web-client/docs/architecture.md`](apps/web-client/docs/architecture.md)                 |
 | Design System         | [`apps/web-client/docs/design_system.md`](apps/web-client/docs/design_system.md)               |

@@ -192,6 +192,12 @@ Copy `.env.example` to `.env` and configure the required values.
 
 For a complete list of API endpoints, authentication requirements, roles, and required headers, see **[docs/authorization-matrix.md](docs/authorization-matrix.md)**.
 
+## Public Signing Flow
+
+Documents use a shared public URL with email verification. Recipients enter their email to receive a token-based signing link. The flow supports two paths: direct signing (no interactive fields) and form-first signing (with interactive fields).
+
+For detailed documentation including sequence diagrams, security measures, and configuration, see **[docs/public-signing-flow.md](docs/public-signing-flow.md)**.
+
 ## Sandbox & Promotion
 
 Doc Engine supports sandbox environments for template development and testing before promoting to production.
