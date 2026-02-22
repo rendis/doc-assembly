@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion, type Transition } from 'framer-motion'
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock, Database, Loader2, Maximize2, Search, Users, Variable as VariableIcon, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock, Database, Loader2, Maximize2, Search, Users, Variable as VariableIcon, X } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRoleInjectables } from '../hooks/useRoleInjectables'
@@ -290,7 +290,12 @@ export function VariablesPanel({
         )}
       >
         <div className={cn("flex items-center gap-2 min-w-0", !isCollapsed && "flex-1")}>
-          <VariableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <VariableIcon
+            className={cn(
+              'h-4 w-4 text-muted-foreground shrink-0 transition-opacity',
+              isCollapsed && 'opacity-0'
+            )}
+          />
           <motion.span
             initial={false}
             animate={{
@@ -353,39 +358,25 @@ export function VariablesPanel({
           )}
         </motion.button>
 
-        {/* Collapse button - always visible */}
-        <button
-          onClick={toggleCollapsed}
-          className={cn(
-            'shrink-0 p-1 rounded-md hover:bg-muted transition-colors',
-            isCollapsed ? 'ml-0 mr-1' : 'ml-1'
-          )}
-          aria-label={isCollapsed ? t('editor.variablesPanel.collapse.expand') : t('editor.variablesPanel.collapse.collapse')}
-        >
-          <motion.div
-            animate={{ rotate: isCollapsed ? 180 : 0 }}
-            transition={COLLAPSE_TRANSITION}
+        {!isCollapsed && (
+          <button
+            onClick={toggleCollapsed}
+            className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1"
+            aria-label={t('editor.variablesPanel.collapse.collapse')}
           >
             <ChevronRight className="h-4 w-4" />
-          </motion.div>
-        </button>
+          </button>
+        )}
 
-        {/* Collapsed state: show badge centered on border line */}
-        <AnimatePresence>
-          {isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.15 }}
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center justify-center z-10"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted-foreground text-[13px] font-bold font-mono text-white shadow-md">
-                {totalCount}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isCollapsed && (
+          <button
+            onClick={toggleCollapsed}
+            className="absolute inset-0 z-20 flex items-center justify-center hover:bg-muted/50 transition-colors"
+            aria-label={t('editor.variablesPanel.collapse.expand')}
+          >
+            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       {/* Content */}

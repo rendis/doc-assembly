@@ -175,10 +175,20 @@ export function SignerRolesPanel({
       )}
     >
       {/* Header */}
-      <div className="relative flex items-center h-14 px-3 border-b border-border shrink-0">
+      <div
+        className={cn(
+          'relative flex items-center pt-3 pb-2 border-b border-border shrink-0',
+          isCollapsed ? 'px-2' : 'px-3'
+        )}
+      >
         {/* Título */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Users
+            className={cn(
+              'h-4 w-4 text-muted-foreground shrink-0 transition-opacity',
+              isCollapsed && 'opacity-0'
+            )}
+          />
           <motion.span
             initial={false}
             animate={{
@@ -292,36 +302,25 @@ export function SignerRolesPanel({
           </AnimatePresence>
         </motion.div>
 
-        {/* Collapse button - always visible */}
-        <button
-          onClick={toggleCollapsed}
-          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-0.5"
-          aria-label={isCollapsed ? t('editor.roles.panel.collapse.expand') : t('editor.roles.panel.collapse.collapse')}
-        >
-          <motion.div
-            animate={{ rotate: isCollapsed ? 180 : 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        {!isCollapsed && (
+          <button
+            onClick={toggleCollapsed}
+            className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-0.5"
+            aria-label={t('editor.roles.panel.collapse.collapse')}
           >
             <ChevronLeft className="h-4 w-4" />
-          </motion.div>
-        </button>
+          </button>
+        )}
 
-        {/* Collapsed state: show badge centered on border line */}
-        <AnimatePresence>
-          {isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.15 }}
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center justify-center z-10"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted-foreground text-[13px] font-bold font-mono text-white shadow-md">
-                {roles.length}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isCollapsed && (
+          <button
+            onClick={toggleCollapsed}
+            className="absolute inset-0 z-20 flex items-center justify-center hover:bg-muted/50 transition-colors"
+            aria-label={t('editor.roles.panel.collapse.expand')}
+          >
+            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       {/* Content */}

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { VariablesPanel } from './VariablesPanel'
 import { useVariablesPanelStore } from '../stores/variables-panel-store'
 import { useInjectablesStore } from '../stores/injectables-store'
@@ -33,8 +34,12 @@ describe('VariablesPanel collapsed header', () => {
     ])
   })
 
-  it('uses toolbar-aligned vertical rhythm in header and keeps counter badge visible', () => {
-    const { container } = render(<VariablesPanel />)
+  it('uses toolbar-aligned vertical rhythm and renders full-surface expand control when collapsed', () => {
+    const { container } = render(
+      <TooltipProvider>
+        <VariablesPanel />
+      </TooltipProvider>
+    )
 
     const header = container.querySelector('aside > div')
     expect(header).toBeDefined()
@@ -43,18 +48,31 @@ describe('VariablesPanel collapsed header', () => {
     expect(header?.className).not.toContain('h-14')
 
     const collapsedBadge = container.querySelector('span.rounded-full')
-    expect(collapsedBadge).toBeDefined()
-    expect(collapsedBadge?.textContent).toBe('1')
-  })
+    expect(collapsedBadge).toBeNull()
 
-  it('adds right-side spacing to collapsed chevron button', () => {
-    render(<VariablesPanel />)
-
-    const collapseButton = screen.getByRole('button', {
+    const expandButton = screen.getByRole('button', {
       name: 'editor.variablesPanel.collapse.expand',
     })
+    expect(expandButton.className).toContain('absolute')
+    expect(expandButton.className).toContain('inset-0')
+    expect(expandButton.className).toContain('justify-center')
+  })
 
-    expect(collapseButton.className).toContain('mr-1')
-    expect(collapseButton.className).not.toContain('ml-1')
+  it('keeps inline collapse button styling in expanded mode', () => {
+    useVariablesPanelStore.getState().setCollapsed(false)
+    useInjectablesStore.getState().setVariables([])
+
+    render(
+      <TooltipProvider>
+        <VariablesPanel />
+      </TooltipProvider>
+    )
+
+    const collapseButton = screen.getByRole('button', {
+      name: 'editor.variablesPanel.collapse.collapse',
+    })
+
+    expect(collapseButton.className).toContain('ml-1')
+    expect(collapseButton.className).not.toContain('absolute')
   })
 })
