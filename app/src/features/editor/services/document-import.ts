@@ -333,15 +333,6 @@ export function importDocument(
     backendVariables
   )
 
-  // Restore page configuration
-  restorePageConfig(migratedDocument.pageConfig, storeActions)
-
-  // Restore signer roles
-  restoreSignerRoles(migratedDocument.signerRoles, storeActions)
-
-  // Restore signing workflow configuration
-  restoreWorkflowConfig(migratedDocument.signingWorkflow, storeActions)
-
   // Load content into editor
   const contentLoaded = loadContent(editor, migratedDocument.content)
 
@@ -360,6 +351,16 @@ export function importDocument(
       document: migratedDocument,
     }
   }
+
+  // Restore page configuration after content to reduce race conditions
+  // when page settings trigger editor recreation.
+  restorePageConfig(migratedDocument.pageConfig, storeActions)
+
+  // Restore signer roles
+  restoreSignerRoles(migratedDocument.signerRoles, storeActions)
+
+  // Restore signing workflow configuration
+  restoreWorkflowConfig(migratedDocument.signingWorkflow, storeActions)
 
   return {
     success: true,

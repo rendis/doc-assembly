@@ -11,7 +11,7 @@ import { importDocument } from '@/features/editor/services/document-import'
 import { usePaginationStore, useSignerRolesStore } from '@/features/editor/stores'
 import { versionsApi, isVersionEditable } from '@/features/templates'
 import type { TemplateVersionDetail } from '@/features/templates/types'
-import type { PortableDocument } from '@/features/editor/types/document-format'
+import type { BackendVariable, PortableDocument } from '@/features/editor/types/document-format'
 import { Button } from '@/components/ui/button'
 import type { Editor } from '@tiptap/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -36,6 +36,10 @@ function EditorPage() {
   // Editor instance state for auto-save
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null)
   const contentLoadedRef = useRef(false)
+  const pendingImportSyncRef = useRef<{
+    document: PortableDocument
+    sourceEditor: Editor
+  } | null>(null)
 
   // Version data state
   const [version, setVersion] = useState<TemplateVersionDetail | null>(null)
@@ -62,6 +66,7 @@ function EditorPage() {
     setFetchError(null)
     setImportError(null)
     contentLoadedRef.current = false
+    pendingImportSyncRef.current = null
     try {
       const data = await versionsApi.get(templateId, versionId)
       setVersion(data)
@@ -89,11 +94,80 @@ function EditorPage() {
   // Check if version is editable
   const isEditable = isVersionEditable(version)
 
+  const getBackendVariables = useCallback((): BackendVariable[] => {
+    return variables.map((v) => ({
+      id: v.id,
+      variableId: v.variableId,
+      type: v.type as BackendVariable['type'],
+      label: v.label,
+    }))
+  }, [variables])
+
+  const createStoreActions = useCallback(() => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic config type
+    setPaginationConfig: (config: any) => {
+      const { pageSize, margins } = config
+      if (pageSize) usePaginationStore.getState().setPageSize(pageSize)
+      if (margins) usePaginationStore.getState().setMargins(margins)
+    },
+    setSignerRoles: useSignerRolesStore.getState().setRoles,
+    setWorkflowConfig: useSignerRolesStore.getState().setWorkflowConfig,
+  }), [])
+
+  const executeImport = useCallback((
+    doc: PortableDocument,
+    editor: Editor,
+    options?: { allowReapply?: boolean }
+  ) => {
+    setImportError(null)
+
+    const result = importDocument(
+      doc,
+      editor,
+      createStoreActions(),
+      getBackendVariables()
+    )
+
+    if (!result.success) {
+      pendingImportSyncRef.current = null
+      const errorMessages = result.validation.errors
+        .map((e) => e.message)
+        .join(', ')
+      setImportError(errorMessages || t('editor.errors.importFailed'))
+      return false
+    }
+
+    const currentPageWidth = usePaginationStore.getState().pageSize.width
+    const importedPageWidth = result.document?.pageConfig.width ?? doc.pageConfig.width
+    const shouldReapply = currentPageWidth !== importedPageWidth
+
+    if (options?.allowReapply !== false && shouldReapply) {
+      pendingImportSyncRef.current = {
+        document: doc,
+        sourceEditor: editor,
+      }
+    } else {
+      pendingImportSyncRef.current = null
+    }
+
+    return true
+  }, [createStoreActions, getBackendVariables, t])
+
+  // Phase B for import:
+  // if import changed page config and recreated the editor, re-apply content once on the new instance.
+  useEffect(() => {
+    if (!editorInstance || !pendingImportSyncRef.current) return
+
+    const { document, sourceEditor } = pendingImportSyncRef.current
+    if (editorInstance === sourceEditor) return
+
+    executeImport(document, editorInstance, { allowReapply: false })
+    pendingImportSyncRef.current = null
+  }, [editorInstance, executeImport])
+
   // Load content into editor when both are ready
   useEffect(() => {
-    if (!editorRef.current || !version || contentLoadedRef.current) return
-
-    const editor = editorRef.current
+    if (!editorInstance || !version || contentLoadedRef.current) return
 
     // If no content, leave editor empty (new document)
     const hasContent = version.contentStructure &&
@@ -104,46 +178,13 @@ function EditorPage() {
       return
     }
 
-    // Create store actions adapter
-    const storeActions = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic config type
-      setPaginationConfig: (config: any) => {
-        const { pageSize, margins } = config
-        if (pageSize) usePaginationStore.getState().setPageSize(pageSize)
-        if (margins) usePaginationStore.getState().setMargins(margins)
-      },
-      setSignerRoles: useSignerRolesStore.getState().setRoles,
-      setWorkflowConfig: useSignerRolesStore.getState().setWorkflowConfig,
-    }
-
     // Import document using contentStructure
     // contentStructure is already a PortableDocument object, not a string
     const portableDoc = version.contentStructure as unknown as PortableDocument
-    const result = importDocument(
-      portableDoc,
-      editor,
-      storeActions,
-      variables.map((v) => ({
-        id: v.id,
-        variableId: v.variableId,
-        type: v.type,
-        label: v.label,
-      }))
-    )
-
-    if (!result.success) {
-      const errorMessages = result.validation.errors
-        .map((e) => e.message)
-        .join(', ')
-      setImportError(errorMessages || t('editor.errors.importFailed'))
-      console.error('Import failed:', result.validation.errors)
-      console.error('Import failed - Full errors:', JSON.stringify(result.validation.errors, null, 2))
-      console.error('Import failed - Document:', JSON.stringify(portableDoc, null, 2))
-    }
+    executeImport(portableDoc, editorInstance)
 
     contentLoadedRef.current = true
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable, editorRef.current triggers on editor ready
-  }, [version, editorRef.current, variables])
+  }, [editorInstance, version, executeImport])
 
   // Auto-save hook
   const autoSave = useAutoSave({
@@ -199,45 +240,15 @@ function EditorPage() {
 
   // Import modal handlers
   const handleImport = useCallback(() => {
+    if (!editorInstance) return
     setShowImportModal(true)
-  }, [])
+  }, [editorInstance])
 
   const handleImportDocument = useCallback((doc: PortableDocument) => {
-    const editor = editorRef.current
-    if (!editor) return
-
-    const storeActions = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic config type
-      setPaginationConfig: (config: any) => {
-        const { pageSize, margins } = config
-        if (pageSize) usePaginationStore.getState().setPageSize(pageSize)
-        if (margins) usePaginationStore.getState().setMargins(margins)
-      },
-      setSignerRoles: useSignerRolesStore.getState().setRoles,
-      setWorkflowConfig: useSignerRolesStore.getState().setWorkflowConfig,
-    }
-
-    const result = importDocument(
-      doc,
-      editor,
-      storeActions,
-      variables.map((v) => ({
-        id: v.id,
-        variableId: v.variableId,
-        type: v.type,
-        label: v.label,
-      }))
-    )
-
-    if (!result.success) {
-      const errorMessages = result.validation.errors
-        .map((e) => e.message)
-        .join(', ')
-      setImportError(errorMessages || t('editor.errors.importFailed'))
-    }
-
+    if (!editorInstance) return
+    executeImport(doc, editorInstance)
     setShowImportModal(false)
-  }, [variables, t])
+  }, [editorInstance, executeImport])
 
   // Error state (shows without overlay)
   if (fetchError || importError) {

@@ -283,7 +283,12 @@ export function VariablesPanel({
       )}
     >
       {/* Header */}
-      <div className={cn("relative flex items-center h-14 border-b border-border shrink-0", isCollapsed ? "px-1" : "px-3")}>
+      <div
+        className={cn(
+          'relative flex items-center pt-3 pb-2 border-b border-border shrink-0',
+          isCollapsed ? 'px-2' : 'px-3'
+        )}
+      >
         <div className={cn("flex items-center gap-2 min-w-0", !isCollapsed && "flex-1")}>
           <VariableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
           <motion.span
@@ -351,7 +356,10 @@ export function VariablesPanel({
         {/* Collapse button - always visible */}
         <button
           onClick={toggleCollapsed}
-          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1"
+          className={cn(
+            'shrink-0 p-1 rounded-md hover:bg-muted transition-colors',
+            isCollapsed ? 'ml-0 mr-1' : 'ml-1'
+          )}
           aria-label={isCollapsed ? t('editor.variablesPanel.collapse.expand') : t('editor.variablesPanel.collapse.collapse')}
         >
           <motion.div
