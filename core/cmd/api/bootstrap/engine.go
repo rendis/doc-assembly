@@ -25,16 +25,15 @@ type Engine struct {
 	config         *config.Config
 	i18nFilePath   string
 
-	injectors           []port.Injector
-	mapper              port.RequestMapper
-	templateResolver    port.TemplateResolver
-	initFunc            port.InitFunc
-	workspaceProvider   port.WorkspaceInjectableProvider
-	renderAuthenticator port.RenderAuthenticator
-	publicDocAuth       port.PublicDocumentAccessAuthenticator
-	designTokens        *pdfrenderer.TypstDesignTokens
-	frontendFS          fs.FS // Embedded SPA filesystem; nil = no frontend served
-	frontendOverridden  bool  // True if SetFrontendFS was called (even with nil)
+	injectors          []port.Injector
+	mapper             port.RequestMapper
+	templateResolver   port.TemplateResolver
+	initFunc           port.InitFunc
+	workspaceProvider  port.WorkspaceInjectableProvider
+	publicDocAuth      port.PublicDocumentAccessAuthenticator
+	designTokens       *pdfrenderer.TypstDesignTokens
+	frontendFS         fs.FS // Embedded SPA filesystem; nil = no frontend served
+	frontendOverridden bool  // True if SetFrontendFS was called (even with nil)
 
 	// doc-assembly specific extension points
 	signingProvider      port.SigningProvider
@@ -105,18 +104,6 @@ func (e *Engine) SetInitFunc(fn port.InitFunc) *Engine {
 func (e *Engine) SetWorkspaceInjectableProvider(p port.WorkspaceInjectableProvider) *Engine {
 	e.workspaceProvider = p
 	return e
-}
-
-// SetRenderAuthenticator sets custom authentication for render endpoints.
-// When set, it replaces OIDC auth for render while panel OIDC continues working.
-func (e *Engine) SetRenderAuthenticator(auth port.RenderAuthenticator) *Engine {
-	e.renderAuthenticator = auth
-	return e
-}
-
-// GetRenderAuthenticator returns the registered render authenticator, or nil if not set.
-func (e *Engine) GetRenderAuthenticator() port.RenderAuthenticator {
-	return e.renderAuthenticator
 }
 
 // SetPublicDocumentAccessAuthenticator sets custom authentication for

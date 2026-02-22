@@ -119,38 +119,19 @@ func (r *Repository) FindByTenant(ctx context.Context, tenantID string, filters 
 
 // FindByTenantWithTemplateCount lists document types with template usage count.
 func (r *Repository) FindByTenantWithTemplateCount(ctx context.Context, tenantID string, filters port.DocumentTypeFilters) ([]*entity.DocumentTypeListItem, int64, error) {
-	var total int64
-	err := r.pool.QueryRow(ctx, queryCountByTenant, tenantID, filters.Search).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("counting document types: %w", err)
-	}
-
-	rows, err := r.pool.Query(ctx, queryFindByTenantWithTemplateCount, tenantID, filters.Search, filters.Limit, filters.Offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("querying document types with count: %w", err)
-	}
-	defer rows.Close()
-
-	var result []*entity.DocumentTypeListItem
-	for rows.Next() {
-		var item entity.DocumentTypeListItem
-		err := rows.Scan(
-			&item.ID,
-			&item.TenantID,
-			&item.Code,
-			&item.Name,
-			&item.Description,
-			&item.TemplatesCount,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scanning document type list item: %w", err)
-		}
-		result = append(result, &item)
-	}
-
-	return result, total, rows.Err()
+	return queryAndCollectWithCount(
+		r,
+		ctx,
+		queryCountByTenant,
+		[]any{tenantID, filters.Search},
+		queryFindByTenantWithTemplateCount,
+		[]any{tenantID, filters.Search, filters.Limit, filters.Offset},
+		"counting document types",
+		"querying document types with count",
+		"iterating document types with count",
+		scanDocumentTypeListItemWithTemplateCount,
+		"scanning document type list item",
+	)
 }
 
 // Update updates a document type (name and description only, code is immutable).
@@ -260,38 +241,19 @@ func (r *Repository) IsSysTenant(ctx context.Context, tenantID string) (bool, er
 // FindByTenantWithGlobalFallback lists document types including global (SYS tenant) types.
 // Tenant's own types take priority over global types with the same code.
 func (r *Repository) FindByTenantWithGlobalFallback(ctx context.Context, tenantID string, filters port.DocumentTypeFilters) ([]*entity.DocumentType, int64, error) {
-	var total int64
-	err := r.pool.QueryRow(ctx, queryCountByTenantWithGlobalFallback, tenantID, filters.Search).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("counting document types with global: %w", err)
-	}
-
-	rows, err := r.pool.Query(ctx, queryFindByTenantWithGlobalFallback, tenantID, filters.Search, filters.Limit, filters.Offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("querying document types with global: %w", err)
-	}
-	defer rows.Close()
-
-	var result []*entity.DocumentType
-	for rows.Next() {
-		var docType entity.DocumentType
-		err := rows.Scan(
-			&docType.ID,
-			&docType.TenantID,
-			&docType.Code,
-			&docType.Name,
-			&docType.Description,
-			&docType.IsGlobal,
-			&docType.CreatedAt,
-			&docType.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scanning document type: %w", err)
-		}
-		result = append(result, &docType)
-	}
-
-	return result, total, rows.Err()
+	return queryAndCollectWithCount(
+		r,
+		ctx,
+		queryCountByTenantWithGlobalFallback,
+		[]any{tenantID, filters.Search},
+		queryFindByTenantWithGlobalFallback,
+		[]any{tenantID, filters.Search, filters.Limit, filters.Offset},
+		"counting document types with global",
+		"querying document types with global",
+		"iterating document types with global",
+		scanDocumentTypeWithGlobalFallback,
+		"scanning document type",
+	)
 }
 
 // FindByTenantWithTemplateCountAndGlobal lists document types with template count, including global types.
@@ -349,6 +311,115 @@ func (r *Repository) FindByCodeWithGlobalFallback(ctx context.Context, tenantID,
 	}
 	if err != nil {
 		return nil, fmt.Errorf("querying document type by code with global: %w", err)
+	}
+
+	return &docType, nil
+}
+
+func (r *Repository) queryWithCount(
+	ctx context.Context,
+	countQuery string,
+	countArgs []any,
+	listQuery string,
+	listArgs []any,
+	countErrMsg string,
+	listErrMsg string,
+	iterateErrMsg string,
+	scanRows func(rows pgx.Rows) error,
+) (int64, error) {
+	var total int64
+	if err := r.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("%s: %w", countErrMsg, err)
+	}
+
+	rows, err := r.pool.Query(ctx, listQuery, listArgs...)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", listErrMsg, err)
+	}
+	defer rows.Close()
+
+	if err := scanRows(rows); err != nil {
+		return 0, err
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("%s: %w", iterateErrMsg, err)
+	}
+
+	return total, nil
+}
+
+func queryAndCollectWithCount[T any](
+	repo *Repository,
+	ctx context.Context,
+	countQuery string,
+	countArgs []any,
+	listQuery string,
+	listArgs []any,
+	countErrMsg string,
+	listErrMsg string,
+	iterateErrMsg string,
+	scanItem func(rows pgx.Rows) (*T, error),
+	scanErrMsg string,
+) ([]*T, int64, error) {
+	var result []*T
+	total, err := repo.queryWithCount(
+		ctx,
+		countQuery,
+		countArgs,
+		listQuery,
+		listArgs,
+		countErrMsg,
+		listErrMsg,
+		iterateErrMsg,
+		func(rows pgx.Rows) error {
+			for rows.Next() {
+				item, scanErr := scanItem(rows)
+				if scanErr != nil {
+					return fmt.Errorf("%s: %w", scanErrMsg, scanErr)
+				}
+				result = append(result, item)
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return result, total, nil
+}
+
+func scanDocumentTypeListItemWithTemplateCount(rows pgx.Rows) (*entity.DocumentTypeListItem, error) {
+	var item entity.DocumentTypeListItem
+	if err := rows.Scan(
+		&item.ID,
+		&item.TenantID,
+		&item.Code,
+		&item.Name,
+		&item.Description,
+		&item.TemplatesCount,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+func scanDocumentTypeWithGlobalFallback(rows pgx.Rows) (*entity.DocumentType, error) {
+	var docType entity.DocumentType
+	if err := rows.Scan(
+		&docType.ID,
+		&docType.TenantID,
+		&docType.Code,
+		&docType.Name,
+		&docType.Description,
+		&docType.IsGlobal,
+		&docType.CreatedAt,
+		&docType.UpdatedAt,
+	); err != nil {
+		return nil, err
 	}
 
 	return &docType, nil

@@ -76,7 +76,6 @@ func NewHTTPServer(
 	publicSigningController *controller.PublicSigningController,
 	automationKeyController *controller.AutomationKeyController,
 	automationController *controller.AutomationController,
-	renderAuthenticator port.RenderAuthenticator,
 	publicDocAuthenticator port.PublicDocumentAccessAuthenticator,
 	frontendFS fs.FS,
 ) *HTTPServer {
@@ -134,7 +133,6 @@ func NewHTTPServer(
 	}
 	publicSigningController.RegisterRoutes(base)
 	automationController.RegisterRoutes(engine)
-	setupRenderRoutes(base, cfg, renderAuthenticator, requestTimeout)
 
 	// Serve embedded SPA if frontendFS is provided, otherwise return 404 for unmatched routes.
 	if frontendFS != nil {
@@ -216,34 +214,6 @@ func registerPanelControllers(
 	// Document routes (within workspace context)
 	wsGroup := v1.Group("", middlewareProvider.WorkspaceContext())
 	documentController.RegisterRoutes(wsGroup)
-}
-
-// setupRenderRoutes creates the render route group with separate auth.
-// Auth priority: dummy > custom RenderAuthenticator > OIDC.
-// Render routes skip DB identity lookup for stateless operation.
-func setupRenderRoutes(
-	router gin.IRouter,
-	cfg *config.Config,
-	renderAuthenticator port.RenderAuthenticator,
-	requestTimeout time.Duration,
-) {
-	renderGroup := router.Group("/api/v1/render")
-	renderGroup.Use(noCacheAPI())
-	renderGroup.Use(middleware.Operation())
-	renderGroup.Use(middleware.RequestTimeout(requestTimeout))
-
-	switch {
-	case cfg.Auth.IsDummyAuth():
-		renderGroup.Use(middleware.DummyAuth())
-	case renderAuthenticator != nil:
-		renderGroup.Use(middleware.CustomRenderAuth(renderAuthenticator))
-	default:
-		renderGroup.Use(middleware.RenderAuth(&cfg.Auth))
-		renderGroup.Use(middleware.RenderClaimsContext())
-	}
-
-	// Render routes will be registered here when render endpoints are added.
-	// Example: renderController.RegisterWorkspaceRoutes(renderGroup)
 }
 
 // Start starts the HTTP server.

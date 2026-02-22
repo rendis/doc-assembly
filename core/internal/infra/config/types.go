@@ -91,16 +91,12 @@ func (d DatabaseConfig) MaxIdleTimeDuration() time.Duration {
 }
 
 // AuthConfig groups authentication configuration.
-// Separates panel (login/UI) auth from render-only providers.
 type AuthConfig struct {
 	// Dummy forces dummy auth mode (bypass JWT), regardless of OIDC config.
 	// Set via DOC_ENGINE_AUTH_DUMMY=true or make run DUMMY=1.
 	Dummy bool `mapstructure:"dummy"`
-	// Panel is the OIDC provider for web panel login and all non-render routes.
+	// Panel is the OIDC provider for web panel login and panel API routes.
 	Panel *OIDCProvider `mapstructure:"panel"`
-	// RenderProviders are additional OIDC providers accepted ONLY for render endpoints.
-	// Panel provider is always valid for render too (allows UI preview).
-	RenderProviders []OIDCProvider `mapstructure:"render_providers"`
 }
 
 // GetPanelOIDC returns the OIDC provider for panel (login/UI) authentication.
@@ -112,20 +108,7 @@ func (a *AuthConfig) GetPanelOIDC() *OIDCProvider {
 	return nil
 }
 
-// GetAllOIDCProviders returns all configured OIDC providers (panel + render).
-func (a *AuthConfig) GetAllOIDCProviders() []OIDCProvider {
-	if a == nil {
-		return nil
-	}
-	result := make([]OIDCProvider, 0, len(a.RenderProviders)+1)
-	if panel := a.GetPanelOIDC(); panel != nil {
-		result = append(result, *panel)
-	}
-	result = append(result, a.RenderProviders...)
-	return result
-}
-
-// IsDummyAuth returns true if dummy mode is forced or no OIDC providers are configured.
+// IsDummyAuth returns true if dummy mode is forced or no panel OIDC provider is configured.
 func (a *AuthConfig) IsDummyAuth() bool {
 	if a.Dummy {
 		return true

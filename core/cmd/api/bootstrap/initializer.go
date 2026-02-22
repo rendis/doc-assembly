@@ -291,8 +291,6 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		templateMapper, templateVersionMapper, injectableMapper, docTypeMapper,
 	)
 
-	// --- Render Authenticator ---
-	renderAuth := e.renderAuthenticator
 	publicDocAuth := e.publicDocAuth
 
 	// --- Frontend FS ---
@@ -316,7 +314,6 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		publicSigningCtrl,
 		automationKeyCtrl,
 		automationCtrl,
-		renderAuth,
 		publicDocAuth,
 		frontendFS,
 	)

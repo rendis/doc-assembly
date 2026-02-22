@@ -27,7 +27,7 @@ type discoveryResponse struct {
 	EndSessionEndpoint string `json:"end_session_endpoint"`
 }
 
-// DiscoverAll runs OIDC discovery for all configured providers.
+// DiscoverAll runs OIDC discovery for configured auth providers.
 // Providers with discovery_url will have their issuer and jwks_url populated.
 func (a *AuthConfig) DiscoverAll(ctx context.Context) error {
 	if a == nil {
@@ -38,13 +38,6 @@ func (a *AuthConfig) DiscoverAll(ctx context.Context) error {
 	if a.Panel != nil {
 		if err := discoverOIDC(ctx, a.Panel); err != nil {
 			return fmt.Errorf("panel OIDC discovery: %w", err)
-		}
-	}
-
-	// Discover render providers
-	for i := range a.RenderProviders {
-		if err := discoverOIDC(ctx, &a.RenderProviders[i]); err != nil {
-			return fmt.Errorf("render provider %q OIDC discovery: %w", a.RenderProviders[i].Name, err)
 		}
 	}
 

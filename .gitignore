@@ -146,6 +146,7 @@ secrets/
 # Local development
 .env*
 !.env.example
+spec/
 
 # Agents
 .claude/

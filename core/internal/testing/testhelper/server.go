@@ -301,14 +301,18 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 
-	// Empty auth config = dev mode (no OIDC providers, uses ParseUnverified)
+	// Empty auth config = dev mode (no panel OIDC provider, uses ParseUnverified)
 	// This allows unsigned test tokens to be accepted
 	authCfg := &config.AuthConfig{}
 
 	// API v1 group with middleware chain
 	v1 := engine.Group("/api/v1")
 	v1.Use(middleware.Operation())
-	v1.Use(middleware.MultiOIDCAuth(authCfg.GetAllOIDCProviders()))
+	var providers []config.OIDCProvider
+	if panel := authCfg.GetPanelOIDC(); panel != nil {
+		providers = append(providers, *panel)
+	}
+	v1.Use(middleware.MultiOIDCAuth(providers))
 	v1.Use(middlewareProvider.IdentityContext())
 	v1.Use(middlewareProvider.SystemRoleContext())
 

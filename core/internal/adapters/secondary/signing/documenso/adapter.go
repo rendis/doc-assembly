@@ -305,36 +305,15 @@ func (a *Adapter) sendFieldsToAPI(ctx context.Context, envelopeID string, fieldP
 
 // distributeEnvelope sends the envelope for signing.
 func (a *Adapter) distributeEnvelope(ctx context.Context, envelopeID string) error {
-	sendReq := map[string]string{
-		"envelopeId": envelopeID,
-	}
-
-	sendBody, err := json.Marshal(sendReq)
-	if err != nil {
-		return fmt.Errorf("marshaling send request: %w", err)
-	}
-
-	// v2 endpoint: /envelope/distribute
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/envelope/distribute", bytes.NewReader(sendBody))
-	if err != nil {
-		return fmt.Errorf("creating distribute request: %w", err)
-	}
-
-	a.setAuthHeader(httpReq)
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := a.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("executing distribute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("documenso API error distributing envelope (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	return nil
+	return a.postEnvelopeAction(
+		ctx,
+		envelopeID,
+		"/envelope/distribute",
+		"marshaling send request",
+		"creating distribute request",
+		"executing distribute request",
+		"documenso API error distributing envelope",
+	)
 }
 
 // buildUploadResult constructs the upload result from the envelope details.
@@ -528,19 +507,36 @@ func determineFinalStatus(envStatus string, allSigned, anyDeclined bool, recipie
 
 // CancelDocument cancels/voids a document that is pending signatures.
 func (a *Adapter) CancelDocument(ctx context.Context, providerDocumentID string) error {
-	cancelReq := map[string]string{
-		"envelopeId": providerDocumentID,
+	return a.postEnvelopeAction(
+		ctx,
+		providerDocumentID,
+		"/envelope/cancel",
+		"marshaling cancel request",
+		"creating request",
+		"executing request",
+		"documenso API error",
+	)
+}
+
+func (a *Adapter) postEnvelopeAction(
+	ctx context.Context,
+	envelopeID string,
+	endpoint string,
+	marshalErrMsg string,
+	createReqErrMsg string,
+	execReqErrMsg string,
+	apiErrMsg string,
+) error {
+	reqBody, err := json.Marshal(map[string]string{
+		"envelopeId": envelopeID,
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %w", marshalErrMsg, err)
 	}
 
-	body, err := json.Marshal(cancelReq)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+endpoint, bytes.NewReader(reqBody))
 	if err != nil {
-		return fmt.Errorf("marshaling cancel request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		a.config.BaseURL+"/envelope/cancel", bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("%s: %w", createReqErrMsg, err)
 	}
 
 	a.setAuthHeader(httpReq)
@@ -548,13 +544,13 @@ func (a *Adapter) CancelDocument(ctx context.Context, providerDocumentID string)
 
 	resp, err := a.httpClient.Do(httpReq)
 	if err != nil {
-		return fmt.Errorf("executing request: %w", err)
+		return fmt.Errorf("%s: %w", execReqErrMsg, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("documenso API error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("%s (status %d): %s", apiErrMsg, resp.StatusCode, string(respBody))
 	}
 
 	return nil

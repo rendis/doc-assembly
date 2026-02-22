@@ -39,9 +39,6 @@ type TemplateVersionSearchItem = port.TemplateVersionSearchItem
 // WorkspaceInjectableProvider supplies workspace-specific injectable definitions.
 type WorkspaceInjectableProvider = port.WorkspaceInjectableProvider
 
-// RenderAuthenticator provides custom authentication for render endpoints.
-type RenderAuthenticator = port.RenderAuthenticator
-
 // PublicDocumentAccessAuthenticator provides custom auth for /public/doc/:documentId.
 type PublicDocumentAccessAuthenticator = port.PublicDocumentAccessAuthenticator
 
@@ -76,9 +73,6 @@ type (
 	ResolveInjectablesRequest = port.ResolveInjectablesRequest
 	ResolveInjectablesResult  = port.ResolveInjectablesResult
 )
-
-// RenderAuthenticator types
-type RenderAuthClaims = port.RenderAuthClaims
 
 // PublicDocumentAccessAuthenticator types
 type PublicDocumentAccessClaims = port.PublicDocumentAccessClaims

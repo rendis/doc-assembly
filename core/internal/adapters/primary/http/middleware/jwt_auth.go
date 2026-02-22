@@ -46,27 +46,6 @@ func PanelAuth(cfg *config.AuthConfig) gin.HandlerFunc {
 	return MultiOIDCAuth([]config.OIDCProvider{*panel})
 }
 
-// RenderAuth creates middleware for render endpoint authentication.
-// Accepts panel provider plus any additional render-only providers.
-func RenderAuth(cfg *config.AuthConfig) gin.HandlerFunc {
-	providers := cfg.GetAllOIDCProviders()
-	if len(providers) == 0 {
-		return func(c *gin.Context) {
-			slog.ErrorContext(c.Request.Context(), "no render OIDC providers configured")
-			abortWithError(c, http.StatusInternalServerError, entity.ErrInvalidToken)
-		}
-	}
-	return MultiOIDCAuth(providers)
-}
-
-// RenderClaimsContext is a pass-through middleware for render endpoints.
-// Claims are already set by RenderAuth; this skips DB identity lookup.
-func RenderClaimsContext() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-	}
-}
-
 // MultiOIDCAuth creates middleware supporting multiple OIDC providers.
 // Matches incoming token's issuer against configured providers.
 // Returns 401 if issuer is not in the configured list.

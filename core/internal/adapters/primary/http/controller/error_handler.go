@@ -11,6 +11,110 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 )
 
+var notFoundErrors = []error{
+	entity.ErrInjectableNotFound,
+	entity.ErrTemplateNotFound,
+	entity.ErrTagNotFound,
+	entity.ErrVersionNotFound,
+	entity.ErrSignerRoleNotFound,
+	entity.ErrVersionInjectableNotFound,
+	entity.ErrWorkspaceNotFound,
+	entity.ErrFolderNotFound,
+	entity.ErrUserNotFound,
+	entity.ErrMemberNotFound,
+	entity.ErrTenantNotFound,
+	entity.ErrTenantMemberNotFound,
+	entity.ErrSystemRoleNotFound,
+	entity.ErrDocumentTypeNotFound,
+	entity.ErrAPIKeyNotFound,
+	entity.ErrInternalTemplateResolutionNotFound,
+}
+
+var conflictErrors = []error{
+	entity.ErrInjectableAlreadyExists,
+	entity.ErrTemplateAlreadyExists,
+	entity.ErrVersionAlreadyExists,
+	entity.ErrVersionNameExists,
+	entity.ErrDuplicateSignerAnchor,
+	entity.ErrDuplicateSignerOrder,
+	entity.ErrWorkspaceAlreadyExists,
+	entity.ErrWorkspaceCodeExists,
+	entity.ErrFolderAlreadyExists,
+	entity.ErrTagAlreadyExists,
+	entity.ErrSystemWorkspaceExists,
+	entity.ErrMemberAlreadyExists,
+	entity.ErrTenantAlreadyExists,
+	entity.ErrGlobalWorkspaceExists,
+	entity.ErrTenantMemberExists,
+	entity.ErrScheduledTimeConflict,
+	entity.ErrDocumentTypeCodeExists,
+	entity.ErrDocumentTypeAlreadyAssigned,
+}
+
+var badRequestErrors = []error{
+	entity.ErrInjectableInUse,
+	entity.ErrNoPublishedVersion,
+	entity.ErrInvalidInjectableKey,
+	entity.ErrRequiredField,
+	entity.ErrFieldTooLong,
+	entity.ErrInvalidDataType,
+	entity.ErrCannotEditPublished,
+	entity.ErrCannotEditArchived,
+	entity.ErrVersionNotPublished,
+	entity.ErrVersionAlreadyPublished,
+	entity.ErrCannotArchiveWithoutReplacement,
+	entity.ErrInvalidVersionStatus,
+	entity.ErrInvalidVersionNumber,
+	entity.ErrScheduledTimeInPast,
+	entity.ErrInvalidSignerRole,
+	entity.ErrFolderHasChildren,
+	entity.ErrFolderHasTemplates,
+	entity.ErrTagInUse,
+	entity.ErrCircularReference,
+	entity.ErrCannotArchiveSystem,
+	entity.ErrInvalidParentFolder,
+	entity.ErrCannotRemoveOwner,
+	entity.ErrInvalidRole,
+	entity.ErrInvalidTenantCode,
+	entity.ErrInvalidWorkspaceType,
+	entity.ErrInvalidWorkspaceCode,
+	entity.ErrInvalidSystemRole,
+	entity.ErrMissingTenantID,
+	entity.ErrCannotRemoveTenantOwner,
+	entity.ErrInvalidTenantRole,
+	entity.ErrVersionDoesNotBelongToTemplate,
+	entity.ErrTargetTemplateRequired,
+	entity.ErrTargetTemplateNotInWorkspace,
+	entity.ErrOnlyTextTypeAllowed,
+	entity.ErrWorkspaceIDRequired,
+	entity.ErrCannotModifyGlobal,
+	entity.ErrDocumentTypeCodeImmutable,
+	entity.ErrDocumentTypeHasTemplates,
+	entity.ErrInvalidOperationType,
+	entity.ErrDocumentNotCompleted,
+	entity.ErrDocumentNotTerminal,
+	entity.ErrRelatedDocumentRequired,
+	entity.ErrRelatedDocumentSameWorkspace,
+}
+
+var forbiddenErrors = []error{
+	entity.ErrWorkspaceAccessDenied,
+	entity.ErrForbidden,
+	entity.ErrInsufficientRole,
+	entity.ErrTenantAccessDenied,
+}
+
+var unauthorizedErrors = []error{
+	entity.ErrUnauthorized,
+	entity.ErrMissingAPIKey,
+	entity.ErrInvalidAPIKey,
+}
+
+var unavailableErrors = []error{
+	entity.ErrLLMServiceUnavailable,
+	entity.ErrRendererBusy,
+}
+
 // respondError sends an error response.
 func respondError(ctx *gin.Context, statusCode int, err error) {
 	ctx.JSON(statusCode, dto.NewErrorResponse(err))
@@ -65,112 +169,41 @@ func mapErrorToStatusCode(err error) int {
 //
 //nolint:gocyclo // Simple list of domain error checks by status code.
 func is404Error(err error) bool {
-	return errors.Is(err, entity.ErrInjectableNotFound) ||
-		errors.Is(err, entity.ErrTemplateNotFound) ||
-		errors.Is(err, entity.ErrTagNotFound) ||
-		errors.Is(err, entity.ErrVersionNotFound) ||
-		errors.Is(err, entity.ErrSignerRoleNotFound) ||
-		errors.Is(err, entity.ErrVersionInjectableNotFound) ||
-		errors.Is(err, entity.ErrWorkspaceNotFound) ||
-		errors.Is(err, entity.ErrFolderNotFound) ||
-		errors.Is(err, entity.ErrUserNotFound) ||
-		errors.Is(err, entity.ErrMemberNotFound) ||
-		errors.Is(err, entity.ErrTenantNotFound) ||
-		errors.Is(err, entity.ErrTenantMemberNotFound) ||
-		errors.Is(err, entity.ErrSystemRoleNotFound) ||
-		errors.Is(err, entity.ErrDocumentTypeNotFound) ||
-		errors.Is(err, entity.ErrAPIKeyNotFound) ||
-		errors.Is(err, entity.ErrInternalTemplateResolutionNotFound)
+	return isAnyError(err, notFoundErrors...)
 }
 
 // is409Error returns true if the error should result in a 409 Conflict response.
 //
 //nolint:gocyclo // Simple list of error checks that grows with features
 func is409Error(err error) bool {
-	return errors.Is(err, entity.ErrInjectableAlreadyExists) ||
-		errors.Is(err, entity.ErrTemplateAlreadyExists) ||
-		errors.Is(err, entity.ErrVersionAlreadyExists) ||
-		errors.Is(err, entity.ErrVersionNameExists) ||
-		errors.Is(err, entity.ErrDuplicateSignerAnchor) ||
-		errors.Is(err, entity.ErrDuplicateSignerOrder) ||
-		errors.Is(err, entity.ErrWorkspaceAlreadyExists) ||
-		errors.Is(err, entity.ErrWorkspaceCodeExists) ||
-		errors.Is(err, entity.ErrFolderAlreadyExists) ||
-		errors.Is(err, entity.ErrTagAlreadyExists) ||
-		errors.Is(err, entity.ErrSystemWorkspaceExists) ||
-		errors.Is(err, entity.ErrMemberAlreadyExists) ||
-		errors.Is(err, entity.ErrTenantAlreadyExists) ||
-		errors.Is(err, entity.ErrGlobalWorkspaceExists) ||
-		errors.Is(err, entity.ErrTenantMemberExists) ||
-		errors.Is(err, entity.ErrScheduledTimeConflict) ||
-		errors.Is(err, entity.ErrDocumentTypeCodeExists) ||
-		errors.Is(err, entity.ErrDocumentTypeAlreadyAssigned)
+	return isAnyError(err, conflictErrors...)
 }
 
 // is400Error returns true if the error should result in a 400 Bad Request response.
 func is400Error(err error) bool {
-	return errors.Is(err, entity.ErrInjectableInUse) ||
-		errors.Is(err, entity.ErrNoPublishedVersion) ||
-		errors.Is(err, entity.ErrInvalidInjectableKey) ||
-		errors.Is(err, entity.ErrRequiredField) ||
-		errors.Is(err, entity.ErrFieldTooLong) ||
-		errors.Is(err, entity.ErrInvalidDataType) ||
-		errors.Is(err, entity.ErrCannotEditPublished) ||
-		errors.Is(err, entity.ErrCannotEditArchived) ||
-		errors.Is(err, entity.ErrVersionNotPublished) ||
-		errors.Is(err, entity.ErrVersionAlreadyPublished) ||
-		errors.Is(err, entity.ErrCannotArchiveWithoutReplacement) ||
-		errors.Is(err, entity.ErrInvalidVersionStatus) ||
-		errors.Is(err, entity.ErrInvalidVersionNumber) ||
-		errors.Is(err, entity.ErrScheduledTimeInPast) ||
-		errors.Is(err, entity.ErrInvalidSignerRole) ||
-		errors.Is(err, entity.ErrFolderHasChildren) ||
-		errors.Is(err, entity.ErrFolderHasTemplates) ||
-		errors.Is(err, entity.ErrTagInUse) ||
-		errors.Is(err, entity.ErrCircularReference) ||
-		errors.Is(err, entity.ErrCannotArchiveSystem) ||
-		errors.Is(err, entity.ErrInvalidParentFolder) ||
-		errors.Is(err, entity.ErrCannotRemoveOwner) ||
-		errors.Is(err, entity.ErrInvalidRole) ||
-		errors.Is(err, entity.ErrInvalidTenantCode) ||
-		errors.Is(err, entity.ErrInvalidWorkspaceType) ||
-		errors.Is(err, entity.ErrInvalidWorkspaceCode) ||
-		errors.Is(err, entity.ErrInvalidSystemRole) ||
-		errors.Is(err, entity.ErrMissingTenantID) ||
-		errors.Is(err, entity.ErrCannotRemoveTenantOwner) ||
-		errors.Is(err, entity.ErrInvalidTenantRole) ||
-		errors.Is(err, entity.ErrVersionDoesNotBelongToTemplate) ||
-		errors.Is(err, entity.ErrTargetTemplateRequired) ||
-		errors.Is(err, entity.ErrTargetTemplateNotInWorkspace) ||
-		errors.Is(err, entity.ErrOnlyTextTypeAllowed) ||
-		errors.Is(err, entity.ErrWorkspaceIDRequired) ||
-		errors.Is(err, entity.ErrCannotModifyGlobal) ||
-		errors.Is(err, entity.ErrDocumentTypeCodeImmutable) ||
-		errors.Is(err, entity.ErrDocumentTypeHasTemplates) ||
-		errors.Is(err, entity.ErrInvalidOperationType) ||
-		errors.Is(err, entity.ErrDocumentNotCompleted) ||
-		errors.Is(err, entity.ErrDocumentNotTerminal) ||
-		errors.Is(err, entity.ErrRelatedDocumentRequired) ||
-		errors.Is(err, entity.ErrRelatedDocumentSameWorkspace)
+	return isAnyError(err, badRequestErrors...)
 }
 
 // is403Error returns true if the error should result in a 403 Forbidden response.
 func is403Error(err error) bool {
-	return errors.Is(err, entity.ErrWorkspaceAccessDenied) ||
-		errors.Is(err, entity.ErrForbidden) ||
-		errors.Is(err, entity.ErrInsufficientRole) ||
-		errors.Is(err, entity.ErrTenantAccessDenied)
+	return isAnyError(err, forbiddenErrors...)
 }
 
 // is401Error returns true if the error should result in a 401 Unauthorized response.
 func is401Error(err error) bool {
-	return errors.Is(err, entity.ErrUnauthorized) ||
-		errors.Is(err, entity.ErrMissingAPIKey) ||
-		errors.Is(err, entity.ErrInvalidAPIKey)
+	return isAnyError(err, unauthorizedErrors...)
 }
 
 // is503Error returns true if the error should result in a 503 Service Unavailable response.
 func is503Error(err error) bool {
-	return errors.Is(err, entity.ErrLLMServiceUnavailable) ||
-		errors.Is(err, entity.ErrRendererBusy)
+	return isAnyError(err, unavailableErrors...)
+}
+
+func isAnyError(err error, candidates ...error) bool {
+	for _, candidate := range candidates {
+		if errors.Is(err, candidate) {
+			return true
+		}
+	}
+	return false
 }

@@ -342,7 +342,6 @@ engine.SetInitFunc(myInitFunc)             // ONE only
 engine.SetSigningProvider(mySigningProvider)
 engine.SetStorageAdapter(myStorageAdapter)
 engine.SetNotificationProvider(myNotifier)
-engine.SetRenderAuthenticator(myAuth)
 engine.SetWorkspaceInjectableProvider(myProvider)
 
 // Customization

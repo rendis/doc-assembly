@@ -24,6 +24,10 @@ type Repository struct {
 	pool *pgxpool.Pool
 }
 
+type templateVersionRow interface {
+	Scan(dest ...any) error
+}
+
 // Create creates a new template version.
 func (r *Repository) Create(ctx context.Context, version *entity.TemplateVersion) (string, error) {
 	var id string
@@ -49,26 +53,7 @@ func (r *Repository) Create(ctx context.Context, version *entity.TemplateVersion
 
 // FindByID finds a template version by ID.
 func (r *Repository) FindByID(ctx context.Context, id string) (*entity.TemplateVersion, error) {
-	version := &entity.TemplateVersion{}
-	err := r.pool.QueryRow(ctx, queryFindByID, id).Scan(
-		&version.ID,
-		&version.TemplateID,
-		&version.VersionNumber,
-		&version.Name,
-		&version.Description,
-		&version.ContentStructure,
-		&version.Status,
-		&version.ScheduledPublishAt,
-		&version.ScheduledArchiveAt,
-		&version.SigningWorkflowConfig,
-		&version.PublishedAt,
-		&version.ArchivedAt,
-		&version.PublishedBy,
-		&version.ArchivedBy,
-		&version.CreatedBy,
-		&version.CreatedAt,
-		&version.UpdatedAt,
-	)
+	version, err := scanTemplateVersion(r.pool.QueryRow(ctx, queryFindByID, id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, entity.ErrVersionNotFound
@@ -201,38 +186,7 @@ func (r *Repository) FindByTemplateID(ctx context.Context, templateID string) ([
 	}
 	defer rows.Close()
 
-	var versions []*entity.TemplateVersion
-	for rows.Next() {
-		v := &entity.TemplateVersion{}
-		if err := rows.Scan(
-			&v.ID,
-			&v.TemplateID,
-			&v.VersionNumber,
-			&v.Name,
-			&v.Description,
-			&v.ContentStructure,
-			&v.Status,
-			&v.ScheduledPublishAt,
-			&v.ScheduledArchiveAt,
-			&v.SigningWorkflowConfig,
-			&v.PublishedAt,
-			&v.ArchivedAt,
-			&v.PublishedBy,
-			&v.ArchivedBy,
-			&v.CreatedBy,
-			&v.CreatedAt,
-			&v.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning template version: %w", err)
-		}
-		versions = append(versions, v)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating template versions: %w", err)
-	}
-
-	return versions, nil
+	return collectTemplateVersions(rows, "scanning template version", "iterating template versions")
 }
 
 // FindByTemplateIDWithDetails lists all versions for a template with full details.
@@ -256,26 +210,7 @@ func (r *Repository) FindByTemplateIDWithDetails(ctx context.Context, templateID
 
 // FindPublishedByTemplateID finds the currently published version for a template.
 func (r *Repository) FindPublishedByTemplateID(ctx context.Context, templateID string) (*entity.TemplateVersion, error) {
-	version := &entity.TemplateVersion{}
-	err := r.pool.QueryRow(ctx, queryFindPublishedByTemplateID, templateID).Scan(
-		&version.ID,
-		&version.TemplateID,
-		&version.VersionNumber,
-		&version.Name,
-		&version.Description,
-		&version.ContentStructure,
-		&version.Status,
-		&version.ScheduledPublishAt,
-		&version.ScheduledArchiveAt,
-		&version.SigningWorkflowConfig,
-		&version.PublishedAt,
-		&version.ArchivedAt,
-		&version.PublishedBy,
-		&version.ArchivedBy,
-		&version.CreatedBy,
-		&version.CreatedAt,
-		&version.UpdatedAt,
-	)
+	version, err := scanTemplateVersion(r.pool.QueryRow(ctx, queryFindPublishedByTemplateID, templateID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, entity.ErrNoPublishedVersion
@@ -304,38 +239,7 @@ func (r *Repository) FindScheduledToPublish(ctx context.Context, before time.Tim
 	}
 	defer rows.Close()
 
-	var versions []*entity.TemplateVersion
-	for rows.Next() {
-		v := &entity.TemplateVersion{}
-		if err := rows.Scan(
-			&v.ID,
-			&v.TemplateID,
-			&v.VersionNumber,
-			&v.Name,
-			&v.Description,
-			&v.ContentStructure,
-			&v.Status,
-			&v.ScheduledPublishAt,
-			&v.ScheduledArchiveAt,
-			&v.SigningWorkflowConfig,
-			&v.PublishedAt,
-			&v.ArchivedAt,
-			&v.PublishedBy,
-			&v.ArchivedBy,
-			&v.CreatedBy,
-			&v.CreatedAt,
-			&v.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning scheduled version: %w", err)
-		}
-		versions = append(versions, v)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating scheduled versions: %w", err)
-	}
-
-	return versions, nil
+	return collectTemplateVersions(rows, "scanning scheduled version", "iterating scheduled versions")
 }
 
 // FindScheduledToArchive finds all published versions scheduled to archive before the given time.
@@ -346,35 +250,47 @@ func (r *Repository) FindScheduledToArchive(ctx context.Context, before time.Tim
 	}
 	defer rows.Close()
 
+	return collectTemplateVersions(rows, "scanning scheduled archive version", "iterating scheduled archive versions")
+}
+
+func scanTemplateVersion(row templateVersionRow) (*entity.TemplateVersion, error) {
+	version := &entity.TemplateVersion{}
+	if err := row.Scan(
+		&version.ID,
+		&version.TemplateID,
+		&version.VersionNumber,
+		&version.Name,
+		&version.Description,
+		&version.ContentStructure,
+		&version.Status,
+		&version.ScheduledPublishAt,
+		&version.ScheduledArchiveAt,
+		&version.SigningWorkflowConfig,
+		&version.PublishedAt,
+		&version.ArchivedAt,
+		&version.PublishedBy,
+		&version.ArchivedBy,
+		&version.CreatedBy,
+		&version.CreatedAt,
+		&version.UpdatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return version, nil
+}
+
+func collectTemplateVersions(rows pgx.Rows, scanErrMsg, iterateErrMsg string) ([]*entity.TemplateVersion, error) {
 	var versions []*entity.TemplateVersion
 	for rows.Next() {
-		v := &entity.TemplateVersion{}
-		if err := rows.Scan(
-			&v.ID,
-			&v.TemplateID,
-			&v.VersionNumber,
-			&v.Name,
-			&v.Description,
-			&v.ContentStructure,
-			&v.Status,
-			&v.ScheduledPublishAt,
-			&v.ScheduledArchiveAt,
-			&v.SigningWorkflowConfig,
-			&v.PublishedAt,
-			&v.ArchivedAt,
-			&v.PublishedBy,
-			&v.ArchivedBy,
-			&v.CreatedBy,
-			&v.CreatedAt,
-			&v.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scanning scheduled archive version: %w", err)
+		version, err := scanTemplateVersion(rows)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", scanErrMsg, err)
 		}
-		versions = append(versions, v)
+		versions = append(versions, version)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating scheduled archive versions: %w", err)
+		return nil, fmt.Errorf("%s: %w", iterateErrMsg, err)
 	}
 
 	return versions, nil

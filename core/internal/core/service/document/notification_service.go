@@ -241,107 +241,65 @@ func (s *NotificationService) SendAccessLink(ctx context.Context, recipient *ent
 
 // NotifyDocumentCompleted sends a notification that the document is fully signed.
 func (s *NotificationService) NotifyDocumentCompleted(ctx context.Context, documentID string) {
-	doc, err := s.documentRepo.FindByID(ctx, documentID)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to find document for completion notification", slog.String("error", err.Error()))
-		return
-	}
-
-	recipients, err := s.recipientRepo.FindByDocumentID(ctx, documentID)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to find recipients for completion notification", slog.String("error", err.Error()))
-		return
-	}
-
-	title := "Document"
-	if doc.Title != nil {
-		title = *doc.Title
-	}
-
-	for _, recipient := range recipients {
-		body, renderErr := renderTemplate("signing_completed.html", templateData{
-			RecipientName: recipient.Name,
-			DocumentTitle: title,
-			CompanyName:   defaultCompanyName,
-		})
-		if renderErr != nil {
-			slog.ErrorContext(ctx, "failed to render completed template", slog.String("error", renderErr.Error()))
-			continue
-		}
-
-		req := &port.NotificationRequest{
-			To:       recipient.Email,
-			Subject:  fmt.Sprintf("Document signed: \"%s\"", title),
-			HTMLBody: body,
-		}
-
-		if err := s.provider.Send(ctx, req); err != nil {
-			slog.WarnContext(ctx, "failed to send completion notification",
-				slog.String("document_id", documentID),
-				slog.String("email", recipient.Email),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
+	s.notifyDocumentStatusChange(
+		ctx,
+		documentID,
+		"signing_completed.html",
+		"Document signed: \"%s\"",
+		"failed to find document for completion notification",
+		"failed to find recipients for completion notification",
+		"failed to render completed template",
+		"failed to send completion notification",
+	)
 }
 
 // NotifyDocumentDeclined sends a notification that a signer has declined.
 func (s *NotificationService) NotifyDocumentDeclined(ctx context.Context, documentID string) {
-	doc, err := s.documentRepo.FindByID(ctx, documentID)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to find document for declined notification", slog.String("error", err.Error()))
-		return
-	}
-
-	recipients, err := s.recipientRepo.FindByDocumentID(ctx, documentID)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to find recipients for declined notification", slog.String("error", err.Error()))
-		return
-	}
-
-	title := "Document"
-	if doc.Title != nil {
-		title = *doc.Title
-	}
-
-	for _, recipient := range recipients {
-		body, renderErr := renderTemplate("signing_declined.html", templateData{
-			RecipientName: recipient.Name,
-			DocumentTitle: title,
-			CompanyName:   defaultCompanyName,
-		})
-		if renderErr != nil {
-			slog.ErrorContext(ctx, "failed to render declined template", slog.String("error", renderErr.Error()))
-			continue
-		}
-
-		req := &port.NotificationRequest{
-			To:       recipient.Email,
-			Subject:  fmt.Sprintf("Signing declined: \"%s\"", title),
-			HTMLBody: body,
-		}
-
-		if err := s.provider.Send(ctx, req); err != nil {
-			slog.WarnContext(ctx, "failed to send declined notification",
-				slog.String("document_id", documentID),
-				slog.String("email", recipient.Email),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
+	s.notifyDocumentStatusChange(
+		ctx,
+		documentID,
+		"signing_declined.html",
+		"Signing declined: \"%s\"",
+		"failed to find document for declined notification",
+		"failed to find recipients for declined notification",
+		"failed to render declined template",
+		"failed to send declined notification",
+	)
 }
 
 // NotifyDocumentExpired sends a notification that the signing period has expired.
 func (s *NotificationService) NotifyDocumentExpired(ctx context.Context, documentID string) {
+	s.notifyDocumentStatusChange(
+		ctx,
+		documentID,
+		"document_expired.html",
+		"Document expired: \"%s\"",
+		"failed to find document for expiration notification",
+		"failed to find recipients for expiration notification",
+		"failed to render expired template",
+		"failed to send expiration notification",
+	)
+}
+
+func (s *NotificationService) notifyDocumentStatusChange(
+	ctx context.Context,
+	documentID string,
+	templateName string,
+	subjectFmt string,
+	findDocumentErrMsg string,
+	findRecipientsErrMsg string,
+	renderErrMsg string,
+	sendErrMsg string,
+) {
 	doc, err := s.documentRepo.FindByID(ctx, documentID)
 	if err != nil {
-		slog.WarnContext(ctx, "failed to find document for expiration notification", slog.String("error", err.Error()))
+		slog.WarnContext(ctx, findDocumentErrMsg, slog.String("error", err.Error()))
 		return
 	}
 
 	recipients, err := s.recipientRepo.FindByDocumentID(ctx, documentID)
 	if err != nil {
-		slog.WarnContext(ctx, "failed to find recipients for expiration notification", slog.String("error", err.Error()))
+		slog.WarnContext(ctx, findRecipientsErrMsg, slog.String("error", err.Error()))
 		return
 	}
 
@@ -351,24 +309,24 @@ func (s *NotificationService) NotifyDocumentExpired(ctx context.Context, documen
 	}
 
 	for _, recipient := range recipients {
-		body, renderErr := renderTemplate("document_expired.html", templateData{
+		body, renderErr := renderTemplate(templateName, templateData{
 			RecipientName: recipient.Name,
 			DocumentTitle: title,
 			CompanyName:   defaultCompanyName,
 		})
 		if renderErr != nil {
-			slog.ErrorContext(ctx, "failed to render expired template", slog.String("error", renderErr.Error()))
+			slog.ErrorContext(ctx, renderErrMsg, slog.String("error", renderErr.Error()))
 			continue
 		}
 
 		req := &port.NotificationRequest{
 			To:       recipient.Email,
-			Subject:  fmt.Sprintf("Document expired: \"%s\"", title),
+			Subject:  fmt.Sprintf(subjectFmt, title),
 			HTMLBody: body,
 		}
 
 		if err := s.provider.Send(ctx, req); err != nil {
-			slog.WarnContext(ctx, "failed to send expiration notification",
+			slog.WarnContext(ctx, sendErrMsg,
 				slog.String("document_id", documentID),
 				slog.String("email", recipient.Email),
 				slog.String("error", err.Error()),
