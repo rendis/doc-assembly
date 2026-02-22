@@ -21,6 +21,7 @@ type HTTPClient struct {
 	tenantID      string
 	workspaceID   string
 	automationKey string
+	extraHeaders  map[string]string
 }
 
 // NewHTTPClient creates a new test HTTP client.
@@ -29,6 +30,7 @@ func NewHTTPClient(t *testing.T, baseURL string) *HTTPClient {
 		t:       t,
 		client:  &http.Client{},
 		baseURL: baseURL,
+		extraHeaders: map[string]string{},
 	}
 }
 
@@ -42,6 +44,7 @@ func (c *HTTPClient) WithAuth(bearer string) *HTTPClient {
 		tenantID:      c.tenantID,
 		workspaceID:   c.workspaceID,
 		automationKey: c.automationKey,
+		extraHeaders:  c.extraHeaders,
 	}
 }
 
@@ -55,6 +58,7 @@ func (c *HTTPClient) WithTenantID(tenantID string) *HTTPClient {
 		tenantID:      tenantID,
 		workspaceID:   c.workspaceID,
 		automationKey: c.automationKey,
+		extraHeaders:  c.extraHeaders,
 	}
 }
 
@@ -68,6 +72,7 @@ func (c *HTTPClient) WithWorkspaceID(workspaceID string) *HTTPClient {
 		tenantID:      c.tenantID,
 		workspaceID:   workspaceID,
 		automationKey: c.automationKey,
+		extraHeaders:  c.extraHeaders,
 	}
 }
 
@@ -81,6 +86,27 @@ func (c *HTTPClient) WithAutomationKey(rawKey string) *HTTPClient {
 		tenantID:      c.tenantID,
 		workspaceID:   c.workspaceID,
 		automationKey: rawKey,
+		extraHeaders:  c.extraHeaders,
+	}
+}
+
+// WithHeader returns a new HTTPClient with an extra custom header.
+func (c *HTTPClient) WithHeader(key, value string) *HTTPClient {
+	headers := make(map[string]string, len(c.extraHeaders)+1)
+	for k, v := range c.extraHeaders {
+		headers[k] = v
+	}
+	headers[key] = value
+
+	return &HTTPClient{
+		t:             c.t,
+		client:        c.client,
+		baseURL:       c.baseURL,
+		authHeader:    c.authHeader,
+		tenantID:      c.tenantID,
+		workspaceID:   c.workspaceID,
+		automationKey: c.automationKey,
+		extraHeaders:  headers,
 	}
 }
 
@@ -110,6 +136,9 @@ func (c *HTTPClient) Do(method, path string, body interface{}) (*http.Response, 
 	}
 	if c.automationKey != "" {
 		req.Header.Set("X-Automation-Key", c.automationKey)
+	}
+	for key, value := range c.extraHeaders {
+		req.Header.Set(key, value)
 	}
 
 	resp, err := c.client.Do(req)

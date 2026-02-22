@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
 	documentuc "github.com/rendis/doc-assembly/core/internal/core/usecase/document"
 )
 
@@ -22,10 +23,11 @@ func NewPublicDocumentAccessController(accessUC documentuc.DocumentAccessUseCase
 
 // RegisterRoutes registers public document access routes.
 // These routes are NOT behind the auth middleware chain.
-func (c *PublicDocumentAccessController) RegisterRoutes(router gin.IRouter) {
+func (c *PublicDocumentAccessController) RegisterRoutes(router gin.IRouter, getMiddlewares ...gin.HandlerFunc) {
 	public := router.Group("/public/doc")
 	{
-		public.GET("/:documentId", c.GetPublicDocumentInfo)
+		getMiddlewares = append(getMiddlewares, c.GetPublicDocumentInfo)
+		public.GET("/:documentId", getMiddlewares...)
 		public.POST("/:documentId/request-access", c.RequestAccess)
 	}
 }
@@ -46,6 +48,16 @@ type requestAccessBody struct {
 // @Router /public/doc/{documentId} [get]
 func (c *PublicDocumentAccessController) GetPublicDocumentInfo(ctx *gin.Context) {
 	documentID := ctx.Param("documentId")
+
+	// Optional custom middleware path: if claims are present and valid, bypass
+	// the email gate and redirect directly to /public/sign/:token.
+	if claims, ok := middleware.GetPublicDocumentAccessClaims(ctx); ok {
+		redirectURL, err := c.accessUC.RequestDirectAccess(ctx.Request.Context(), documentID, claims.Email)
+		if err == nil && redirectURL != "" {
+			ctx.Redirect(http.StatusSeeOther, redirectURL)
+			return
+		}
+	}
 
 	resp, err := c.accessUC.GetPublicDocumentInfo(ctx.Request.Context(), documentID)
 	if err != nil {

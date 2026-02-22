@@ -51,6 +51,11 @@ export interface PublicSigningResponse {
   embeddedSigningUrl?: string
   documentTitle: string
   recipientName: string
+  documentStatus?: string
+  hasCurrentUserSigned: boolean
+  canSign: boolean
+  canDownload: boolean
+  downloadUrl?: string
   waitingForPrevious?: boolean
   signingPosition?: number
   totalSigners?: number

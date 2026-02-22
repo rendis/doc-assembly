@@ -27,6 +27,17 @@ export async function getPublicSigningPage(
   return data
 }
 
+export async function requestDocumentAccessFromToken(
+  token: string,
+  email: string,
+): Promise<{ message: string }> {
+  const { data } = await publicApi.post<{ message: string }>(
+    `/public/sign/${token}/request-access`,
+    { email },
+  )
+  return data
+}
+
 export async function submitPreSigningForm(
   token: string,
   responses: FieldResponsePayload[],

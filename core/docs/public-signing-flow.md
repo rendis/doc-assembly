@@ -20,6 +20,8 @@ This document describes the complete flow for public document signing, from docu
 
 Documents use a **single shared public URL** per document instead of per-recipient signing URLs. Recipients visit the public URL, verify their email, receive a token-based signing link, and proceed through the signing flow.
 
+Optionally, a custom public-access middleware can validate an already-authenticated user (domain/JWT/etc.) and bypass the email gate by issuing a standard `/public/sign/{token}` redirect.
+
 ```
 Create Document
   -> Notify recipients (email with /public/doc/{id})
@@ -51,7 +53,9 @@ flowchart TB
     end
 
     subgraph Public["Public (No Auth)"]
-        B1[GET /public/doc/:id] --> B2[Show email form]
+        B1[GET /public/doc/:id] --> B1a{Custom middleware grants access?}
+        B1a -->|Yes| B1b[Redirect to /public/sign/:token]
+        B1a -->|No| B2[Show email form]
         B2 --> B3[POST /public/doc/:id/request-access]
         B3 --> B4{Email matches recipient?}
         B4 -->|Yes| B5[Generate token + send email]
@@ -72,6 +76,7 @@ flowchart TB
     end
 
     A2 -->|Email with /public/doc/:id| B1
+    B1b --> C1
     B5 -->|Email with /public/sign/:token| C1
     A3 -.->|Invalidates tokens| Signing
 ```
@@ -93,8 +98,10 @@ PublicDocAccessCtrl  ------------> DocumentAccessService ----------> DocumentRep
 PublicSigningCtrl  ----------------> PreSigningService -------------> DocumentRepository
   GET  /public/sign/:token             GetPublicSigningPage           DocumentAccessTokenRepo
   POST /public/sign/:token             SubmitPreSigningForm           FieldResponseRepo
+  POST /public/sign/:token/request-access RequestAccessByToken        DocumentAccessTokenRepo
   POST /public/sign/:token/proceed     ProceedToSigning               SigningProvider
   GET  /public/sign/:token/pdf         RenderPreviewPDF               PDFRenderer
+  GET  /public/sign/:token/download    DownloadCompletedPDF           StorageAdapter
   POST /public/sign/:token/complete    CompleteEmbeddedSigning
   GET  /public/sign/:token/refresh     RefreshEmbeddedURL
 
@@ -143,6 +150,8 @@ sequenceDiagram
 
 The public document page acts as an email verification gate. Recipients enter their email, and if it matches a document recipient, a token is generated and sent via email.
 
+When custom middleware is configured and grants access, the user skips this gate and is redirected directly to `/public/sign/{token}`.
+
 ```mermaid
 sequenceDiagram
     participant Signer as Recipient
@@ -164,7 +173,7 @@ sequenceDiagram
     Note over Svc: Always returns 200 (anti-enumeration)
 
     Svc->>Svc: validateAccessRequest()
-    alt Document not found or terminal
+    alt Document not found or terminal (except COMPLETED)
         Svc->>Svc: Log + return nil
     else Email doesn't match any recipient
         Svc->>Svc: Log + return nil
@@ -285,6 +294,8 @@ stateDiagram-v2
     [*] --> completed: Token used + doc completed
     [*] --> declined: Token used + doc declined
     [*] --> error: Invalid/expired token
+
+    error --> preview: POST /public/sign/:token/request-access (new link by email)
 ```
 
 **Key files:**
@@ -337,8 +348,10 @@ After invalidation, the recipient can still access `/public/doc/{documentID}` an
 | `POST` | `/public/doc/{documentId}/request-access` | Request access link (email verification) |
 | `GET` | `/public/sign/{token}` | Get signing page state |
 | `POST` | `/public/sign/{token}` | Submit pre-signing form (Path B) |
+| `POST` | `/public/sign/{token}/request-access` | Request a new link from expired token entrypoint |
 | `POST` | `/public/sign/{token}/proceed` | Render PDF + upload to provider |
 | `GET` | `/public/sign/{token}/pdf` | Render PDF preview (on-demand) |
+| `GET` | `/public/sign/{token}/download` | Download completed/signed PDF (authorized recipient only) |
 | `POST` | `/public/sign/{token}/complete` | Mark token as used after signing |
 | `GET` | `/public/sign/{token}/refresh` | Refresh expired embedded URL |
 | `GET` | `/public/sign/{token}/signing-callback` | Callback bridge (postMessage to parent) |
@@ -356,7 +369,7 @@ After invalidation, the recipient can still access `/public/doc/{documentID}` an
 
 ### Anti-Email Enumeration
 
-`POST /public/doc/{id}/request-access` **always returns HTTP 200** regardless of whether the email matches a recipient. Attackers cannot determine valid email addresses.
+`POST /public/doc/{id}/request-access` and `POST /public/sign/{token}/request-access` **always return HTTP 200** regardless of email/token validity. Attackers cannot determine valid email addresses or token ownership.
 
 ### Rate Limiting
 

@@ -13,6 +13,7 @@ import {
   Send,
   Clock,
   XCircle,
+  Download,
 } from 'lucide-react'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import axios from 'axios'
@@ -44,6 +45,7 @@ import { createPublicInteractiveFieldComponent } from './PublicInteractiveField'
 import { PublicSignatureBlock } from './PublicSignatureBlock'
 import { EmbeddedSigningFrame } from './EmbeddedSigningFrame'
 import { PDFPreview } from './PDFPreview'
+import { PublicDocumentAccessPage } from './PublicDocumentAccessPage'
 import type {
   PublicSigningResponse,
   FieldResponses,
@@ -196,7 +198,15 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
   }, [pageState, token, t])
 
   // Handle signing completion.
-  const handleSigningComplete = useCallback(() => {
+  const handleSigningComplete = useCallback(async () => {
+    try {
+      const refreshed = await getPublicSigningPage(token)
+      setPageState({ status: 'loaded', data: refreshed })
+      return
+    } catch {
+      // Fallback to local completed state if refresh fails.
+    }
+
     setPageState({
       status: 'loaded',
       data: {
@@ -205,12 +215,23 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
           pageState.status === 'loaded' ? pageState.data.documentTitle : '',
         recipientName:
           pageState.status === 'loaded' ? pageState.data.recipientName : '',
+        hasCurrentUserSigned: true,
+        canSign: false,
+        canDownload: false,
       },
     })
-  }, [pageState])
+  }, [pageState, token])
 
   // Handle signing decline.
-  const handleSigningDecline = useCallback(() => {
+  const handleSigningDecline = useCallback(async () => {
+    try {
+      const refreshed = await getPublicSigningPage(token)
+      setPageState({ status: 'loaded', data: refreshed })
+      return
+    } catch {
+      // Fallback to local declined state if refresh fails.
+    }
+
     setPageState({
       status: 'loaded',
       data: {
@@ -219,9 +240,12 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
           pageState.status === 'loaded' ? pageState.data.documentTitle : '',
         recipientName:
           pageState.status === 'loaded' ? pageState.data.recipientName : '',
+        hasCurrentUserSigned: pageState.status === 'loaded' ? pageState.data.hasCurrentUserSigned : false,
+        canSign: false,
+        canDownload: false,
       },
     })
-  }, [pageState])
+  }, [pageState, token])
 
   // --- RENDER ---
 
@@ -230,6 +254,14 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
   }
 
   if (pageState.status === 'error') {
+    if (pageState.code === 'EXPIRED') {
+      return (
+        <PublicDocumentAccessPage
+          expiredToken={token}
+          expiredMessage={pageState.message}
+        />
+      )
+    }
     return <ErrorScreen code={pageState.code} message={pageState.message} />
   }
 
@@ -244,7 +276,13 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
 
   // Step: completed.
   if (data.step === 'completed') {
-    return <CompletedScreen documentTitle={data.documentTitle} />
+    return (
+      <CompletedScreen
+        documentTitle={data.documentTitle}
+        canDownload={data.canDownload}
+        downloadUrl={data.downloadUrl}
+      />
+    )
   }
 
   // Step: declined.
@@ -470,20 +508,57 @@ function ErrorScreen({ code, message }: { code: string; message: string }) {
   )
 }
 
-function CompletedScreen({ documentTitle }: { documentTitle: string }) {
+function CompletedScreen({
+  documentTitle,
+  canDownload,
+  downloadUrl,
+}: {
+  documentTitle: string
+  canDownload: boolean
+  downloadUrl?: string
+}) {
   const { t } = useTranslation()
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="mx-auto max-w-md text-center space-y-4">
-        <CheckCircle2 size={48} className="mx-auto text-green-600" />
-        <h1 className="text-xl font-semibold text-foreground">
-          {t('publicSigning.completed.title')}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t('publicSigning.completed.message', { title: documentTitle })}
-        </p>
+    <PageShell documentTitle={documentTitle}>
+      <div className="mx-auto max-w-4xl px-6 py-8 space-y-6">
+        <div className="rounded-lg border border-border bg-card p-6">
+          <div className="flex items-start gap-4">
+            <CheckCircle2 size={36} className="text-green-600 mt-0.5" />
+            <div className="space-y-2">
+              <h1 className="text-xl font-semibold text-foreground">
+                {t('publicSigning.completed.title')}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {t('publicSigning.completed.message', { title: documentTitle })}
+              </p>
+            </div>
+          </div>
+
+          {canDownload && downloadUrl && (
+            <div className="mt-6">
+              <a
+                href={downloadUrl}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Download size={16} />
+                {t('publicSigning.completed.download')}
+              </a>
+            </div>
+          )}
+        </div>
+
+        {canDownload && downloadUrl && (
+          <div className="rounded-lg border border-border bg-card p-2">
+            <iframe
+              src={downloadUrl}
+              title="Completed Document PDF"
+              className="w-full border-0 rounded-md"
+              style={{ height: '70vh' }}
+            />
+          </div>
+        )}
       </div>
-    </div>
+    </PageShell>
   )
 }
 

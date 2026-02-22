@@ -4,6 +4,7 @@ package testhelper
 
 import (
 	"context"
+	"encoding/json"
 	"net/http/httptest"
 	"testing"
 
@@ -52,7 +53,11 @@ import (
 	contentvalidator "github.com/rendis/doc-assembly/core/internal/core/service/template/contentvalidator"
 	automationuc "github.com/rendis/doc-assembly/core/internal/core/usecase/automation"
 	"github.com/rendis/doc-assembly/core/internal/infra/config"
+	"github.com/rendis/doc-assembly/core/internal/infra/registry"
 )
+
+// TestInternalAPIKey is the API key used by integration tests for internal endpoints.
+const TestInternalAPIKey = "test-internal-api-key"
 
 // MockPDFRenderer implements port.PDFRenderer for testing.
 type MockPDFRenderer struct{}
@@ -63,6 +68,23 @@ func (m *MockPDFRenderer) RenderPreview(_ context.Context, _ *port.RenderPreview
 		PDF:      []byte("%PDF-1.4 mock test pdf"),
 		Filename: "test.pdf",
 	}, nil
+}
+
+// TestRequestMapper is a minimal mapper for internal API integration tests.
+type TestRequestMapper struct{}
+
+// Map parses payload JSON and returns it as generic data.
+func (m *TestRequestMapper) Map(_ context.Context, mapCtx *port.MapperContext) (any, error) {
+	if len(mapCtx.RawBody) == 0 {
+		return map[string]any{}, nil
+	}
+
+	var payload any
+	if err := json.Unmarshal(mapCtx.RawBody, &payload); err != nil {
+		return nil, err
+	}
+
+	return payload, nil
 }
 
 // Close is a no-op.
@@ -80,6 +102,11 @@ type TestServer struct {
 // NewTestServer creates a test HTTP server with all real dependencies.
 // It uses the test database pool and configures the server for E2E testing.
 func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
+	return NewTestServerWithResolver(t, pool, nil)
+}
+
+// NewTestServerWithResolver creates a test HTTP server with an optional custom internal template resolver.
+func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolver port.TemplateResolver) *TestServer {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -103,6 +130,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	templateVersionInjectableRepo := templateversioninjectablerepo.New(pool)
 	templateVersionSignerRoleRepo := templateversionsignerrolerepo.New(pool)
 	workspaceInjectableRepo := workspaceinjectablerepo.New(pool)
+	documentTypeRepo := documenttyperepo.New(pool)
 
 	// Create services - Identity & Tenancy
 	tenantService := organizationsvc.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
@@ -164,6 +192,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	documentService := documentsvc.NewDocumentService(
 		docRepo,
 		docRecipientRepo,
+		templateRepo,
 		templateVersionRepo,
 		templateVersionSignerRoleRepo,
 		mockPDFRenderer,
@@ -183,6 +212,32 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		mockPDFRenderer, mockSigningAdapter, storageAdapter, eventEmitter,
 		testPublicURL,
 	)
+
+	// Internal create service infrastructure
+	injReg := registry.NewInjectorRegistry(nil)
+	mapReg := registry.NewMapperRegistry()
+	require.NoError(t, mapReg.Set(&TestRequestMapper{}), "failed to set test mapper")
+	injectableResolver := injectablesvc.NewInjectableResolverService(injReg)
+	documentGenerator := documentsvc.NewDocumentGenerator(
+		templateRepo,
+		templateVersionRepo,
+		docRepo,
+		docRecipientRepo,
+		injectableService,
+		mapReg,
+		injectableResolver,
+	)
+	internalDocService := documentsvc.NewInternalDocumentService(
+		documentGenerator,
+		docRepo,
+		tenantRepo,
+		workspaceRepo,
+		documentTypeRepo,
+		templateRepo,
+		templateVersionRepo,
+		templateResolver,
+	)
+	internalDocController := controller.NewInternalDocumentController(internalDocService)
 
 	// Create mappers
 	injectableMapper := mapper.NewInjectableMapper()
@@ -236,7 +291,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 		notificationSvc, testPublicURL, 3, 60, 48,
 	)
 	publicDocAccessController := controller.NewPublicDocumentAccessController(documentAccessService)
-	publicSigningController := controller.NewPublicSigningController(preSigningService, testPublicURL)
+	publicSigningController := controller.NewPublicSigningController(preSigningService, documentAccessService, testPublicURL)
 	webhookHandlers := map[string]port.WebhookHandler{
 		"mock": mockSigningAdapter,
 	}
@@ -269,6 +324,11 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	wsGroup := v1.Group("", middlewareProvider.WorkspaceContext())
 	documentController.RegisterRoutes(wsGroup)
 
+	// Internal API routes (API key auth only, no JWT middleware)
+	internalV1 := engine.Group("/api/v1")
+	internalV1.Use(middleware.Operation())
+	internalDocController.RegisterRoutes(internalV1, TestInternalAPIKey)
+
 	// Webhook routes (no auth, registered on engine root)
 	webhookController.RegisterRoutes(engine)
 
@@ -282,7 +342,6 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) *TestServer {
 	automationKeyRepo := automationapikeyrepo.New(pool)
 	automationAuditRepo := automationauditlogrepo.New(pool)
 	apiKeyUseCase := automationuc.NewAPIKeyUseCase(automationKeyRepo, automationAuditRepo)
-	documentTypeRepo := documenttyperepo.New(pool)
 	documentTypeService := catalogsvc.NewDocumentTypeService(documentTypeRepo, templateRepo)
 	docTypeMapper := mapper.NewDocumentTypeMapper()
 

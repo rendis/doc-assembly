@@ -1,29 +1,32 @@
 package controller
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/dto"
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/middleware"
-	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	documentuc "github.com/rendis/doc-assembly/core/internal/core/usecase/document"
 )
 
 // Internal API header constants.
 const (
+	HeaderTenantCode      = "X-Tenant-Code"
+	HeaderWorkspaceCode   = "X-Workspace-Code"
+	HeaderDocumentType    = "X-Document-Type"
 	HeaderExternalID      = "X-External-ID"
-	HeaderTemplateID      = "X-Template-ID"
 	HeaderTransactionalID = "X-Transactional-ID"
 )
 
 // internalDocHeaders holds the required headers for internal document operations.
 type internalDocHeaders struct {
+	TenantCode      string
+	WorkspaceCode   string
+	DocumentType    string
 	ExternalID      string
-	TemplateID      string
 	TransactionalID string
 }
 
@@ -49,30 +52,31 @@ func (c *InternalDocumentController) RegisterRoutes(api *gin.RouterGroup, apiKey
 	internal.Use(middleware.APIKeyAuth(apiKey))
 	{
 		internal.POST("/create", c.CreateDocument)
-		// Future endpoints:
-		// internal.POST("/renew", c.RenewDocument)
-		// internal.POST("/amend", c.AmendDocument)
-		// internal.POST("/cancel", c.CancelDocument)
-		// internal.POST("/preview", c.PreviewDocument)
 	}
 }
 
 // CreateDocument creates a document via internal API.
 // @Summary Create document via internal API
-// @Description Creates a new document using the extension system (Mapper, Init, Injectors)
+// @Description Creates or replays a document using the extension system (Mapper, Init, Injectors)
 // @Tags Internal
 // @Accept json
 // @Produce json
 // @Param X-API-Key header string true "API Key for authentication"
+// @Param X-Tenant-Code header string true "Tenant business code"
+// @Param X-Workspace-Code header string true "Workspace business code"
+// @Param X-Document-Type header string true "Document type code"
 // @Param X-External-ID header string true "External ID (e.g., CRM entity ID)"
-// @Param X-Template-ID header string true "Template ID to use"
-// @Param X-Transactional-ID header string true "Transactional ID for traceability"
+// @Param X-Transactional-ID header string true "Transactional ID for idempotency"
+// @Param request body dto.InternalCreateDocumentRequest true "Internal create request"
 // @Success 201 {object} dto.InternalCreateDocumentWithRecipientsResponse
+// @Success 200 {object} dto.InternalCreateDocumentWithRecipientsResponse
 // @Failure 400 {object} dto.InternalErrorResponse
 // @Failure 401 {object} dto.InternalErrorResponse
 // @Failure 404 {object} dto.InternalErrorResponse
 // @Failure 500 {object} dto.InternalErrorResponse
 // @Router /api/v1/internal/documents/create [post]
+//
+//nolint:funlen // HTTP orchestration keeps validation/mapping flow explicit.
 func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 	h, missing := validateAndExtractHeaders(ctx)
 	if len(missing) > 0 {
@@ -93,43 +97,82 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 		return
 	}
 
+	var req dto.InternalCreateDocumentRequest
+	if err := json.Unmarshal(rawBody, &req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.InternalErrorResponse{
+			Error: "invalid request body",
+			Code:  "INVALID_BODY",
+		})
+		return
+	}
+
+	if len(req.Payload) == 0 || string(req.Payload) == "null" {
+		ctx.JSON(http.StatusBadRequest, dto.InternalErrorResponse{
+			Error: "payload is required",
+			Code:  "INVALID_BODY",
+		})
+		return
+	}
+
 	headers := make(map[string]string)
 	for key := range ctx.Request.Header {
 		headers[key] = ctx.GetHeader(key)
 	}
 
-	cmd := documentuc.InternalCreateCommand{
-		ExternalID:      h.ExternalID,
-		TemplateID:      h.TemplateID,
-		TransactionalID: h.TransactionalID,
-		Headers:         headers,
-		RawBody:         rawBody,
+	forceCreate := false
+	if req.ForceCreate != nil {
+		forceCreate = *req.ForceCreate
 	}
 
-	doc, err := c.internalDocUC.CreateDocument(ctx.Request.Context(), cmd)
+	cmd := documentuc.InternalCreateCommand{
+		TenantCode:      h.TenantCode,
+		WorkspaceCode:   h.WorkspaceCode,
+		DocumentType:    h.DocumentType,
+		ExternalID:      h.ExternalID,
+		TransactionalID: h.TransactionalID,
+		ForceCreate:     forceCreate,
+		SupersedeReason: req.SupersedeReason,
+		Headers:         headers,
+		PayloadRaw:      req.Payload,
+	}
+
+	result, err := c.internalDocUC.CreateDocument(ctx.Request.Context(), cmd)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, buildCreateDocumentResponse(doc, h))
+	status := http.StatusCreated
+	if result.IdempotentReplay {
+		status = http.StatusOK
+	}
+
+	ctx.JSON(status, buildCreateDocumentResponse(result, h))
 }
 
 // validateAndExtractHeaders validates and extracts required headers from the request.
 // Returns the headers struct and a list of missing header names (empty if all present).
 func validateAndExtractHeaders(ctx *gin.Context) (*internalDocHeaders, []string) {
 	h := &internalDocHeaders{
+		TenantCode:      ctx.GetHeader(HeaderTenantCode),
+		WorkspaceCode:   ctx.GetHeader(HeaderWorkspaceCode),
+		DocumentType:    ctx.GetHeader(HeaderDocumentType),
 		ExternalID:      ctx.GetHeader(HeaderExternalID),
-		TemplateID:      ctx.GetHeader(HeaderTemplateID),
 		TransactionalID: ctx.GetHeader(HeaderTransactionalID),
 	}
 
 	var missing []string
+	if h.TenantCode == "" {
+		missing = append(missing, HeaderTenantCode)
+	}
+	if h.WorkspaceCode == "" {
+		missing = append(missing, HeaderWorkspaceCode)
+	}
+	if h.DocumentType == "" {
+		missing = append(missing, HeaderDocumentType)
+	}
 	if h.ExternalID == "" {
 		missing = append(missing, HeaderExternalID)
-	}
-	if h.TemplateID == "" {
-		missing = append(missing, HeaderTemplateID)
 	}
 	if h.TransactionalID == "" {
 		missing = append(missing, HeaderTransactionalID)
@@ -138,23 +181,22 @@ func validateAndExtractHeaders(ctx *gin.Context) (*internalDocHeaders, []string)
 	return h, missing
 }
 
-// buildCreateDocumentResponse builds the response DTO from the document and headers.
+// buildCreateDocumentResponse builds the response DTO from the create result.
 func buildCreateDocumentResponse(
-	doc *entity.DocumentWithRecipients,
+	result *documentuc.InternalCreateResult,
 	h *internalDocHeaders,
 ) dto.InternalCreateDocumentWithRecipientsResponse {
+	doc := result.Document
 	response := dto.InternalCreateDocumentWithRecipientsResponse{
 		InternalCreateDocumentResponse: dto.InternalCreateDocumentResponse{
-			ID:                doc.ID,
-			WorkspaceID:       doc.WorkspaceID,
-			TemplateID:        h.TemplateID,
-			TemplateVersionID: doc.TemplateVersionID,
-			ExternalID:        h.ExternalID,
-			TransactionalID:   h.TransactionalID,
-			OperationType:     string(doc.OperationType),
-			Status:            string(doc.Status),
-			SignerProvider:    doc.SignerProvider,
-			CreatedAt:         doc.CreatedAt.Format(time.RFC3339),
+			ID:                           doc.ID,
+			WorkspaceID:                  doc.WorkspaceID,
+			TemplateVersionID:            doc.TemplateVersionID,
+			ExternalID:                   h.ExternalID,
+			TransactionalID:              h.TransactionalID,
+			Status:                       string(doc.Status),
+			IdempotentReplay:             result.IdempotentReplay,
+			SupersededPreviousDocumentID: result.SupersededPreviousDocumentID,
 		},
 	}
 

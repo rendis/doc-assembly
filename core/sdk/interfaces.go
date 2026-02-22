@@ -19,6 +19,21 @@ type RequestMapper = port.RequestMapper
 // MapperContext provides request context to the mapper.
 type MapperContext = port.MapperContext
 
+// TemplateResolver allows custom internal template version selection.
+type TemplateResolver = port.TemplateResolver
+
+// TemplateResolverRequest provides context for custom template resolution.
+type TemplateResolverRequest = port.TemplateResolverRequest
+
+// TemplateVersionSearchAdapter is the read-only adapter passed to custom resolvers.
+type TemplateVersionSearchAdapter = port.TemplateVersionSearchAdapter
+
+// TemplateVersionSearchParams are filters for searching candidate versions.
+type TemplateVersionSearchParams = port.TemplateVersionSearchParams
+
+// TemplateVersionSearchItem is one search result item.
+type TemplateVersionSearchItem = port.TemplateVersionSearchItem
+
 // --- Provider Interfaces ---
 
 // WorkspaceInjectableProvider supplies workspace-specific injectable definitions.
@@ -26,6 +41,9 @@ type WorkspaceInjectableProvider = port.WorkspaceInjectableProvider
 
 // RenderAuthenticator provides custom authentication for render endpoints.
 type RenderAuthenticator = port.RenderAuthenticator
+
+// PublicDocumentAccessAuthenticator provides custom auth for /public/doc/:documentId.
+type PublicDocumentAccessAuthenticator = port.PublicDocumentAccessAuthenticator
 
 // SigningProvider handles document signing via an external provider.
 type SigningProvider = port.SigningProvider
@@ -61,6 +79,9 @@ type (
 
 // RenderAuthenticator types
 type RenderAuthClaims = port.RenderAuthClaims
+
+// PublicDocumentAccessAuthenticator types
+type PublicDocumentAccessClaims = port.PublicDocumentAccessClaims
 
 // SigningProvider types
 type (

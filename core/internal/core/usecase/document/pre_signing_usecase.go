@@ -31,6 +31,10 @@ type PreSigningUseCase interface {
 	// RefreshEmbeddedURL refreshes an expired embedded signing URL.
 	RefreshEmbeddedURL(ctx context.Context, token string) (*PublicSigningResponse, error)
 
+	// DownloadCompletedPDF downloads the signed PDF for a completed document when
+	// the token holder is authorized.
+	DownloadCompletedPDF(ctx context.Context, token string) ([]byte, string, error)
+
 	// InvalidateTokens invalidates all active tokens for a document.
 	// Requires the document to be in AWAITING_INPUT status.
 	InvalidateTokens(ctx context.Context, documentID string) error
@@ -73,6 +77,21 @@ type PublicSigningResponse struct {
 
 	// FallbackURL is a direct signing URL when embedding is not supported.
 	FallbackURL string `json:"fallbackUrl,omitempty"`
+
+	// DocumentStatus is the canonical internal document status.
+	DocumentStatus string `json:"documentStatus,omitempty"`
+
+	// HasCurrentUserSigned indicates whether the token recipient has signed.
+	HasCurrentUserSigned bool `json:"hasCurrentUserSigned"`
+
+	// CanSign indicates whether this recipient can still proceed in signing flow.
+	CanSign bool `json:"canSign"`
+
+	// CanDownload indicates whether this recipient can download the completed PDF.
+	CanDownload bool `json:"canDownload"`
+
+	// DownloadURL is the endpoint for downloading the completed signed PDF.
+	DownloadURL string `json:"downloadUrl,omitempty"`
 }
 
 // Signing step constants.

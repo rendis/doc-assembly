@@ -242,6 +242,61 @@ func (m *ContractMapper) Map(ctx context.Context, mapCtx *sdk.MapperContext) (an
 
 Register: `engine.SetMapper(&mappers.ContractMapper{})`
 
+### MapperContext in Internal Create
+
+For `POST /api/v1/internal/documents/create`, `mapCtx.RawBody` contains only the JSON from `payload` (not the full envelope).
+
+Useful fields:
+- `mapCtx.ExternalID`
+- `mapCtx.TransactionalID`
+- `mapCtx.TemplateVersionID`
+- `mapCtx.DocumentTypeID`
+- `mapCtx.TenantCode`
+- `mapCtx.WorkspaceCode`
+- `mapCtx.DocumentTypeCode`
+- `mapCtx.Headers`
+
+---
+
+## Template Resolver (Internal Create)
+
+Use a custom resolver when you need to choose the template version dynamically before the default 3-level fallback.
+
+### Interface
+
+```go
+type TemplateResolver interface {
+    Resolve(
+        ctx context.Context,
+        req *sdk.TemplateResolverRequest,
+        adapter sdk.TemplateVersionSearchAdapter,
+    ) (*string, error)
+}
+```
+
+Resolver contract:
+- Return `versionID` (`*string` non-nil): use that version.
+- Return `nil, nil`: fallback to default resolver.
+- Return `error`: abort request.
+
+### Read-only Search Adapter
+
+The resolver receives a read-only adapter:
+
+```go
+items, err := adapter.SearchTemplateVersions(ctx, sdk.TemplateVersionSearchParams{
+    TenantCode:     req.TenantCode,
+    WorkspaceCodes: []string{req.WorkspaceCode, "SYS_WRKSP"},
+    DocumentType:   req.DocumentType,
+})
+```
+
+### Registration
+
+```go
+engine.SetTemplateResolver(&resolvers.MyTemplateResolver{})
+```
+
 ---
 
 ## Init Function
@@ -280,6 +335,7 @@ engine := sdk.New()
 // Core extensibility
 engine.RegisterInjector(&myInjector{})     // Multiple allowed
 engine.SetMapper(&myMapper{})              // ONE only
+engine.SetTemplateResolver(&myResolver{})  // Optional (internal create)
 engine.SetInitFunc(myInitFunc)             // ONE only
 
 // Providers (override defaults from config)

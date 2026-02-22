@@ -426,8 +426,10 @@ Este endpoint retorna los roles del usuario autenticado de forma condicional:
 | Header | Descripción |
 |--------|-------------|
 | `X-API-Key` | API Key configurada en `internal_api.api_key` |
+| `X-Tenant-Code` | Código de tenant (no UUID) |
+| `X-Workspace-Code` | Código de workspace (no UUID) |
+| `X-Document-Type` | Código del tipo documental |
 | `X-External-ID` | ID externo del cliente/entidad (ej: CRM ID) |
-| `X-Template-ID` | ID del template a usar |
 | `X-Transactional-ID` | ID de trazabilidad de la transacción |
 
 **NO requiere**: `Authorization`, `X-Tenant-ID`, `X-Workspace-ID`
@@ -450,36 +452,45 @@ Crea un documento utilizando el sistema de extensiones (Mapper, Init, Injectors)
 | Header | Descripción |
 |--------|-------------|
 | `X-API-Key` | API Key para autenticación service-to-service |
+| `X-Tenant-Code` | Código de tenant |
+| `X-Workspace-Code` | Código de workspace |
+| `X-Document-Type` | Código de tipo documental |
 | `X-External-ID` | ID externo del cliente/entidad (ej: CRM ID) |
-| `X-Template-ID` | ID del template a usar |
 | `X-Transactional-ID` | ID de trazabilidad de la transacción |
 
 **Body:**
-El body es definido por el Mapper del usuario. El sistema lo pasa como `RawBody` al Mapper.
+Contrato v1 actual (breaking change):
 
 ```json
-// Ejemplo (definido por el Mapper del usuario)
 {
-  "customerName": "Juan Pérez",
-  "productId": "PROD-001",
-  "amount": 50000,
-  "quantity": 1
+  "forceCreate": false,
+  "supersedeReason": "optional reason",
+  "payload": {
+    "customerName": "Juan Pérez",
+    "productId": "PROD-001",
+    "amount": 50000,
+    "quantity": 1
+  }
 }
 ```
 
-**Ejemplo de respuesta (201 Created):**
+`payload` es el único bloque enviado al Mapper como `RawBody`.
+
+**Respuestas:**
+- `201 Created`: create real
+- `200 OK`: replay idempotente
+
+**Ejemplo de respuesta (201/200):**
 ```json
 {
   "id": "doc-uuid",
   "workspaceId": "workspace-uuid",
-  "templateId": "template-uuid",
   "templateVersionId": "version-uuid",
   "externalId": "CRM-123",
   "transactionalId": "TXN-456",
-  "operationType": "CREATE",
   "status": "DRAFT",
-  "signerProvider": null,
-  "createdAt": "2025-01-12T10:30:00Z",
+  "idempotentReplay": false,
+  "supersededPreviousDocumentId": null,
   "recipients": [
     {
       "id": "recipient-uuid",
@@ -489,6 +500,9 @@ El body es definido por el Mapper del usuario. El sistema lo pasa como `RawBody`
   ]
 }
 ```
+
+**Compatibilidad legacy:**
+- Requests basadas en `X-Template-ID` sin los headers nuevos retornan `400`.
 
 **Respuestas:**
 | Código | Descripción |

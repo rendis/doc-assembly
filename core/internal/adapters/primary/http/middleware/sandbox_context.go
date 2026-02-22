@@ -82,6 +82,8 @@ func resolveSandbox(c *gin.Context, workspaceRepo port.WorkspaceRepository, pare
 
 // findOrCreateSandbox loads the parent workspace, checks eligibility, and creates a sandbox if possible.
 // On error, it aborts the gin context and returns nil + error.
+//
+//nolint:funlen // Controller-style middleware branch handling is explicit for readability.
 func findOrCreateSandbox(c *gin.Context, workspaceRepo port.WorkspaceRepository, parentWorkspaceID string) (*entity.Workspace, error) {
 	ctx := c.Request.Context()
 	opID := GetOperationID(c)

@@ -80,18 +80,22 @@ func (s *PreSigningService) GetPublicSigningPage(ctx context.Context, token stri
 
 	// Terminal states — always accessible, even with used tokens.
 	if doc.IsCompleted() {
-		return &documentuc.PublicSigningResponse{
+		resp := &documentuc.PublicSigningResponse{
 			Step:          documentuc.StepCompleted,
 			DocumentTitle: title,
 			RecipientName: recipient.Name,
-		}, nil
+		}
+		s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
+		return resp, nil
 	}
 	if doc.IsDeclined() {
-		return &documentuc.PublicSigningResponse{
+		resp := &documentuc.PublicSigningResponse{
 			Step:          documentuc.StepDeclined,
 			DocumentTitle: title,
 			RecipientName: recipient.Name,
-		}, nil
+		}
+		s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
+		return resp, nil
 	}
 
 	// Non-terminal states require an unused token.
@@ -105,7 +109,7 @@ func (s *PreSigningService) GetPublicSigningPage(ctx context.Context, token stri
 		if s.hasFieldResponses(ctx, doc.ID) {
 			return s.buildPreviewPDFResponse(doc, recipient, title, accessToken.Token)
 		}
-		return s.buildPreviewFormResponse(ctx, doc, recipient, title)
+		return s.buildPreviewFormResponse(ctx, doc, recipient, title, accessToken.Token)
 	}
 
 	// Path A: AWAITING_INPUT + SIGNING token → show PDF preview.
@@ -164,6 +168,8 @@ func (s *PreSigningService) SubmitPreSigningForm(
 
 // ProceedToSigning renders the PDF, uploads to the signing provider, and returns the
 // embedded signing URL. Accepts both SIGNING (Path A) and PRE_SIGNING (Path B) tokens.
+//
+//nolint:gocognit,nestif // Flow is sequential by token/document state to keep behavior explicit.
 func (s *PreSigningService) ProceedToSigning(ctx context.Context, token string) (*documentuc.PublicSigningResponse, error) {
 	accessToken, err := s.validateToken(ctx, token)
 	if err != nil {
@@ -198,6 +204,17 @@ func (s *PreSigningService) ProceedToSigning(ctx context.Context, token string) 
 			return nil, err
 		}
 
+		// Refresh entities after upload since provider identifiers are persisted
+		// during renderAndSendToProvider.
+		doc, err = s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+		if err != nil {
+			return nil, fmt.Errorf("refreshing document after provider upload: %w", err)
+		}
+		recipient, err = s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
+		if err != nil {
+			return nil, fmt.Errorf("refreshing recipient after provider upload: %w", err)
+		}
+
 		slog.InfoContext(ctx, "document rendered and sent to provider via ProceedToSigning",
 			slog.String("document_id", doc.ID),
 			slog.String("recipient_id", recipient.ID),
@@ -209,7 +226,7 @@ func (s *PreSigningService) ProceedToSigning(ctx context.Context, token string) 
 	}
 
 	// Check signing order.
-	if waitResp := s.checkSigningOrder(ctx, doc, recipient); waitResp != nil {
+	if waitResp := s.checkSigningOrder(ctx, doc, recipient, accessToken.Token); waitResp != nil {
 		return waitResp, nil
 	}
 
@@ -280,7 +297,7 @@ func (s *PreSigningService) InvalidateTokens(ctx context.Context, documentID str
 
 // RenderPreviewPDF renders the document PDF on-demand for preview without storing it.
 func (s *PreSigningService) RenderPreviewPDF(ctx context.Context, token string) ([]byte, error) {
-	accessToken, err := s.validateToken(ctx, token)
+	accessToken, wasUsed, err := s.validateTokenAllowUsed(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +305,9 @@ func (s *PreSigningService) RenderPreviewPDF(ctx context.Context, token string) 
 	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
 	if err != nil {
 		return nil, fmt.Errorf("finding document: %w", err)
+	}
+	if wasUsed && !doc.IsCompleted() && !doc.IsDeclined() {
+		return nil, fmt.Errorf("access token has already been used")
 	}
 
 	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
@@ -335,6 +355,71 @@ func (s *PreSigningService) RenderPreviewPDF(ctx context.Context, token string) 
 	return renderResult.PDF, nil
 }
 
+// DownloadCompletedPDF returns the signed PDF for completed documents when the
+// token recipient is authorized.
+//
+//nolint:gocognit,nestif // Explicit guard flow preserves security/state checks.
+func (s *PreSigningService) DownloadCompletedPDF(ctx context.Context, token string) ([]byte, string, error) {
+	accessToken, _, err := s.validateTokenAllowUsed(ctx, token)
+	if err != nil {
+		return nil, "", err
+	}
+
+	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+	if err != nil {
+		return nil, "", fmt.Errorf("finding document: %w", err)
+	}
+
+	if !doc.IsCompleted() {
+		return nil, "", fmt.Errorf("document is not completed")
+	}
+
+	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
+	if err != nil {
+		return nil, "", fmt.Errorf("finding recipient: %w", err)
+	}
+
+	if !recipient.IsSigned() {
+		return nil, "", fmt.Errorf("completed PDF is not available for this recipient")
+	}
+
+	if doc.PDFStoragePath == nil || *doc.PDFStoragePath == "" {
+		if !doc.HasSignerInfo() {
+			return nil, "", fmt.Errorf("completed PDF is not available")
+		}
+
+		pdfData, err := s.signingProvider.DownloadSignedPDF(ctx, *doc.SignerDocumentID)
+		if err != nil {
+			return nil, "", fmt.Errorf("downloading completed PDF: %w", err)
+		}
+
+		storageKey := fmt.Sprintf("documents/%s/%s/signed.pdf", doc.WorkspaceID, doc.ID)
+		if err := s.storageAdapter.Upload(ctx, storageKey, pdfData, "application/pdf"); err != nil {
+			return nil, "", fmt.Errorf("storing completed PDF: %w", err)
+		}
+
+		doc.SetPDFPath(storageKey)
+		if err := s.documentRepo.Update(ctx, doc); err != nil {
+			slog.WarnContext(ctx, "failed to persist completed PDF storage path",
+				slog.String("document_id", doc.ID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	pdfData, err := s.storageAdapter.Download(ctx, *doc.PDFStoragePath)
+	if err != nil {
+		return nil, "", fmt.Errorf("downloading completed PDF: %w", err)
+	}
+
+	filename := fmt.Sprintf("document-%s-signed.pdf", doc.ID)
+	if doc.Title != nil {
+		filename = fmt.Sprintf("%s-signed.pdf", *doc.Title)
+	}
+
+	return pdfData, filename, nil
+}
+
 // hasFieldResponses checks whether field responses have been saved for a document.
 func (s *PreSigningService) hasFieldResponses(ctx context.Context, documentID string) bool {
 	responses, err := s.fieldResponseRepo.FindByDocumentID(ctx, documentID)
@@ -352,6 +437,7 @@ func (s *PreSigningService) buildPreviewFormResponse(
 	doc *entity.Document,
 	recipient *entity.DocumentRecipient,
 	title string,
+	token string,
 ) (*documentuc.PublicSigningResponse, error) {
 	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
 	if err != nil {
@@ -374,7 +460,7 @@ func (s *PreSigningService) buildPreviewFormResponse(
 	portableRoleID := s.findPortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
 	fields := extractInteractiveFieldsForRole(portableDoc, portableRoleID)
 
-	return &documentuc.PublicSigningResponse{
+	resp := &documentuc.PublicSigningResponse{
 		Step:          documentuc.StepPreview,
 		DocumentTitle: title,
 		RecipientName: recipient.Name,
@@ -387,7 +473,9 @@ func (s *PreSigningService) buildPreviewFormResponse(
 			Content:        content,
 			Fields:         fields,
 		},
-	}, nil
+	}
+	s.applyAccessFlags(resp, doc, recipient, token)
+	return resp, nil
 }
 
 // buildPreviewPDFResponse builds a preview response with the PDF URL for on-demand rendering.
@@ -397,12 +485,14 @@ func (s *PreSigningService) buildPreviewPDFResponse(
 	title string,
 	token string,
 ) (*documentuc.PublicSigningResponse, error) {
-	return &documentuc.PublicSigningResponse{
+	resp := &documentuc.PublicSigningResponse{
 		Step:          documentuc.StepPreview,
 		DocumentTitle: title,
 		RecipientName: recipient.Name,
 		PdfURL:        fmt.Sprintf("/public/sign/%s/pdf", token),
-	}, nil
+	}
+	s.applyAccessFlags(resp, doc, recipient, token)
+	return resp, nil
 }
 
 // buildSigningResponse builds a signing response with the embedded signing URL.
@@ -427,22 +517,26 @@ func (s *PreSigningService) buildSigningResponse(
 	if err != nil {
 		// Fallback: if embedding not supported, return direct URL.
 		if recipient.SigningURL != nil {
-			return &documentuc.PublicSigningResponse{
+			resp := &documentuc.PublicSigningResponse{
 				Step:          documentuc.StepSigning,
 				DocumentTitle: title,
 				RecipientName: recipient.Name,
 				FallbackURL:   *recipient.SigningURL,
-			}, nil
+			}
+			s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
+			return resp, nil
 		}
 		return nil, fmt.Errorf("getting embedded signing URL: %w", err)
 	}
 
-	return &documentuc.PublicSigningResponse{
+	resp := &documentuc.PublicSigningResponse{
 		Step:               documentuc.StepSigning,
 		DocumentTitle:      title,
 		RecipientName:      recipient.Name,
 		EmbeddedSigningURL: embeddedResult.EmbeddedURL,
-	}, nil
+	}
+	s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
+	return resp, nil
 }
 
 // checkSigningOrder checks if previous signers have completed. Returns a waiting response or nil.
@@ -450,6 +544,7 @@ func (s *PreSigningService) checkSigningOrder(
 	ctx context.Context,
 	doc *entity.Document,
 	recipient *entity.DocumentRecipient,
+	token string,
 ) *documentuc.PublicSigningResponse {
 	recipientsWithRoles, err := s.recipientRepo.FindByDocumentIDWithRoles(ctx, doc.ID)
 	if err != nil {
@@ -473,7 +568,7 @@ func (s *PreSigningService) checkSigningOrder(
 	for _, r := range recipientsWithRoles {
 		if r.SignerOrder < myOrder && !r.IsSigned() {
 			title := documentTitle(doc)
-			return &documentuc.PublicSigningResponse{
+			resp := &documentuc.PublicSigningResponse{
 				Step:               documentuc.StepWaiting,
 				DocumentTitle:      title,
 				RecipientName:      recipient.Name,
@@ -481,10 +576,28 @@ func (s *PreSigningService) checkSigningOrder(
 				SigningPosition:    myOrder,
 				TotalSigners:       len(recipientsWithRoles),
 			}
+			s.applyAccessFlags(resp, doc, recipient, token)
+			resp.CanSign = false
+			return resp
 		}
 	}
 
 	return nil
+}
+
+func (s *PreSigningService) applyAccessFlags(
+	resp *documentuc.PublicSigningResponse,
+	doc *entity.Document,
+	recipient *entity.DocumentRecipient,
+	token string,
+) {
+	resp.DocumentStatus = string(doc.Status)
+	resp.HasCurrentUserSigned = recipient.IsSigned()
+	resp.CanSign = doc.IsAwaitingInput() || doc.IsPending() || doc.IsInProgress()
+	resp.CanDownload = doc.IsCompleted() && recipient.IsSigned()
+	if resp.CanDownload {
+		resp.DownloadURL = fmt.Sprintf("/public/sign/%s/download", token)
+	}
 }
 
 // buildCallbackURL constructs the signing callback bridge URL.

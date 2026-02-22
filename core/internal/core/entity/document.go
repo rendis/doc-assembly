@@ -11,6 +11,7 @@ type Document struct {
 	ID                        string          `json:"id"`
 	WorkspaceID               string          `json:"workspaceId"`
 	TemplateVersionID         string          `json:"templateVersionId"`
+	DocumentTypeID            string          `json:"documentTypeId"`
 	Title                     *string         `json:"title,omitempty"`
 	ClientExternalReferenceID *string         `json:"clientExternalReferenceId,omitempty"`
 	TransactionalID           *string         `json:"transactionalId,omitempty"`
@@ -22,6 +23,10 @@ type Document struct {
 	InjectedValuesSnapshot    json.RawMessage `json:"injectedValuesSnapshot,omitempty"`
 	PDFStoragePath            *string         `json:"pdfStoragePath,omitempty"`
 	CompletedPDFURL           *string         `json:"completedPdfUrl,omitempty"`
+	IsActive                  bool            `json:"isActive"`
+	SupersededAt              *time.Time      `json:"supersededAt,omitempty"`
+	SupersededByDocumentID    *string         `json:"supersededByDocumentId,omitempty"`
+	SupersedeReason           *string         `json:"supersedeReason,omitempty"`
 	ExpiresAt                 *time.Time      `json:"expiresAt,omitempty"`
 	RetryCount                int             `json:"retryCount"`
 	LastRetryAt               *time.Time      `json:"lastRetryAt,omitempty"`
@@ -37,6 +42,7 @@ func NewDocument(workspaceID, templateVersionID string) *Document {
 		TemplateVersionID: templateVersionID,
 		OperationType:     OperationCreate,
 		Status:            DocumentStatusDraft,
+		IsActive:          true,
 		CreatedAt:         time.Now().UTC(),
 	}
 }
@@ -294,6 +300,9 @@ func (d *Document) Validate() error {
 		return ErrRequiredField
 	}
 	if d.TemplateVersionID == "" {
+		return ErrRequiredField
+	}
+	if d.DocumentTypeID == "" {
 		return ErrRequiredField
 	}
 	if !d.Status.IsValid() {

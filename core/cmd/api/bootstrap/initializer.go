@@ -208,7 +208,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	publicURL := cfg.Server.PublicURL
 	notificationSvc := documentsvc.NewNotificationService(notificationProvider, documentRecipientRepo, documentRepo, documentAccessTokenRepo, publicURL)
 	documentSvc := documentsvc.NewDocumentService(
-		documentRepo, documentRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		documentRepo, documentRecipientRepo, templateRepo, templateVersionRepo, templateVersionSignerRoleRepo,
 		pdfRenderer, signingProvider, storageAdapter,
 		eventEmitter, notificationSvc,
 		cfg.Scheduler.ExpirationDays,
@@ -220,8 +220,14 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		injectableSvc, mapReg, injectableResolver,
 	)
 	internalDocSvc := documentsvc.NewInternalDocumentService(
-		documentGenerator, documentRepo, documentRecipientRepo, pdfRenderer, signingProvider,
-		documentAccessTokenRepo,
+		documentGenerator,
+		documentRepo,
+		tenantRepo,
+		workspaceRepo,
+		documentTypeRepo,
+		templateRepo,
+		templateVersionRepo,
+		e.templateResolver,
 	)
 	preSigningSvc := documentsvc.NewPreSigningService(
 		documentAccessTokenRepo, documentFieldResponseRepo,
@@ -276,7 +282,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		notificationSvc, publicURL, rateLimitMax, rateLimitWindowMin, tokenTTLHours,
 	)
 	publicDocAccessCtrl := controller.NewPublicDocumentAccessController(documentAccessSvc)
-	publicSigningCtrl := controller.NewPublicSigningController(preSigningSvc, publicURL)
+	publicSigningCtrl := controller.NewPublicSigningController(preSigningSvc, documentAccessSvc, publicURL)
 	automationKeyCtrl := controller.NewAutomationKeyController(automationAPIKeyUC)
 	automationCtrl := controller.NewAutomationController(
 		tenantSvc, workspaceSvc, injectableSvc,
@@ -287,6 +293,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 
 	// --- Render Authenticator ---
 	renderAuth := e.renderAuthenticator
+	publicDocAuth := e.publicDocAuth
 
 	// --- Frontend FS ---
 	frontendFS := e.resolveFrontendFS()
@@ -310,6 +317,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		automationKeyCtrl,
 		automationCtrl,
 		renderAuth,
+		publicDocAuth,
 		frontendFS,
 	)
 

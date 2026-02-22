@@ -29,6 +29,7 @@ func scanDocument(row pgx.Row) (*entity.Document, error) {
 		&doc.ID,
 		&doc.WorkspaceID,
 		&doc.TemplateVersionID,
+		&doc.DocumentTypeID,
 		&doc.Title,
 		&doc.ClientExternalReferenceID,
 		&doc.TransactionalID,
@@ -40,6 +41,10 @@ func scanDocument(row pgx.Row) (*entity.Document, error) {
 		&doc.InjectedValuesSnapshot,
 		&doc.PDFStoragePath,
 		&doc.CompletedPDFURL,
+		&doc.IsActive,
+		&doc.SupersededAt,
+		&doc.SupersededByDocumentID,
+		&doc.SupersedeReason,
 		&doc.ExpiresAt,
 		&doc.RetryCount,
 		&doc.LastRetryAt,
@@ -59,6 +64,7 @@ func scanDocumentRows(rows pgx.Rows) ([]*entity.Document, error) {
 			&doc.ID,
 			&doc.WorkspaceID,
 			&doc.TemplateVersionID,
+			&doc.DocumentTypeID,
 			&doc.Title,
 			&doc.ClientExternalReferenceID,
 			&doc.TransactionalID,
@@ -70,6 +76,10 @@ func scanDocumentRows(rows pgx.Rows) ([]*entity.Document, error) {
 			&doc.InjectedValuesSnapshot,
 			&doc.PDFStoragePath,
 			&doc.CompletedPDFURL,
+			&doc.IsActive,
+			&doc.SupersededAt,
+			&doc.SupersededByDocumentID,
+			&doc.SupersedeReason,
 			&doc.ExpiresAt,
 			&doc.RetryCount,
 			&doc.LastRetryAt,
@@ -90,6 +100,7 @@ func (r *Repository) Create(ctx context.Context, document *entity.Document) (str
 	err := r.pool.QueryRow(ctx, queryCreate,
 		document.WorkspaceID,
 		document.TemplateVersionID,
+		document.DocumentTypeID,
 		document.Title,
 		document.ClientExternalReferenceID,
 		document.TransactionalID,
@@ -101,6 +112,10 @@ func (r *Repository) Create(ctx context.Context, document *entity.Document) (str
 		document.InjectedValuesSnapshot,
 		document.PDFStoragePath,
 		document.CompletedPDFURL,
+		document.IsActive,
+		document.SupersededAt,
+		document.SupersededByDocumentID,
+		document.SupersedeReason,
 		document.ExpiresAt,
 		document.CreatedAt,
 	).Scan(&id)
@@ -138,7 +153,7 @@ func (r *Repository) FindByIDWithRecipients(ctx context.Context, id string) (*en
 	// Get recipients
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, document_id, template_version_role_id, name, email,
-			   signer_recipient_id, status, signed_at, created_at, updated_at
+			   signer_recipient_id, signing_url, status, signed_at, created_at, updated_at
 		FROM execution.document_recipients
 		WHERE document_id = $1
 		ORDER BY created_at ASC
@@ -157,6 +172,7 @@ func (r *Repository) FindByIDWithRecipients(ctx context.Context, id string) (*en
 			&recipient.Name,
 			&recipient.Email,
 			&recipient.SignerRecipientID,
+			&recipient.SigningURL,
 			&recipient.Status,
 			&recipient.SignedAt,
 			&recipient.CreatedAt,
@@ -380,6 +396,7 @@ func (r *Repository) FindErrorsForRetry(ctx context.Context, maxRetries, limit i
 func (r *Repository) Update(ctx context.Context, document *entity.Document) error {
 	result, err := r.pool.Exec(ctx, queryUpdate,
 		document.ID,
+		document.DocumentTypeID,
 		document.Title,
 		document.ClientExternalReferenceID,
 		document.TransactionalID,
@@ -391,6 +408,10 @@ func (r *Repository) Update(ctx context.Context, document *entity.Document) erro
 		document.InjectedValuesSnapshot,
 		document.PDFStoragePath,
 		document.CompletedPDFURL,
+		document.IsActive,
+		document.SupersededAt,
+		document.SupersededByDocumentID,
+		document.SupersedeReason,
 		document.ExpiresAt,
 		document.RetryCount,
 		document.LastRetryAt,

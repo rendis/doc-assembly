@@ -1,19 +1,28 @@
 package dto
 
-import "github.com/rendis/doc-assembly/core/internal/core/entity"
+import (
+	"encoding/json"
+
+	"github.com/rendis/doc-assembly/core/internal/core/entity"
+)
+
+// InternalCreateDocumentRequest is the new contract for internal create.
+type InternalCreateDocumentRequest struct {
+	ForceCreate     *bool           `json:"forceCreate,omitempty"`
+	SupersedeReason *string         `json:"supersedeReason,omitempty"`
+	Payload         json.RawMessage `json:"payload"`
+}
 
 // InternalCreateDocumentResponse is the response for document creation via internal API.
 type InternalCreateDocumentResponse struct {
-	ID                string  `json:"id"`
-	WorkspaceID       string  `json:"workspaceId"`
-	TemplateID        string  `json:"templateId"`
-	TemplateVersionID string  `json:"templateVersionId"`
-	ExternalID        string  `json:"externalId"`
-	TransactionalID   string  `json:"transactionalId"`
-	OperationType     string  `json:"operationType"`
-	Status            string  `json:"status"`
-	SignerProvider    *string `json:"signerProvider,omitempty"`
-	CreatedAt         string  `json:"createdAt"`
+	ID                           string  `json:"id"`
+	WorkspaceID                  string  `json:"workspaceId"`
+	TemplateVersionID            string  `json:"templateVersionId"`
+	ExternalID                   string  `json:"externalId"`
+	TransactionalID              string  `json:"transactionalId"`
+	Status                       string  `json:"status"`
+	IdempotentReplay             bool    `json:"idempotentReplay"`
+	SupersededPreviousDocumentID *string `json:"supersededPreviousDocumentId,omitempty"`
 }
 
 // InternalDocumentRecipientResponse represents a recipient in the internal API response.

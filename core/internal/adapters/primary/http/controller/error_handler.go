@@ -62,6 +62,8 @@ func mapErrorToStatusCode(err error) int {
 }
 
 // is404Error returns true if the error should result in a 404 Not Found response.
+//
+//nolint:gocyclo // Simple list of domain error checks by status code.
 func is404Error(err error) bool {
 	return errors.Is(err, entity.ErrInjectableNotFound) ||
 		errors.Is(err, entity.ErrTemplateNotFound) ||
@@ -77,7 +79,8 @@ func is404Error(err error) bool {
 		errors.Is(err, entity.ErrTenantMemberNotFound) ||
 		errors.Is(err, entity.ErrSystemRoleNotFound) ||
 		errors.Is(err, entity.ErrDocumentTypeNotFound) ||
-		errors.Is(err, entity.ErrAPIKeyNotFound)
+		errors.Is(err, entity.ErrAPIKeyNotFound) ||
+		errors.Is(err, entity.ErrInternalTemplateResolutionNotFound)
 }
 
 // is409Error returns true if the error should result in a 409 Conflict response.

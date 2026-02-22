@@ -41,25 +41,19 @@ const docTemplate = `{
                         "name": "X-Workspace-ID",
                         "in": "header",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Locale for translations (default: es)",
-                        "name": "locale",
-                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListInjectablesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListInjectablesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -90,13 +84,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InjectableResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -173,13 +167,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplatesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListTemplatesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -215,7 +209,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTemplateRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateTemplateRequest"
                         }
                     }
                 ],
@@ -223,19 +217,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateCreateResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateCreateResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -279,13 +273,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateWithDetailsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateWithDetailsResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -329,7 +323,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTemplateRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTemplateRequest"
                         }
                     }
                 ],
@@ -337,19 +331,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -394,7 +388,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -438,13 +432,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateWithAllVersionsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateWithAllVersionsResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -490,7 +484,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CloneTemplateRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CloneTemplateRequest"
                         }
                     }
                 ],
@@ -498,25 +492,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateCreateResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateCreateResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request (invalid versionId, version doesn't belong to template, validation error)",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Template or version not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Template title already exists",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -562,7 +556,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AssignDocumentTypeRequest"
                         }
                     }
                 ],
@@ -570,25 +564,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AssignDocumentTypeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -633,7 +627,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddTagsRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddTagsRequest"
                         }
                     }
                 ],
@@ -644,13 +638,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -704,7 +698,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -748,13 +742,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplateVersionsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListTemplateVersionsResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -797,7 +791,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateVersionRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateVersionRequest"
                         }
                     }
                 ],
@@ -805,19 +799,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -862,7 +856,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateVersionFromExistingRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateVersionFromExistingRequest"
                         }
                     }
                 ],
@@ -870,19 +864,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -933,13 +927,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionDetailResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionDetailResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -989,7 +983,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateVersionRequest"
                         }
                     }
                 ],
@@ -997,19 +991,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1061,13 +1055,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1121,13 +1115,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1179,7 +1173,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddVersionInjectableRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddVersionInjectableRequest"
                         }
                     }
                 ],
@@ -1187,19 +1181,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1260,7 +1254,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1306,7 +1300,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RenderPreviewRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RenderPreviewRequest"
                         }
                     }
                 ],
@@ -1320,19 +1314,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1379,7 +1373,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteVersionRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromoteVersionRequest"
                         }
                     }
                 ],
@@ -1387,25 +1381,25 @@ const docTemplate = `{
                     "201": {
                         "description": "When mode=NEW_VERSION",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request or target workspace is a sandbox",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1459,13 +1453,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1519,13 +1513,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1577,7 +1571,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ScheduleArchiveRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ScheduleArchiveRequest"
                         }
                     }
                 ],
@@ -1588,13 +1582,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1646,7 +1640,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SchedulePublishRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SchedulePublishRequest"
                         }
                     }
                 ],
@@ -1657,13 +1651,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1720,20 +1714,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentListResponse"
+                                "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentListResponse"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1763,7 +1757,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateDocumentRequest"
                         }
                     }
                 ],
@@ -1771,19 +1765,71 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/documents/batch": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Batch create documents",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Batch document creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BatchCreateDocumentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BatchCreateDocumentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1814,13 +1860,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_core_usecase_document.DocumentStatistics"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.DocumentStatistics"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1858,19 +1904,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1917,19 +1963,190 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/documents/{documentId}/events": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Get document events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Document ID",
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Limit results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentEventResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/documents/{documentId}/invalidate-tokens": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Invalidate all access tokens for a document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Document ID",
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/documents/{documentId}/pdf": {
+            "get": {
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Download signed PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Document ID",
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1969,20 +2186,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse"
+                                "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RecipientResponse"
                             }
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2027,19 +2244,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SigningURLResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SigningURLResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2077,19 +2294,78 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/documents/{documentId}/remind": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Send document reminder",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "X-Workspace-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Document ID",
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2097,7 +2373,7 @@ const docTemplate = `{
         },
         "/api/v1/internal/documents/create": {
             "post": {
-                "description": "Creates a new document using the extension system (Mapper, Init, Injectors)",
+                "description": "Creates or replays a document using the extension system (Mapper, Init, Injectors)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2118,6 +2394,27 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Tenant business code",
+                        "name": "X-Tenant-Code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Workspace business code",
+                        "name": "X-Workspace-Code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Document type code",
+                        "name": "X-Document-Type",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "External ID (e.g., CRM entity ID)",
                         "name": "X-External-ID",
                         "in": "header",
@@ -2125,48 +2422,56 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Template ID to use",
-                        "name": "X-Template-ID",
+                        "description": "Transactional ID for idempotency",
+                        "name": "X-Transactional-ID",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Transactional ID for traceability",
-                        "name": "X-Transactional-ID",
-                        "in": "header",
-                        "required": true
+                        "description": "Internal create request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalCreateDocumentRequest"
+                        }
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse"
+                        }
+                    },
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalErrorResponse"
                         }
                     }
                 }
@@ -2197,7 +2502,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RecordAccessRequest"
                         }
                     }
                 ],
@@ -2208,19 +2513,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2262,13 +2567,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MyRolesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MyRolesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2318,13 +2623,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsWithRoleResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedTenantsWithRoleResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2351,19 +2656,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListSystemInjectablesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListSystemInjectablesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2393,7 +2698,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest"
                         }
                     }
                 ],
@@ -2401,25 +2706,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2447,7 +2752,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest"
                         }
                     }
                 ],
@@ -2455,25 +2760,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2512,19 +2817,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2560,25 +2865,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListAssignmentsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListAssignmentsResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2613,7 +2918,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateAssignmentRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateAssignmentRequest"
                         }
                     }
                 ],
@@ -2621,31 +2926,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2691,19 +2996,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2749,19 +3054,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2807,19 +3112,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2858,19 +3163,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2919,19 +3224,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedTenantsResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -2959,7 +3264,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTenantRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateTenantRequest"
                         }
                     }
                 ],
@@ -2967,31 +3272,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3027,25 +3332,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3080,7 +3385,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantRequest"
                         }
                     }
                 ],
@@ -3088,31 +3393,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3149,19 +3454,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3198,7 +3503,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantStatusRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantStatusRequest"
                         }
                     }
                 ],
@@ -3206,31 +3511,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3286,25 +3591,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3331,19 +3636,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_SystemRoleWithUserResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_SystemRoleWithUserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3380,7 +3685,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignSystemRoleRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AssignSystemRoleRequest"
                         }
                     }
                 ],
@@ -3388,31 +3693,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemRoleResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemRoleResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3449,19 +3754,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3497,25 +3802,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3550,7 +3855,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantRequest"
                         }
                     }
                 ],
@@ -3558,31 +3863,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3638,19 +3943,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedDocumentTypesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedDocumentTypesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3685,7 +3990,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentTypeRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateDocumentTypeRequest"
                         }
                     }
                 ],
@@ -3693,31 +3998,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3760,25 +4065,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3821,25 +4126,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplatesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListTemplatesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3882,25 +4187,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -3942,7 +4247,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateDocumentTypeRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateDocumentTypeRequest"
                         }
                     }
                 ],
@@ -3950,31 +4255,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4015,7 +4320,7 @@ const docTemplate = `{
                         "name": "request",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteDocumentTypeRequest"
                         }
                     }
                 ],
@@ -4023,31 +4328,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteDocumentTypeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4083,19 +4388,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TenantMemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_TenantMemberResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4130,7 +4435,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddTenantMemberRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddTenantMemberRequest"
                         }
                     }
                 ],
@@ -4138,31 +4443,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4205,25 +4510,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4265,7 +4570,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantMemberRoleRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantMemberRoleRequest"
                         }
                     }
                 ],
@@ -4273,31 +4578,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4341,25 +4646,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4421,19 +4726,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4468,7 +4773,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateWorkspaceRequest"
                         }
                     }
                 ],
@@ -4476,25 +4781,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4540,19 +4845,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4596,7 +4901,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceStatusRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateWorkspaceStatusRequest"
                         }
                     }
                 ],
@@ -4604,31 +4909,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4659,19 +4964,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4701,7 +5006,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateWorkspaceRequest"
                         }
                     }
                 ],
@@ -4709,19 +5014,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4753,13 +5058,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4796,19 +5101,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_FolderResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4844,7 +5149,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateFolderRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateFolderRequest"
                         }
                     }
                 ],
@@ -4852,13 +5157,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4897,20 +5202,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderTreeResponse"
+                                "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderTreeResponse"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -4954,19 +5259,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5009,7 +5314,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateFolderRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateFolderRequest"
                         }
                     }
                 ],
@@ -5017,19 +5322,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5074,13 +5379,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5125,7 +5430,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MoveFolderRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MoveFolderRequest"
                         }
                     }
                 ],
@@ -5133,19 +5438,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5176,19 +5481,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5218,7 +5523,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest"
                         }
                     }
                 ],
@@ -5226,13 +5531,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5270,19 +5575,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5319,7 +5624,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest"
                         }
                     }
                 ],
@@ -5327,19 +5632,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5378,13 +5683,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5422,19 +5727,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5472,19 +5777,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5515,19 +5820,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_MemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_MemberResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5557,7 +5862,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InviteMemberRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InviteMemberRequest"
                         }
                     }
                 ],
@@ -5565,19 +5870,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5615,19 +5920,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5664,7 +5969,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateMemberRoleRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateMemberRoleRequest"
                         }
                     }
                 ],
@@ -5672,19 +5977,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5723,13 +6028,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5760,19 +6065,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TagWithCountResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_TagWithCountResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5802,7 +6107,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTagRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateTagRequest"
                         }
                     }
                 ],
@@ -5810,13 +6115,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5854,19 +6159,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5903,7 +6208,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTagRequest"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTagRequest"
                         }
                     }
                 ],
@@ -5911,19 +6216,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -5962,16 +6267,531 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
+            }
+        },
+        "/public/doc/{documentId}": {
+            "get": {
+                "description": "Returns document title and status for the public access page.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Document Access"
+                ],
+                "summary": "Get public document info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Document ID",
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicDocumentInfoResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/doc/{documentId}/request-access": {
+            "post": {
+                "description": "Validates email against document recipients and sends an access link via email. Always returns 200.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Document Access"
+                ],
+                "summary": "Request document access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Document ID",
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Email address",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_adapters_primary_http_controller.requestAccessBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}": {
+            "get": {
+                "description": "Returns document state and content based on token type and document status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Get public signing page",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicSigningResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Validates and saves field responses, renders PDF, sends for signing, returns embedded URL.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Submit pre-signing form",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Field responses",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_adapters_primary_http_controller.submitFormRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicSigningResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/complete": {
+            "post": {
+                "description": "Marks the access token as used after the signer completes signing in the iframe.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Complete embedded signing",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/download": {
+            "get": {
+                "description": "Downloads the completed/signed PDF when the token recipient is authorized.",
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Download completed PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/pdf": {
+            "get": {
+                "description": "Renders the document PDF on-demand using the access token. Used for previewing before signing.",
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Render preview PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/proceed": {
+            "post": {
+                "description": "For Path A (SIGNING token), transitions from PDF preview to embedded signing iframe.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Proceed to signing",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicSigningResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/refresh": {
+            "get": {
+                "description": "Gets a fresh embedded signing URL when the previous one has expired.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Refresh embedded URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicSigningResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/request-access": {
+            "post": {
+                "description": "Requests a new signing link by email using a token entrypoint. Always returns 200.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Request access from token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Email address",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_adapters_primary_http_controller.requestAccessFromTokenBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/sign/{token}/signing-callback": {
+            "get": {
+                "description": "Serves an HTML page that posts SIGNING_EVENT to parent window.",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "Public Signing"
+                ],
+                "summary": "Signing callback bridge",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "signed",
+                        "description": "Signing status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
             }
         },
         "/webhooks/signing/{provider}": {
@@ -6020,19 +6840,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
                         }
                     }
                 }
@@ -6040,7 +6860,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddTagsRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddTagsRequest": {
             "type": "object",
             "required": [
                 "tagIds"
@@ -6055,7 +6875,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddTenantMemberRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddTenantMemberRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -6074,7 +6894,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AddVersionInjectableRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddVersionInjectableRequest": {
             "type": "object",
             "required": [
                 "injectableDefinitionId"
@@ -6091,7 +6911,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AssignDocumentTypeRequest": {
             "type": "object",
             "properties": {
                 "documentTypeId": {
@@ -6104,18 +6924,18 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignDocumentTypeResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AssignDocumentTypeResponse": {
             "type": "object",
             "properties": {
                 "conflict": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateConflictInfo"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateConflictInfo"
                 },
                 "template": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateResponse"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.AssignSystemRoleRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AssignSystemRoleRequest": {
             "type": "object",
             "required": [
                 "role"
@@ -6130,7 +6950,51 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkOperationError": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BatchCreateDocumentRequest": {
+            "type": "object",
+            "required": [
+                "documents"
+            ],
+            "properties": {
+                "documents": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateDocumentRequest"
+                    }
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BatchCreateDocumentResponse": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BatchDocumentResultResponse"
+                    }
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BatchDocumentResultResponse": {
+            "type": "object",
+            "properties": {
+                "document": {
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity.DocumentWithRecipients"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkOperationError": {
             "type": "object",
             "properties": {
                 "error": {
@@ -6141,7 +7005,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkPublicAssignmentsRequest": {
             "type": "object",
             "required": [
                 "keys"
@@ -6156,13 +7020,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkPublicAssignmentsResponse": {
             "type": "object",
             "properties": {
                 "failed": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.BulkOperationError"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.BulkOperationError"
                     }
                 },
                 "succeeded": {
@@ -6173,7 +7037,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CloneTemplateRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CloneTemplateRequest": {
             "type": "object",
             "required": [
                 "newTitle",
@@ -6193,7 +7057,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateAssignmentRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateAssignmentRequest": {
             "type": "object",
             "required": [
                 "scopeType"
@@ -6215,7 +7079,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateDocumentRequest": {
             "type": "object",
             "required": [
                 "recipients",
@@ -6230,12 +7094,20 @@ const docTemplate = `{
                     "type": "object",
                     "additionalProperties": {}
                 },
+                "operationType": {
+                    "description": "CREATE, RENEW, or AMEND (defaults to CREATE)",
+                    "type": "string"
+                },
                 "recipients": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateRecipientRequest"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateRecipientRequest"
                     }
+                },
+                "relatedDocumentId": {
+                    "description": "Required for RENEW/AMEND",
+                    "type": "string"
                 },
                 "templateVersionId": {
                     "type": "string"
@@ -6245,7 +7117,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateDocumentTypeRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateDocumentTypeRequest": {
             "type": "object",
             "required": [
                 "code",
@@ -6271,7 +7143,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateFolderRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateFolderRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -6287,7 +7159,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateRecipientRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateRecipientRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -6306,7 +7178,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTagRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateTagRequest": {
             "type": "object",
             "required": [
                 "color",
@@ -6323,7 +7195,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTemplateRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateTemplateRequest": {
             "type": "object",
             "required": [
                 "title"
@@ -6349,7 +7221,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateTenantRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateTenantRequest": {
             "type": "object",
             "required": [
                 "code",
@@ -6372,7 +7244,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateVersionFromExistingRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateVersionFromExistingRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -6392,7 +7264,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateVersionRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateVersionRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -6408,7 +7280,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateWorkspaceInjectableRequest": {
             "type": "object",
             "required": [
                 "defaultValue",
@@ -6438,21 +7310,23 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.CreateWorkspaceRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateWorkspaceRequest": {
             "type": "object",
             "required": [
+                "code",
                 "name",
                 "type"
             ],
             "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                },
                 "name": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 1
-                },
-                "settings": {
-                    "type": "object",
-                    "additionalProperties": {}
                 },
                 "tenantId": {
                     "type": "string"
@@ -6466,7 +7340,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteDocumentTypeRequest": {
             "type": "object",
             "properties": {
                 "force": {
@@ -6479,7 +7353,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DeleteDocumentTypeResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteDocumentTypeResponse": {
             "type": "object",
             "properties": {
                 "canReplace": {
@@ -6493,12 +7367,45 @@ const docTemplate = `{
                     "description": "Templates using this type (if not deleted)",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentListResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentEventResponse": {
+            "type": "object",
+            "properties": {
+                "actorId": {
+                    "type": "string"
+                },
+                "actorType": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "documentId": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {},
+                "newStatus": {
+                    "type": "string"
+                },
+                "oldStatus": {
+                    "type": "string"
+                },
+                "recipientId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentListResponse": {
             "type": "object",
             "properties": {
                 "clientExternalReferenceId": {
@@ -6530,7 +7437,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentResponse": {
             "type": "object",
             "properties": {
                 "clientExternalReferenceId": {
@@ -6548,7 +7455,7 @@ const docTemplate = `{
                 "recipients": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RecipientResponse"
                     }
                 },
                 "signerProvider": {
@@ -6571,7 +7478,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeListItemResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeListItemResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -6610,7 +7517,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -6646,7 +7553,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -6663,7 +7570,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ErrorResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -6677,7 +7584,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse": {
             "type": "object",
             "properties": {
                 "childFolderCount": {
@@ -6706,13 +7613,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderTreeResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderTreeResponse": {
             "type": "object",
             "properties": {
                 "children": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderTreeResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderTreeResponse"
                     }
                 },
                 "createdAt": {
@@ -6735,7 +7642,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FormatConfigResponse": {
             "type": "object",
             "properties": {
                 "default": {
@@ -6749,7 +7656,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GroupResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.GroupResponse": {
             "type": "object",
             "properties": {
                 "icon": {
@@ -6759,14 +7666,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "order": {
                     "type": "integer"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InjectableResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -6776,10 +7686,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "formatConfig": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FormatConfigResponse"
                 },
                 "group": {
                     "type": "string"
@@ -6794,7 +7707,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "label": {
-                    "type": "string"
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "metadata": {
                     "type": "object",
@@ -6811,34 +7727,45 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalCreateDocumentRequest": {
             "type": "object",
             "properties": {
-                "createdAt": {
-                    "type": "string"
+                "forceCreate": {
+                    "type": "boolean"
                 },
+                "payload": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "supersedeReason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalCreateDocumentWithRecipientsResponse": {
+            "type": "object",
+            "properties": {
                 "externalId": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "operationType": {
-                    "type": "string"
+                "idempotentReplay": {
+                    "type": "boolean"
                 },
                 "recipients": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalDocumentRecipientResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalDocumentRecipientResponse"
                     }
-                },
-                "signerProvider": {
-                    "type": "string"
                 },
                 "status": {
                     "type": "string"
                 },
-                "templateId": {
+                "supersededPreviousDocumentId": {
                     "type": "string"
                 },
                 "templateVersionId": {
@@ -6852,7 +7779,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalDocumentRecipientResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalDocumentRecipientResponse": {
             "type": "object",
             "properties": {
                 "email": {
@@ -6869,7 +7796,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InternalErrorResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InternalErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -6886,7 +7813,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InviteMemberRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InviteMemberRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -6905,30 +7832,30 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListAssignmentsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListAssignmentsResponse": {
             "type": "object",
             "properties": {
                 "assignments": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListInjectablesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListInjectablesResponse": {
             "type": "object",
             "properties": {
                 "groups": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.GroupResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.GroupResponse"
                     }
                 },
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InjectableResponse"
                     }
                 },
                 "total": {
@@ -6936,7 +7863,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_FolderResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_FolderResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -6945,12 +7872,12 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_MemberResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_MemberResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -6959,12 +7886,12 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_SystemRoleWithUserResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_SystemRoleWithUserResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -6973,12 +7900,12 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemRoleWithUserResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemRoleWithUserResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TagWithCountResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_TagWithCountResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -6987,12 +7914,12 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagWithCountResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagWithCountResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListResponse-github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto_TenantMemberResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListResponse-github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto_TenantMemberResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -7001,29 +7928,29 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListSystemInjectablesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListSystemInjectablesResponse": {
             "type": "object",
             "properties": {
                 "injectables": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemInjectableResponse"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplateVersionsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListTemplateVersionsResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                     }
                 },
                 "total": {
@@ -7031,13 +7958,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListTemplatesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListTemplatesResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateListItemResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateListItemResponse"
                     }
                 },
                 "limit": {
@@ -7051,13 +7978,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ListWorkspaceInjectablesResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse"
                     }
                 },
                 "total": {
@@ -7065,7 +7992,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7084,14 +8011,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberUserResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberUserResponse"
                 },
                 "workspaceId": {
                     "type": "string"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MemberUserResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MemberUserResponse": {
             "type": "object",
             "properties": {
                 "email": {
@@ -7108,7 +8035,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MoveFolderRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MoveFolderRequest": {
             "type": "object",
             "properties": {
                 "newParentId": {
@@ -7116,74 +8043,74 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.MyRolesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.MyRolesResponse": {
             "type": "object",
             "properties": {
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RoleEntry"
                     }
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedDocumentTypesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedDocumentTypesResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.DocumentTypeListItemResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeListItemResponse"
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginationMeta"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedTenantsResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse"
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginationMeta"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedTenantsWithRoleResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedTenantsWithRoleResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantWithRoleResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantWithRoleResponse"
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginationMeta"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedWorkspacesResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceResponse"
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginationMeta"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PaginationMeta": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta": {
             "type": "object",
             "properties": {
                 "page": {
@@ -7200,26 +8127,26 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewTemplateResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromoteAsNewTemplateResponse": {
             "type": "object",
             "properties": {
                 "template": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateResponse"
                 },
                 "version": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromoteAsNewVersionResponse": {
             "type": "object",
             "properties": {
                 "version": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromoteVersionRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromoteVersionRequest": {
             "type": "object",
             "required": [
                 "mode"
@@ -7232,7 +8159,7 @@ const docTemplate = `{
                     ],
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromotionMode"
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromotionMode"
                         }
                     ]
                 },
@@ -7250,7 +8177,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.PromotionMode": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromotionMode": {
             "type": "string",
             "enum": [
                 "NEW_TEMPLATE",
@@ -7261,7 +8188,7 @@ const docTemplate = `{
                 "PromotionModeNewVersion"
             ]
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecipientResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RecipientResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7296,7 +8223,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RecordAccessRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RecordAccessRequest": {
             "type": "object",
             "required": [
                 "entityId",
@@ -7311,7 +8238,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RenderPreviewRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RenderPreviewRequest": {
             "type": "object",
             "properties": {
                 "injectables": {
@@ -7321,7 +8248,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.RoleEntry": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.RoleEntry": {
             "type": "object",
             "properties": {
                 "resourceId": {
@@ -7338,7 +8265,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.ScheduleArchiveRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ScheduleArchiveRequest": {
             "type": "object",
             "required": [
                 "archiveAt"
@@ -7349,7 +8276,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SchedulePublishRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SchedulePublishRequest": {
             "type": "object",
             "required": [
                 "publishAt"
@@ -7360,7 +8287,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SigningURLResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SigningURLResponse": {
             "type": "object",
             "properties": {
                 "expiresAt": {
@@ -7371,7 +8298,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemInjectableAssignmentResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7403,7 +8330,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemInjectableResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemInjectableResponse": {
             "type": "object",
             "properties": {
                 "dataType": {
@@ -7435,7 +8362,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemRoleResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemRoleResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7455,7 +8382,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.SystemRoleWithUserResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemRoleWithUserResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7471,14 +8398,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UserBriefResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UserBriefResponse"
                 },
                 "userId": {
                     "type": "string"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagResponse": {
             "type": "object",
             "properties": {
                 "color": {
@@ -7501,7 +8428,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagSimpleResponse": {
             "type": "object",
             "properties": {
                 "color": {
@@ -7515,7 +8442,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagWithCountResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagWithCountResponse": {
             "type": "object",
             "properties": {
                 "color": {
@@ -7541,7 +8468,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateConflictInfo": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateConflictInfo": {
             "type": "object",
             "properties": {
                 "id": {
@@ -7552,18 +8479,18 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateCreateResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateCreateResponse": {
             "type": "object",
             "properties": {
                 "initialVersion": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse"
                 },
                 "template": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateResponse"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateListItemResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateListItemResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7593,7 +8520,7 @@ const docTemplate = `{
                 "tags": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagSimpleResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagSimpleResponse"
                     }
                 },
                 "title": {
@@ -7610,7 +8537,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7645,7 +8572,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionDetailResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionDetailResponse": {
             "type": "object",
             "properties": {
                 "archivedAt": {
@@ -7675,7 +8602,7 @@ const docTemplate = `{
                 "injectables": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
                     }
                 },
                 "name": {
@@ -7696,7 +8623,7 @@ const docTemplate = `{
                 "signerRoles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
                     }
                 },
                 "status": {
@@ -7713,7 +8640,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7723,7 +8650,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "definition": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.InjectableResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.InjectableResponse"
                 },
                 "id": {
                     "type": "string"
@@ -7736,7 +8663,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionResponse": {
             "type": "object",
             "properties": {
                 "archivedAt": {
@@ -7786,7 +8713,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse": {
             "type": "object",
             "properties": {
                 "anchorString": {
@@ -7812,7 +8739,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse": {
             "type": "object",
             "properties": {
                 "archivedAt": {
@@ -7836,7 +8763,7 @@ const docTemplate = `{
                 "injectables": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionInjectableResponse"
                     }
                 },
                 "name": {
@@ -7857,7 +8784,7 @@ const docTemplate = `{
                 "signerRoles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionSignerRoleResponse"
                     }
                 },
                 "status": {
@@ -7874,7 +8801,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateWithAllVersionsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateWithAllVersionsResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7890,7 +8817,7 @@ const docTemplate = `{
                     }
                 },
                 "folder": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                 },
                 "folderId": {
                     "type": "string"
@@ -7904,7 +8831,7 @@ const docTemplate = `{
                 "tags": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagResponse"
                     }
                 },
                 "title": {
@@ -7916,7 +8843,7 @@ const docTemplate = `{
                 "versions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionSummaryResponse"
                     }
                 },
                 "workspaceId": {
@@ -7924,7 +8851,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateWithDetailsResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateWithDetailsResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7940,7 +8867,7 @@ const docTemplate = `{
                     }
                 },
                 "folder": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FolderResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FolderResponse"
                 },
                 "folderId": {
                     "type": "string"
@@ -7952,12 +8879,12 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "publishedVersion": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TemplateVersionDetailResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TemplateVersionDetailResponse"
                 },
                 "tags": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TagResponse"
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TagResponse"
                     }
                 },
                 "title": {
@@ -7971,7 +8898,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -7990,11 +8917,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberUserResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberUserResponse"
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantMemberUserResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantMemberUserResponse": {
             "type": "object",
             "properties": {
                 "email": {
@@ -8011,7 +8938,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -8044,7 +8971,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.TenantWithRoleResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.TenantWithRoleResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -8083,7 +9010,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateDocumentTypeRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateDocumentTypeRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -8103,7 +9030,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateFolderRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateFolderRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -8116,7 +9043,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateMemberRoleRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateMemberRoleRequest": {
             "type": "object",
             "required": [
                 "role"
@@ -8127,7 +9054,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTagRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTagRequest": {
             "type": "object",
             "required": [
                 "color",
@@ -8144,7 +9071,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTemplateRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTemplateRequest": {
             "type": "object",
             "properties": {
                 "folderId": {
@@ -8161,7 +9088,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantMemberRoleRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantMemberRoleRequest": {
             "type": "object",
             "required": [
                 "role"
@@ -8172,7 +9099,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -8193,7 +9120,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateTenantStatusRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTenantStatusRequest": {
             "type": "object",
             "required": [
                 "status"
@@ -8209,7 +9136,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateVersionRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateVersionRequest": {
             "type": "object",
             "properties": {
                 "contentStructure": {
@@ -8228,7 +9155,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateWorkspaceInjectableRequest": {
             "type": "object",
             "properties": {
                 "defaultValue": {
@@ -8253,7 +9180,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateWorkspaceRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -8263,14 +9190,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 1
-                },
-                "settings": {
-                    "type": "object",
-                    "additionalProperties": {}
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UpdateWorkspaceStatusRequest": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateWorkspaceStatusRequest": {
             "type": "object",
             "required": [
                 "status"
@@ -8286,7 +9209,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.UserBriefResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UserBriefResponse": {
             "type": "object",
             "properties": {
                 "email": {
@@ -8303,7 +9226,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceInjectableResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceInjectableResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -8319,7 +9242,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "formatConfig": {
-                    "$ref": "#/definitions/github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.FormatConfigResponse"
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.FormatConfigResponse"
                 },
                 "id": {
                     "type": "string"
@@ -8348,9 +9271,12 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_adapters_primary_http_dto.WorkspaceResponse": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.WorkspaceResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -8362,10 +9288,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "settings": {
-                    "type": "object",
-                    "additionalProperties": {}
                 },
                 "status": {
                     "type": "string"
@@ -8381,7 +9303,210 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_doc-assembly_doc-engine_internal_core_usecase_document.DocumentStatistics": {
+        "github_com_rendis_doc-assembly_core_internal_core_entity.DocumentRecipient": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "documentId": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "signedAt": {
+                    "type": "string"
+                },
+                "signerRecipientId": {
+                    "type": "string"
+                },
+                "signingUrl": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity.RecipientStatus"
+                },
+                "templateVersionRoleId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_entity.DocumentStatus": {
+            "type": "string",
+            "enum": [
+                "DRAFT",
+                "AWAITING_INPUT",
+                "PENDING_PROVIDER",
+                "PENDING",
+                "IN_PROGRESS",
+                "COMPLETED",
+                "DECLINED",
+                "VOIDED",
+                "EXPIRED",
+                "ERROR"
+            ],
+            "x-enum-varnames": [
+                "DocumentStatusDraft",
+                "DocumentStatusAwaitingInput",
+                "DocumentStatusPendingProvider",
+                "DocumentStatusPending",
+                "DocumentStatusInProgress",
+                "DocumentStatusCompleted",
+                "DocumentStatusDeclined",
+                "DocumentStatusVoided",
+                "DocumentStatusExpired",
+                "DocumentStatusError"
+            ]
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_entity.DocumentWithRecipients": {
+            "type": "object",
+            "properties": {
+                "clientExternalReferenceId": {
+                    "type": "string"
+                },
+                "completedPdfUrl": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "documentTypeId": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "injectedValuesSnapshot": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "lastRetryAt": {
+                    "type": "string"
+                },
+                "nextRetryAt": {
+                    "type": "string"
+                },
+                "operationType": {
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity.OperationType"
+                },
+                "pdfStoragePath": {
+                    "type": "string"
+                },
+                "recipients": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity.DocumentRecipient"
+                    }
+                },
+                "relatedDocumentId": {
+                    "type": "string"
+                },
+                "retryCount": {
+                    "type": "integer"
+                },
+                "signerDocumentId": {
+                    "type": "string"
+                },
+                "signerProvider": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity.DocumentStatus"
+                },
+                "supersedeReason": {
+                    "type": "string"
+                },
+                "supersededAt": {
+                    "type": "string"
+                },
+                "supersededByDocumentId": {
+                    "type": "string"
+                },
+                "templateVersionId": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "transactionalId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "workspaceId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_entity.OperationType": {
+            "type": "string",
+            "enum": [
+                "CREATE",
+                "RENEW",
+                "AMEND",
+                "CANCEL",
+                "PREVIEW"
+            ],
+            "x-enum-varnames": [
+                "OperationCreate",
+                "OperationRenew",
+                "OperationAmend",
+                "OperationCancel",
+                "OperationPreview"
+            ]
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_entity.RecipientStatus": {
+            "type": "string",
+            "enum": [
+                "PENDING",
+                "SENT",
+                "DELIVERED",
+                "SIGNED",
+                "DECLINED",
+                "WAITING",
+                "REJECTED"
+            ],
+            "x-enum-varnames": [
+                "RecipientStatusPending",
+                "RecipientStatusSent",
+                "RecipientStatusDelivered",
+                "RecipientStatusSigned",
+                "RecipientStatusDeclined",
+                "RecipientStatusWaiting",
+                "RecipientStatusRejected"
+            ]
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_entity_portabledoc.InteractiveOption": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_usecase_document.DocumentStatistics": {
             "type": "object",
             "properties": {
                 "byStatus": {
@@ -8404,6 +9529,204 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_usecase_document.FieldResponseInput": {
+            "type": "object",
+            "properties": {
+                "fieldId": {
+                    "type": "string"
+                },
+                "response": {
+                    "description": "{\"selectedOptionIds\":[...]} or {\"text\":\"...\"}",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_usecase_document.InteractiveFieldDTO": {
+            "type": "object",
+            "properties": {
+                "fieldType": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "maxLength": {
+                    "type": "integer"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity_portabledoc.InteractiveOption"
+                    }
+                },
+                "placeholder": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_usecase_document.PreSigningFormDTO": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "description": "full portabledoc ProseMirror content",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "documentStatus": {
+                    "type": "string"
+                },
+                "documentTitle": {
+                    "type": "string"
+                },
+                "fields": {
+                    "description": "fields for this role",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.InteractiveFieldDTO"
+                    }
+                },
+                "recipientEmail": {
+                    "type": "string"
+                },
+                "recipientName": {
+                    "type": "string"
+                },
+                "roleId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicDocumentInfoResponse": {
+            "type": "object",
+            "properties": {
+                "documentId": {
+                    "type": "string"
+                },
+                "documentTitle": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"active\", \"completed\", \"expired\"",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_core_usecase_document.PublicSigningResponse": {
+            "type": "object",
+            "properties": {
+                "canDownload": {
+                    "description": "CanDownload indicates whether this recipient can download the completed PDF.",
+                    "type": "boolean"
+                },
+                "canSign": {
+                    "description": "CanSign indicates whether this recipient can still proceed in signing flow.",
+                    "type": "boolean"
+                },
+                "documentStatus": {
+                    "description": "DocumentStatus is the canonical internal document status.",
+                    "type": "string"
+                },
+                "documentTitle": {
+                    "description": "DocumentTitle is the document title.",
+                    "type": "string"
+                },
+                "downloadUrl": {
+                    "description": "DownloadURL is the endpoint for downloading the completed signed PDF.",
+                    "type": "string"
+                },
+                "embeddedSigningUrl": {
+                    "description": "EmbeddedSigningURL is the URL to load in an iframe (step=signing).",
+                    "type": "string"
+                },
+                "fallbackUrl": {
+                    "description": "FallbackURL is a direct signing URL when embedding is not supported.",
+                    "type": "string"
+                },
+                "form": {
+                    "description": "Form contains the pre-signing form data (step=preview, Path B).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.PreSigningFormDTO"
+                        }
+                    ]
+                },
+                "hasCurrentUserSigned": {
+                    "description": "HasCurrentUserSigned indicates whether the token recipient has signed.",
+                    "type": "boolean"
+                },
+                "pdfUrl": {
+                    "description": "PdfURL is the URL to download the rendered PDF for preview (step=preview, Path A).",
+                    "type": "string"
+                },
+                "recipientName": {
+                    "description": "RecipientName is the signer's display name.",
+                    "type": "string"
+                },
+                "signingPosition": {
+                    "description": "SigningPosition is the signer's position in signing order (step=waiting).",
+                    "type": "integer"
+                },
+                "step": {
+                    "description": "Step indicates the current signing flow step.\n\"preview\" = show form (Path B) or PDF preview (Path A)\n\"signing\" = show embedded signing iframe\n\"waiting\" = waiting for previous signers\n\"completed\" = signing completed\n\"declined\" = document was declined",
+                    "type": "string"
+                },
+                "totalSigners": {
+                    "description": "TotalSigners is the total number of signers (step=waiting).",
+                    "type": "integer"
+                },
+                "waitingForPrevious": {
+                    "description": "WaitingForPrevious is true when waiting for earlier signers (step=waiting).",
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_adapters_primary_http_controller.requestAccessBody": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_adapters_primary_http_controller.requestAccessFromTokenBody": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_adapters_primary_http_controller.submitFormRequest": {
+            "type": "object",
+            "required": [
+                "responses"
+            ],
+            "properties": {
+                "responses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_usecase_document.FieldResponseInput"
+                    }
                 }
             }
         }

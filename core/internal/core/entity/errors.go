@@ -142,6 +142,9 @@ var (
 // Document Generation errors.
 var (
 	ErrNoMapperRegistered = errors.New("no mapper registered in registry")
+	// ErrInternalTemplateResolutionNotFound indicates no published template version
+	// could be resolved for the internal create request.
+	ErrInternalTemplateResolutionNotFound = errors.New("no published template version resolved")
 )
 
 // MissingInjectablesError indicates that required injectables are not available.

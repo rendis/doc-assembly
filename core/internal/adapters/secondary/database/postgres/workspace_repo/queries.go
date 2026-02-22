@@ -13,6 +13,13 @@ const (
 		FROM tenancy.workspaces
 		WHERE id = $1`
 
+	queryFindByCode = `
+		SELECT id, tenant_id, name, code, type, status,
+		       is_sandbox, sandbox_of_id, created_at, updated_at
+		FROM tenancy.workspaces
+		WHERE tenant_id = $1 AND code = $2 AND is_sandbox = FALSE
+		LIMIT 1`
+
 	queryFindSandboxByParentID = `
 		SELECT id, tenant_id, name, code, type, status,
 		       is_sandbox, sandbox_of_id, created_at, updated_at

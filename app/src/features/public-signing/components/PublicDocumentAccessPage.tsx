@@ -13,33 +13,68 @@ import { ThemeToggle } from '@/components/common/ThemeToggle'
 import {
   getDocumentAccessInfo,
   requestDocumentAccess,
+  requestDocumentAccessFromToken,
 } from '../api/public-signing-api'
 import type { DocumentAccessInfo } from '../types'
 
+type AccessStatus = 'active' | 'completed' | 'expired'
+
+interface AccessContext {
+  title: string
+  status: AccessStatus
+}
+
 type PageState =
   | { status: 'loading' }
-  | { status: 'loaded'; info: DocumentAccessInfo }
-  | { status: 'submitting'; info: DocumentAccessInfo }
-  | { status: 'submitted'; info: DocumentAccessInfo }
+  | { status: 'loaded'; context: AccessContext }
+  | { status: 'submitting'; context: AccessContext }
+  | { status: 'submitted'; context: AccessContext }
   | { status: 'error' }
 
 interface PublicDocumentAccessPageProps {
-  documentId: string
+  documentId?: string
+  expiredToken?: string
+  expiredMessage?: string
 }
 
 export function PublicDocumentAccessPage({
   documentId,
+  expiredToken,
+  expiredMessage,
 }: PublicDocumentAccessPageProps) {
   const { t } = useTranslation()
-  const [state, setState] = useState<PageState>({ status: 'loading' })
+  const tokenMode = Boolean(expiredToken)
+  const [state, setState] = useState<PageState>(() =>
+    tokenMode
+      ? {
+          status: 'loaded',
+          context: {
+            title: t('publicSigning.access.documentTitle'),
+            status: 'active',
+          },
+        }
+      : { status: 'loading' },
+  )
   const [email, setEmail] = useState('')
   const [cooldown, setCooldown] = useState(0)
 
   useEffect(() => {
+    if (tokenMode || !documentId) {
+      return
+    }
+
     getDocumentAccessInfo(documentId)
-      .then((info) => setState({ status: 'loaded', info }))
+      .then((info: DocumentAccessInfo) =>
+        setState({
+          status: 'loaded',
+          context: {
+            title: info.documentTitle,
+            status: info.status,
+          },
+        }),
+      )
       .catch(() => setState({ status: 'error' }))
-  }, [documentId])
+  }, [tokenMode, documentId])
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -52,19 +87,23 @@ export function PublicDocumentAccessPage({
       e.preventDefault()
       if (state.status !== 'loaded' && state.status !== 'submitted') return
 
-      const info = state.info
-      setState({ status: 'submitting', info })
+      const context = state.context
+      setState({ status: 'submitting', context })
 
       try {
-        await requestDocumentAccess(documentId, email)
+        if (tokenMode && expiredToken) {
+          await requestDocumentAccessFromToken(expiredToken, email)
+        } else if (documentId) {
+          await requestDocumentAccess(documentId, email)
+        }
       } catch {
-        // Always show success to prevent email enumeration
+        // Always show success to prevent enumeration
       }
 
-      setState({ status: 'submitted', info })
+      setState({ status: 'submitted', context })
       setCooldown(60)
     },
-    [state, documentId, email],
+    [state, tokenMode, expiredToken, documentId, email],
   )
 
   if (state.status === 'loading') {
@@ -96,11 +135,11 @@ export function PublicDocumentAccessPage({
     )
   }
 
-  const info = state.info
+  const context = state.context
 
-  if (info.status === 'completed' || info.status === 'expired') {
+  if (!tokenMode && context.status === 'expired') {
     return (
-      <PageLayout title={info.documentTitle}>
+      <PageLayout title={context.title}>
         <div className="mx-auto max-w-md text-center space-y-4 py-12">
           <AlertCircle size={48} className="mx-auto text-muted-foreground" />
           <h1 className="text-xl font-semibold text-foreground">
@@ -115,14 +154,11 @@ export function PublicDocumentAccessPage({
   }
 
   return (
-    <PageLayout title={info.documentTitle}>
+    <PageLayout title={context.title}>
       <div className="mx-auto max-w-md py-12 px-6">
         {state.status === 'submitted' ? (
           <div className="text-center space-y-4">
-            <CheckCircle2
-              size={48}
-              className="mx-auto text-green-600"
-            />
+            <CheckCircle2 size={48} className="mx-auto text-green-600" />
             <h2 className="text-xl font-semibold text-foreground">
               {t('publicSigning.access.checkEmail')}
             </h2>
@@ -132,7 +168,7 @@ export function PublicDocumentAccessPage({
             <button
               type="button"
               disabled={cooldown > 0}
-              onClick={() => setState({ status: 'loaded', info })}
+              onClick={() => setState({ status: 'loaded', context })}
               className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
             >
               {cooldown > 0
@@ -144,13 +180,25 @@ export function PublicDocumentAccessPage({
           </div>
         ) : (
           <div className="space-y-6">
+            {tokenMode && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+                {expiredMessage || t('publicSigning.access.expiredNotice')}
+              </div>
+            )}
+
             <div className="text-center space-y-2">
               <Mail size={40} className="mx-auto text-primary" />
               <h2 className="text-xl font-semibold text-foreground">
-                {t('publicSigning.access.title')}
+                {tokenMode
+                  ? t('publicSigning.access.expiredTitle')
+                  : t('publicSigning.access.title')}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {t('publicSigning.access.description')}
+                {tokenMode
+                  ? t('publicSigning.access.expiredDescription')
+                  : context.status === 'completed'
+                    ? t('publicSigning.access.completedDescription')
+                    : t('publicSigning.access.description')}
               </p>
             </div>
 

@@ -86,8 +86,8 @@ type DocumentUseCase interface {
 	ExpireDocuments(ctx context.Context, limit int) error
 
 	// RetryErrorDocuments finds ERROR documents eligible for retry and attempts recovery.
-	// Documents without a signer_document_id are re-rendered and re-sent.
 	// Documents with a signer_document_id are polled for status updates.
+	// Documents without signer provider reference are skipped.
 	RetryErrorDocuments(ctx context.Context, maxRetries, limit int) error
 
 	// CreateDocumentsBatch creates multiple documents in a single batch.

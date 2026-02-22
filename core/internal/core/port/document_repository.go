@@ -17,6 +17,25 @@ type DocumentFilters struct {
 	Offset                    int
 }
 
+// InternalCreateRequest contains the data required for the internal create/replay transaction.
+type InternalCreateRequest struct {
+	WorkspaceID     string
+	DocumentTypeID  string
+	ExternalID      string
+	TransactionalID string
+	ForceCreate     bool
+	SupersedeReason *string
+	Document        *entity.Document
+	Recipients      []*entity.DocumentRecipient
+}
+
+// InternalCreateResult represents the outcome of internal create/replay processing.
+type InternalCreateResult struct {
+	DocumentID                   string
+	IdempotentReplay             bool
+	SupersededPreviousDocumentID *string
+}
+
 // DocumentRepository defines the interface for document data access.
 type DocumentRepository interface {
 	// Create creates a new document.
@@ -66,4 +85,7 @@ type DocumentRepository interface {
 
 	// CountByStatus returns the count of documents by status in a workspace.
 	CountByStatus(ctx context.Context, workspaceID string, status entity.DocumentStatus) (int, error)
+
+	// InternalCreateOrReplay executes transactional create/replay/supersede logic for internal create endpoint.
+	InternalCreateOrReplay(ctx context.Context, req *InternalCreateRequest) (*InternalCreateResult, error)
 }

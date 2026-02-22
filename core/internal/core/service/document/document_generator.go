@@ -26,6 +26,15 @@ type DocumentGenerationResult struct {
 	ResolvedValues map[string]any
 }
 
+// PreparedDocumentData contains generation output before persistence.
+type PreparedDocumentData struct {
+	WorkspaceID    string
+	Version        *entity.TemplateVersionWithDetails
+	PortableDoc    *portable_doc.Document
+	ResolvedValues map[string]any
+	Recipients     []*entity.DocumentRecipient
+}
+
 // DocumentGenerator is the centralized service for document generation.
 // It orchestrates the entire flow: validation, mapping, injection, and creation.
 // This service is reusable by CREATE, RENEW, AMEND operations.
@@ -80,22 +89,48 @@ func (g *DocumentGenerator) GenerateDocument(
 	ctx context.Context,
 	mapCtx *port.MapperContext,
 ) (*DocumentGenerationResult, error) {
-	genCtx, err := g.prepareGenerationContext(ctx, mapCtx)
+	prepared, err := g.PrepareDocument(ctx, mapCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	doc, err := g.persistDocumentAndRecipients(ctx, genCtx.workspaceID, genCtx.version.ID, mapCtx, genCtx.resolvedValues, genCtx.recipients)
+	doc, err := g.persistDocumentAndRecipients(
+		ctx,
+		prepared.WorkspaceID,
+		prepared.Version.ID,
+		mapCtx,
+		prepared.ResolvedValues,
+		prepared.Recipients,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DocumentGenerationResult{
 		Document:       doc,
-		Recipients:     genCtx.recipients,
+		Recipients:     prepared.Recipients,
+		Version:        prepared.Version,
+		PortableDoc:    prepared.PortableDoc,
+		ResolvedValues: prepared.ResolvedValues,
+	}, nil
+}
+
+// PrepareDocument resolves template data, injectables and recipients without persistence.
+func (g *DocumentGenerator) PrepareDocument(
+	ctx context.Context,
+	mapCtx *port.MapperContext,
+) (*PreparedDocumentData, error) {
+	genCtx, err := g.prepareGenerationContext(ctx, mapCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PreparedDocumentData{
+		WorkspaceID:    genCtx.workspaceID,
 		Version:        genCtx.version,
 		PortableDoc:    genCtx.portableDoc,
 		ResolvedValues: genCtx.resolvedValues,
+		Recipients:     genCtx.recipients,
 	}, nil
 }
 
@@ -104,7 +139,7 @@ func (g *DocumentGenerator) prepareGenerationContext(
 	ctx context.Context,
 	mapCtx *port.MapperContext,
 ) (*generationContext, error) {
-	genCtx, err := g.fetchTemplateData(ctx, mapCtx.TemplateID, mapCtx)
+	genCtx, err := g.fetchTemplateData(ctx, mapCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +152,22 @@ func (g *DocumentGenerator) prepareGenerationContext(
 }
 
 // fetchTemplateData fetches workspace, injectables, version, and parses the portable document.
-func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID string, mapCtx *port.MapperContext) (*generationContext, error) {
+func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, mapCtx *port.MapperContext) (*generationContext, error) {
 	genCtx := &generationContext{}
 	var err error
+
+	templateID := mapCtx.TemplateID
+	if mapCtx.TemplateVersionID != "" {
+		genCtx.version, err = g.findVersionByID(ctx, mapCtx.TemplateVersionID)
+		if err != nil {
+			return nil, err
+		}
+		if !genCtx.version.IsPublished() {
+			return nil, entity.ErrInternalTemplateResolutionNotFound
+		}
+		templateID = genCtx.version.TemplateID
+		mapCtx.TemplateID = templateID
+	}
 
 	genCtx.workspaceID, err = g.findWorkspaceID(ctx, templateID)
 	if err != nil {
@@ -141,9 +189,11 @@ func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID st
 		return nil, err
 	}
 
-	genCtx.version, err = g.findPublishedVersion(ctx, templateID)
-	if err != nil {
-		return nil, err
+	if genCtx.version == nil {
+		genCtx.version, err = g.findPublishedVersion(ctx, templateID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	genCtx.portableDoc, err = g.parseContentStructure(genCtx.version.ContentStructure)
@@ -159,6 +209,17 @@ func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, templateID st
 	}
 
 	return genCtx, nil
+}
+
+func (g *DocumentGenerator) findVersionByID(
+	ctx context.Context,
+	versionID string,
+) (*entity.TemplateVersionWithDetails, error) {
+	version, err := g.versionRepo.FindByIDWithDetails(ctx, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("finding template version by id: %w", err)
+	}
+	return version, nil
 }
 
 // resolveAndBuildRecipients executes the mapper, resolves injectables, and builds recipients.
@@ -190,6 +251,10 @@ func (g *DocumentGenerator) resolveAndBuildRecipients(
 
 // findWorkspaceID retrieves the workspace ID from the template.
 func (g *DocumentGenerator) findWorkspaceID(ctx context.Context, templateID string) (string, error) {
+	if templateID == "" {
+		return "", fmt.Errorf("template id is required to resolve workspace")
+	}
+
 	template, err := g.templateRepo.FindByID(ctx, templateID)
 	if err != nil {
 		return "", fmt.Errorf("finding template: %w", err)
@@ -336,14 +401,28 @@ func (g *DocumentGenerator) resolveInjectables(
 	payload any,
 	referencedCodes []string,
 ) (map[string]any, error) {
-	injCtx := entity.NewInjectorContext(
-		mapCtx.ExternalID,
-		mapCtx.TemplateID,
-		mapCtx.TransactionalID,
-		string(mapCtx.Operation),
-		mapCtx.Headers,
-		payload,
-	)
+	var injCtx *entity.InjectorContext
+	if mapCtx.TenantCode != "" || mapCtx.WorkspaceCode != "" {
+		injCtx = entity.NewInjectorContextWithCodes(
+			mapCtx.ExternalID,
+			mapCtx.TemplateID,
+			mapCtx.TransactionalID,
+			string(mapCtx.Operation),
+			mapCtx.TenantCode,
+			mapCtx.WorkspaceCode,
+			mapCtx.Headers,
+			payload,
+		)
+	} else {
+		injCtx = entity.NewInjectorContext(
+			mapCtx.ExternalID,
+			mapCtx.TemplateID,
+			mapCtx.TransactionalID,
+			string(mapCtx.Operation),
+			mapCtx.Headers,
+			payload,
+		)
+	}
 
 	resolveResult, err := g.resolver.Resolve(ctx, injCtx, referencedCodes)
 	if err != nil {
@@ -459,6 +538,7 @@ func (g *DocumentGenerator) createDocument(
 	resolvedValues map[string]any,
 ) (*entity.Document, error) {
 	doc := entity.NewDocument(workspaceID, versionID)
+	doc.DocumentTypeID = mapCtx.DocumentTypeID
 	doc.SetOperationType(mapCtx.Operation)
 	doc.SetExternalReference(mapCtx.ExternalID)
 	doc.SetTransactionalID(mapCtx.TransactionalID)

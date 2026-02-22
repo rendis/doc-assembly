@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -129,7 +131,7 @@ func CreateTestWorkspace(t *testing.T, pool *pgxpool.Pool, tenantID *string, nam
 	now := time.Now().UTC()
 
 	// Generate a unique workspace code from the first 8 chars of the UUID.
-	code := "WS_" + workspaceID[:8]
+	code := "WS_" + strings.ToUpper(workspaceID[:8])
 
 	_, err := pool.Exec(ctx, `
 		INSERT INTO tenancy.workspaces (id, tenant_id, name, code, type, status, created_at)
@@ -148,6 +150,39 @@ func CleanupWorkspace(t *testing.T, pool *pgxpool.Pool, workspaceID string) {
 	// Delete in order of foreign key dependencies
 	_, err := pool.Exec(ctx, "DELETE FROM identity.workspace_members WHERE workspace_id = $1", workspaceID)
 	require.NoError(t, err, "failed to cleanup workspace members")
+
+	_, err = pool.Exec(ctx, `
+		DELETE FROM execution.document_access_tokens
+		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+		   OR recipient_id IN (
+				SELECT r.id
+				FROM execution.document_recipients r
+				JOIN execution.documents d ON d.id = r.document_id
+				WHERE d.workspace_id = $1
+			)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup document access tokens")
+
+	_, err = pool.Exec(ctx, `
+		DELETE FROM execution.document_field_responses
+		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup document field responses")
+
+	_, err = pool.Exec(ctx, `
+		DELETE FROM execution.document_events
+		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup document events")
+
+	_, err = pool.Exec(ctx, `
+		DELETE FROM execution.document_recipients
+		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup document recipients")
+
+	_, err = pool.Exec(ctx, "DELETE FROM execution.documents WHERE workspace_id = $1", workspaceID)
+	require.NoError(t, err, "failed to cleanup documents")
 
 	_, err = pool.Exec(ctx, "DELETE FROM tenancy.workspaces WHERE id = $1", workspaceID)
 	require.NoError(t, err, "failed to cleanup workspace")
@@ -321,6 +356,40 @@ func CleanupInjectable(t *testing.T, pool *pgxpool.Pool, injectableID string) {
 	t.Helper()
 	ctx := context.Background()
 	_, _ = pool.Exec(ctx, "DELETE FROM content.injectable_definitions WHERE id = $1", injectableID)
+}
+
+// CreateTestDocumentType creates a document type for a tenant and returns its ID.
+func CreateTestDocumentType(t *testing.T, pool *pgxpool.Pool, tenantID, code, name string) string {
+	t.Helper()
+	ctx := context.Background()
+
+	docTypeID := uuid.NewString()
+	now := time.Now().UTC()
+	nameJSON, err := json.Marshal(map[string]string{"en": name})
+	require.NoError(t, err, "failed to marshal document type name")
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO content.document_types (id, tenant_id, code, name, description, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)`,
+		docTypeID, tenantID, code, nameJSON, nil, now)
+	require.NoError(t, err, "failed to create test document type")
+
+	return docTypeID
+}
+
+// CleanupDocumentType removes a test document type.
+func CleanupDocumentType(t *testing.T, pool *pgxpool.Pool, docTypeID string) {
+	t.Helper()
+	ctx := context.Background()
+	_, _ = pool.Exec(ctx, "DELETE FROM content.document_types WHERE id = $1", docTypeID)
+}
+
+// SetTemplateDocumentType sets the document type for a template.
+func SetTemplateDocumentType(t *testing.T, pool *pgxpool.Pool, templateID, docTypeID string) {
+	t.Helper()
+	ctx := context.Background()
+	_, err := pool.Exec(ctx, `UPDATE content.templates SET document_type_id = $2 WHERE id = $1`, templateID, docTypeID)
+	require.NoError(t, err, "failed to set template document type")
 }
 
 // CreateTestTemplate creates a template in the database and returns its ID.

@@ -3,19 +3,21 @@ package documentrepo
 const (
 	queryCreate = `
 		INSERT INTO execution.documents (
-			workspace_id, template_version_id, title, client_external_reference_id,
+			workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			transactional_id, operation_type, related_document_id,
 			signer_document_id, signer_provider, status, injected_values_snapshot,
-			pdf_storage_path, completed_pdf_url, expires_at, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+			pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			superseded_by_document_id, supersede_reason, expires_at, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 		RETURNING id
 	`
 
 	queryFindByID = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -23,10 +25,11 @@ const (
 	`
 
 	queryFindBySignerDocumentID = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -34,10 +37,11 @@ const (
 	`
 
 	queryFindByClientExternalRef = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -54,10 +58,11 @@ const (
 	`
 
 	queryFindPendingForPolling = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -68,10 +73,11 @@ const (
 	`
 
 	queryFindErrorsForRetry = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -83,10 +89,11 @@ const (
 	`
 
 	queryFindPendingProviderForUpload = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -96,10 +103,11 @@ const (
 	`
 
 	queryFindExpired = `
-		SELECT id, workspace_id, template_version_id, title, client_external_reference_id,
+		SELECT id, workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
 			   transactional_id, operation_type, related_document_id,
 			   signer_document_id, signer_provider, status, injected_values_snapshot,
-			   pdf_storage_path, completed_pdf_url, expires_at,
+			   pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			   superseded_by_document_id, supersede_reason, expires_at,
 			   retry_count, last_retry_at, next_retry_at,
 			   created_at, updated_at
 		FROM execution.documents
@@ -119,13 +127,14 @@ const (
 
 	queryUpdate = `
 		UPDATE execution.documents
-		SET title = $2, client_external_reference_id = $3,
-			transactional_id = $4, operation_type = $5, related_document_id = $6,
-			signer_document_id = $7, signer_provider = $8, status = $9,
-			injected_values_snapshot = $10, pdf_storage_path = $11,
-			completed_pdf_url = $12, expires_at = $13,
-			retry_count = $14, last_retry_at = $15, next_retry_at = $16,
-			updated_at = $17
+		SET document_type_id = $2, title = $3, client_external_reference_id = $4,
+			transactional_id = $5, operation_type = $6, related_document_id = $7,
+			signer_document_id = $8, signer_provider = $9, status = $10,
+			injected_values_snapshot = $11, pdf_storage_path = $12,
+			completed_pdf_url = $13, is_active = $14, superseded_at = $15,
+			superseded_by_document_id = $16, supersede_reason = $17, expires_at = $18,
+			retry_count = $19, last_retry_at = $20, next_retry_at = $21,
+			updated_at = $22
 		WHERE id = $1
 	`
 

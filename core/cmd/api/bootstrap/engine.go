@@ -27,9 +27,11 @@ type Engine struct {
 
 	injectors           []port.Injector
 	mapper              port.RequestMapper
+	templateResolver    port.TemplateResolver
 	initFunc            port.InitFunc
 	workspaceProvider   port.WorkspaceInjectableProvider
 	renderAuthenticator port.RenderAuthenticator
+	publicDocAuth       port.PublicDocumentAccessAuthenticator
 	designTokens        *pdfrenderer.TypstDesignTokens
 	frontendFS          fs.FS // Embedded SPA filesystem; nil = no frontend served
 	frontendOverridden  bool  // True if SetFrontendFS was called (even with nil)
@@ -81,6 +83,17 @@ func (e *Engine) SetMapper(m port.RequestMapper) *Engine {
 	return e
 }
 
+// SetTemplateResolver sets an optional custom template resolver for internal create flow.
+func (e *Engine) SetTemplateResolver(r port.TemplateResolver) *Engine {
+	e.templateResolver = r
+	return e
+}
+
+// GetTemplateResolver returns the registered custom template resolver.
+func (e *Engine) GetTemplateResolver() port.TemplateResolver {
+	return e.templateResolver
+}
+
 // SetInitFunc sets the global initialization function.
 // Runs once before all injectors on each render request.
 func (e *Engine) SetInitFunc(fn port.InitFunc) *Engine {
@@ -104,6 +117,21 @@ func (e *Engine) SetRenderAuthenticator(auth port.RenderAuthenticator) *Engine {
 // GetRenderAuthenticator returns the registered render authenticator, or nil if not set.
 func (e *Engine) GetRenderAuthenticator() port.RenderAuthenticator {
 	return e.renderAuthenticator
+}
+
+// SetPublicDocumentAccessAuthenticator sets custom authentication for
+// /public/doc/:documentId.
+// When auth succeeds, the request can bypass the email gate and be redirected
+// directly to a tokenized /public/sign/:token URL.
+func (e *Engine) SetPublicDocumentAccessAuthenticator(auth port.PublicDocumentAccessAuthenticator) *Engine {
+	e.publicDocAuth = auth
+	return e
+}
+
+// GetPublicDocumentAccessAuthenticator returns the registered public access
+// authenticator, or nil if not set.
+func (e *Engine) GetPublicDocumentAccessAuthenticator() port.PublicDocumentAccessAuthenticator {
+	return e.publicDocAuth
 }
 
 // SetFrontendFS overrides the embedded frontend filesystem.

@@ -3,7 +3,9 @@ package document
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
@@ -85,6 +87,38 @@ func (s *DocumentAccessService) RequestAccess(ctx context.Context, documentID, e
 	return nil
 }
 
+// RequestAccessByToken requests a new access link using an existing token as the
+// entrypoint (expired-link recovery). Always returns nil to prevent enumeration.
+func (s *DocumentAccessService) RequestAccessByToken(ctx context.Context, token, email string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil
+	}
+
+	accessToken, _ := s.accessTokenRepo.FindByToken(ctx, token)
+	if accessToken == nil {
+		return nil
+	}
+
+	return s.RequestAccess(ctx, accessToken.DocumentID, email)
+}
+
+// RequestDirectAccess generates a tokenized signing URL for an authenticated
+// recipient (custom middleware path). It does not send email.
+func (s *DocumentAccessService) RequestDirectAccess(ctx context.Context, documentID, email string) (string, error) {
+	doc, recipient, ok := s.validateAccessRequest(ctx, documentID, email)
+	if !ok {
+		return "", fmt.Errorf("direct access denied")
+	}
+
+	tokenStr, err := s.createAccessToken(ctx, doc, recipient)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("/public/sign/%s", tokenStr), nil
+}
+
 // validateAccessRequest checks the document exists, is active, the email matches a recipient,
 // and the recipient is not rate-limited. Returns false if any check fails.
 func (s *DocumentAccessService) validateAccessRequest(
@@ -96,7 +130,9 @@ func (s *DocumentAccessService) validateAccessRequest(
 		return nil, nil, false
 	}
 
-	if doc.IsTerminal() {
+	// Public access is allowed for non-terminal docs and COMPLETED docs.
+	// DECLINED/VOIDED/EXPIRED remain unavailable.
+	if doc.IsDeclined() || doc.Status == entity.DocumentStatusVoided || doc.IsExpired() || doc.Status == entity.DocumentStatusExpired {
 		slog.InfoContext(ctx, "access request for terminal document",
 			slog.String("document_id", documentID), slog.String("status", string(doc.Status)))
 		return nil, nil, false
@@ -128,11 +164,32 @@ func (s *DocumentAccessService) validateAccessRequest(
 func (s *DocumentAccessService) generateAndSendToken(
 	ctx context.Context, doc *entity.Document, recipient *entity.DocumentRecipient,
 ) error {
+	tokenStr, err := s.createAccessToken(ctx, doc, recipient)
+	if err != nil {
+		return err
+	}
+
+	s.notificationSvc.SendAccessLink(ctx, recipient, doc, tokenStr)
+
+	slog.InfoContext(ctx, "access link sent",
+		slog.String("document_id", doc.ID),
+		slog.String("recipient_id", recipient.ID),
+	)
+
+	return nil
+}
+
+// createAccessToken creates and stores a new public access token.
+func (s *DocumentAccessService) createAccessToken(
+	ctx context.Context,
+	doc *entity.Document,
+	recipient *entity.DocumentRecipient,
+) (string, error) {
 	tokenType := s.resolveTokenType(ctx, doc.TemplateVersionID)
 
 	tokenStr, err := generateAccessToken()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	now := time.Now().UTC()
@@ -146,18 +203,16 @@ func (s *DocumentAccessService) generateAndSendToken(
 	}
 
 	if err := s.accessTokenRepo.Create(ctx, accessToken); err != nil {
-		return err
+		return "", err
 	}
 
-	s.notificationSvc.SendAccessLink(ctx, recipient, doc, tokenStr)
-
-	slog.InfoContext(ctx, "access link sent",
+	slog.InfoContext(ctx, "access token created",
 		slog.String("document_id", doc.ID),
 		slog.String("recipient_id", recipient.ID),
 		slog.String("token_type", tokenType),
 	)
 
-	return nil
+	return tokenStr, nil
 }
 
 // resolveTokenType determines whether the document needs PRE_SIGNING or SIGNING token.

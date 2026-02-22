@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -30,13 +31,19 @@ window.parent.postMessage(
 // These endpoints do not require JWT authentication; they are validated by access token only.
 type PublicSigningController struct {
 	preSigningUC documentuc.PreSigningUseCase
+	accessUC     documentuc.DocumentAccessUseCase
 	publicURL    string
 }
 
 // NewPublicSigningController creates a new public signing controller.
-func NewPublicSigningController(preSigningUC documentuc.PreSigningUseCase, publicURL string) *PublicSigningController {
+func NewPublicSigningController(
+	preSigningUC documentuc.PreSigningUseCase,
+	accessUC documentuc.DocumentAccessUseCase,
+	publicURL string,
+) *PublicSigningController {
 	return &PublicSigningController{
 		preSigningUC: preSigningUC,
+		accessUC:     accessUC,
 		publicURL:    publicURL,
 	}
 }
@@ -48,9 +55,11 @@ func (c *PublicSigningController) RegisterRoutes(router gin.IRouter) {
 	{
 		public.GET("/:token", c.GetPublicSigningPage)
 		public.POST("/:token", c.SubmitPreSigningForm)
+		public.POST("/:token/request-access", c.RequestAccessFromToken)
 		public.POST("/:token/proceed", c.ProceedToSigning)
 		public.POST("/:token/complete", c.CompleteEmbeddedSigning)
 		public.GET("/:token/pdf", c.RenderPreviewPDF)
+		public.GET("/:token/download", c.DownloadCompletedPDF)
 		public.GET("/:token/refresh", c.RefreshEmbeddedURL)
 		public.GET("/:token/signing-callback", c.SigningCallback)
 	}
@@ -83,6 +92,10 @@ type submitFormRequest struct {
 	Responses []documentuc.FieldResponseInput `json:"responses" binding:"required"`
 }
 
+type requestAccessFromTokenBody struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
 // SubmitPreSigningForm submits field responses and returns the signing state with embedded URL.
 // @Summary Submit pre-signing form
 // @Description Validates and saves field responses, renders PDF, sends for signing, returns embedded URL.
@@ -112,6 +125,34 @@ func (c *PublicSigningController) SubmitPreSigningForm(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+// RequestAccessFromToken requests a new access email using a token entrypoint
+// (expired-link recovery). Always returns 200 to prevent enumeration.
+// @Summary Request access from token
+// @Description Requests a new signing link by email using a token entrypoint. Always returns 200.
+// @Tags Public Signing
+// @Accept json
+// @Produce json
+// @Param token path string true "Access token"
+// @Param request body requestAccessFromTokenBody true "Email address"
+// @Success 200 {object} map[string]string
+// @Router /public/sign/{token}/request-access [post]
+func (c *PublicSigningController) RequestAccessFromToken(ctx *gin.Context) {
+	token := ctx.Param("token")
+
+	var req requestAccessFromTokenBody
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "a valid email address is required"})
+		return
+	}
+
+	email := strings.TrimSpace(req.Email)
+	_ = c.accessUC.RequestAccessByToken(ctx.Request.Context(), token, email)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "If your email is associated with this document, you will receive a signing link shortly.",
+	})
 }
 
 // ProceedToSigning transitions a Path A document from preview to embedded signing.
@@ -155,6 +196,30 @@ func (c *PublicSigningController) RenderPreviewPDF(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Data(http.StatusOK, "application/pdf", pdfBytes)
+}
+
+// DownloadCompletedPDF downloads the signed PDF for completed documents.
+// @Summary Download completed PDF
+// @Description Downloads the completed/signed PDF when the token recipient is authorized.
+// @Tags Public Signing
+// @Produce application/pdf
+// @Param token path string true "Access token"
+// @Success 200 {file} binary
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /public/sign/{token}/download [get]
+func (c *PublicSigningController) DownloadCompletedPDF(ctx *gin.Context) {
+	token := ctx.Param("token")
+
+	pdfBytes, filename, err := c.preSigningUC.DownloadCompletedPDF(ctx.Request.Context(), token)
+	if err != nil {
+		handlePublicError(ctx, err)
+		return
+	}
+
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	ctx.Data(http.StatusOK, "application/pdf", pdfBytes)
 }
 
@@ -260,6 +325,8 @@ func handlePublicError(ctx *gin.Context, err error) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "token has expired"})
 	case errors.Is(err, entity.ErrMissingToken):
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
+	case errors.Is(err, entity.ErrForbidden):
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 	case isPublicUserError(err):
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	default:
@@ -278,5 +345,7 @@ func isPublicUserError(err error) bool {
 		strings.HasPrefix(msg, "access token has already been used") ||
 		strings.HasPrefix(msg, "token is not a signing token") ||
 		strings.HasPrefix(msg, "document is not pending signing") ||
-		strings.HasPrefix(msg, "document is not in a valid state")
+		strings.HasPrefix(msg, "document is not in a valid state") ||
+		strings.HasPrefix(msg, "document is not completed") ||
+		strings.HasPrefix(msg, "completed PDF is not available")
 }

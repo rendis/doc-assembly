@@ -351,6 +351,7 @@ func TestDocument_Validate(t *testing.T) {
 			doc: Document{
 				WorkspaceID:       "ws-1",
 				TemplateVersionID: "tv-1",
+				DocumentTypeID:    "dt-1",
 				Status:            DocumentStatusDraft,
 			},
 			wantErr: nil,
@@ -359,6 +360,7 @@ func TestDocument_Validate(t *testing.T) {
 			name: "missing workspace ID",
 			doc: Document{
 				TemplateVersionID: "tv-1",
+				DocumentTypeID:    "dt-1",
 				Status:            DocumentStatusDraft,
 			},
 			wantErr: ErrRequiredField,
@@ -366,8 +368,18 @@ func TestDocument_Validate(t *testing.T) {
 		{
 			name: "missing template version ID",
 			doc: Document{
-				WorkspaceID: "ws-1",
-				Status:      DocumentStatusDraft,
+				WorkspaceID:    "ws-1",
+				DocumentTypeID: "dt-1",
+				Status:         DocumentStatusDraft,
+			},
+			wantErr: ErrRequiredField,
+		},
+		{
+			name: "missing document type ID",
+			doc: Document{
+				WorkspaceID:       "ws-1",
+				TemplateVersionID: "tv-1",
+				Status:            DocumentStatusDraft,
 			},
 			wantErr: ErrRequiredField,
 		},
@@ -376,6 +388,7 @@ func TestDocument_Validate(t *testing.T) {
 			doc: Document{
 				WorkspaceID:       "ws-1",
 				TemplateVersionID: "tv-1",
+				DocumentTypeID:    "dt-1",
 				Status:            DocumentStatus("INVALID"),
 			},
 			wantErr: ErrInvalidDocumentStatus,
@@ -387,6 +400,7 @@ func TestDocument_Validate(t *testing.T) {
 				return Document{
 					WorkspaceID:       "ws-1",
 					TemplateVersionID: "tv-1",
+					DocumentTypeID:    "dt-1",
 					Status:            DocumentStatusDraft,
 					Title:             &title,
 				}
@@ -400,6 +414,7 @@ func TestDocument_Validate(t *testing.T) {
 				return Document{
 					WorkspaceID:       "ws-1",
 					TemplateVersionID: "tv-1",
+					DocumentTypeID:    "dt-1",
 					Status:            DocumentStatusDraft,
 					Title:             &title,
 				}

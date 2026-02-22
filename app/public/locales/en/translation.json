@@ -1688,7 +1688,8 @@
     "loadingSigning": "Loading signing interface...",
     "completed": {
       "title": "Signing Complete",
-      "message": "\"{{title}}\" has been signed successfully. You may close this page."
+      "message": "\"{{title}}\" has been signed successfully. You may close this page.",
+      "download": "Download Signed PDF"
     },
     "declined": {
       "title": "Signing Declined",
@@ -1716,8 +1717,13 @@
       "goToSigning": "Go to Signing"
     },
     "access": {
+      "documentTitle": "Document Access",
       "title": "Verify Your Email",
       "description": "Enter your email address to receive a secure signing link.",
+      "completedDescription": "Enter your email to receive secure access to view status and download the signed document.",
+      "expiredTitle": "Link Expired",
+      "expiredDescription": "This access link expired. Enter your email to receive a new secure link.",
+      "expiredNotice": "This link expired. Request a new secure link using your email.",
       "emailLabel": "Email address",
       "emailPlaceholder": "you@example.com",
       "sendLink": "Send Signing Link",

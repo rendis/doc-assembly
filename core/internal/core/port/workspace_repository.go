@@ -23,6 +23,9 @@ type WorkspaceRepository interface {
 	// FindByID finds a workspace by ID.
 	FindByID(ctx context.Context, id string) (*entity.Workspace, error)
 
+	// FindByCode finds a workspace by tenant and business code.
+	FindByCode(ctx context.Context, tenantID, code string) (*entity.Workspace, error)
+
 	// FindByTenantPaginated lists workspaces for a tenant with pagination and optional search.
 	// When filters.Query is provided, orders by similarity. Otherwise, orders by access history.
 	FindByTenantPaginated(ctx context.Context, tenantID string, filters WorkspaceFilters) ([]*entity.Workspace, int64, error)

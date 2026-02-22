@@ -1688,7 +1688,8 @@
     "loadingSigning": "Cargando interfaz de firma...",
     "completed": {
       "title": "Firma Completada",
-      "message": "\"{{title}}\" ha sido firmado exitosamente. Puedes cerrar esta pagina."
+      "message": "\"{{title}}\" ha sido firmado exitosamente. Puedes cerrar esta pagina.",
+      "download": "Descargar PDF Firmado"
     },
     "declined": {
       "title": "Firma Rechazada",
@@ -1716,8 +1717,13 @@
       "goToSigning": "Ir a Firmar"
     },
     "access": {
+      "documentTitle": "Acceso al Documento",
       "title": "Verifica Tu Correo",
       "description": "Ingresa tu correo electronico para recibir un enlace seguro de firma.",
+      "completedDescription": "Ingresa tu correo para recibir acceso seguro y poder ver el estado y descargar el documento firmado.",
+      "expiredTitle": "Enlace Expirado",
+      "expiredDescription": "Este enlace de acceso expiro. Ingresa tu correo para recibir un nuevo enlace seguro.",
+      "expiredNotice": "Este enlace expiro. Solicita un nuevo enlace seguro ingresando tu correo.",
       "emailLabel": "Correo electronico",
       "emailPlaceholder": "tu@ejemplo.com",
       "sendLink": "Enviar Enlace de Firma",

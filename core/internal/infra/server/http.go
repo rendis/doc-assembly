@@ -77,6 +77,7 @@ func NewHTTPServer(
 	automationKeyController *controller.AutomationKeyController,
 	automationController *controller.AutomationController,
 	renderAuthenticator port.RenderAuthenticator,
+	publicDocAuthenticator port.PublicDocumentAccessAuthenticator,
 	frontendFS fs.FS,
 ) *HTTPServer {
 	if cfg.Environment == "production" {
@@ -118,7 +119,14 @@ func NewHTTPServer(
 	webhookController.RegisterRoutes(base)
 
 	// Public document access routes (email-verification gate, no auth, no CSP needed).
-	publicDocAccessController.RegisterRoutes(base)
+	if publicDocAuthenticator != nil {
+		publicDocAccessController.RegisterRoutes(
+			base,
+			middleware.CustomPublicDocumentAccess(publicDocAuthenticator),
+		)
+	} else {
+		publicDocAccessController.RegisterRoutes(base)
+	}
 
 	// CSP middleware for public signing routes — allows iframe from signing provider domain.
 	if cfg.Signing.SigningBaseURL != "" {
@@ -374,7 +382,8 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 		"Origin", "Content-Type", "Accept", "Authorization",
 		"Cache-Control", "Pragma",
 		"X-Workspace-ID", "X-Tenant-ID", "X-Tenant-Code", "X-Sandbox-Mode", "X-API-Key",
-		"X-External-ID", "X-Template-ID", "X-Transactional-ID",
+		"X-Workspace-Code", "X-Document-Type",
+		"X-External-ID", "X-Transactional-ID",
 	}
 	allowedHeaders := strings.Join(append(baseHeaders, corsCfg.AllowedHeaders...), ", ")
 
