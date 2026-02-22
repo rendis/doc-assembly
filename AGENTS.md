@@ -10,7 +10,7 @@ This file provides guidance to Agents Code when working with code in this reposi
 
 ## Monorepo Structure
 
-```
+```plaintext
 core/       → Go backend (Hexagonal Architecture, Gin, Wire DI)
 app/        → React SPA (TanStack Router, Zustand, TipTap)
 db/         → Liquibase migrations (PostgreSQL)
@@ -32,7 +32,7 @@ Each component has its own AGENTS.md with build commands, architecture details, 
 
 ### Request Flow (Hexagonal)
 
-```
+```plaintext
 HTTP Request
   → Middleware (JWT auth, tenant/workspace context, operation ID)
     → Controller (parse request DTO, validate)
@@ -63,6 +63,7 @@ Permission rules defined in `src/features/auth/rbac/rules.ts`. Always use `usePe
 ### Public Signing Flow (No Auth)
 
 Public endpoints (`/public/*`) require NO authentication. Two flows:
+
 - **Email verification gate**: `/public/doc/{id}` → enter email → receive token via email
 - **Token-based signing**: `/public/sign/{token}` → preview PDF → sign via embedded iframe
 
@@ -71,6 +72,14 @@ Anti-enumeration: `RequestAccess` always returns 200 regardless of email match.
 Admin can invalidate all tokens via `POST /documents/{id}/invalidate-tokens`.
 
 **Documentation**: `core/docs/public-signing-flow.md` (Mermaid diagrams, endpoints, security)
+
+### Operational Flow Docs
+
+Additional flow-level documentation with sequence diagrams:
+
+- `docs/template-preview-flow.md` (Template Preview Flow)
+- `docs/internal-api-document-creation-flow.md` (Document Creation via Internal API)
+- `docs/public-signing-flow-detail.md` (Public Signing Flow)
 
 ### OpenAPI Spec
 
@@ -157,10 +166,10 @@ python3 scripts/docml2json/docml2json.py input.docml -o out.json   # explicit ou
 python3 scripts/docml2json/docml2json.py *.docml                   # batch mode
 ```
 
-| File | Description |
-|------|-------------|
-| `docml2json.py` | Conversion script (Python 3, no dependencies) |
-| `DOCML-REFERENCIA.md` | Full metalanguage syntax reference |
-| `example.docml` | Complete working example with all node types |
+| File                  | Description                                   |
+| --------------------- | --------------------------------------------- |
+| `docml2json.py`       | Conversion script (Python 3, no dependencies) |
+| `DOCML-REFERENCIA.md` | Full metalanguage syntax reference            |
+| `example.docml`       | Complete working example with all node types  |
 
 **When to use**: Creating or bulk-generating document templates without hand-crafting ~500-1400 line JSON files. Supports paragraphs, headings, lists, tables, injectors (variables), checkboxes, signatures, marks (bold/italic/underline), alignment, page breaks, and horizontal rules.

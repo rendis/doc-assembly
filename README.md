@@ -39,7 +39,7 @@ The platform is multi-tenant by design: a three-level RBAC model (System, Tenant
 
 ## Monorepo Structure
 
-```
+```plaintext
 doc-assembly/
   apps/
     doc-engine/     Go backend (Hexagonal Architecture, Gin, Wire DI)
@@ -59,7 +59,7 @@ doc-assembly/
 
 ### Request Flow (Hexagonal)
 
-```
+```plaintext
 HTTP Request
  -> Middleware (JWT auth, tenant context, operation ID)
    -> Controller (parse DTO, validate)
@@ -72,7 +72,7 @@ HTTP Request
 
 ### Multi-Tenant Hierarchy
 
-```
+```plaintext
 System
  +-- Tenant A
  |    +-- Workspace 1
@@ -141,7 +141,7 @@ make dev-dummy
 > [!TIP]
 > `dev-dummy` bypasses JWT authentication so you can develop without setting up Keycloak. The backend runs on `:8080` and the frontend on `:3001`.
 
-The app is now available at **http://localhost:3001**. The first user to sign up is automatically promoted to `SUPERADMIN`.
+The app is now available at **<http://localhost:3001>**. The first user to sign up is automatically promoted to `SUPERADMIN`.
 
 ## Available Commands
 
@@ -208,7 +208,7 @@ cp apps/web-client/.env.example apps/web-client/.env
 
 doc-assembly delegates digital signatures to external providers. Each document has a **shared public URL** (`/public/doc/{id}`) that recipients use to verify their email and receive a signing link.
 
-```
+```plaintext
 Template (published)
   -> Admin creates document
     -> Recipients notified with public URL (/public/doc/{id})
@@ -295,18 +295,21 @@ The container exposes port `8080`.
 
 ## Documentation
 
-| Document              | Path                                                                                           |
-| --------------------- | ---------------------------------------------------------------------------------------------- |
-| Backend Architecture  | [`apps/doc-engine/docs/architecture.md`](apps/doc-engine/docs/architecture.md)                 |
-| Authentication Guide  | [`apps/doc-engine/docs/authentication-guide.md`](apps/doc-engine/docs/authentication-guide.md) |
-| Authorization Matrix  | [`apps/doc-engine/docs/authorization-matrix.md`](apps/doc-engine/docs/authorization-matrix.md) |
-| Public Signing Flow   | [`core/docs/public-signing-flow.md`](core/docs/public-signing-flow.md)                         |
-| Extensibility Guide   | [`apps/doc-engine/docs/extensibility-guide.md`](apps/doc-engine/docs/extensibility-guide.md)   |
-| Frontend Architecture | [`apps/web-client/docs/architecture.md`](apps/web-client/docs/architecture.md)                 |
-| Design System         | [`apps/web-client/docs/design_system.md`](apps/web-client/docs/design_system.md)               |
-| Database Schema       | [`db/DATABASE.md`](db/DATABASE.md)                                                             |
-| OpenAPI Spec          | [`apps/doc-engine/docs/swagger.yaml`](apps/doc-engine/docs/swagger.yaml)                       |
-| docml2json Reference  | [`scripts/docml2json/DOCML-REFERENCIA.md`](scripts/docml2json/DOCML-REFERENCIA.md)             |
+| Document                            | Path                                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Backend Architecture                | [`apps/doc-engine/docs/architecture.md`](apps/doc-engine/docs/architecture.md)                 |
+| Authentication Guide                | [`apps/doc-engine/docs/authentication-guide.md`](apps/doc-engine/docs/authentication-guide.md) |
+| Authorization Matrix                | [`apps/doc-engine/docs/authorization-matrix.md`](apps/doc-engine/docs/authorization-matrix.md) |
+| Public Signing Flow                 | [`core/docs/public-signing-flow.md`](core/docs/public-signing-flow.md)                         |
+| Template Preview Flow               | [`docs/template-preview-flow.md`](docs/template-preview-flow.md)                               |
+| Internal API Document Creation Flow | [`docs/internal-api-document-creation-flow.md`](docs/internal-api-document-creation-flow.md)   |
+| Public Signing Flow (Flow Detail)   | [`docs/public-signing-flow-detail.md`](docs/public-signing-flow-detail.md)                     |
+| Extensibility Guide                 | [`apps/doc-engine/docs/extensibility-guide.md`](apps/doc-engine/docs/extensibility-guide.md)   |
+| Frontend Architecture               | [`apps/web-client/docs/architecture.md`](apps/web-client/docs/architecture.md)                 |
+| Design System                       | [`apps/web-client/docs/design_system.md`](apps/web-client/docs/design_system.md)               |
+| Database Schema                     | [`db/DATABASE.md`](db/DATABASE.md)                                                             |
+| OpenAPI Spec                        | [`apps/doc-engine/docs/swagger.yaml`](apps/doc-engine/docs/swagger.yaml)                       |
+| docml2json Reference                | [`scripts/docml2json/DOCML-REFERENCIA.md`](scripts/docml2json/DOCML-REFERENCIA.md)             |
 
 ## License
 
