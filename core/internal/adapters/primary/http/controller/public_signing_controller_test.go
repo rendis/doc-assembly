@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -118,6 +119,72 @@ func TestPublicSigningController_RequestAccessFromExpiredToken(t *testing.T) {
 	`, doc.ID, "alice@test.com").Scan(&tokenCount)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, tokenCount, 2)
+}
+
+func TestPublicSigningController_ConcurrentProceedCreatesOneProviderDoc(t *testing.T) {
+	env := setupDocumentEnv(t)
+	setTemplateVersionContent(t, env, `{}`)
+
+	doc := env.createDocument(t, "Concurrent Proceed Test")
+
+	// Request access for both signers.
+	resp, _ := env.client.POST("/public/doc/"+doc.ID+"/request-access", map[string]string{"email": "alice@test.com"})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	tokenA := findLatestAccessToken(t, env, doc.ID, "alice@test.com")
+
+	resp, _ = env.client.POST("/public/doc/"+doc.ID+"/request-access", map[string]string{"email": "bob@test.com"})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	tokenB := findLatestAccessToken(t, env, doc.ID, "bob@test.com")
+
+	// Reset mock adapter to ensure clean document count.
+	env.ts.MockSigningAdapter.Reset()
+
+	// Fire concurrent proceed calls.
+	const concurrency = 10
+	tokens := []string{tokenA, tokenB}
+
+	type result struct {
+		status int
+		step   string
+	}
+	results := make([]result, concurrency)
+
+	var wg sync.WaitGroup
+	var ready sync.WaitGroup
+	ready.Add(concurrency)
+	wg.Add(concurrency)
+
+	for i := 0; i < concurrency; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			tok := tokens[idx%len(tokens)]
+			ready.Done()
+			ready.Wait() // all goroutines start together
+			r, body := env.client.POST("/public/sign/"+tok+"/proceed", nil)
+			var page publicSigningState
+			_ = json.Unmarshal(body, &page)
+			results[idx] = result{status: r.StatusCode, step: page.Step}
+		}(i)
+	}
+	wg.Wait()
+
+	// Exactly 1 document should exist in the mock signing provider.
+	assert.Equal(t, 1, env.ts.MockSigningAdapter.DocumentCount(),
+		"expected exactly 1 provider document")
+
+	// All responses should be 200 OK with step = signing or processing.
+	var signingCount, processingCount int
+	for _, r := range results {
+		require.Equal(t, http.StatusOK, r.status)
+		switch r.step {
+		case "signing":
+			signingCount++
+		case "processing":
+			processingCount++
+		}
+	}
+	assert.GreaterOrEqual(t, signingCount, 1, "at least one caller should get signing step")
+	t.Logf("results: %d signing, %d processing out of %d calls", signingCount, processingCount, concurrency)
 }
 
 func findLatestAccessToken(t *testing.T, env *documentTestEnv, documentID, email string) string {

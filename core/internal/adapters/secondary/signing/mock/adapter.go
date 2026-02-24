@@ -280,6 +280,13 @@ func (a *Adapter) Reset() {
 	a.recipients = make(map[string]*mockRecipient)
 }
 
+// DocumentCount returns the number of documents stored in the mock adapter.
+func (a *Adapter) DocumentCount() int {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return len(a.documents)
+}
+
 // --- Internal helpers ---
 
 func mapRecipientStatus(status string) entity.RecipientStatus {

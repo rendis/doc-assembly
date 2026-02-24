@@ -52,8 +52,13 @@ func setupDocumentEnv(t *testing.T) *documentTestEnv {
 	t.Cleanup(func() { testhelper.CleanupUser(t, pool, viewer.ID) })
 	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, viewer.ID, entity.WorkspaceRoleViewer, nil)
 
+	docTypeID := testhelper.CreateTestDocumentType(t, pool, tenantID, "TEST_DOC", "Test Document")
+	t.Cleanup(func() { testhelper.CleanupDocumentType(t, pool, docTypeID) })
+
 	templateID := testhelper.CreateTestTemplate(t, pool, workspaceID, "Test Doc Template", nil)
 	t.Cleanup(func() { testhelper.CleanupTemplate(t, pool, templateID) })
+
+	testhelper.SetTemplateDocumentType(t, pool, templateID, docTypeID)
 
 	versionID := testhelper.CreateTestTemplateVersion(t, pool, templateID, 1, "v1.0", entity.VersionStatusDraft)
 	t.Cleanup(func() { testhelper.CleanupTemplateVersion(t, pool, versionID) })
