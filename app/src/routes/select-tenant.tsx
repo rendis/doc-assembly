@@ -384,7 +384,7 @@ function SelectTenantPage() {
                           isAnimating && 'pointer-events-none'
                         )}
                       >
-                        <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex min-w-0 flex-col gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <h3 className="max-w-[300px] truncate text-left font-display text-xl font-medium tracking-tight text-foreground md:max-w-[400px] md:text-2xl">
@@ -393,7 +393,7 @@ function SelectTenantPage() {
                             </TooltipTrigger>
                             <TooltipContent>{ws.name}</TooltipContent>
                           </Tooltip>
-                          <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                          <span className="w-fit shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
                             {ws.code}
                           </span>
                         </div>
