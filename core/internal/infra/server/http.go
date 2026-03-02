@@ -132,7 +132,7 @@ func NewHTTPServer(
 		base.Use(signingCSPMiddleware(cfg.Signing.SigningBaseURL))
 	}
 	publicSigningController.RegisterRoutes(base)
-	automationController.RegisterRoutes(engine)
+	automationController.RegisterRoutes(engine, middlewareProvider)
 
 	// Serve embedded SPA if frontendFS is provided, otherwise return 404 for unmatched routes.
 	if frontendFS != nil {

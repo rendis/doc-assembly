@@ -77,7 +77,7 @@ func NewAutomationController(
 }
 
 // RegisterRoutes sets up the /api/v1/automation route group with its own middleware chain.
-func (ctrl *AutomationController) RegisterRoutes(base *gin.Engine) {
+func (ctrl *AutomationController) RegisterRoutes(base *gin.Engine, middlewareProvider *middleware.Provider) {
 	g := base.Group("/api/v1/automation")
 	g.Use(middleware.Operation())
 	g.Use(middleware.RequestTimeout(automationRequestTimeout))
@@ -91,14 +91,20 @@ func (ctrl *AutomationController) RegisterRoutes(base *gin.Engine) {
 	g.GET("/tenants/:tenantId/workspaces", ctrl.listWorkspaces)
 	g.POST("/tenants/:tenantId/workspaces", ctrl.createWorkspace)
 
+	// Workspace-scoped routes with sandbox support.
+	// AutomationSandboxContext reads :workspaceId from the URL path,
+	// and when X-Sandbox-Mode: true is set, resolves/auto-creates the sandbox workspace.
+	ws := g.Group("")
+	ws.Use(middlewareProvider.AutomationSandboxContext())
+
 	// Injectables (workspace-scoped)
-	g.GET("/workspaces/:workspaceId/injectables", ctrl.listInjectables)
+	ws.GET("/workspaces/:workspaceId/injectables", ctrl.listInjectables)
 
 	// Templates (workspace-scoped)
-	g.GET("/workspaces/:workspaceId/templates", ctrl.listTemplates)
-	g.POST("/workspaces/:workspaceId/templates", ctrl.createTemplate)
-	g.GET("/workspaces/:workspaceId/templates/:templateId", ctrl.getTemplate)
-	g.PATCH("/workspaces/:workspaceId/templates/:templateId", ctrl.updateTemplate)
+	ws.GET("/workspaces/:workspaceId/templates", ctrl.listTemplates)
+	ws.POST("/workspaces/:workspaceId/templates", ctrl.createTemplate)
+	ws.GET("/workspaces/:workspaceId/templates/:templateId", ctrl.getTemplate)
+	ws.PATCH("/workspaces/:workspaceId/templates/:templateId", ctrl.updateTemplate)
 
 	// Template process fields
 	g.PUT("/templates/:templateId/process", ctrl.setProcessFields)
@@ -234,7 +240,7 @@ func (ctrl *AutomationController) createWorkspace(c *gin.Context) {
 
 // listInjectables lists all injectables for a workspace.
 func (ctrl *AutomationController) listInjectables(c *gin.Context) {
-	workspaceID := c.Param("workspaceId")
+	workspaceID, _ := middleware.GetWorkspaceID(c)
 
 	result, err := ctrl.injectableUC.ListInjectables(c.Request.Context(), &injectableuc.ListInjectablesRequest{
 		WorkspaceID: workspaceID,
@@ -251,7 +257,7 @@ func (ctrl *AutomationController) listInjectables(c *gin.Context) {
 
 // listTemplates lists all templates in a workspace.
 func (ctrl *AutomationController) listTemplates(c *gin.Context) {
-	workspaceID := c.Param("workspaceId")
+	workspaceID, _ := middleware.GetWorkspaceID(c)
 
 	templates, err := ctrl.templateUC.ListTemplates(c.Request.Context(), workspaceID, port.TemplateFilters{})
 	if err != nil {
@@ -264,7 +270,7 @@ func (ctrl *AutomationController) listTemplates(c *gin.Context) {
 
 // createTemplate creates a new template in a workspace.
 func (ctrl *AutomationController) createTemplate(c *gin.Context) {
-	workspaceID := c.Param("workspaceId")
+	workspaceID, _ := middleware.GetWorkspaceID(c)
 
 	var req dto.AutomationCreateTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

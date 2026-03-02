@@ -63,6 +63,49 @@ func SandboxContext(workspaceRepo port.WorkspaceRepository) gin.HandlerFunc {
 	}
 }
 
+// AutomationSandboxContext creates a middleware that resolves sandbox workspace for automation routes.
+// Unlike SandboxContext, it reads the workspace ID from the :workspaceId URL path parameter
+// instead of the X-Workspace-ID header, and does not require user identity context.
+// When X-Sandbox-Mode header is "true", it resolves or auto-creates the sandbox workspace
+// and replaces the workspace ID in context.
+func AutomationSandboxContext(workspaceRepo port.WorkspaceRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		workspaceID := c.Param("workspaceId")
+		if workspaceID != "" {
+			c.Set(workspaceIDKey, workspaceID)
+		}
+
+		if c.Request.Method == http.MethodOptions || c.GetHeader(SandboxModeHeader) != "true" {
+			c.Set(environmentKey, entity.EnvironmentProd)
+			c.Next()
+			return
+		}
+
+		if workspaceID == "" {
+			abortWithError(c, http.StatusBadRequest, entity.ErrMissingWorkspaceID)
+			return
+		}
+
+		sandbox, err := resolveSandbox(c, workspaceRepo, workspaceID)
+		if err != nil {
+			return
+		}
+
+		c.Set(parentWorkspaceIDKey, workspaceID)
+		c.Set(workspaceIDKey, sandbox.ID)
+		c.Set(sandboxModeKey, true)
+		c.Set(environmentKey, entity.EnvironmentDev)
+
+		slog.DebugContext(c.Request.Context(), "automation sandbox mode enabled",
+			slog.String("parent_workspace_id", workspaceID),
+			slog.String("sandbox_workspace_id", sandbox.ID),
+			slog.String("operation_id", GetOperationID(c)),
+		)
+
+		c.Next()
+	}
+}
+
 // resolveSandbox finds the sandbox workspace for the parent, auto-creating it if missing and eligible.
 // On error, it aborts the gin context.
 func resolveSandbox(c *gin.Context, workspaceRepo port.WorkspaceRepository, parentWorkspaceID string) (*entity.Workspace, error) {

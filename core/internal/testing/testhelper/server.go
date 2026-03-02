@@ -359,7 +359,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 
 	// Register automation routes
 	automationKeyCtrl.RegisterRoutes(v1)
-	automationCtrl.RegisterRoutes(engine)
+	automationCtrl.RegisterRoutes(engine, middlewareProvider)
 
 	// Create test server
 	server := httptest.NewServer(engine)

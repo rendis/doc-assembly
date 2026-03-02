@@ -65,3 +65,9 @@ func (p *Provider) TenantContext() gin.HandlerFunc {
 func (p *Provider) SandboxContext() gin.HandlerFunc {
 	return SandboxContext(p.workspaceRepo)
 }
+
+// AutomationSandboxContext returns a middleware that resolves sandbox workspace for automation routes.
+// It reads workspace ID from URL path params instead of headers.
+func (p *Provider) AutomationSandboxContext() gin.HandlerFunc {
+	return AutomationSandboxContext(p.workspaceRepo)
+}
