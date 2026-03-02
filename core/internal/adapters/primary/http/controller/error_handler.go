@@ -26,6 +26,7 @@ var notFoundErrors = []error{
 	entity.ErrTenantMemberNotFound,
 	entity.ErrSystemRoleNotFound,
 	entity.ErrDocumentTypeNotFound,
+	entity.ErrProcessNotFound,
 	entity.ErrAPIKeyNotFound,
 	entity.ErrInternalTemplateResolutionNotFound,
 }
@@ -49,6 +50,7 @@ var conflictErrors = []error{
 	entity.ErrScheduledTimeConflict,
 	entity.ErrDocumentTypeCodeExists,
 	entity.ErrDocumentTypeAlreadyAssigned,
+	entity.ErrProcessCodeExists,
 }
 
 var badRequestErrors = []error{
@@ -90,6 +92,9 @@ var badRequestErrors = []error{
 	entity.ErrCannotModifyGlobal,
 	entity.ErrDocumentTypeCodeImmutable,
 	entity.ErrDocumentTypeHasTemplates,
+	entity.ErrProcessHasTemplates,
+	entity.ErrCannotModifyGlobalProcess,
+	entity.ErrCannotDeleteDefaultProcess,
 	entity.ErrInvalidOperationType,
 	entity.ErrDocumentNotCompleted,
 	entity.ErrDocumentNotTerminal,

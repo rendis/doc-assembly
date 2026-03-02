@@ -74,6 +74,7 @@ func NewHTTPServer(
 	meController *controller.MeController,
 	tenantController *controller.TenantController,
 	documentTypeController *controller.DocumentTypeController,
+	processController *controller.ProcessController,
 	documentController *controller.DocumentController,
 	webhookController *controller.WebhookController,
 	internalDocController *controller.InternalDocumentController,
@@ -116,7 +117,7 @@ func NewHTTPServer(
 
 	v1 := setupPanelRoutes(base, cfg, middlewareProvider, requestTimeout)
 	registerPanelControllers(v1, middlewareProvider, adminController, meController,
-		tenantController, documentTypeController, workspaceController,
+		tenantController, documentTypeController, processController, workspaceController,
 		injectableController, templateController, documentController)
 	automationKeyController.RegisterRoutes(v1)
 
@@ -199,6 +200,7 @@ func registerPanelControllers(
 	meController *controller.MeController,
 	tenantController *controller.TenantController,
 	documentTypeController *controller.DocumentTypeController,
+	processController *controller.ProcessController,
 	workspaceController *controller.WorkspaceController,
 	injectableController *controller.ContentInjectableController,
 	templateController *controller.ContentTemplateController,
@@ -212,6 +214,7 @@ func registerPanelControllers(
 	meController.RegisterRoutes(v1)
 	tenantController.RegisterRoutes(v1, middlewareProvider)
 	documentTypeController.RegisterRoutes(v1, middlewareProvider)
+	processController.RegisterRoutes(v1, middlewareProvider)
 	workspaceController.RegisterRoutes(v1, middlewareProvider)
 	injectableController.RegisterRoutes(v1, middlewareProvider)
 	templateController.RegisterRoutes(v1, middlewareProvider)

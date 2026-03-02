@@ -22,6 +22,7 @@ import (
 	documenttyperepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_type_repo"
 	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
 	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
+	processrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/process_repo"
 	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	systemrolerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tag_repo"
@@ -128,6 +129,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	templateVersionInjectableRepo := templateversioninjectablerepo.New(pool)
 	templateVersionSignerRoleRepo := templateversionsignerrolerepo.New(pool)
 	documentTypeRepo := documenttyperepo.New(pool)
+	processRepo := processrepo.New(pool)
 
 	// --- Repositories: Execution ---
 	documentRepoConcrete := documentrepo.NewConcrete(pool)
@@ -163,6 +165,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	folderSvc := catalogsvc.NewFolderService(folderRepo)
 	tagSvc := catalogsvc.NewTagService(tagRepo)
 	documentTypeSvc := catalogsvc.NewDocumentTypeService(documentTypeRepo, templateRepo)
+	processSvc := catalogsvc.NewProcessService(processRepo, templateRepo)
 
 	// --- Services: Access ---
 	systemRoleSvc := accesssvc.NewSystemRoleService(systemRoleRepo, userRepo)
@@ -265,6 +268,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	folderMapper := httpmapper.NewFolderMapper()
 	templateMapper := httpmapper.NewTemplateMapper(templateVersionMapper, tagMapper, folderMapper)
 	docTypeMapper := httpmapper.NewDocumentTypeMapper()
+	processMapper := httpmapper.NewProcessMapper()
 
 	// --- Controllers ---
 	workspaceCtrl := controller.NewWorkspaceController(
@@ -280,6 +284,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	meCtrl := controller.NewMeController(tenantSvc, tenantMemberRepo, workspaceMemberRepo, userAccessHistorySvc)
 	tenantCtrl := controller.NewTenantController(tenantSvc, workspaceSvc, tenantMemberSvc)
 	documentTypeCtrl := controller.NewDocumentTypeController(documentTypeSvc, templateSvc, templateMapper)
+	processCtrl := controller.NewProcessController(processSvc, processMapper)
 	documentCtrl := controller.NewDocumentController(documentSvc, preSigningSvc, eventEmitter)
 	webhookCtrl := controller.NewWebhookController(documentSvc, webhookHandlers)
 	internalDocCtrl := controller.NewInternalDocumentController(internalDocSvc)
@@ -327,6 +332,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		meCtrl,
 		tenantCtrl,
 		documentTypeCtrl,
+		processCtrl,
 		documentCtrl,
 		webhookCtrl,
 		internalDocCtrl,

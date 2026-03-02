@@ -251,7 +251,11 @@
       "documentType": "Tipo de Documento",
       "noDocumentType": "Sin tipo asignado",
       "selectDocumentType": "Seleccionar tipo",
-      "noDocumentTypesAvailable": "No hay tipos de documento disponibles"
+      "noDocumentTypesAvailable": "No hay tipos de documento disponibles",
+      "process": "Proceso",
+      "noProcess": "Sin proceso asignado",
+      "selectProcess": "Seleccionar proceso",
+      "noProcessesAvailable": "No hay procesos disponibles"
     },
     "documentType": {
       "conflictTitle": "Tipo de documento en uso",
@@ -1209,6 +1213,7 @@
       "injectables": "Inyectables",
       "apiKeys": "API Keys",
       "documentTypes": "Tipos de Documento",
+      "processes": "Procesos",
       "workspaces": "Workspaces"
     },
     "apiKeys": {
@@ -1325,6 +1330,59 @@
         "selectReplacement": "Selecciona el tipo de reemplazo...",
         "success": "Tipo de documento eliminado",
         "error": "Error al eliminar el tipo de documento"
+      }
+    },
+    "processes": {
+      "description": "Gestiona los procesos y sus configuraciones.",
+      "searchPlaceholder": "Buscar procesos...",
+      "loadError": "Error al cargar procesos",
+      "noResults": "No se encontraron procesos que coincidan con tu búsqueda",
+      "empty": "No hay procesos",
+      "create": "Crear Proceso",
+      "global": "Global",
+      "readOnly": "Solo lectura",
+      "columns": {
+        "code": "Código",
+        "processType": "Tipo de Proceso",
+        "name": "Nombre",
+        "templates": "Plantillas",
+        "actions": "Acciones"
+      },
+      "form": {
+        "createTitle": "Crear Proceso",
+        "editTitle": "Editar Proceso",
+        "createDescription": "Agrega un nuevo proceso para organizar plantillas.",
+        "editDescription": "Actualiza los detalles del proceso.",
+        "code": "Código",
+        "codePlaceholder": "PROCESS_CODE",
+        "codeHint": "Solo mayúsculas, números y guiones bajos. Máx. 255 caracteres.",
+        "codeRequired": "El código es requerido",
+        "codeTooLong": "El código debe tener 255 caracteres o menos",
+        "codeInvalid": "El código debe contener solo letras, números y guiones bajos",
+        "codeExists": "Ya existe un proceso con este código",
+        "processType": "Tipo de Proceso",
+        "processTypeHint": "Determina cómo se interpreta el identificador del proceso. No se puede cambiar después de la creación.",
+        "name": "Nombre",
+        "namePlaceholder": "Nombre del proceso",
+        "nameRequired": "El nombre en español es requerido",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción opcional",
+        "createSuccess": "Proceso creado",
+        "updateSuccess": "Proceso actualizado",
+        "saveError": "Error al guardar el proceso"
+      },
+      "delete": {
+        "title": "Eliminar Proceso",
+        "confirm": "¿Estás seguro de eliminar \"{{name}}\"?",
+        "hasTemplates": "Este proceso está asignado a {{count}} plantilla(s)",
+        "hasTemplatesDescription": "Este proceso está en uso. Elige cómo proceder.",
+        "forceOption": "Restablecer plantillas al proceso DEFAULT",
+        "forceHint": "Las plantillas serán reasignadas al proceso por defecto",
+        "replaceOption": "Reemplazar con otro proceso",
+        "noOtherProcesses": "No hay otros procesos disponibles",
+        "selectReplacement": "Selecciona el proceso de reemplazo...",
+        "success": "Proceso eliminado",
+        "error": "Error al eliminar el proceso"
       }
     },
     "tenants": {

@@ -18,6 +18,8 @@ export interface Template {
   version: string
   folderId?: string
   tags: string[]
+  process?: string
+  processType?: string
   author: {
     id: string
     name: string

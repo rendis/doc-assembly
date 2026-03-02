@@ -27,6 +27,7 @@ import {
     Layers,
     Pencil,
     Plus,
+    Workflow,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,8 +38,9 @@ import {
     useTemplateWithVersions,
     useUpdateVersion,
 } from '../hooks/useTemplateDetail'
-import { useUpdateTemplate, useAssignDocumentType } from '../hooks/useTemplates'
+import { useUpdateTemplate, useAssignDocumentType, useAssignProcess } from '../hooks/useTemplates'
 import { DocumentTypeSelector } from '@/features/administration/components/DocumentTypeSelector'
+import { ProcessSelector } from '@/features/administration/components/ProcessSelector'
 import { ArchiveVersionDialog } from './ArchiveVersionDialog'
 import { DocumentTypeConflictDialog } from './DocumentTypeConflictDialog'
 import { CancelScheduleDialog } from './CancelScheduleDialog'
@@ -105,6 +107,7 @@ export function TemplateDetailPage() {
   // Template update mutation
   const updateTemplate = useUpdateTemplate()
   const assignDocumentType = useAssignDocumentType()
+  const assignProcess = useAssignProcess()
 
   // Version action mutations
   const publishVersion = usePublishVersion(templateId)
@@ -135,6 +138,10 @@ export function TemplateDetailPage() {
       }
       throw error
     }
+  }
+
+  const handleAssignProcess = async (data: { process: string; processType: string }) => {
+    await assignProcess.mutateAsync({ templateId, data })
   }
 
   const handleForceAssignDocumentType = async () => {
@@ -680,6 +687,22 @@ export function TemplateDetailPage() {
                       currentTypeName={template.documentTypeName}
                       onAssign={handleAssignDocumentType}
                       disabled={assignDocumentType.isPending}
+                    />
+                  </dd>
+                </div>
+
+                {/* Process */}
+                <div>
+                  <dt className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Workflow size={12} />
+                    {t('templates.detail.process', 'Process')}
+                  </dt>
+                  <dd>
+                    <ProcessSelector
+                      currentProcess={template.process}
+                      currentProcessType={template.processType}
+                      onAssign={handleAssignProcess}
+                      disabled={assignProcess.isPending}
                     />
                   </dd>
                 </div>

@@ -3,6 +3,7 @@ import type {
     CreateTemplateRequest,
     CreateVersionFromExistingRequest,
     CreateVersionRequest,
+    Template,
     TemplateCreateResponse,
     TemplateListItem,
     TemplateVersionResponse,
@@ -340,5 +341,25 @@ export async function fetchProductionTemplates(
       'X-Sandbox-Mode': 'false', // Explicit false to bypass interceptor and call production API
     },
   })
+  return response.data
+}
+
+// ============================================
+// Process Assignment API
+// ============================================
+
+export interface SetProcessFieldsRequest {
+  process: string
+  processType: string
+}
+
+export async function setProcessFields(
+  templateId: string,
+  data: SetProcessFieldsRequest
+): Promise<Template> {
+  const response = await apiClient.put<Template>(
+    `/content/templates/${templateId}/process`,
+    data
+  )
   return response.data
 }

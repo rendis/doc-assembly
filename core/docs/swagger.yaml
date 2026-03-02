@@ -349,6 +349,30 @@ definitions:
     required:
     - name
     type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateProcessRequest:
+    properties:
+      code:
+        maxLength: 255
+        minLength: 1
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        additionalProperties:
+          type: string
+        type: object
+      processType:
+        enum:
+        - ID
+        - CANONICAL_NAME
+        type: string
+    required:
+    - code
+    - name
+    - processType
+    type: object
   github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateRecipientRequest:
     properties:
       email:
@@ -504,6 +528,28 @@ definitions:
         description: Templates using this type (if not deleted)
         items:
           $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse'
+        type: array
+    type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessRequest:
+    properties:
+      force:
+        description: Delete even if templates are assigned
+        type: boolean
+      replaceWithCode:
+        description: Replace with another process code before deleting
+        type: string
+    type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessResponse:
+    properties:
+      canReplace:
+        description: True if replacement is possible
+        type: boolean
+      deleted:
+        type: boolean
+      templates:
+        description: Templates using this process (if not deleted)
+        items:
+          $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessTemplateInfoResponse'
         type: array
     type: object
   github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentEventResponse:
@@ -1015,6 +1061,15 @@ definitions:
       pagination:
         $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta'
     type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedProcessesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessListItemResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta'
+    type: object
   github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedTenantsResponse:
     properties:
       data:
@@ -1052,6 +1107,71 @@ definitions:
         type: integer
       totalPages:
         type: integer
+    type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessListItemResponse:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      isGlobal:
+        description: True if from SYS tenant (read-only for other tenants)
+        type: boolean
+      name:
+        additionalProperties:
+          type: string
+        type: object
+      processType:
+        type: string
+      templatesCount:
+        type: integer
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      isGlobal:
+        description: True if from SYS tenant (read-only for other tenants)
+        type: boolean
+      name:
+        additionalProperties:
+          type: string
+        type: object
+      processType:
+        type: string
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessTemplateInfoResponse:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      workspaceId:
+        type: string
+      workspaceName:
+        type: string
     type: object
   github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PromoteAsNewTemplateResponse:
     properties:
@@ -1703,6 +1823,19 @@ definitions:
         type: string
     required:
     - role
+    type: object
+  github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateProcessRequest:
+    properties:
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - name
     type: object
   github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateTagRequest:
     properties:
@@ -6147,6 +6280,307 @@ paths:
       summary: Update tenant member role
       tags:
       - Tenant - Members
+  /api/v1/tenant/processes:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      - description: Search query for process name or code
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedProcessesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List processes
+      tags:
+      - Tenant - Processes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Process data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateProcessRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create process
+      tags:
+      - Tenant - Processes
+  /api/v1/tenant/processes/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Process ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Delete options
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete process
+      tags:
+      - Tenant - Processes
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Process ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get process by ID
+      tags:
+      - Tenant - Processes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Process ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Process data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateProcessRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update process
+      tags:
+      - Tenant - Processes
+  /api/v1/tenant/processes/code/{code}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Process Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get process by code
+      tags:
+      - Tenant - Processes
+  /api/v1/tenant/processes/code/{code}/templates:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: Process Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessTemplateInfoResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List templates by process code
+      tags:
+      - Tenant - Processes
   /api/v1/tenant/workspaces:
     get:
       consumes:

@@ -177,6 +177,15 @@ var (
 	ErrCannotModifyGlobalType      = errors.New("cannot modify global document type")
 )
 
+// Process errors.
+var (
+	ErrProcessNotFound            = errors.New("process not found")
+	ErrProcessCodeExists          = errors.New("process with this code already exists")
+	ErrProcessHasTemplates        = errors.New("process is assigned to templates")
+	ErrCannotModifyGlobalProcess  = errors.New("cannot modify global process")
+	ErrCannotDeleteDefaultProcess = errors.New("cannot delete the default process")
+)
+
 // Template errors.
 var (
 	ErrTemplateNotFound      = errors.New("template not found")

@@ -251,7 +251,11 @@
       "documentType": "Document Type",
       "noDocumentType": "No type assigned",
       "selectDocumentType": "Select type",
-      "noDocumentTypesAvailable": "No document types available"
+      "noDocumentTypesAvailable": "No document types available",
+      "process": "Process",
+      "noProcess": "No process assigned",
+      "selectProcess": "Select process",
+      "noProcessesAvailable": "No processes available"
     },
     "documentType": {
       "conflictTitle": "Document type in use",
@@ -1209,6 +1213,7 @@
       "injectables": "Injectables",
       "apiKeys": "API Keys",
       "documentTypes": "Document Types",
+      "processes": "Processes",
       "workspaces": "Workspaces"
     },
     "apiKeys": {
@@ -1325,6 +1330,59 @@
         "selectReplacement": "Select replacement type...",
         "success": "Document type deleted",
         "error": "Failed to delete document type"
+      }
+    },
+    "processes": {
+      "description": "Manage processes and their configurations.",
+      "searchPlaceholder": "Search processes...",
+      "loadError": "Failed to load processes",
+      "noResults": "No processes match your search",
+      "empty": "No processes found",
+      "create": "Create Process",
+      "global": "Global",
+      "readOnly": "Read-only",
+      "columns": {
+        "code": "Code",
+        "processType": "Process Type",
+        "name": "Name",
+        "templates": "Templates",
+        "actions": "Actions"
+      },
+      "form": {
+        "createTitle": "Create Process",
+        "editTitle": "Edit Process",
+        "createDescription": "Add a new process to organize templates.",
+        "editDescription": "Update the process details.",
+        "code": "Code",
+        "codePlaceholder": "PROCESS_CODE",
+        "codeHint": "Only uppercase letters, numbers, and underscores. Max 255 characters.",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be 255 characters or less",
+        "codeInvalid": "Code must contain only letters, numbers, and underscores",
+        "codeExists": "A process with this code already exists",
+        "processType": "Process Type",
+        "processTypeHint": "Determines how the process identifier is interpreted. Cannot be changed after creation.",
+        "name": "Name",
+        "namePlaceholder": "Process name",
+        "nameRequired": "Spanish name is required",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description",
+        "createSuccess": "Process created",
+        "updateSuccess": "Process updated",
+        "saveError": "Failed to save process"
+      },
+      "delete": {
+        "title": "Delete Process",
+        "confirm": "Are you sure you want to delete \"{{name}}\"?",
+        "hasTemplates": "This process is used by {{count}} template(s)",
+        "hasTemplatesDescription": "This process is being used. Choose how to proceed.",
+        "forceOption": "Reset templates to DEFAULT process",
+        "forceHint": "Templates will be reassigned to the default process",
+        "replaceOption": "Replace with another process",
+        "noOtherProcesses": "No other processes available",
+        "selectReplacement": "Select replacement process...",
+        "success": "Process deleted",
+        "error": "Failed to delete process"
       }
     },
     "tenants": {

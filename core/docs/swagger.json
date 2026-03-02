@@ -6092,6 +6092,474 @@
                 }
             }
         },
+        "/api/v1/tenant/processes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "List processes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query for process name or code",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedProcessesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "Create process",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Process data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateProcessRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenant/processes/code/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "Get process by code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Process Code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenant/processes/code/{code}/templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "List templates by process code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Process Code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessTemplateInfoResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenant/processes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "Get process by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Process ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "Update process",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Process ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Process data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateProcessRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant - Processes"
+                ],
+                "summary": "Delete process",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Process ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Delete options",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/tenant/workspaces": {
             "get": {
                 "security": [
@@ -8806,6 +9274,40 @@
                 }
             }
         },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateProcessRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "name",
+                "processType"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "processType": {
+                    "type": "string",
+                    "enum": [
+                        "ID",
+                        "CANONICAL_NAME"
+                    ]
+                }
+            }
+        },
         "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.CreateRecipientRequest": {
             "type": "object",
             "required": [
@@ -9023,6 +9525,38 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DocumentTypeTemplateInfoResponse"
+                    }
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessRequest": {
+            "type": "object",
+            "properties": {
+                "force": {
+                    "description": "Delete even if templates are assigned",
+                    "type": "boolean"
+                },
+                "replaceWithCode": {
+                    "description": "Replace with another process code before deleting",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.DeleteProcessResponse": {
+            "type": "object",
+            "properties": {
+                "canReplace": {
+                    "description": "True if replacement is possible",
+                    "type": "boolean"
+                },
+                "deleted": {
+                    "type": "boolean"
+                },
+                "templates": {
+                    "description": "Templates using this process (if not deleted)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessTemplateInfoResponse"
                     }
                 }
             }
@@ -9807,6 +10341,20 @@
                 }
             }
         },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedProcessesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessListItemResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginationMeta"
+                }
+            }
+        },
         "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.PaginatedTenantsResponse": {
             "type": "object",
             "properties": {
@@ -9863,6 +10411,104 @@
                 },
                 "totalPages": {
                     "type": "integer"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessListItemResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isGlobal": {
+                    "description": "True if from SYS tenant (read-only for other tenants)",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "processType": {
+                    "type": "string"
+                },
+                "templatesCount": {
+                    "type": "integer"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isGlobal": {
+                    "description": "True if from SYS tenant (read-only for other tenants)",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "processType": {
+                    "type": "string"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ProcessTemplateInfoResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "workspaceId": {
+                    "type": "string"
+                },
+                "workspaceName": {
+                    "type": "string"
                 }
             }
         },
@@ -10848,6 +11494,26 @@
             "properties": {
                 "role": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.UpdateProcessRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

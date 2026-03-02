@@ -12,8 +12,10 @@ import {
   addTagsToTemplate,
   removeTagFromTemplate,
   assignDocumentType,
+  setProcessFields,
   type TemplatesListParams,
   type AssignDocumentTypeRequest,
+  type SetProcessFieldsRequest,
 } from '../api/templates-api'
 import { templateDetailKeys } from './useTemplateDetail'
 import type { CreateTemplateRequest, UpdateTemplateRequest } from '@/types/api'
@@ -116,6 +118,24 @@ export function useAssignDocumentType() {
       templateId: string
       data: AssignDocumentTypeRequest
     }) => assignDocumentType(templateId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })
+    },
+  })
+}
+
+export function useAssignProcess() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      data,
+    }: {
+      templateId: string
+      data: SetProcessFieldsRequest
+    }) => setProcessFields(templateId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templateKeys.all })
       queryClient.invalidateQueries({ queryKey: templateDetailKeys.all })

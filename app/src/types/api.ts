@@ -161,6 +161,8 @@ export interface Template {
   isPublicLibrary: boolean
   documentTypeId?: string | null
   documentTypeName?: Record<string, string> | null
+  process?: string
+  processType?: string
   createdAt: string
   updatedAt?: string
 }
@@ -190,6 +192,8 @@ export interface TemplateWithAllVersionsResponse {
   versions: TemplateVersionSummaryResponse[]
   documentTypeId?: string | null
   documentTypeName?: Record<string, string> | null
+  process?: string
+  processType?: string
   createdAt: string
   updatedAt?: string
 }

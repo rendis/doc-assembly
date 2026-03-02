@@ -39,7 +39,7 @@ type Engine struct {
 	processResolver port.ProcessResolver
 
 	// doc-assembly specific extension points
-	signingProvider port.SigningProvider
+	signingProvider      port.SigningProvider
 	storageAdapter       port.StorageAdapter
 	notificationProvider port.NotificationProvider
 	webhookHandlers      map[string]port.WebhookHandler

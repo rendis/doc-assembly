@@ -88,6 +88,22 @@ Gestión de inyectores del sistema definidos en código (extensibility system).
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/tenant_controller.go`
 
+### Endpoints de Procesos (`/api/v1/tenant/processes`)
+
+Gestión de procesos a nivel de tenant para organizar plantillas.
+
+| Método | Endpoint | Descripción | TENANT_OWNER | TENANT_ADMIN |
+|--------|----------|-------------|:------------:|:------------:|
+| GET | `/tenant/processes?page=1&perPage=10&q={query}` | Lista procesos con paginación y búsqueda opcional | ✅ | ✅ |
+| GET | `/tenant/processes/{id}` | Obtiene un proceso por ID | ✅ | ✅ |
+| GET | `/tenant/processes/code/{code}` | Obtiene un proceso por código | ✅ | ✅ |
+| GET | `/tenant/processes/code/{code}/templates` | Lista plantillas asignadas a un proceso | ✅ | ✅ |
+| POST | `/tenant/processes` | Crea un nuevo proceso | ✅ | ❌ |
+| PUT | `/tenant/processes/{id}` | Actualiza un proceso (solo nombre y descripción) | ✅ | ❌ |
+| DELETE | `/tenant/processes/{id}` | Elimina un proceso | ✅ | ❌ |
+
+**Archivo fuente**: `internal/adapters/primary/http/controller/process_controller.go`
+
 ### Endpoint `/tenant/workspaces` - Detalle
 
 Lista workspaces del tenant actual con paginación y búsqueda opcional.
