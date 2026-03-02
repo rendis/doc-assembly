@@ -5,6 +5,7 @@ import { recordAccess } from '@/features/auth'
 import { useMyTenants } from '@/features/tenants'
 import { useWorkspaces } from '@/features/workspaces'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useAppContextStore, type TenantWithRole, type WorkspaceWithRole } from '@/stores/app-context-store'
 import { useWorkspaceTransitionStore } from '@/stores/workspace-transition-store'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -383,11 +384,16 @@ function SelectTenantPage() {
                           isAnimating && 'pointer-events-none'
                         )}
                       >
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground md:text-2xl">
-                            {ws.name}
-                          </h3>
-                          <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <h3 className="max-w-[300px] truncate text-left font-display text-xl font-medium tracking-tight text-foreground md:max-w-[400px] md:text-2xl">
+                                {ws.name}
+                              </h3>
+                            </TooltipTrigger>
+                            <TooltipContent>{ws.name}</TooltipContent>
+                          </Tooltip>
+                          <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
                             {ws.code}
                           </span>
                         </div>
@@ -443,9 +449,14 @@ function SelectTenantPage() {
                         'group relative -mb-px flex w-full items-center justify-between rounded-sm border border-transparent border-b-border px-4 py-6 outline-none transition-all duration-200 hover:z-10 hover:border-foreground hover:bg-accent'
                       )}
                     >
-                      <h3 className="text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:text-2xl">
-                        {tenant.name}
-                      </h3>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <h3 className="max-w-[300px] truncate text-left font-display text-xl font-medium tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-2 md:max-w-[400px] md:text-2xl">
+                            {tenant.name}
+                          </h3>
+                        </TooltipTrigger>
+                        <TooltipContent>{tenant.name}</TooltipContent>
+                      </Tooltip>
                       <div className="flex items-center gap-6 md:gap-8">
                         <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground md:text-xs">
                           Last accessed: {formatRelativeTime(tenant.lastAccessedAt)}

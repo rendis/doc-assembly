@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import type { WorkspaceWithRole } from '../types'
 
 interface WorkspaceCardProps {
@@ -26,16 +27,21 @@ export function WorkspaceCard({
         '-mb-px'
       )}
     >
-      <div className="flex items-center gap-3">
-        <h3
-          className={cn(
-            'text-left font-display text-xl font-medium tracking-tight text-foreground md:text-2xl',
-            'transition-transform duration-300 group-hover:translate-x-2'
-          )}
-        >
-          {workspace.name}
-        </h3>
-        <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-3">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <h3
+              className={cn(
+                'max-w-[300px] truncate text-left font-display text-xl font-medium tracking-tight text-foreground md:max-w-[400px] md:text-2xl',
+                'transition-transform duration-300 group-hover:translate-x-2'
+              )}
+            >
+              {workspace.name}
+            </h3>
+          </TooltipTrigger>
+          <TooltipContent>{workspace.name}</TooltipContent>
+        </Tooltip>
+        <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
           {workspace.code}
         </span>
       </div>

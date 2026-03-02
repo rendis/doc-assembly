@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getWorkspaces,
   createWorkspace,
@@ -25,7 +25,6 @@ export function useWorkspaces(
     enabled: !!tenantId,
     staleTime: 0,
     gcTime: 0,
-    placeholderData: keepPreviousData,
   })
 }
 
