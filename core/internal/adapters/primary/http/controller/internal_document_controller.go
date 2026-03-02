@@ -21,6 +21,8 @@ const (
 	HeaderExternalID      = "X-External-ID"
 	HeaderTransactionalID = "X-Transactional-ID"
 	HeaderEnvironment     = "X-Environment"
+	HeaderProcess         = "X-Process"
+	HeaderProcessType     = "X-Process-Type"
 )
 
 // internalDocHeaders holds the required headers for internal document operations.
@@ -141,6 +143,8 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 		TenantCode:      h.TenantCode,
 		WorkspaceCode:   h.WorkspaceCode,
 		DocumentType:    h.DocumentType,
+		Process:         ctx.GetHeader(HeaderProcess),
+		ProcessType:     ctx.GetHeader(HeaderProcessType),
 		ExternalID:      h.ExternalID,
 		TransactionalID: h.TransactionalID,
 		Environment:     env,

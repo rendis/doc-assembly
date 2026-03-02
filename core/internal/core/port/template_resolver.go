@@ -12,6 +12,8 @@ type TemplateResolverRequest struct {
 	WorkspaceCode        string
 	SandboxWorkspaceCode string // populated when Environment==dev, empty for prod
 	DocumentType         string
+	Process              string
+	ProcessType          string
 	ExternalID           string
 	TransactionalID      string
 	ForceCreate          bool
@@ -40,6 +42,7 @@ type TemplateVersionSearchParams struct {
 	TenantCode     string
 	WorkspaceCodes []string
 	DocumentType   string
+	Process        string
 	Tags           []string
 	Published      *bool
 }

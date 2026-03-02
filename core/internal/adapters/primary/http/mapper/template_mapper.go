@@ -36,6 +36,8 @@ func (m *TemplateMapper) ToResponse(template *entity.Template) *dto.TemplateResp
 		DocumentTypeID:  template.DocumentTypeID,
 		Title:           template.Title,
 		IsPublicLibrary: template.IsPublicLibrary,
+		Process:         template.Process,
+		ProcessType:     string(template.ProcessType),
 		CreatedAt:       template.CreatedAt,
 		UpdatedAt:       template.UpdatedAt,
 	}
@@ -54,6 +56,8 @@ func (m *TemplateMapper) ToListItemResponse(item *entity.TemplateListItem) *dto.
 		DocumentTypeCode:       item.DocumentTypeCode,
 		Title:                  item.Title,
 		IsPublicLibrary:        item.IsPublicLibrary,
+		Process:                item.Process,
+		ProcessType:            string(item.ProcessType),
 		HasPublishedVersion:    item.HasPublishedVersion,
 		VersionCount:           item.VersionCount,
 		ScheduledVersionCount:  item.ScheduledVersionCount,
@@ -175,6 +179,8 @@ func (m *TemplateMapper) ToCreateCommand(req *dto.CreateTemplateRequest, workspa
 		Title:            req.Title,
 		ContentStructure: req.ContentStructure,
 		IsPublicLibrary:  req.IsPublicLibrary,
+		Process:          req.Process,
+		ProcessType:      req.ProcessType,
 		CreatedBy:        userID,
 	}
 }

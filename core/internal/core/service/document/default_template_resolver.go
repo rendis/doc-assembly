@@ -68,11 +68,17 @@ func (r *DefaultTemplateResolver) resolveWithFallback(
 		fallbackStep{tenantCode: systemTenantCode, workspaceCodes: []string{systemWorkspaceCode}, stage: "system_system_workspace"},
 	)
 
+	process := req.Process
+	if process == "" {
+		process = entity.DefaultProcess
+	}
+
 	for _, step := range fallbacks {
 		items, err := adapter.SearchTemplateVersions(ctx, port.TemplateVersionSearchParams{
 			TenantCode:     step.tenantCode,
 			WorkspaceCodes: step.workspaceCodes,
 			DocumentType:   req.DocumentType,
+			Process:        process,
 			Published:      &published,
 		})
 		if err != nil {

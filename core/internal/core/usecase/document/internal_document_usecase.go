@@ -11,6 +11,8 @@ type InternalCreateCommand struct {
 	TenantCode      string             // From header X-Tenant-Code
 	WorkspaceCode   string             // From header X-Workspace-Code
 	DocumentType    string             // From header X-Document-Type
+	Process         string             // From header X-Process (default: "default")
+	ProcessType     string             // From header X-Process-Type (default: "CANONICAL_NAME")
 	ExternalID      string             // From header X-External-ID
 	TransactionalID string             // From header X-Transactional-ID
 	Environment     entity.Environment // From header X-Environment

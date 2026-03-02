@@ -31,6 +31,8 @@ func (r *Repository) Create(ctx context.Context, template *entity.Template) (str
 		template.DocumentTypeID,
 		template.Title,
 		template.IsPublicLibrary,
+		template.Process,
+		template.ProcessType,
 		template.CreatedAt,
 	).Scan(&id)
 	if err != nil {
@@ -50,6 +52,8 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.Template,
 		&template.DocumentTypeID,
 		&template.Title,
 		&template.IsPublicLibrary,
+		&template.Process,
+		&template.ProcessType,
 		&template.CreatedAt,
 		&template.UpdatedAt,
 	)
@@ -345,6 +349,12 @@ func buildTemplateFilters(filters port.TemplateFilters, startArgPos int) (string
 		argPos++
 	}
 
+	if filters.Process != nil {
+		query += fmt.Sprintf(` AND t.process = $%d`, argPos)
+		args = append(args, *filters.Process)
+		argPos++
+	}
+
 	if filters.HasPublishedVersion != nil {
 		if *filters.HasPublishedVersion {
 			query += " AND EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED')"
@@ -392,7 +402,8 @@ func scanTemplateListItems(rows pgx.Rows) ([]*entity.TemplateListItem, error) {
 		if err := rows.Scan(
 			&item.ID, &item.WorkspaceID, &item.FolderID,
 			&item.DocumentTypeID, &item.DocumentTypeCode,
-			&item.Title, &item.IsPublicLibrary, &item.CreatedAt, &item.UpdatedAt,
+			&item.Title, &item.IsPublicLibrary, &item.Process, &item.ProcessType,
+			&item.CreatedAt, &item.UpdatedAt,
 			&item.HasPublishedVersion, &item.VersionCount,
 			&item.ScheduledVersionCount, &item.PublishedVersionNumber,
 		); err != nil {
@@ -460,6 +471,8 @@ func (r *Repository) Update(ctx context.Context, template *entity.Template) erro
 		template.FolderID,
 		template.DocumentTypeID,
 		template.IsPublicLibrary,
+		template.Process,
+		template.ProcessType,
 		template.UpdatedAt,
 	)
 	if err != nil {
@@ -520,27 +533,43 @@ func (r *Repository) CountByFolder(ctx context.Context, folderID string) (int, e
 	return count, nil
 }
 
-// FindByDocumentType finds the template assigned to a document type in a workspace.
-func (r *Repository) FindByDocumentType(ctx context.Context, workspaceID, documentTypeID string) (*entity.Template, error) {
+// FindByDocumentType finds the template assigned to a document type and process in a workspace.
+func (r *Repository) FindByDocumentType(ctx context.Context, workspaceID, documentTypeID, process string) (*entity.Template, error) {
 	template := &entity.Template{}
-	err := r.pool.QueryRow(ctx, queryFindByDocumentType, workspaceID, documentTypeID).Scan(
+	err := r.pool.QueryRow(ctx, queryFindByDocumentType, workspaceID, documentTypeID, process).Scan(
 		&template.ID,
 		&template.WorkspaceID,
 		&template.FolderID,
 		&template.DocumentTypeID,
 		&template.Title,
 		&template.IsPublicLibrary,
+		&template.Process,
+		&template.ProcessType,
 		&template.CreatedAt,
 		&template.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil // No template assigned to this type in this workspace
+			return nil, nil // No template assigned to this type+process in this workspace
 		}
 		return nil, fmt.Errorf("finding template by document type: %w", err)
 	}
 
 	return template, nil
+}
+
+// UpdateProcessFields updates the process and processType of a template.
+func (r *Repository) UpdateProcessFields(ctx context.Context, templateID string, process string, processType entity.ProcessType) error {
+	result, err := r.pool.Exec(ctx, queryUpdateProcessFields, templateID, process, processType)
+	if err != nil {
+		return fmt.Errorf("updating process fields: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return entity.ErrTemplateNotFound
+	}
+
+	return nil
 }
 
 // FindByDocumentTypeCode finds templates by document type code across a tenant.

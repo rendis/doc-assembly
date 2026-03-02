@@ -81,7 +81,11 @@ func (a *TemplateVersionSearchAdapter) SearchTemplateVersions(ctx context.Contex
 			return nil, fmt.Errorf("finding workspace by code: %w", err)
 		}
 
-		tmpl, err := a.templateRepo.FindByDocumentType(ctx, workspace.ID, docType.ID)
+		process := params.Process
+		if process == "" {
+			process = entity.DefaultProcess
+		}
+		tmpl, err := a.templateRepo.FindByDocumentType(ctx, workspace.ID, docType.ID, process)
 		if err != nil {
 			return nil, fmt.Errorf("finding template by document type: %w", err)
 		}

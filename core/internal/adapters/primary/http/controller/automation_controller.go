@@ -100,6 +100,9 @@ func (ctrl *AutomationController) RegisterRoutes(base *gin.Engine) {
 	g.GET("/workspaces/:workspaceId/templates/:templateId", ctrl.getTemplate)
 	g.PATCH("/workspaces/:workspaceId/templates/:templateId", ctrl.updateTemplate)
 
+	// Template process fields
+	g.PUT("/templates/:templateId/process", ctrl.setProcessFields)
+
 	// Document Types
 	g.GET("/document-types", ctrl.listDocumentTypes)
 	g.POST("/templates/:templateId/document-type", ctrl.assignDocumentType)
@@ -272,6 +275,8 @@ func (ctrl *AutomationController) createTemplate(c *gin.Context) {
 	cmd := templateuc.CreateTemplateCommand{
 		WorkspaceID: workspaceID,
 		Title:       req.Name,
+		Process:     c.GetHeader(HeaderProcess),
+		ProcessType: c.GetHeader(HeaderProcessType),
 		CreatedBy:   "", // automation API has no user context — stored as NULL
 	}
 
@@ -385,6 +390,38 @@ func (ctrl *AutomationController) assignDocumentType(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, mapper.AssignResultToResponse(result, ctrl.templateMapper))
+}
+
+// setProcessFields sets process fields on a template.
+func (ctrl *AutomationController) setProcessFields(c *gin.Context) {
+	templateID := c.Param("templateId")
+
+	var req dto.SetProcessFieldsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	tmpl, err := ctrl.templateUC.GetTemplate(c.Request.Context(), templateID)
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+
+	cmd := templateuc.SetProcessFieldsCommand{
+		TemplateID:  templateID,
+		WorkspaceID: tmpl.WorkspaceID,
+		Process:     req.Process,
+		ProcessType: req.ProcessType,
+	}
+
+	updated, err := ctrl.templateUC.SetProcessFields(c.Request.Context(), cmd)
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, ctrl.templateMapper.ToResponse(updated))
 }
 
 // --- Version Handlers ---

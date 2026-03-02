@@ -56,6 +56,9 @@ func (c *ContentTemplateController) RegisterRoutes(rg *gin.RouterGroup, middlewa
 			templates.POST("/:templateId/tags", middleware.RequireEditor(), c.AddTemplateTags)            // EDITOR+
 			templates.DELETE("/:templateId/tags/:tagId", middleware.RequireEditor(), c.RemoveTemplateTag) // EDITOR+
 
+			// Process fields
+			templates.PUT("/:templateId/process", middleware.RequireEditor(), c.SetProcessFields) // EDITOR+
+
 			// Document type assignment
 			templates.PUT("/:templateId/document-type", middleware.RequireEditor(), c.AssignDocumentType) // EDITOR+
 
@@ -326,6 +329,46 @@ func (c *ContentTemplateController) RemoveTemplateTag(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// SetProcessFields sets the process and processType on a template.
+// @Summary Set process fields on template
+// @Tags Templates
+// @Accept json
+// @Produce json
+// @Param X-Workspace-ID header string true "Workspace ID"
+// @Param X-Sandbox-Mode header string false "Enable sandbox mode (operates on sandbox workspace)"
+// @Param templateId path string true "Template ID"
+// @Param request body dto.SetProcessFieldsRequest true "Process fields"
+// @Success 200 {object} dto.TemplateResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
+// @Router /api/v1/content/templates/{templateId}/process [put]
+func (c *ContentTemplateController) SetProcessFields(ctx *gin.Context) {
+	templateID := ctx.Param("templateId")
+	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+
+	var req dto.SetProcessFieldsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := templateuc.SetProcessFieldsCommand{
+		TemplateID:  templateID,
+		WorkspaceID: workspaceID,
+		Process:     req.Process,
+		ProcessType: req.ProcessType,
+	}
+
+	template, err := c.templateUC.SetProcessFields(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, c.templateMapper.ToResponse(template))
 }
 
 // AssignDocumentType assigns or unassigns a document type to a template.

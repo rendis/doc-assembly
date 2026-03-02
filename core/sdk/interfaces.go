@@ -37,6 +37,14 @@ type TemplateVersionSearchParams = port.TemplateVersionSearchParams
 // TemplateVersionSearchItem is one search result item.
 type TemplateVersionSearchItem = port.TemplateVersionSearchItem
 
+// --- Process Resolution ---
+
+// ProcessResolver provides process discovery and validation.
+type ProcessResolver = port.ProcessResolver
+
+// ProcessInfo describes a process available for a tenant.
+type ProcessInfo = port.ProcessInfo
+
 // --- Provider Interfaces ---
 
 // WorkspaceInjectableProvider supplies workspace-specific injectable definitions.

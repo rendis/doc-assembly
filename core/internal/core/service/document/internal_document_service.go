@@ -159,10 +159,21 @@ func (s *InternalDocumentService) resolveTemplateContext(
 		return nil, fmt.Errorf("resolving document type by code: %w", err)
 	}
 
+	process := cmd.Process
+	if process == "" {
+		process = entity.DefaultProcess
+	}
+	processType := cmd.ProcessType
+	if processType == "" {
+		processType = string(entity.DefaultProcessType)
+	}
+
 	resolverReq := &port.TemplateResolverRequest{
 		TenantCode:      tenantCode,
 		WorkspaceCode:   workspaceCode,
 		DocumentType:    documentTypeCode,
+		Process:         process,
+		ProcessType:     processType,
 		ExternalID:      cmd.ExternalID,
 		TransactionalID: cmd.TransactionalID,
 		ForceCreate:     cmd.ForceCreate,

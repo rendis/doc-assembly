@@ -4,13 +4,13 @@ package templaterepo
 const (
 	queryCreate = `
 		INSERT INTO content.templates (
-			workspace_id, folder_id, document_type_id, title, is_public_library, created_at
+			workspace_id, folder_id, document_type_id, title, is_public_library, process, process_type, created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id`
 
 	queryFindByID = `
-		SELECT id, workspace_id, folder_id, document_type_id, title, is_public_library, created_at, updated_at
+		SELECT id, workspace_id, folder_id, document_type_id, title, is_public_library, process, process_type, created_at, updated_at
 		FROM content.templates
 		WHERE id = $1`
 
@@ -65,7 +65,7 @@ const (
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.document_type_id,
 			(SELECT dt.code FROM content.document_types dt WHERE dt.id = t.document_type_id) as document_type_code,
-			t.title, t.is_public_library,
+			t.title, t.is_public_library, t.process, t.process_type,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
@@ -79,7 +79,7 @@ const (
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.document_type_id,
 			(SELECT dt.code FROM content.document_types dt WHERE dt.id = t.document_type_id) as document_type_code,
-			t.title, t.is_public_library,
+			t.title, t.is_public_library, t.process, t.process_type,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
@@ -93,7 +93,7 @@ const (
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.document_type_id,
 			(SELECT dt.code FROM content.document_types dt WHERE dt.id = t.document_type_id) as document_type_code,
-			t.title, t.is_public_library,
+			t.title, t.is_public_library, t.process, t.process_type,
 			t.created_at, t.updated_at,
 			true as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,
@@ -106,7 +106,7 @@ const (
 
 	queryUpdate = `
 		UPDATE content.templates
-		SET title = $2, folder_id = $3, document_type_id = $4, is_public_library = $5, updated_at = $6
+		SET title = $2, folder_id = $3, document_type_id = $4, is_public_library = $5, process = $6, process_type = $7, updated_at = $8
 		WHERE id = $1`
 
 	queryDelete = `DELETE FROM content.templates WHERE id = $1`
@@ -126,14 +126,19 @@ const (
 
 	// Document Type queries
 	queryFindByDocumentType = `
-		SELECT id, workspace_id, folder_id, document_type_id, title, is_public_library, created_at, updated_at
+		SELECT id, workspace_id, folder_id, document_type_id, title, is_public_library, process, process_type, created_at, updated_at
 		FROM content.templates
-		WHERE workspace_id = $1 AND document_type_id = $2`
+		WHERE workspace_id = $1 AND document_type_id = $2 AND process = $3`
+
+	queryUpdateProcessFields = `
+		UPDATE content.templates
+		SET process = $2, process_type = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1`
 
 	queryFindByDocumentTypeCode = `
 		SELECT
 			t.id, t.workspace_id, t.folder_id, t.document_type_id, dt.code as document_type_code,
-			t.title, t.is_public_library,
+			t.title, t.is_public_library, t.process, t.process_type,
 			t.created_at, t.updated_at,
 			EXISTS(SELECT 1 FROM content.template_versions WHERE template_id = t.id AND status = 'PUBLISHED') as has_published,
 			(SELECT COUNT(*) FROM content.template_versions WHERE template_id = t.id AND status != 'ARCHIVED') as version_count,

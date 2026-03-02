@@ -354,6 +354,7 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 		"X-Workspace-ID", "X-Tenant-ID", "X-Tenant-Code", "X-Sandbox-Mode", "X-API-Key",
 		"X-Workspace-Code", "X-Document-Type",
 		"X-External-ID", "X-Transactional-ID",
+		"X-Process", "X-Process-Type",
 	}
 	allowedHeaders := strings.Join(append(baseHeaders, corsCfg.AllowedHeaders...), ", ")
 

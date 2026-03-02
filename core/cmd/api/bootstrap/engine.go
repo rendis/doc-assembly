@@ -35,8 +35,11 @@ type Engine struct {
 	frontendFS         fs.FS // Embedded SPA filesystem; nil = no frontend served
 	frontendOverridden bool  // True if SetFrontendFS was called (even with nil)
 
+	// Process resolver (optional)
+	processResolver port.ProcessResolver
+
 	// doc-assembly specific extension points
-	signingProvider      port.SigningProvider
+	signingProvider port.SigningProvider
 	storageAdapter       port.StorageAdapter
 	notificationProvider port.NotificationProvider
 	webhookHandlers      map[string]port.WebhookHandler
@@ -102,6 +105,17 @@ func (e *Engine) SetTemplateResolver(r port.TemplateResolver) *Engine {
 // GetTemplateResolver returns the registered custom template resolver.
 func (e *Engine) GetTemplateResolver() port.TemplateResolver {
 	return e.templateResolver
+}
+
+// SetProcessResolver sets an optional process resolver for process validation and discovery.
+func (e *Engine) SetProcessResolver(r port.ProcessResolver) *Engine {
+	e.processResolver = r
+	return e
+}
+
+// GetProcessResolver returns the registered process resolver.
+func (e *Engine) GetProcessResolver() port.ProcessResolver {
+	return e.processResolver
 }
 
 // SetInitFunc sets the global initialization function.

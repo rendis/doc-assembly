@@ -181,6 +181,8 @@ var (
 var (
 	ErrTemplateNotFound      = errors.New("template not found")
 	ErrTemplateAlreadyExists = errors.New("template with this title already exists")
+	ErrInvalidProcessType    = errors.New("processType must be ID or CANONICAL_NAME")
+	ErrProcessSlotConflict   = errors.New("a template with this document type and process already exists in the workspace")
 )
 
 // Template Version errors.

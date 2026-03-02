@@ -93,6 +93,8 @@ type TemplateResponse struct {
 	DocumentTypeName map[string]string `json:"documentTypeName,omitempty"`
 	Title            string            `json:"title"`
 	IsPublicLibrary  bool              `json:"isPublicLibrary"`
+	Process          string            `json:"process"`
+	ProcessType      string            `json:"processType"`
 	CreatedAt        time.Time         `json:"createdAt"`
 	UpdatedAt        *time.Time        `json:"updatedAt,omitempty"`
 }
@@ -112,6 +114,8 @@ type TemplateListItemResponse struct {
 	DocumentTypeCode       *string              `json:"documentTypeCode,omitempty"`
 	Title                  string               `json:"title"`
 	IsPublicLibrary        bool                 `json:"isPublicLibrary"`
+	Process                string               `json:"process"`
+	ProcessType            string               `json:"processType"`
 	HasPublishedVersion    bool                 `json:"hasPublishedVersion"`
 	VersionCount           int                  `json:"versionCount"`
 	ScheduledVersionCount  int                  `json:"scheduledVersionCount"`
@@ -119,6 +123,12 @@ type TemplateListItemResponse struct {
 	Tags                   []*TagSimpleResponse `json:"tags"`
 	CreatedAt              time.Time            `json:"createdAt"`
 	UpdatedAt              *time.Time           `json:"updatedAt,omitempty"`
+}
+
+// SetProcessFieldsRequest represents the request to set process fields on a template.
+type SetProcessFieldsRequest struct {
+	Process     string `json:"process" binding:"required,max=255"`
+	ProcessType string `json:"processType" binding:"required,oneof=ID CANONICAL_NAME"`
 }
 
 // TemplateWithDetailsResponse represents a template with published version and metadata.
@@ -149,6 +159,8 @@ type CreateTemplateRequest struct {
 	FolderID         *string         `json:"folderId,omitempty"`
 	ContentStructure json.RawMessage `json:"contentStructure,omitempty"` // Initial content for the first version
 	IsPublicLibrary  bool            `json:"isPublicLibrary"`
+	Process          string          `json:"process,omitempty"`     // defaults to "default"
+	ProcessType      string          `json:"processType,omitempty"` // defaults to "CANONICAL_NAME"
 }
 
 // UpdateTemplateRequest represents the request to update a template's metadata.

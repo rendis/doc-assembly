@@ -334,6 +334,34 @@ func (r RecipientStatus) String() string {
 	return string(r)
 }
 
+// ProcessType represents how a process identifier is interpreted.
+type ProcessType string
+
+const (
+	ProcessTypeID            ProcessType = "ID"
+	ProcessTypeCanonicalName ProcessType = "CANONICAL_NAME"
+)
+
+// DefaultProcess is the base system process.
+const DefaultProcess = "default"
+
+// DefaultProcessType is the default process type for the base process.
+const DefaultProcessType = ProcessTypeCanonicalName
+
+// IsValid checks if the process type is valid.
+func (p ProcessType) IsValid() bool {
+	switch p {
+	case ProcessTypeID, ProcessTypeCanonicalName:
+		return true
+	}
+	return false
+}
+
+// String returns the string representation of the process type.
+func (p ProcessType) String() string {
+	return string(p)
+}
+
 // OperationType defines the type of operation on documents.
 type OperationType string
 

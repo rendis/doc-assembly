@@ -14,6 +14,7 @@ type TemplateFilters struct {
 	TagIDs              []string
 	DocumentTypeID      *string // Filter by document type ID
 	DocumentTypeCode    string  // Filter by document type code
+	Process             *string // Filter by process
 	Search              string
 	Limit               int
 	Offset              int
@@ -57,13 +58,16 @@ type TemplateRepository interface {
 	// CountByFolder returns the number of templates in a folder.
 	CountByFolder(ctx context.Context, folderID string) (int, error)
 
-	// FindByDocumentType finds the template assigned to a document type in a workspace.
-	// Returns nil if no template is assigned to this type in the workspace.
-	FindByDocumentType(ctx context.Context, workspaceID, documentTypeID string) (*entity.Template, error)
+	// FindByDocumentType finds the template assigned to a document type and process in a workspace.
+	// Returns nil if no template is assigned to this type+process in the workspace.
+	FindByDocumentType(ctx context.Context, workspaceID, documentTypeID, process string) (*entity.Template, error)
 
 	// FindByDocumentTypeCode finds templates by document type code across a tenant.
 	FindByDocumentTypeCode(ctx context.Context, tenantID, documentTypeCode string) ([]*entity.TemplateListItem, error)
 
 	// UpdateDocumentType updates the document type assignment for a template.
 	UpdateDocumentType(ctx context.Context, templateID string, documentTypeID *string) error
+
+	// UpdateProcessFields updates the process and processType of a template.
+	UpdateProcessFields(ctx context.Context, templateID string, process string, processType entity.ProcessType) error
 }

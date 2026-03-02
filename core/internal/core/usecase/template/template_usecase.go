@@ -15,6 +15,8 @@ type CreateTemplateCommand struct {
 	Title            string
 	ContentStructure json.RawMessage
 	IsPublicLibrary  bool
+	Process          string // defaults to "default" if empty
+	ProcessType      string // defaults to "CANONICAL_NAME" if empty
 	CreatedBy        string
 }
 
@@ -34,6 +36,14 @@ type CloneTemplateCommand struct {
 	NewTitle         string
 	TargetFolderID   *string
 	ClonedBy         string
+}
+
+// SetProcessFieldsCommand represents the command to set process fields on a template.
+type SetProcessFieldsCommand struct {
+	TemplateID  string
+	WorkspaceID string
+	Process     string
+	ProcessType string
 }
 
 // AssignDocumentTypeCommand represents the command to assign/unassign a document type.
@@ -93,6 +103,9 @@ type TemplateUseCase interface {
 
 	// RemoveTag removes a tag from a template.
 	RemoveTag(ctx context.Context, templateID, tagID string) error
+
+	// SetProcessFields sets the process and processType on a template.
+	SetProcessFields(ctx context.Context, cmd SetProcessFieldsCommand) (*entity.Template, error)
 
 	// AssignDocumentType assigns or unassigns a document type to a template.
 	// If the type is already assigned to another template in the workspace and Force=false,

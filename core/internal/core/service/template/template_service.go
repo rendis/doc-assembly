@@ -18,19 +18,22 @@ func NewTemplateService(
 	templateRepo port.TemplateRepository,
 	versionRepo port.TemplateVersionRepository,
 	tagRepo port.TemplateTagRepository,
+	processResolver port.ProcessResolver,
 ) templateuc.TemplateUseCase {
 	return &TemplateService{
-		templateRepo: templateRepo,
-		versionRepo:  versionRepo,
-		tagRepo:      tagRepo,
+		templateRepo:    templateRepo,
+		versionRepo:     versionRepo,
+		tagRepo:         tagRepo,
+		processResolver: processResolver,
 	}
 }
 
 // TemplateService implements template business logic.
 type TemplateService struct {
-	templateRepo port.TemplateRepository
-	versionRepo  port.TemplateVersionRepository
-	tagRepo      port.TemplateTagRepository
+	templateRepo    port.TemplateRepository
+	versionRepo     port.TemplateVersionRepository
+	tagRepo         port.TemplateTagRepository
+	processResolver port.ProcessResolver
 }
 
 // CreateTemplate creates a new template with an initial draft version.
@@ -44,12 +47,23 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, cmd templateuc.Cre
 		return nil, nil, entity.ErrTemplateAlreadyExists
 	}
 
+	process := cmd.Process
+	if process == "" {
+		process = entity.DefaultProcess
+	}
+	processType := entity.ProcessType(cmd.ProcessType)
+	if !processType.IsValid() {
+		processType = entity.DefaultProcessType
+	}
+
 	template := &entity.Template{
 		ID:              uuid.NewString(),
 		WorkspaceID:     cmd.WorkspaceID,
 		FolderID:        cmd.FolderID,
 		Title:           cmd.Title,
 		IsPublicLibrary: cmd.IsPublicLibrary,
+		Process:         process,
+		ProcessType:     processType,
 		CreatedAt:       time.Now().UTC(),
 	}
 
@@ -263,6 +277,8 @@ func (s *TemplateService) createClonedTemplate(ctx context.Context, source *enti
 		FolderID:        targetFolderID,
 		Title:           newTitle,
 		IsPublicLibrary: false,
+		Process:         entity.DefaultProcess,
+		ProcessType:     entity.DefaultProcessType,
 		CreatedAt:       time.Now().UTC(),
 	}
 
@@ -363,8 +379,8 @@ func (s *TemplateService) AssignDocumentType(ctx context.Context, cmd templateuc
 		return &templateuc.AssignDocumentTypeResult{Template: template}, nil
 	}
 
-	// Check if another template in the same workspace has this type
-	existingTemplate, err := s.templateRepo.FindByDocumentType(ctx, cmd.WorkspaceID, *cmd.DocumentTypeID)
+	// Check if another template in the same workspace has this type+process
+	existingTemplate, err := s.templateRepo.FindByDocumentType(ctx, cmd.WorkspaceID, *cmd.DocumentTypeID, template.Process)
 	if err != nil {
 		return nil, fmt.Errorf("checking existing document type assignment: %w", err)
 	}
@@ -408,6 +424,93 @@ func (s *TemplateService) AssignDocumentType(ctx context.Context, cmd templateuc
 	)
 
 	return &templateuc.AssignDocumentTypeResult{Template: template}, nil
+}
+
+// SetProcessFields sets the process and processType on a template.
+func (s *TemplateService) SetProcessFields(ctx context.Context, cmd templateuc.SetProcessFieldsCommand) (*entity.Template, error) {
+	processType := entity.ProcessType(cmd.ProcessType)
+	if !processType.IsValid() {
+		return nil, entity.ErrInvalidProcessType
+	}
+
+	if cmd.Process == "" {
+		return nil, entity.ErrRequiredField
+	}
+
+	// Validate via resolver if configured
+	if s.processResolver != nil {
+		// Derive tenantID from workspace — get template first
+		template, err := s.templateRepo.FindByID(ctx, cmd.TemplateID)
+		if err != nil {
+			return nil, fmt.Errorf("finding template: %w", err)
+		}
+
+		if err := s.processResolver.ValidateProcess(ctx, cmd.WorkspaceID, cmd.Process, cmd.ProcessType); err != nil {
+			return nil, fmt.Errorf("validating process: %w", err)
+		}
+
+		// Check uniqueness: if template has a document type, ensure no conflict
+		if template.DocumentTypeID != nil {
+			existing, err := s.templateRepo.FindByDocumentType(ctx, template.WorkspaceID, *template.DocumentTypeID, cmd.Process)
+			if err != nil {
+				return nil, fmt.Errorf("checking process uniqueness: %w", err)
+			}
+			if existing != nil && existing.ID != cmd.TemplateID {
+				return nil, entity.ErrProcessSlotConflict
+			}
+		}
+
+		if err := s.templateRepo.UpdateProcessFields(ctx, cmd.TemplateID, cmd.Process, processType); err != nil {
+			return nil, fmt.Errorf("updating process fields: %w", err)
+		}
+
+		template.Process = cmd.Process
+		template.ProcessType = processType
+		now := time.Now().UTC()
+		template.UpdatedAt = &now
+
+		slog.InfoContext(ctx, "template process fields updated",
+			slog.String("template_id", template.ID),
+			slog.String("process", cmd.Process),
+			slog.String("process_type", cmd.ProcessType),
+		)
+
+		return template, nil
+	}
+
+	// No resolver — still validate and update
+	template, err := s.templateRepo.FindByID(ctx, cmd.TemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("finding template: %w", err)
+	}
+
+	// Check uniqueness
+	if template.DocumentTypeID != nil {
+		existing, err := s.templateRepo.FindByDocumentType(ctx, template.WorkspaceID, *template.DocumentTypeID, cmd.Process)
+		if err != nil {
+			return nil, fmt.Errorf("checking process uniqueness: %w", err)
+		}
+		if existing != nil && existing.ID != cmd.TemplateID {
+			return nil, entity.ErrProcessSlotConflict
+		}
+	}
+
+	if err := s.templateRepo.UpdateProcessFields(ctx, cmd.TemplateID, cmd.Process, processType); err != nil {
+		return nil, fmt.Errorf("updating process fields: %w", err)
+	}
+
+	template.Process = cmd.Process
+	template.ProcessType = processType
+	now := time.Now().UTC()
+	template.UpdatedAt = &now
+
+	slog.InfoContext(ctx, "template process fields updated",
+		slog.String("template_id", template.ID),
+		slog.String("process", cmd.Process),
+		slog.String("process_type", cmd.ProcessType),
+	)
+
+	return template, nil
 }
 
 // FindByDocumentTypeCode finds templates by document type code across a tenant.
