@@ -90,6 +90,10 @@ func (ctrl *AutomationController) RegisterRoutes(base *gin.Engine, middlewarePro
 	// Workspaces (tenant-scoped)
 	g.GET("/tenants/:tenantId/workspaces", ctrl.listWorkspaces)
 	g.POST("/tenants/:tenantId/workspaces", ctrl.createWorkspace)
+	g.PATCH("/tenants/:tenantId/workspaces/:workspaceId", ctrl.updateWorkspace)
+	g.POST("/tenants/:tenantId/workspaces/:workspaceId/suspend", ctrl.suspendWorkspace)
+	g.POST("/tenants/:tenantId/workspaces/:workspaceId/activate", ctrl.activateWorkspace)
+	g.POST("/tenants/:tenantId/workspaces/:workspaceId/archive", ctrl.archiveWorkspace)
 
 	// Workspace-scoped routes with sandbox support.
 	// AutomationSandboxContext reads :workspaceId from the URL path,
@@ -262,6 +266,126 @@ func (ctrl *AutomationController) createWorkspace(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, mapper.WorkspaceToResponse(workspace))
+}
+
+// updateWorkspace partially updates a workspace's name and/or code.
+// @Summary Update workspace in tenant
+// @Tags Automation
+// @Accept json
+// @Produce json
+// @Param tenantId path string true "Tenant ID"
+// @Param workspaceId path string true "Workspace ID"
+// @Param request body dto.AutomationUpdateWorkspaceRequest true "Workspace data"
+// @Success 200 {object} dto.WorkspaceResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
+// @Router /api/v1/automation/tenants/{tenantId}/workspaces/{workspaceId} [patch]
+// @Security AutomationKey
+func (ctrl *AutomationController) updateWorkspace(c *gin.Context) {
+	tenantID := c.Param("tenantId")
+	if !ctrl.checkTenantAccess(c, tenantID) {
+		return
+	}
+
+	workspaceID := c.Param("workspaceId")
+
+	var req dto.AutomationUpdateWorkspaceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		respondError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := organizationuc.UpdateWorkspaceCommand{
+		ID:   workspaceID,
+		Name: req.Name,
+		Code: req.Code,
+	}
+
+	updated, err := ctrl.workspaceUC.UpdateWorkspace(c.Request.Context(), cmd)
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, mapper.WorkspaceToResponse(updated))
+}
+
+// changeWorkspaceStatus is a shared helper for suspend/activate/archive handlers.
+func (ctrl *AutomationController) changeWorkspaceStatus(c *gin.Context, status entity.WorkspaceStatus) {
+	tenantID := c.Param("tenantId")
+	if !ctrl.checkTenantAccess(c, tenantID) {
+		return
+	}
+
+	workspaceID := c.Param("workspaceId")
+	cmd := organizationuc.UpdateWorkspaceStatusCommand{
+		ID:     workspaceID,
+		Status: status,
+	}
+
+	ws, err := ctrl.workspaceUC.UpdateWorkspaceStatus(c.Request.Context(), cmd)
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, mapper.WorkspaceToResponse(ws))
+}
+
+// suspendWorkspace suspends a workspace.
+// @Summary Suspend workspace
+// @Tags Automation
+// @Produce json
+// @Param tenantId path string true "Tenant ID"
+// @Param workspaceId path string true "Workspace ID"
+// @Success 200 {object} dto.WorkspaceResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/automation/tenants/{tenantId}/workspaces/{workspaceId}/suspend [post]
+// @Security AutomationKey
+func (ctrl *AutomationController) suspendWorkspace(c *gin.Context) {
+	ctrl.changeWorkspaceStatus(c, entity.WorkspaceStatusSuspended)
+}
+
+// activateWorkspace activates a workspace.
+// @Summary Activate workspace
+// @Tags Automation
+// @Produce json
+// @Param tenantId path string true "Tenant ID"
+// @Param workspaceId path string true "Workspace ID"
+// @Success 200 {object} dto.WorkspaceResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/automation/tenants/{tenantId}/workspaces/{workspaceId}/activate [post]
+// @Security AutomationKey
+func (ctrl *AutomationController) activateWorkspace(c *gin.Context) {
+	ctrl.changeWorkspaceStatus(c, entity.WorkspaceStatusActive)
+}
+
+// archiveWorkspace archives a workspace.
+// @Summary Archive workspace
+// @Tags Automation
+// @Produce json
+// @Param tenantId path string true "Tenant ID"
+// @Param workspaceId path string true "Workspace ID"
+// @Success 200 {object} dto.WorkspaceResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /api/v1/automation/tenants/{tenantId}/workspaces/{workspaceId}/archive [post]
+// @Security AutomationKey
+func (ctrl *AutomationController) archiveWorkspace(c *gin.Context) {
+	ctrl.changeWorkspaceStatus(c, entity.WorkspaceStatusArchived)
 }
 
 // --- Injectable Handlers ---

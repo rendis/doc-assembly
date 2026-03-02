@@ -46,7 +46,8 @@ func CreateWorkspaceRequestToCommand(req dto.CreateWorkspaceRequest, createdBy s
 func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) organizationuc.UpdateWorkspaceCommand {
 	return organizationuc.UpdateWorkspaceCommand{
 		ID:   id,
-		Name: req.Name,
+		Name: &req.Name,
+		Code: req.Code,
 	}
 }
 

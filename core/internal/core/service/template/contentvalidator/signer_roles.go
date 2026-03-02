@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/core/entity/portabledoc"
 	"github.com/rendis/doc-assembly/core/internal/core/validation"
@@ -197,8 +198,16 @@ func buildInjectableMap(list []*entity.InjectableDefinition) map[string]*entity.
 }
 
 // buildInjectable creates the appropriate injectable entity based on source type.
+// For EXTERNAL injectables or system registry injectables (non-UUID ID), it uses
+// the system injectable key. For DB-backed INTERNAL injectables (UUID ID), it
+// references the injectable definition directly.
 func buildInjectable(versionID, varID string, def *entity.InjectableDefinition) *entity.TemplateVersionInjectable {
 	if def.SourceType == entity.InjectableSourceTypeExternal {
+		return entity.NewTemplateVersionInjectableFromSystemKey(versionID, varID)
+	}
+	// System registry injectables have non-UUID IDs (their code/key).
+	// Only DB-backed injectables have valid UUID IDs for the FK reference.
+	if _, err := uuid.Parse(def.ID); err != nil {
 		return entity.NewTemplateVersionInjectableFromSystemKey(versionID, varID)
 	}
 	return entity.NewTemplateVersionInjectable(versionID, def.ID, false, nil)

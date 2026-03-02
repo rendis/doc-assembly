@@ -75,7 +75,7 @@ const (
 
 	queryUpdate = `
 		UPDATE tenancy.workspaces
-		SET name = $2, updated_at = $3
+		SET name = $2, code = $3, updated_at = $4
 		WHERE id = $1`
 
 	queryUpdateStatus = `

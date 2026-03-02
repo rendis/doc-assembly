@@ -235,6 +235,7 @@ func (r *Repository) Update(ctx context.Context, workspace *entity.Workspace) er
 	_, err := r.pool.Exec(ctx, queryUpdate,
 		workspace.ID,
 		workspace.Name,
+		workspace.Code,
 		workspace.UpdatedAt,
 	)
 	if err != nil {

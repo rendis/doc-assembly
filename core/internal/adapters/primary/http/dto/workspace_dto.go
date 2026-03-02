@@ -25,7 +25,8 @@ type CreateWorkspaceRequest struct {
 
 // UpdateWorkspaceRequest represents a request to update a workspace.
 type UpdateWorkspaceRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=255"`
+	Name string  `json:"name" binding:"required,min=1,max=255"`
+	Code *string `json:"code"`
 }
 
 // Validate validates the CreateWorkspaceRequest.
@@ -53,6 +54,13 @@ func (r *UpdateWorkspaceRequest) Validate() error {
 	}
 	if len(r.Name) > 255 {
 		return ErrNameTooLong
+	}
+	if r.Code != nil {
+		normalized := normalizeCode(*r.Code)
+		r.Code = &normalized
+		if err := validateCode(normalized); err != nil {
+			return err
+		}
 	}
 	return nil
 }

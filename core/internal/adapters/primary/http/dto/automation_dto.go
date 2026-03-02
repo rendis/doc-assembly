@@ -66,6 +66,24 @@ type AutomationCreateWorkspaceRequest struct {
 	Description string `json:"description"`
 }
 
+// AutomationUpdateWorkspaceRequest is the request body for PATCH /automation/tenants/:tenantId/workspaces/:workspaceId.
+type AutomationUpdateWorkspaceRequest struct {
+	Name *string `json:"name"`
+	Code *string `json:"code"`
+}
+
+// Validate validates the AutomationUpdateWorkspaceRequest.
+func (r *AutomationUpdateWorkspaceRequest) Validate() error {
+	if r.Code != nil {
+		normalized := normalizeCode(*r.Code)
+		r.Code = &normalized
+		if err := validateCode(normalized); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // AutomationCreateTemplateRequest is the request body for POST /automation/workspaces/:workspaceId/templates.
 type AutomationCreateTemplateRequest struct {
 	Name        string `json:"name"        binding:"required"`

@@ -25,6 +25,7 @@ export interface CreateWorkspaceRequest {
 
 export interface UpdateWorkspaceRequest {
   name?: string
+  code?: string
 }
 
 export interface UpdateWorkspaceStatusRequest {

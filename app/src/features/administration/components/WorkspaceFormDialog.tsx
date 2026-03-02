@@ -96,20 +96,18 @@ function WorkspaceFormDialogContent({
       setNameError('')
     }
 
-    if (mode === 'create') {
-      const cleanedCode = cleanCodeForSubmit(code)
-      if (!cleanedCode) {
-        setCodeError(t('administration.workspaces.form.codeRequired', 'Code is required'))
-        isValid = false
-      } else if (cleanedCode.length < 2 || cleanedCode.length > 50) {
-        setCodeError(t('administration.workspaces.form.codeLength', 'Code must be 2-50 characters'))
-        isValid = false
-      } else if (!CODE_REGEX.test(cleanedCode)) {
-        setCodeError(t('administration.workspaces.form.codeInvalid', 'Code must contain only letters, numbers, and underscores'))
-        isValid = false
-      } else {
-        setCodeError('')
-      }
+    const cleanedCode = cleanCodeForSubmit(code)
+    if (!cleanedCode) {
+      setCodeError(t('administration.workspaces.form.codeRequired', 'Code is required'))
+      isValid = false
+    } else if (cleanedCode.length < 2 || cleanedCode.length > 50) {
+      setCodeError(t('administration.workspaces.form.codeLength', 'Code must be 2-50 characters'))
+      isValid = false
+    } else if (!CODE_REGEX.test(cleanedCode)) {
+      setCodeError(t('administration.workspaces.form.codeInvalid', 'Code must contain only letters, numbers, and underscores'))
+      isValid = false
+    } else {
+      setCodeError('')
     }
 
     return isValid
@@ -146,6 +144,7 @@ function WorkspaceFormDialogContent({
         if (currentWorkspace?.id === workspace.id) {
           await updateMutation.mutateAsync({
             name: name.trim(),
+            code: finalCode,
           })
           toast({
             title: t('administration.workspaces.form.updateSuccess', 'Workspace updated'),
@@ -213,47 +212,33 @@ function WorkspaceFormDialogContent({
           )}
         </div>
 
-        {/* Code field - editable in create mode */}
-        {mode === 'create' && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.workspaces.form.code', 'Code')} *
-            </label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => {
-                setCode(normalizeCodeWhileTyping(e.target.value))
-                setCodeError('')
-              }}
-              onBlur={handleCodeBlur}
-              placeholder={t('administration.workspaces.form.codePlaceholder', 'WORKSPACE_CODE')}
-              className={cn(
-                'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
-                codeError ? 'border-destructive' : 'border-border'
-              )}
-              disabled={isLoading}
-            />
-            {codeError && (
-              <p className="mt-1 text-xs text-destructive">{codeError}</p>
+        {/* Code field - editable in both create and edit modes */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            {t('administration.workspaces.form.code', 'Code')} *
+          </label>
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => {
+              setCode(normalizeCodeWhileTyping(e.target.value))
+              setCodeError('')
+            }}
+            onBlur={handleCodeBlur}
+            placeholder={t('administration.workspaces.form.codePlaceholder', 'WORKSPACE_CODE')}
+            className={cn(
+              'w-full rounded-sm border bg-transparent px-3 py-2 text-sm font-mono uppercase outline-none transition-colors focus:border-foreground',
+              codeError ? 'border-destructive' : 'border-border'
             )}
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t('administration.workspaces.form.codeHint', '2-50 uppercase characters')}
-            </p>
-          </div>
-        )}
-
-        {/* Code display in edit mode */}
-        {mode === 'edit' && workspace && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              {t('administration.workspaces.form.code', 'Code')}
-            </label>
-            <div className="rounded-sm border border-border bg-muted px-3 py-2">
-              <span className="font-mono text-sm uppercase">{workspace.code}</span>
-            </div>
-          </div>
-        )}
+            disabled={isLoading}
+          />
+          {codeError && (
+            <p className="mt-1 text-xs text-destructive">{codeError}</p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('administration.workspaces.form.codeHint', '2-50 uppercase characters')}
+          </p>
+        </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
           <button

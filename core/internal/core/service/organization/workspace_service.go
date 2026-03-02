@@ -52,14 +52,8 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, cmd organization
 	}
 
 	// Check code uniqueness within tenant
-	if cmd.TenantID != nil {
-		codeExists, err := s.workspaceRepo.ExistsByCodeForTenant(ctx, *cmd.TenantID, cmd.Code, "")
-		if err != nil {
-			return nil, fmt.Errorf("checking workspace code: %w", err)
-		}
-		if codeExists {
-			return nil, entity.ErrWorkspaceCodeExists
-		}
+	if err := s.checkCodeUniqueness(ctx, cmd.TenantID, cmd.Code, ""); err != nil {
+		return nil, err
 	}
 
 	workspace := &entity.Workspace{
@@ -144,7 +138,15 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, cmd organization
 		return nil, fmt.Errorf("finding workspace: %w", err)
 	}
 
-	workspace.Name = cmd.Name
+	if cmd.Name != nil {
+		workspace.Name = *cmd.Name
+	}
+
+	// Handle code update if requested
+	if err := s.applyCodeUpdate(ctx, workspace, cmd.Code); err != nil {
+		return nil, err
+	}
+
 	now := time.Now().UTC()
 	workspace.UpdatedAt = &now
 
@@ -159,9 +161,42 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, cmd organization
 	slog.InfoContext(ctx, "workspace updated",
 		slog.String("workspace_id", workspace.ID),
 		slog.String("name", workspace.Name),
+		slog.String("code", workspace.Code),
 	)
 
 	return workspace, nil
+}
+
+// applyCodeUpdate validates and applies a code change to the workspace.
+// Returns nil if code is nil or unchanged.
+func (s *WorkspaceService) applyCodeUpdate(ctx context.Context, workspace *entity.Workspace, code *string) error {
+	if code == nil || *code == workspace.Code {
+		return nil
+	}
+	if workspace.Type == entity.WorkspaceTypeSystem {
+		return entity.ErrCannotModifySystemWorkspace
+	}
+	if err := s.checkCodeUniqueness(ctx, workspace.TenantID, *code, workspace.ID); err != nil {
+		return err
+	}
+	workspace.Code = *code
+	return nil
+}
+
+// checkCodeUniqueness verifies that no other workspace in the tenant uses the given code.
+// excludeID allows excluding a workspace from the check (for updates).
+func (s *WorkspaceService) checkCodeUniqueness(ctx context.Context, tenantID *string, code, excludeID string) error {
+	if tenantID == nil {
+		return nil
+	}
+	exists, err := s.workspaceRepo.ExistsByCodeForTenant(ctx, *tenantID, code, excludeID)
+	if err != nil {
+		return fmt.Errorf("checking workspace code: %w", err)
+	}
+	if exists {
+		return entity.ErrWorkspaceCodeExists
+	}
+	return nil
 }
 
 // ArchiveWorkspace archives a workspace (soft delete).

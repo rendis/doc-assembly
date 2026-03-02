@@ -19,7 +19,8 @@ type CreateWorkspaceCommand struct {
 // UpdateWorkspaceCommand represents the command to update a workspace.
 type UpdateWorkspaceCommand struct {
 	ID   string
-	Name string
+	Name *string // nil = don't change
+	Code *string // nil = don't change
 }
 
 // UpdateWorkspaceStatusCommand represents the command to update a workspace's status.
