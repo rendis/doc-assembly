@@ -151,7 +151,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	contentValidator := contentvalidator.New(injectableService)
 
 	// Create services - Content
-	templateService := templatesvc.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo)
+	templateService := templatesvc.NewTemplateService(templateRepo, templateVersionRepo, templateTagRepo, nil)
 	templateVersionService := templatesvc.NewTemplateVersionService(
 		templateVersionRepo,
 		templateVersionInjectableRepo,
