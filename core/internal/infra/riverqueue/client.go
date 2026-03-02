@@ -20,8 +20,9 @@ import (
 
 // RiverService manages the River client lifecycle and exposes the notifier.
 type RiverService struct {
-	client   *river.Client[pgx.Tx]
-	notifier *Notifier
+	client         *river.Client[pgx.Tx]
+	notifier       *Notifier
+	workersEnabled bool
 }
 
 // New creates a RiverService: runs migrations, registers the worker, and
@@ -45,18 +46,16 @@ func New(
 		return nil, fmt.Errorf("running river migrations: %w", err)
 	}
 
-	// Register workers.
-	workers := river.NewWorkers()
-	river.AddWorker(workers, &DocumentCompletedWorker{
-		handler: handler,
-		pool:    pool,
-	})
-
-	// Build River config. When disabled, omit Queues so the client is insert-only.
-	riverCfg := &river.Config{
-		Workers: workers,
-	}
+	// Build River config. When disabled, omit Workers and Queues so the client
+	// operates in insert-only mode (River requires both or neither).
+	riverCfg := &river.Config{}
 	if cfg.Enabled {
+		workers := river.NewWorkers()
+		river.AddWorker(workers, &DocumentCompletedWorker{
+			handler: handler,
+			pool:    pool,
+		})
+		riverCfg.Workers = workers
 		riverCfg.Queues = map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: cfg.MaxWorkersOrDefault()},
 		}
@@ -79,8 +78,9 @@ func New(
 	)
 
 	return &RiverService{
-		client:   client,
-		notifier: notifier,
+		client:         client,
+		notifier:       notifier,
+		workersEnabled: cfg.Enabled,
 	}, nil
 }
 
@@ -89,12 +89,18 @@ func (r *RiverService) Notifier() port.DocumentCompletionNotifier {
 	return r.notifier
 }
 
-// Start begins processing jobs. Only meaningful when workers are enabled.
+// Start begins processing jobs. No-op when workers are disabled (insert-only mode).
 func (r *RiverService) Start(ctx context.Context) error {
+	if !r.workersEnabled {
+		return nil
+	}
 	return r.client.Start(ctx)
 }
 
-// Stop gracefully shuts down the River client.
+// Stop gracefully shuts down the River client. No-op when workers are disabled.
 func (r *RiverService) Stop(ctx context.Context) error {
+	if !r.workersEnabled {
+		return nil
+	}
 	return r.client.Stop(ctx)
 }
