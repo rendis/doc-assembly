@@ -35,7 +35,7 @@ const (
 		SELECT t.id, t.name, t.code, COALESCE(t.settings, '{}'), t.created_at, t.updated_at, m.role
 		FROM identity.tenant_members m
 		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
-		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE' AND t.status = 'ACTIVE'
 		ORDER BY t.name`
 
 	queryFindActiveByUserAndTenant = `
@@ -59,7 +59,7 @@ const (
 		FROM unnest($2::uuid[]) WITH ORDINALITY AS input(id, ord)
 		INNER JOIN tenancy.tenants t ON t.id = input.id
 		INNER JOIN identity.tenant_members m ON m.tenant_id = t.id
-		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE' AND t.status = 'ACTIVE'
 		ORDER BY input.ord`
 
 	// queryFindTenantsWithRoleByUserPaginated lists tenants a user belongs to with pagination and optional search.
@@ -73,7 +73,7 @@ const (
 			ON t.id = h.entity_id
 			AND h.entity_type = 'TENANT'
 			AND h.user_id = $1
-		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE' AND t.status = 'ACTIVE'
 		  AND ($2 = '' OR t.name ILIKE '%' || $2 || '%' OR t.code ILIKE '%' || $2 || '%')
 		ORDER BY
 			CASE WHEN $2 != '' THEN GREATEST(similarity(t.name, $2), similarity(t.code, $2)) ELSE 0 END DESC,
@@ -86,6 +86,6 @@ const (
 		SELECT COUNT(*)
 		FROM identity.tenant_members m
 		INNER JOIN tenancy.tenants t ON m.tenant_id = t.id
-		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE'
+		WHERE m.user_id = $1 AND m.membership_status = 'ACTIVE' AND t.status = 'ACTIVE'
 		  AND ($2 = '' OR t.name ILIKE '%' || $2 || '%' OR t.code ILIKE '%' || $2 || '%')`
 )
