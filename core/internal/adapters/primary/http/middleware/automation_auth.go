@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,9 +27,7 @@ func AutomationKeyAuth(keyRepo port.AutomationAPIKeyRepository) gin.HandlerFunc 
 			return
 		}
 
-		// Hash the raw key
-		sum := sha256.Sum256([]byte(rawKey))
-		keyHash := hex.EncodeToString(sum[:])
+		keyHash := hashAPIKey(rawKey)
 
 		// Look up in database
 		key, err := keyRepo.FindByHash(c.Request.Context(), keyHash)
@@ -48,7 +44,7 @@ func AutomationKeyAuth(keyRepo port.AutomationAPIKeyRepository) gin.HandlerFunc 
 
 		// Ensure this is an automation key (not an internal key)
 		if key.KeyType != entity.KeyTypeAutomation {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or revoked API key"})
+			abortWithError(c, http.StatusUnauthorized, entity.ErrInvalidAPIKey)
 			return
 		}
 

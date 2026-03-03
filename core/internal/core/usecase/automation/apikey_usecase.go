@@ -74,6 +74,10 @@ func generateKey() (rawKey, keyHash, keyPrefix string, err error) {
 
 // CreateKey generates a new API key, hashes it, and persists it.
 func (s *apiKeyService) CreateKey(ctx context.Context, name string, allowedTenants []string, createdBy string, keyType string) (*CreateAPIKeyResult, error) {
+	if keyType != entity.KeyTypeAutomation && keyType != entity.KeyTypeInternal {
+		return nil, entity.ErrInvalidKeyType
+	}
+
 	rawKey, keyHash, keyPrefix, err := generateKey()
 	if err != nil {
 		return nil, fmt.Errorf("generate key: %w", err)
@@ -127,6 +131,10 @@ func (s *apiKeyService) UpdateKey(ctx context.Context, id string, name string, a
 		return nil, entity.ErrAPIKeyNotFound
 	}
 	key.Name = name
+	// Internal keys always have global tenant access.
+	if key.KeyType == entity.KeyTypeInternal {
+		allowedTenants = nil
+	}
 	key.AllowedTenants = allowedTenants
 	return s.keyRepo.Update(ctx, key)
 }

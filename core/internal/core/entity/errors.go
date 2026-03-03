@@ -291,6 +291,7 @@ var (
 // Automation API key errors.
 var (
 	ErrAPIKeyNotFound = errors.New("api key not found")
+	ErrInvalidKeyType = errors.New("keyType must be 'automation' or 'internal'")
 )
 
 // ContentValidationError wraps multiple validation errors from content validation.

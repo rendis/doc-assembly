@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -392,23 +393,18 @@ func (ts *TestServer) Close() {
 
 // seedTestInternalAPIKey inserts a pre-defined internal API key into the DB
 // so the InternalKeyAuth middleware can authenticate requests using TestInternalAPIKey.
+// Uses create-and-handle-error to avoid TOCTOU race when parallel test packages
+// share the same DB singleton.
 func seedTestInternalAPIKey(t *testing.T, repo port.AutomationAPIKeyRepository) {
 	t.Helper()
 	sum := sha256.Sum256([]byte(TestInternalAPIKey))
 	keyHash := hex.EncodeToString(sum[:])
 
-	// Idempotent: skip if already seeded (shared DB singleton across tests).
-	existing, err := repo.FindByHash(context.Background(), keyHash)
-	require.NoError(t, err, "check existing test internal API key")
-	if existing != nil {
-		return
-	}
-
 	keyPrefix := TestInternalAPIKey
 	if len(keyPrefix) > 12 {
 		keyPrefix = keyPrefix[:12]
 	}
-	_, err = repo.Create(context.Background(), &entity.AutomationAPIKey{
+	_, err := repo.Create(context.Background(), &entity.AutomationAPIKey{
 		Name:      "Test Internal Key",
 		KeyHash:   keyHash,
 		KeyPrefix: keyPrefix,
@@ -416,5 +412,8 @@ func seedTestInternalAPIKey(t *testing.T, repo port.AutomationAPIKeyRepository) 
 		IsActive:  true,
 		CreatedBy: "00000000-0000-0000-0000-000000000000",
 	})
-	require.NoError(t, err, "seed test internal API key")
+	// Idempotent: unique constraint violation means key already seeded.
+	if err != nil && !strings.Contains(err.Error(), "uq_api_keys_key_hash") {
+		require.NoError(t, err, "seed test internal API key")
+	}
 }

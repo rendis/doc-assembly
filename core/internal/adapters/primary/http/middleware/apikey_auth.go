@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -14,6 +15,12 @@ import (
 
 // APIKeyHeader is the HTTP header name for API key authentication.
 const APIKeyHeader = "X-API-Key" //nolint:gosec // This is a header name, not a credential
+
+// hashAPIKey returns the hex-encoded SHA-256 of rawKey.
+func hashAPIKey(rawKey string) string {
+	sum := sha256.Sum256([]byte(rawKey))
+	return hex.EncodeToString(sum[:])
+}
 
 // InternalKeyAuth creates a middleware that validates an internal API key
 // against the database. Uses SHA-256 hashing for key lookup.
@@ -25,27 +32,26 @@ func InternalKeyAuth(keyRepo port.AutomationAPIKeyRepository) gin.HandlerFunc {
 			return
 		}
 
-		// Hash the raw key with SHA-256
-		sum := sha256.Sum256([]byte(rawKey))
-		keyHash := hex.EncodeToString(sum[:])
+		keyHash := hashAPIKey(rawKey)
 
-		// Look up via repository
 		key, err := keyRepo.FindByHash(c.Request.Context(), keyHash)
 		if err != nil || key == nil {
 			abortWithError(c, http.StatusUnauthorized, entity.ErrInvalidAPIKey)
 			return
 		}
 
-		// Verify the key is active, not revoked, and is an internal key
+		// Defence-in-depth: verify active status, revocation, and key type
 		if !key.IsActive || key.IsRevoked() || key.KeyType != entity.KeyTypeInternal {
 			abortWithError(c, http.StatusUnauthorized, entity.ErrInvalidAPIKey)
 			return
 		}
 
-		// Fire and forget: update last used timestamp (use background context
-		// because the request context may be cancelled before the goroutine runs).
+		// Fire and forget: update last used timestamp with bounded timeout
+		// to prevent goroutine/connection leaks under load.
 		go func() {
-			_ = keyRepo.TouchLastUsed(context.Background(), key.ID)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			_ = keyRepo.TouchLastUsed(ctx, key.ID)
 		}()
 
 		c.Next()
