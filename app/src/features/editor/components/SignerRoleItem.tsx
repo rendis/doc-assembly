@@ -288,7 +288,7 @@ function FieldEditor({
   return (
     <div
       className={cn(
-        'flex items-start gap-2 overflow-visible',
+        'flex min-w-0 items-start gap-2 overflow-hidden',
         fieldType === 'name' && field.type === 'injectable' && 'min-h-14',
         disabled && 'opacity-50'
       )}
@@ -564,7 +564,7 @@ export function SignerRoleItem({
         onBlur={handleBlur}
         onFocus={handleFocus}
         className={cn(
-          'border border-border rounded-lg p-3 bg-card transition-all',
+          'w-full min-w-0 max-w-full overflow-hidden border border-border rounded-lg p-3 bg-card transition-all',
           // Efecto 3D base
           'shadow-sm',
           // Hover: elevación solo cuando grip está hovered
@@ -580,7 +580,7 @@ export function SignerRoleItem({
           layout={!isDragging && !isOverlay}
           animate={{ marginBottom: isExpanded ? 12 : 0 }}
           transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          className="flex items-center gap-2"
+          className="flex min-w-0 w-full items-center gap-2"
         >
           <div
             {...(isDisabled ? {} : { ...attributes, ...listeners })}
@@ -658,11 +658,13 @@ export function SignerRoleItem({
 
           {/* NotificationBadge - solo visible en modo individual */}
           {isIndividualMode && (
-            <NotificationBadge
-              triggers={roleTriggers}
-              onClick={isDisabled ? undefined : () => setShowNotificationDialog(true)}
-              className={isDisabled ? 'opacity-30 cursor-default' : undefined}
-            />
+            <div className="shrink-0">
+              <NotificationBadge
+                triggers={roleTriggers}
+                onClick={isDisabled ? undefined : () => setShowNotificationDialog(true)}
+                className={isDisabled ? 'opacity-30 cursor-default' : undefined}
+              />
+            </div>
           )}
 
           <Button
@@ -720,7 +722,7 @@ export function SignerRoleItem({
           transition={{
             height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
           }}
-          style={{ overflowY: 'hidden', overflowX: 'visible' }}
+          style={{ overflow: 'hidden' }}
         >
           <div className="space-y-2 pt-2">
             <FieldEditor

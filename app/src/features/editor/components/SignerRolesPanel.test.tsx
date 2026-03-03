@@ -54,4 +54,36 @@ describe('SignerRolesPanel collapsed header', () => {
     expect(expandButton.className).toContain('items-center')
     expect(expandButton.className).toContain('justify-center')
   })
+
+  it('keeps role cards constrained to available panel width in expanded mode', () => {
+    useSignerRolesStore.getState().reset()
+    useSignerRolesStore.getState().setRoles([
+      {
+        id: 'role-1',
+        label: 'Signer 1',
+        name: { type: 'text', value: '' },
+        email: { type: 'text', value: '' },
+        order: 1,
+      },
+    ])
+
+    const { container } = render(
+      <TooltipProvider>
+        <SignerRolesPanel variables={[]} />
+      </TooltipProvider>
+    )
+
+    const scrollList = container.querySelector('div.p-4.pb-8.space-y-3')
+    expect(scrollList).toBeDefined()
+    expect(scrollList?.className).toContain('min-w-0')
+    expect(scrollList?.className).toContain('w-full')
+
+    const roleLabelInput = screen.getByDisplayValue('Signer 1')
+    const roleCard = roleLabelInput.closest('div.border.border-border.rounded-lg')
+    expect(roleCard).toBeDefined()
+    expect(roleCard?.className).toContain('w-full')
+    expect(roleCard?.className).toContain('min-w-0')
+    expect(roleCard?.className).toContain('max-w-full')
+    expect(roleCard?.className).toContain('overflow-hidden')
+  })
 })

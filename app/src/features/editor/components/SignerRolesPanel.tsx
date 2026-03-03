@@ -363,8 +363,8 @@ export function SignerRolesPanel({
             ) : (
               <>
                 {/* Scrollable role list */}
-                <ScrollArea className="flex-1">
-                  <div className="p-4 pb-8 space-y-3">
+                <ScrollArea className="flex-1 min-w-0">
+                  <div className="p-4 pb-8 space-y-3 min-w-0 w-full">
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
@@ -389,6 +389,7 @@ export function SignerRolesPanel({
                                 ease: [0.4, 0, 0.2, 1],
                                 layout: { duration: 0.2 },
                               }}
+                              className="min-w-0 w-full"
                             >
                               <SignerRoleItem
                                 role={role}
