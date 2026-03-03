@@ -23,7 +23,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useRoleInjectables } from '../hooks/useRoleInjectables'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
 import { getInjectableVariableIds } from '../types/signer-roles'
 import { NotificationBadge, NotificationConfigDialog } from './workflow'
@@ -34,6 +33,7 @@ import type {
   NotificationTriggerMap,
 } from '../types/signer-roles'
 import { getDefaultParallelTriggers, getDefaultSequentialTriggers } from '../types/signer-roles'
+import type { VariableDragData } from '../types/drag'
 import type { Variable as VariableType } from '../types/variables'
 
 interface SignerRoleItemProps {
@@ -185,7 +185,6 @@ function FieldEditor({
   const { t } = useTranslation()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const targetRef = useRef<HTMLDivElement>(null)
-  const { roleInjectables } = useRoleInjectables()
   const activeInjectionTarget = useSignerRolesStore((state) => state.activeInjectionTarget)
   const setActiveInjectionTarget = useSignerRolesStore((state) => state.setActiveInjectionTarget)
   const clearActiveInjectionTarget = useSignerRolesStore((state) => state.clearActiveInjectionTarget)
@@ -200,13 +199,8 @@ function FieldEditor({
     for (const variable of textVariables) {
       map.set(variable.variableId, variable.label)
     }
-    for (const roleInjectable of roleInjectables) {
-      if (roleInjectable.type === 'TEXT') {
-        map.set(roleInjectable.variableId, roleInjectable.label)
-      }
-    }
     return map
-  }, [textVariables, roleInjectables])
+  }, [textVariables])
 
   const selectedVariableIds = useMemo(() => {
     const ids = getInjectableVariableIds(field)
@@ -249,12 +243,9 @@ function FieldEditor({
     setActiveInjectionTarget({ roleId, fieldType })
   }
 
-  const handleInjectableSelect = (data: {
-    variableId: string
-    injectorType: string
-  }) => {
+  const handleInjectableSelect = (data: VariableDragData) => {
     if (disabled) return
-    if (data.injectorType !== 'TEXT') return
+    if (data.itemType !== 'variable' || data.injectorType !== 'TEXT') return
 
     if (fieldType === 'email') {
       onChange(buildInjectableFieldValue('email', [data.variableId]))
@@ -391,7 +382,7 @@ function FieldEditor({
             </div>
           </PopoverTrigger>
           <PopoverContent align="start" side="bottom" className="w-[360px] p-3">
-            {textVariables.length === 0 && roleInjectables.length === 0 ? (
+            {textVariables.length === 0 ? (
               <div className="px-1 py-2 text-xs text-muted-foreground">
                 {t('editor.roles.card.noVariables')}
               </div>
@@ -399,7 +390,7 @@ function FieldEditor({
               <InjectablePickerContent
                 onSelect={handleInjectableSelect}
                 selectedVariableIds={selectedVariableIds}
-                className="max-h-[320px]"
+                className="h-[320px]"
               />
             )}
           </PopoverContent>

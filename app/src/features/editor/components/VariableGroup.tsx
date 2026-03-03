@@ -74,6 +74,8 @@ interface VariableGroupProps {
   defaultCollapsed?: boolean
   /** Hide drag handles on variables (for modal/click-only contexts) */
   hideDragHandle?: boolean
+  /** Disable drag interactions on child variables (click-only) */
+  disableVariableDrag?: boolean
 }
 
 /**
@@ -104,6 +106,7 @@ export function VariableGroup({
   onOpenChange,
   defaultCollapsed = true,
   hideDragHandle = false,
+  disableVariableDrag = false,
 }: VariableGroupProps) {
   // Support both controlled and uncontrolled modes
   const [internalIsOpen, setInternalIsOpen] = useState(!defaultCollapsed)
@@ -196,6 +199,7 @@ export function VariableGroup({
               onClick={onVariableClick}
               isDragging={draggingIds.includes(v.variableId)}
               hideDragHandle={hideDragHandle}
+              disableDrag={disableVariableDrag}
             />
           ))}
         </div>

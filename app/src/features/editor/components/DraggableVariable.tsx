@@ -31,6 +31,11 @@ interface DraggableVariableProps {
    * Hide the drag handle icon (for modal/click-only contexts)
    */
   hideDragHandle?: boolean
+
+  /**
+   * Disable drag behavior and keep click-only interaction.
+   */
+  disableDrag?: boolean
 }
 
 const SOURCE_TYPE_STYLES: Record<'INTERNAL' | 'EXTERNAL' | 'default', string> = {
@@ -71,10 +76,12 @@ export function DraggableVariable({
   onClick,
   isDragging = false,
   hideDragHandle = false,
+  disableDrag = false,
 }: DraggableVariableProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: data.id,
     data: data,
+    disabled: disableDrag,
   })
 
   // Choose icon based on variable type
@@ -92,11 +99,12 @@ export function DraggableVariable({
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      {...(disableDrag ? {} : listeners)}
+      {...(disableDrag ? {} : attributes)}
       onClick={() => onClick?.(data)}
       className={cn(
-        'flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-card shadow-sm cursor-grab hover:shadow-md transition-all group select-none w-full min-w-0 overflow-hidden',
+        'flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-card shadow-sm hover:shadow-md transition-all group select-none w-full min-w-0 overflow-hidden',
+        disableDrag ? 'cursor-pointer' : 'cursor-grab',
         // Visual differentiation for role variables and source types
         isRole
           ? 'border-role-border/50 bg-role-muted/30 hover:bg-role-muted/60 text-role-foreground'

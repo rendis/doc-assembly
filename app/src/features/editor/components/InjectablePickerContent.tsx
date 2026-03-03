@@ -1,13 +1,11 @@
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { Clock, Database, Loader2, Search, Users, Variable as VariableIcon } from 'lucide-react'
+import { Clock, Database, Loader2, Search, Variable as VariableIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useRoleInjectables } from '../hooks/useRoleInjectables'
 import { useInjectablesStore } from '../stores/injectables-store'
 import type { VariableDragData } from '../types/drag'
-import type { RoleInjectable } from '../types/role-injectable'
 import type { Variable } from '../types/variables'
 import { DraggableVariable } from './DraggableVariable'
 import { VariableGroup } from './VariableGroup'
@@ -33,21 +31,8 @@ export function InjectablePickerContent({
   const globalVariables = useInjectablesStore((s) => s.variables)
   const groups = useInjectablesStore((s) => s.groups)
   const isLoading = useInjectablesStore((s) => s.isLoading)
-  const { roleInjectables } = useRoleInjectables()
 
   const lowerSearchQuery = searchQuery.toLowerCase().trim()
-
-  const filteredRoleInjectables = useMemo(() => {
-    const textRoleInjectables = roleInjectables.filter((ri) => ri.type === 'TEXT')
-    if (!lowerSearchQuery) return textRoleInjectables
-
-    return textRoleInjectables.filter(
-      (ri) =>
-        ri.label.toLowerCase().includes(lowerSearchQuery) ||
-        ri.roleLabel.toLowerCase().includes(lowerSearchQuery) ||
-        ri.propertyLabel.toLowerCase().includes(lowerSearchQuery)
-    )
-  }, [roleInjectables, lowerSearchQuery])
 
   const {
     groupedExternalVariables,
@@ -119,27 +104,14 @@ export function InjectablePickerContent({
     description: v.description,
   })
 
-  const mapRoleToDragData = (ri: RoleInjectable): VariableDragData => ({
-    id: ri.id,
-    itemType: 'role-variable',
-    variableId: ri.variableId,
-    label: ri.label,
-    injectorType: ri.type,
-    roleId: ri.roleId,
-    roleLabel: ri.roleLabel,
-    propertyKey: ri.propertyKey,
-    propertyLabel: ri.propertyLabel,
-  })
-
   const totalTextInjectables =
-    filteredRoleInjectables.length +
     groupedExternalVariables.reduce((acc, [, vars]) => acc + vars.length, 0) +
     groupedInternalVariables.reduce((acc, [, vars]) => acc + vars.length, 0) +
     ungroupedExternalVariables.length +
     ungroupedInternalVariables.length
 
   return (
-    <div className={cn('flex min-h-0 flex-col', className)}>
+    <div className={cn('flex h-full min-h-0 flex-col', className)}>
       <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
         <VariableIcon className="h-3.5 w-3.5" />
         <span>{t('editor.variablesPanel.header')}</span>
@@ -177,35 +149,6 @@ export function InjectablePickerContent({
             </div>
           )}
 
-          {!isLoading && filteredRoleInjectables.length > 0 && (
-            <section className="space-y-2">
-              <div className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-role">
-                <Users className="h-3 w-3" />
-                <span>{t('editor.variablesPanel.sections.signerRoles')}</span>
-                <span className="ml-auto rounded bg-role-muted/50 px-1.5 text-[9px] text-role-foreground">
-                  {filteredRoleInjectables.length}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {filteredRoleInjectables.map((ri, index, array) => {
-                  const showSeparator = index > 0 && ri.roleId !== array[index - 1].roleId
-                  return (
-                    <div key={ri.id}>
-                      {showSeparator && (
-                        <div className="my-2 mx-1 border-b border-dashed border-role-border/30" />
-                      )}
-                      <DraggableVariable
-                        data={mapRoleToDragData(ri)}
-                        onClick={onSelect}
-                        hideDragHandle
-                      />
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          )}
-
           {!isLoading && groupedExternalVariables.map(([groupKey, variables]) => {
             const group = groups.find((g) => g.key === groupKey)
             if (!group) return null
@@ -217,6 +160,7 @@ export function InjectablePickerContent({
                 onVariableClick={onSelect}
                 defaultCollapsed={false}
                 hideDragHandle
+                disableVariableDrag
               />
             )
           })}
@@ -237,6 +181,7 @@ export function InjectablePickerContent({
                     data={mapVariableToDragData(v)}
                     onClick={onSelect}
                     hideDragHandle
+                    disableDrag
                   />
                 ))}
               </div>
@@ -259,6 +204,7 @@ export function InjectablePickerContent({
                     data={mapVariableToDragData(v)}
                     onClick={onSelect}
                     hideDragHandle
+                    disableDrag
                   />
                 ))}
               </div>
@@ -276,6 +222,7 @@ export function InjectablePickerContent({
                 onVariableClick={onSelect}
                 defaultCollapsed={false}
                 hideDragHandle
+                disableVariableDrag
               />
             )
           })}

@@ -346,7 +346,11 @@ export function DocumentEditor({
   const assignVariableToActiveRoleTarget = useCallback(
     (data: VariableDragData): boolean => {
       if (!activeInjectionTarget) return false
-      if (data.injectorType !== 'TEXT') return false
+      // While a role field is targeted, consume clicks that are not plain TEXT variables
+      // to avoid accidental recursive role assignments or editor insertions.
+      if (data.itemType !== 'variable' || data.injectorType !== 'TEXT') {
+        return true
+      }
 
       const targetRole = roles.find((role) => role.id === activeInjectionTarget.roleId)
       if (!targetRole) {
