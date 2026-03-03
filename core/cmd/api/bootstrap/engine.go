@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
@@ -227,12 +228,7 @@ func (e *Engine) Run() error {
 	ctx := context.Background()
 
 	// Setup structured logging
-	handler := logging.NewContextHandler(
-		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		}),
-	)
-	slog.SetDefault(slog.New(handler))
+	configureDefaultLogger(slog.LevelInfo)
 
 	slog.InfoContext(ctx, "starting doc-assembly engine")
 
@@ -240,6 +236,11 @@ func (e *Engine) Run() error {
 	if err := e.loadConfig(); err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
+	configuredLevel := parseSlogLevel(e.config.Logging.Level)
+	configureDefaultLogger(configuredLevel)
+	slog.InfoContext(ctx, "logger configured",
+		"level", strings.ToLower(configuredLevel.String()),
+	)
 
 	// Initialize environment aliases from config
 	entity.InitEnvironmentAliases(e.config.EnvironmentAliases)
@@ -257,6 +258,28 @@ func (e *Engine) Run() error {
 
 	// Run with signal handling
 	return e.runWithSignals(ctx, app)
+}
+
+func configureDefaultLogger(level slog.Level) {
+	handler := logging.NewContextHandler(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: level,
+		}),
+	)
+	slog.SetDefault(slog.New(handler))
+}
+
+func parseSlogLevel(level string) slog.Level {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 // RunMigrations loads config and applies all pending database migrations.

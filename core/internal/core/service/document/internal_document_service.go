@@ -65,10 +65,12 @@ func (s *InternalDocumentService) CreateDocument(
 	cmd documentuc.InternalCreateCommand,
 ) (*documentuc.InternalCreateResult, error) {
 	slog.InfoContext(ctx, "creating document via internal API",
-		"tenantCode", cmd.TenantCode,
-		"workspaceCode", cmd.WorkspaceCode,
-		"documentType", cmd.DocumentType,
-		"externalID", cmd.ExternalID,
+		"tenant_code", cmd.TenantCode,
+		"workspace_code", cmd.WorkspaceCode,
+		"document_type", cmd.DocumentType,
+		"external_id", cmd.ExternalID,
+		"transactional_id", cmd.TransactionalID,
+		"environment", cmd.Environment,
 	)
 
 	resolved, err := s.resolveTemplateContext(ctx, cmd)
@@ -90,6 +92,17 @@ func (s *InternalDocumentService) CreateDocument(
 		Headers:           cmd.Headers,
 		RawBody:           cmd.PayloadRaw,
 	}
+	slog.InfoContext(ctx, "internal create mapper context prepared",
+		"template_id", mapCtx.TemplateID,
+		"version_id", mapCtx.TemplateVersionID,
+		"document_type_id", mapCtx.DocumentTypeID,
+		"tenant_code", mapCtx.TenantCode,
+		"workspace_code", mapCtx.WorkspaceCode,
+		"document_type_code", mapCtx.DocumentTypeCode,
+		"external_id", mapCtx.ExternalID,
+		"transactional_id", mapCtx.TransactionalID,
+		"payload_bytes", len(mapCtx.RawBody),
+	)
 
 	prepared, err := s.generator.PrepareDocument(ctx, mapCtx)
 	if err != nil {
@@ -135,7 +148,7 @@ type internalResolvedContext struct {
 	version      *entity.TemplateVersionWithDetails
 }
 
-//nolint:funlen // Resolution has explicit fallback and validation stages.
+//nolint:funlen,gocognit,gocyclo // Resolution has explicit fallback and validation stages.
 func (s *InternalDocumentService) resolveTemplateContext(
 	ctx context.Context,
 	cmd documentuc.InternalCreateCommand,
@@ -143,12 +156,20 @@ func (s *InternalDocumentService) resolveTemplateContext(
 	tenantCode := strings.ToUpper(strings.TrimSpace(cmd.TenantCode))
 	workspaceCode := strings.ToUpper(strings.TrimSpace(cmd.WorkspaceCode))
 	documentTypeCode := strings.ToUpper(strings.TrimSpace(cmd.DocumentType))
+	slog.InfoContext(ctx, "resolving internal template context",
+		"tenant_code_raw", cmd.TenantCode,
+		"workspace_code_raw", cmd.WorkspaceCode,
+		"document_type_raw", cmd.DocumentType,
+		"tenant_code", tenantCode,
+		"workspace_code", workspaceCode,
+		"document_type_code", documentTypeCode,
+	)
 
 	tenant, err := s.tenantRepo.FindByCode(ctx, tenantCode)
 	if err != nil {
 		return nil, fmt.Errorf("resolving tenant by code: %w", err)
 	}
-	slog.InfoContext(ctx, "resolved tenant", slog.String("tenantID", tenant.ID), slog.String("tenantCode", tenantCode))
+	slog.InfoContext(ctx, "resolved tenant", slog.String("tenant_id", tenant.ID), slog.String("tenant_code", tenantCode))
 
 	workspace, err := s.workspaceRepo.FindByCode(ctx, tenant.ID, workspaceCode)
 	if err != nil {
@@ -156,16 +177,16 @@ func (s *InternalDocumentService) resolveTemplateContext(
 			return nil, fmt.Errorf("resolving workspace by code: %w", err)
 		}
 		slog.InfoContext(ctx, "workspace not found, deferring to template resolver",
-			slog.String("workspaceCode", workspaceCode))
+			slog.String("workspace_code", workspaceCode))
 	} else {
-		slog.InfoContext(ctx, "resolved workspace", slog.String("workspaceID", workspace.ID), slog.String("workspaceCode", workspaceCode))
+		slog.InfoContext(ctx, "resolved workspace", slog.String("workspace_id", workspace.ID), slog.String("workspace_code", workspaceCode))
 	}
 
 	docType, err := s.docTypeRepo.FindByCodeWithGlobalFallback(ctx, tenant.ID, documentTypeCode)
 	if err != nil {
 		return nil, fmt.Errorf("resolving document type by code: %w", err)
 	}
-	slog.InfoContext(ctx, "resolved document type", slog.String("docTypeID", docType.ID), slog.String("docTypeCode", documentTypeCode))
+	slog.InfoContext(ctx, "resolved document type", slog.String("document_type_id", docType.ID), slog.String("document_type_code", documentTypeCode))
 
 	process := strings.ToUpper(strings.TrimSpace(cmd.Process))
 	if process == "" {
@@ -224,6 +245,16 @@ func (s *InternalDocumentService) resolveTemplateContext(
 			return nil, fmt.Errorf("resolving workspace from resolved template: %w", err)
 		}
 	}
+	slog.InfoContext(ctx, "resolved internal create context",
+		"tenant_id", tenant.ID,
+		"tenant_code", tenant.Code,
+		"workspace_id", workspace.ID,
+		"workspace_code", workspace.Code,
+		"document_type_id", docType.ID,
+		"document_type_code", docType.Code,
+		"template_id", template.ID,
+		"version_id", version.ID,
+	)
 
 	return &internalResolvedContext{
 		tenant:       tenant,

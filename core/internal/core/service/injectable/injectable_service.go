@@ -3,6 +3,7 @@ package injectable
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
@@ -275,9 +276,46 @@ func (s *InjectableService) fetchProviderResult(
 	if err != nil {
 		return nil, fmt.Errorf("getting workspace codes: %w", err)
 	}
+	slog.InfoContext(ctx, "fetching provider injectables",
+		"workspace_id", workspaceID,
+		"tenant_code", tenantCode,
+		"workspace_code", workspaceCode,
+	)
 
 	injCtx := entity.NewInjectorContextWithCodes("", "", "", "list", tenantCode, workspaceCode, entity.EnvironmentProd, nil, nil)
-	return s.workspaceProvider.GetInjectables(ctx, injCtx)
+	result, err := s.workspaceProvider.GetInjectables(ctx, injCtx)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		slog.WarnContext(ctx, "provider injectables request returned nil result",
+			"workspace_id", workspaceID,
+			"tenant_code", tenantCode,
+			"workspace_code", workspaceCode,
+		)
+		return nil, nil
+	}
+
+	slog.InfoContext(ctx, "provider injectables fetched",
+		"workspace_id", workspaceID,
+		"tenant_code", tenantCode,
+		"workspace_code", workspaceCode,
+		"injectables_count", len(result.Injectables),
+		"groups_count", len(result.Groups),
+	)
+
+	codes := make([]string, 0, len(result.Injectables))
+	for _, injectable := range result.Injectables {
+		if injectable.Code != "" {
+			codes = append(codes, injectable.Code)
+		}
+	}
+	slog.DebugContext(ctx, "provider injectable codes",
+		"workspace_id", workspaceID,
+		"codes", codes,
+	)
+
+	return result, nil
 }
 
 // getWorkspaceCodes retrieves tenant code and workspace code from workspace ID.

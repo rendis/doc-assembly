@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -152,6 +153,8 @@ func (g *DocumentGenerator) prepareGenerationContext(
 }
 
 // fetchTemplateData fetches workspace, injectables, version, and parses the portable document.
+//
+//nolint:funlen // Extended diagnostics keeps flow linear for troubleshooting.
 func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, mapCtx *port.MapperContext) (*generationContext, error) {
 	genCtx := &generationContext{}
 	var err error
@@ -202,8 +205,27 @@ func (g *DocumentGenerator) fetchTemplateData(ctx context.Context, mapCtx *port.
 		return nil, fmt.Errorf("parsing content structure: %w", err)
 	}
 
-	genCtx.referencedCodes = g.collectReferencedCodes(genCtx.version.Injectables, genCtx.portableDoc.SignerRoles)
-	slog.DebugContext(ctx, "collected referenced codes", "codes", genCtx.referencedCodes)
+	versionCodes := collectVersionInjectableCodes(genCtx.version.Injectables)
+	roleCodes := collectSignerRoleInjectableCodes(genCtx.portableDoc.SignerRoles)
+	genCtx.referencedCodes = mergeUniqueCodes(versionCodes, roleCodes)
+	slog.InfoContext(ctx, "collected referenced injectables",
+		"template_id", genCtx.version.TemplateID,
+		"version_id", genCtx.version.ID,
+		"referenced_codes_count", len(genCtx.referencedCodes),
+		"version_codes_count", len(versionCodes),
+		"role_codes_count", len(roleCodes),
+		"referenced_codes", genCtx.referencedCodes,
+		"version_codes", versionCodes,
+		"role_codes", roleCodes,
+	)
+	slog.InfoContext(ctx, "available injectables for generation",
+		"workspace_id", genCtx.workspaceID,
+		"available_injectables_count", len(genCtx.injectables),
+	)
+	slog.DebugContext(ctx, "available injectable keys",
+		"workspace_id", genCtx.workspaceID,
+		"keys", extractInjectableKeys(genCtx.injectables),
+	)
 
 	if err := g.validateRequiredInjectables(ctx, genCtx.referencedCodes, genCtx.injectables); err != nil {
 		return nil, err
@@ -261,7 +283,7 @@ func (g *DocumentGenerator) findWorkspaceID(ctx context.Context, templateID stri
 		return "", fmt.Errorf("finding template: %w", err)
 	}
 
-	slog.DebugContext(ctx, "found template", "workspaceID", template.WorkspaceID)
+	slog.InfoContext(ctx, "resolved template workspace", "template_id", templateID, "workspace_id", template.WorkspaceID)
 	return template.WorkspaceID, nil
 }
 
@@ -278,7 +300,15 @@ func (g *DocumentGenerator) fetchAvailableInjectables(
 		return nil, fmt.Errorf("listing available injectables: %w", err)
 	}
 
-	slog.DebugContext(ctx, "found available injectables", "count", len(result.Injectables))
+	slog.InfoContext(ctx, "listed available injectables",
+		"workspace_id", workspaceID,
+		"injectables_count", len(result.Injectables),
+		"groups_count", len(result.Groups),
+	)
+	slog.DebugContext(ctx, "listed available injectable keys",
+		"workspace_id", workspaceID,
+		"keys", extractInjectableKeys(result.Injectables),
+	)
 	return result.Injectables, nil
 }
 
@@ -313,29 +343,31 @@ func (g *DocumentGenerator) parseContentStructure(content json.RawMessage) (*por
 	return &doc, nil
 }
 
-// collectReferencedCodes collects all injectable codes referenced by the version.
-// This includes codes from version injectables and codes referenced in SignerRoles.
-func (g *DocumentGenerator) collectReferencedCodes(
-	versionInjectables []*entity.VersionInjectableWithDefinition,
-	signerRoles []portable_doc.SignerRole,
-) []string {
+func collectVersionInjectableCodes(versionInjectables []*entity.VersionInjectableWithDefinition) []string {
 	codeSet := make(map[string]struct{})
-
 	for _, vi := range versionInjectables {
 		addVersionInjectableCode(codeSet, vi)
 	}
+	return setKeys(codeSet)
+}
 
-	for _, sr := range signerRoles {
-		addFieldInjectableRefs(codeSet, sr.Name)
-		addFieldInjectableRefs(codeSet, sr.Email)
+func collectSignerRoleInjectableCodes(signerRoles []portable_doc.SignerRole) []string {
+	codeSet := make(map[string]struct{})
+	for _, signerRole := range signerRoles {
+		addFieldInjectableRefs(codeSet, signerRole.Name)
+		addFieldInjectableRefs(codeSet, signerRole.Email)
 	}
+	return setKeys(codeSet)
+}
 
-	codes := make([]string, 0, len(codeSet))
-	for code := range codeSet {
-		codes = append(codes, code)
+func mergeUniqueCodes(codeSets ...[]string) []string {
+	merged := make(map[string]struct{})
+	for _, codes := range codeSets {
+		for _, code := range codes {
+			addCodeIfNotEmpty(merged, code)
+		}
 	}
-
-	return codes
+	return setKeys(merged)
 }
 
 func addVersionInjectableCode(
@@ -364,6 +396,24 @@ func addCodeIfNotEmpty(codeSet map[string]struct{}, code string) {
 		return
 	}
 	codeSet[code] = struct{}{}
+}
+
+func setKeys(values map[string]struct{}) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func extractInjectableKeys(injectables []*entity.InjectableDefinition) []string {
+	keys := make([]string, 0, len(injectables))
+	for _, injectable := range injectables {
+		if injectable != nil && injectable.Key != "" {
+			keys = append(keys, injectable.Key)
+		}
+	}
+	return keys
 }
 
 // validateRequiredInjectables validates that all required injectable codes are available.
@@ -446,13 +496,28 @@ func (g *DocumentGenerator) resolveInjectables(
 			payload,
 		)
 	}
+	slog.InfoContext(ctx, "resolving injectables for generation",
+		"tenant_code", mapCtx.TenantCode,
+		"workspace_code", mapCtx.WorkspaceCode,
+		"template_id", mapCtx.TemplateID,
+		"referenced_codes_count", len(referencedCodes),
+	)
+	slog.DebugContext(ctx, "resolver requested codes", "referenced_codes", referencedCodes)
 
 	resolveResult, err := g.resolver.Resolve(ctx, injCtx, referencedCodes)
 	if err != nil {
 		return nil, fmt.Errorf("resolving injectors: %w", err)
 	}
 
-	slog.DebugContext(ctx, "injectors resolved", "resolvedCount", len(resolveResult.Values))
+	slog.InfoContext(ctx, "injectables resolved for generation",
+		"resolved_values_count", len(resolveResult.Values),
+		"non_critical_errors_count", len(resolveResult.Errors),
+	)
+	if len(resolveResult.Errors) > 0 {
+		slog.WarnContext(ctx, "injectable resolver returned non-critical errors",
+			"error_codes", mapKeysError(resolveResult.Errors),
+		)
+	}
 
 	resolvedValues := make(map[string]any, len(resolveResult.Values))
 	for code, val := range resolveResult.Values {
@@ -478,7 +543,7 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	recipients := make([]*entity.DocumentRecipient, 0, len(portableSignerRoles))
 
 	for _, sr := range portableSignerRoles {
-		recipient, err := g.buildAndValidateRecipient(sr, roleByAnchor, resolvedValues)
+		recipient, err := g.buildAndValidateRecipient(ctx, sr, roleByAnchor, resolvedValues)
 		if err != nil {
 			validationErrors = append(validationErrors, err.Error())
 			continue
@@ -494,7 +559,10 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 }
 
 // buildAndValidateRecipient creates and validates a single DocumentRecipient from a SignerRole.
+//
+//nolint:funlen // Field-level diagnostics require explicit per-branch logging.
 func (g *DocumentGenerator) buildAndValidateRecipient(
+	ctx context.Context,
 	sr portable_doc.SignerRole,
 	roleByAnchor map[string]*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
@@ -521,13 +589,35 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 		)
 	}
 
-	name := validation.NormalizeName(g.resolveFieldValue(sr.Name, resolvedValues))
-	email := strings.TrimSpace(g.resolveFieldValue(sr.Email, resolvedValues))
+	nameResolved, nameDiagnostics := resolveFieldValueDiagnostics(sr.Name, resolvedValues)
+	emailResolved, emailDiagnostics := resolveFieldValueDiagnostics(sr.Email, resolvedValues)
+	name := validation.NormalizeName(nameResolved)
+	email := strings.TrimSpace(emailResolved)
 
 	if name == "" {
+		slog.WarnContext(ctx, "role field resolved to empty value",
+			"role_id", dbRole.ID,
+			"role_label", sr.Label,
+			"field", "name",
+			"refs", sr.Name.InjectableRefs(),
+			"refs_diagnostic", nameDiagnostics,
+			"resolved_parts_count", countResolvedParts(nameDiagnostics),
+			"final_resolved_length", len(nameResolved),
+			"normalized_name_length", len(name),
+		)
 		return nil, fmt.Errorf("role '%s': name is empty after resolution", sr.Label)
 	}
 	if email == "" {
+		slog.WarnContext(ctx, "role field resolved to empty value",
+			"role_id", dbRole.ID,
+			"role_label", sr.Label,
+			"field", "email",
+			"refs", sr.Email.InjectableRefs(),
+			"refs_diagnostic", emailDiagnostics,
+			"resolved_parts_count", countResolvedParts(emailDiagnostics),
+			"final_resolved_length", len(emailResolved),
+			"email_length", len(email),
+		)
 		return nil, fmt.Errorf("role '%s': email is empty after resolution", sr.Label)
 	}
 	if !validation.IsValidEmail(email) {
@@ -543,41 +633,69 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 	}, nil
 }
 
-// resolveFieldValue resolves a FieldValue to its actual string value.
-func (g *DocumentGenerator) resolveFieldValue(
+//nolint:funlen // Diagnostics capture each ref state in a single pass.
+func resolveFieldValueDiagnostics(
 	field portable_doc.FieldValue,
 	resolvedValues map[string]any,
-) string {
+) (string, []map[string]any) {
 	if field.IsText() {
-		return field.Value
+		return field.Value, nil
 	}
 
 	if !field.IsInjectable() {
-		return ""
+		return "", nil
 	}
 
 	refs := field.InjectableRefs()
 	if len(refs) == 0 {
-		return ""
+		return "", nil
 	}
 
 	resolved := make([]string, 0, len(refs))
+	diagnostics := make([]map[string]any, 0, len(refs))
 	for _, ref := range refs {
 		val, ok := resolvedValues[ref]
 		if !ok {
+			diagnostics = append(diagnostics, map[string]any{
+				"ref":    ref,
+				"status": "missing_key",
+			})
+			continue
+		}
+		if val == nil {
+			diagnostics = append(diagnostics, map[string]any{
+				"ref":    ref,
+				"status": "nil_value",
+			})
 			continue
 		}
 		if strVal, ok := val.(string); ok {
+			status := "ok"
+			if strings.TrimSpace(strVal) == "" {
+				status = "empty_string"
+			}
+			diagnostics = append(diagnostics, map[string]any{
+				"ref":           ref,
+				"status":        status,
+				"string_length": len(strVal),
+			})
 			resolved = append(resolved, strVal)
 			continue
 		}
-		resolved = append(resolved, fmt.Sprintf("%v", val))
+		strVal := fmt.Sprintf("%v", val)
+		diagnostics = append(diagnostics, map[string]any{
+			"ref":           ref,
+			"status":        "non_string_type",
+			"type":          reflect.TypeOf(val).String(),
+			"string_length": len(strVal),
+		})
+		resolved = append(resolved, strVal)
 	}
 
 	if len(resolved) == 0 {
-		return ""
+		return "", diagnostics
 	}
-	return strings.Join(resolved, field.ResolveSeparator())
+	return strings.Join(resolved, field.ResolveSeparator()), diagnostics
 }
 
 func unresolvedInjectableRefs(
@@ -602,6 +720,29 @@ func unresolvedInjectableRefs(
 	}
 
 	return unresolved
+}
+
+func countResolvedParts(refDiagnostics []map[string]any) int {
+	if len(refDiagnostics) == 0 {
+		return 0
+	}
+	count := 0
+	for _, diagnostic := range refDiagnostics {
+		status, _ := diagnostic["status"].(string)
+		switch status {
+		case "ok", "empty_string", "non_string_type":
+			count++
+		}
+	}
+	return count
+}
+
+func mapKeysError(input map[string]error) []string {
+	keys := make([]string, 0, len(input))
+	for key := range input {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // createDocument creates and persists the document entity.

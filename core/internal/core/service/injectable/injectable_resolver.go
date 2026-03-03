@@ -47,6 +47,8 @@ func NewInjectableResolverService(registry port.InjectorRegistry) *InjectableRes
 // Resolve resolves the values of the referenced injectors.
 // Executes Init() GLOBAL first, then resolves injectors by dependency levels.
 // Codes not found in the registry are delegated to the WorkspaceInjectableProvider if one is registered.
+//
+//nolint:funlen // Diagnostics require explicit stage-by-stage logging.
 func (s *InjectableResolverService) Resolve(
 	ctx context.Context,
 	injCtx *entity.InjectorContext,
@@ -61,9 +63,34 @@ func (s *InjectableResolverService) Resolve(
 	if len(referencedCodes) == 0 {
 		return result, nil
 	}
+	providerRegistered := s.registry.GetWorkspaceInjectableProvider() != nil
+	slog.InfoContext(ctx, "starting injectable resolution",
+		"referenced_count", len(referencedCodes),
+		"provider_registered", providerRegistered,
+		"tenant_code", injCtx.TenantCode(),
+		"workspace_code", injCtx.WorkspaceCode(),
+		"template_id", injCtx.TemplateID(),
+	)
+	slog.DebugContext(ctx, "injectable resolution requested codes", "referenced_codes", referencedCodes)
 
 	// Partition codes into registry codes and provider codes
-	registryCodes, providerCodes := s.partitionCodes(referencedCodes)
+	registryCodes, providerCodes, skippedUnknown := s.partitionCodes(referencedCodes)
+	slog.InfoContext(ctx, "injectable resolution partitioned codes",
+		"registry_codes_count", len(registryCodes),
+		"provider_codes_count", len(providerCodes),
+		"skipped_unknown_count", len(skippedUnknown),
+		"provider_registered", providerRegistered,
+	)
+	slog.DebugContext(ctx, "injectable resolution partition details",
+		"registry_codes", registryCodes,
+		"provider_codes", providerCodes,
+		"skipped_unknown_codes", skippedUnknown,
+	)
+	if len(skippedUnknown) > 0 {
+		slog.WarnContext(ctx, "injectable codes skipped because workspace provider is not registered",
+			"skipped_unknown_codes", skippedUnknown,
+		)
+	}
 
 	// 1. Execute Init() GLOBAL if defined
 	initFunc := s.registry.GetInitFunc()
@@ -90,11 +117,19 @@ func (s *InjectableResolverService) Resolve(
 		}
 	}
 
+	slog.InfoContext(ctx, "injectable resolution finished",
+		"resolved_values_count", len(result.Values),
+		"errors_count", len(result.Errors),
+		"metadata_count", len(result.Metadata),
+	)
+
 	return result, nil
 }
 
 // partitionCodes separates codes into registry-known and provider-bound codes.
-func (s *InjectableResolverService) partitionCodes(codes []string) (registryCodes, providerCodes []string) {
+func (s *InjectableResolverService) partitionCodes(codes []string) (
+	registryCodes, providerCodes, skippedUnknown []string,
+) {
 	provider := s.registry.GetWorkspaceInjectableProvider()
 
 	for _, code := range codes {
@@ -102,12 +137,12 @@ func (s *InjectableResolverService) partitionCodes(codes []string) (registryCode
 			registryCodes = append(registryCodes, code)
 		} else if provider != nil {
 			providerCodes = append(providerCodes, code)
+		} else {
+			skippedUnknown = append(skippedUnknown, code)
 		}
-		// If code is not in registry and no provider, it will be silently skipped
-		// (same behavior as before — the dependency graph builder skips unknown codes)
 	}
 
-	return registryCodes, providerCodes
+	return registryCodes, providerCodes, skippedUnknown
 }
 
 // resolveRegistryCodes resolves codes through the injector registry using the dependency graph.
@@ -156,6 +191,8 @@ func (s *InjectableResolverService) resolveRegistryCodes(
 }
 
 // resolveProviderCodes delegates resolution of provider-bound codes to the WorkspaceInjectableProvider.
+//
+//nolint:funlen // Structured provider diagnostics are intentionally explicit.
 func (s *InjectableResolverService) resolveProviderCodes(
 	ctx context.Context,
 	injCtx *entity.InjectorContext,
@@ -166,8 +203,6 @@ func (s *InjectableResolverService) resolveProviderCodes(
 	if provider == nil {
 		return nil
 	}
-
-	slog.DebugContext(ctx, "resolving provider codes", "codes", codes)
 
 	req := &port.ResolveInjectablesRequest{
 		TenantCode:      injCtx.TenantCode(),
@@ -180,6 +215,13 @@ func (s *InjectableResolverService) resolveProviderCodes(
 		InitData:        injCtx.InitData(),
 		Environment:     injCtx.Environment(),
 	}
+	slog.InfoContext(ctx, "resolving provider injectable codes",
+		"tenant_code", req.TenantCode,
+		"workspace_code", req.WorkspaceCode,
+		"template_id", req.TemplateID,
+		"environment", req.Environment,
+		"codes", req.Codes,
+	)
 
 	providerResult, err := provider.ResolveInjectables(ctx, req)
 	if err != nil {
@@ -187,6 +229,12 @@ func (s *InjectableResolverService) resolveProviderCodes(
 	}
 
 	if providerResult == nil {
+		slog.WarnContext(ctx, "provider returned nil resolve result",
+			"tenant_code", req.TenantCode,
+			"workspace_code", req.WorkspaceCode,
+			"template_id", req.TemplateID,
+			"requested_codes_count", len(codes),
+		)
 		return nil
 	}
 
@@ -203,12 +251,68 @@ func (s *InjectableResolverService) resolveProviderCodes(
 		result.Errors[code] = fmt.Errorf("%s", errMsg)
 	}
 
-	slog.DebugContext(ctx, "provider codes resolved",
-		"resolved", len(providerResult.Values),
-		"errors", len(providerResult.Errors),
+	missingRequested := findMissingRequestedProviderCodes(codes, providerResult)
+	slog.InfoContext(ctx, "provider injectable resolution completed",
+		"tenant_code", req.TenantCode,
+		"workspace_code", req.WorkspaceCode,
+		"template_id", req.TemplateID,
+		"requested_codes_count", len(codes),
+		"provider_values_count", len(providerResult.Values),
+		"provider_errors_count", len(providerResult.Errors),
+		"requested_but_missing_count", len(missingRequested),
+	)
+	for _, missingCode := range missingRequested {
+		slog.WarnContext(ctx, "provider did not return value or error for requested code",
+			"code", missingCode,
+			"tenant_code", req.TenantCode,
+			"workspace_code", req.WorkspaceCode,
+			"template_id", req.TemplateID,
+		)
+	}
+	slog.DebugContext(ctx, "provider injectable resolution details",
+		"requested_codes", codes,
+		"provider_returned_codes", mapKeysInjectableValue(providerResult.Values),
+		"provider_error_codes", mapKeysString(providerResult.Errors),
+		"requested_but_missing_codes", missingRequested,
 	)
 
 	return nil
+}
+
+func findMissingRequestedProviderCodes(
+	requested []string,
+	result *port.ResolveInjectablesResult,
+) []string {
+	if len(requested) == 0 || result == nil {
+		return nil
+	}
+	missing := make([]string, 0)
+	for _, code := range requested {
+		if _, ok := result.Values[code]; ok {
+			continue
+		}
+		if _, ok := result.Errors[code]; ok {
+			continue
+		}
+		missing = append(missing, code)
+	}
+	return missing
+}
+
+func mapKeysInjectableValue(input map[string]*entity.InjectableValue) []string {
+	keys := make([]string, 0, len(input))
+	for key := range input {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func mapKeysString(input map[string]string) []string {
+	keys := make([]string, 0, len(input))
+	for key := range input {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // executeLevel executes all injectors in a level in parallel.

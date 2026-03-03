@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -139,13 +140,24 @@ func (c *InternalDocumentController) CreateDocument(ctx *gin.Context) {
 	if req.ForceCreate != nil {
 		forceCreate = *req.ForceCreate
 	}
+	process := ctx.GetHeader(HeaderProcess)
+	processType := ctx.GetHeader(HeaderProcessType)
+	slog.InfoContext(ctx.Request.Context(), "internal create request received",
+		"tenant_code", h.TenantCode,
+		"workspace_code", h.WorkspaceCode,
+		"document_type", h.DocumentType,
+		"environment", h.Environment,
+		"process", process,
+		"process_type", processType,
+		"payload_bytes", len(req.Payload),
+	)
 
 	cmd := documentuc.InternalCreateCommand{
 		TenantCode:      h.TenantCode,
 		WorkspaceCode:   h.WorkspaceCode,
 		DocumentType:    h.DocumentType,
-		Process:         ctx.GetHeader(HeaderProcess),
-		ProcessType:     ctx.GetHeader(HeaderProcessType),
+		Process:         process,
+		ProcessType:     processType,
 		ExternalID:      h.ExternalID,
 		TransactionalID: h.TransactionalID,
 		Environment:     env,
