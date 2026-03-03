@@ -4,6 +4,8 @@ package testhelper
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
@@ -43,6 +45,7 @@ import (
 	noopnotification "github.com/rendis/doc-assembly/core/internal/adapters/secondary/notification/noop"
 	mocksigning "github.com/rendis/doc-assembly/core/internal/adapters/secondary/signing/mock"
 	localstorage "github.com/rendis/doc-assembly/core/internal/adapters/secondary/storage/local"
+	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/core/port"
 	accesssvc "github.com/rendis/doc-assembly/core/internal/core/service/access"
 	catalogsvc "github.com/rendis/doc-assembly/core/internal/core/service/catalog"
@@ -328,10 +331,17 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	wsGroup := v1.Group("", middlewareProvider.WorkspaceContext())
 	documentController.RegisterRoutes(wsGroup)
 
-	// Internal API routes (API key auth only, no JWT middleware)
+	// --- Automation infrastructure (created early, needed by internal routes) ---
+	automationKeyRepo := automationapikeyrepo.New(pool)
+	automationAuditRepo := automationauditlogrepo.New(pool)
+
+	// Seed a test internal API key in the DB so InternalKeyAuth middleware can validate it.
+	seedTestInternalAPIKey(t, automationKeyRepo)
+
+	// Internal API routes (DB-backed API key auth, no JWT middleware)
 	internalV1 := engine.Group("/api/v1")
 	internalV1.Use(middleware.Operation())
-	internalDocController.RegisterRoutes(internalV1, TestInternalAPIKey)
+	internalDocController.RegisterRoutes(internalV1, automationKeyRepo)
 
 	// Webhook routes (no auth, registered on engine root)
 	webhookController.RegisterRoutes(engine)
@@ -341,10 +351,6 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 
 	// Public signing routes (no auth, registered on engine root)
 	publicSigningController.RegisterRoutes(engine)
-
-	// --- Automation infrastructure ---
-	automationKeyRepo := automationapikeyrepo.New(pool)
-	automationAuditRepo := automationauditlogrepo.New(pool)
 	apiKeyUseCase := automationuc.NewAPIKeyUseCase(automationKeyRepo, automationAuditRepo)
 	documentTypeService := catalogsvc.NewDocumentTypeService(documentTypeRepo, templateRepo)
 	docTypeMapper := mapper.NewDocumentTypeMapper()
@@ -382,4 +388,25 @@ func (ts *TestServer) URL() string {
 // Close closes the test server.
 func (ts *TestServer) Close() {
 	ts.Server.Close()
+}
+
+// seedTestInternalAPIKey inserts a pre-defined internal API key into the DB
+// so the InternalKeyAuth middleware can authenticate requests using TestInternalAPIKey.
+func seedTestInternalAPIKey(t *testing.T, repo port.AutomationAPIKeyRepository) {
+	t.Helper()
+	sum := sha256.Sum256([]byte(TestInternalAPIKey))
+	keyHash := hex.EncodeToString(sum[:])
+	keyPrefix := TestInternalAPIKey
+	if len(keyPrefix) > 12 {
+		keyPrefix = keyPrefix[:12]
+	}
+	_, err := repo.Create(context.Background(), &entity.AutomationAPIKey{
+		Name:      "Test Internal Key",
+		KeyHash:   keyHash,
+		KeyPrefix: keyPrefix,
+		KeyType:   entity.KeyTypeInternal,
+		IsActive:  true,
+		CreatedBy: "00000000-0000-0000-0000-000000000000",
+	})
+	require.NoError(t, err, "seed test internal API key")
 }
