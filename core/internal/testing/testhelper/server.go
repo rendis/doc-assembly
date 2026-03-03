@@ -396,11 +396,19 @@ func seedTestInternalAPIKey(t *testing.T, repo port.AutomationAPIKeyRepository) 
 	t.Helper()
 	sum := sha256.Sum256([]byte(TestInternalAPIKey))
 	keyHash := hex.EncodeToString(sum[:])
+
+	// Idempotent: skip if already seeded (shared DB singleton across tests).
+	existing, err := repo.FindByHash(context.Background(), keyHash)
+	require.NoError(t, err, "check existing test internal API key")
+	if existing != nil {
+		return
+	}
+
 	keyPrefix := TestInternalAPIKey
 	if len(keyPrefix) > 12 {
 		keyPrefix = keyPrefix[:12]
 	}
-	_, err := repo.Create(context.Background(), &entity.AutomationAPIKey{
+	_, err = repo.Create(context.Background(), &entity.AutomationAPIKey{
 		Name:      "Test Internal Key",
 		KeyHash:   keyHash,
 		KeyPrefix: keyPrefix,
