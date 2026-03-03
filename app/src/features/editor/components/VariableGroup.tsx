@@ -3,6 +3,7 @@ import { motion, type Transition } from 'framer-motion'
 import { ChevronRight, FolderOpen, type LucideIcon } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { InjectableGroup } from '../types/injectable-group'
 import type { Variable } from '../types/variables'
 import type { VariableDragData } from '../types/drag'
@@ -142,7 +143,7 @@ export function VariableGroup({
       <button
         onClick={handleToggle}
         className={cn(
-          'flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest w-full transition-colors',
+          'flex min-w-0 items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest w-full transition-colors',
           colors.text,
           `hover:opacity-80`
         )}
@@ -159,12 +160,17 @@ export function VariableGroup({
         <DynamicIcon iconName={group.icon} className="h-3 w-3" />
 
         {/* Group name */}
-        <span>{group.name}</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="truncate flex-1 min-w-0 text-left">{group.name}</span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{group.name}</TooltipContent>
+        </Tooltip>
 
         {/* Variable count badge */}
         <span
           className={cn(
-            'ml-auto text-[9px] px-1.5 rounded',
+            'shrink-0 text-[9px] px-1.5 rounded',
             colors.badge
           )}
         >

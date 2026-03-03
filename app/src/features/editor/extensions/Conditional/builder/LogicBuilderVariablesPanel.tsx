@@ -196,27 +196,29 @@ export function LogicBuilderVariablesPanel({
         <div className="flex items-center h-12 px-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <VariableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            <span className="truncate text-[10px] font-mono uppercase tracking-widest text-muted-foreground overflow-hidden whitespace-nowrap">
               {t('editor.variablesPanel.header')}
             </span>
           </div>
 
-          <span className="text-xs text-muted-foreground/70 min-w-[1ch] text-center">
-            {totalCount}
-          </span>
+          <div className="shrink-0 flex items-center gap-1 ml-2">
+            <span className="shrink-0 text-xs text-muted-foreground/70 min-w-[1ch] text-center">
+              {totalCount}
+            </span>
 
-          <button
-            onClick={toggleAllSections}
-            className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1"
-            aria-label={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
-            title={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
-          >
-            {allSectionsExpanded ? (
-              <ChevronsDownUp className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
+            <button
+              onClick={toggleAllSections}
+              className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+              aria-label={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
+              title={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
+            >
+              {allSectionsExpanded ? (
+                <ChevronsDownUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -248,42 +250,48 @@ export function LogicBuilderVariablesPanel({
         </div>
 
         {/* Filter Toggle */}
-        <div className="px-3 pb-2">
-          <div className="flex rounded-none border border-border bg-background p-0.5">
+        <div className="px-3 pb-2 min-w-0">
+          <div className="flex min-w-0 w-full overflow-hidden rounded-none border border-border bg-background p-0.5">
             <button
               onClick={() => setVariablesFilter('internal')}
+              title="Internal"
+              aria-label="Internal"
               className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                'flex-1 basis-0 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
                 variablesFilter === 'internal'
                   ? 'bg-foreground text-background'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Clock className="h-3 w-3" />
-              Internal
+              <Clock className="h-3 w-3 shrink-0" />
+              <span className="truncate">Internal</span>
             </button>
             <button
               onClick={() => setVariablesFilter('all')}
+              title="All"
+              aria-label="All"
               className={cn(
-                'flex-1 flex items-center justify-center px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                'flex-1 basis-0 min-w-0 flex items-center justify-center px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
                 variablesFilter === 'all'
                   ? 'bg-foreground text-background'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              All
+              <span className="truncate">All</span>
             </button>
             <button
               onClick={() => setVariablesFilter('external')}
+              title="External"
+              aria-label="External"
               className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                'flex-1 basis-0 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
                 variablesFilter === 'external'
                   ? 'bg-foreground text-background'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Database className="h-3 w-3" />
-              External
+              <Database className="h-3 w-3 shrink-0" />
+              <span className="truncate">External</span>
             </button>
           </div>
         </div>
@@ -326,17 +334,18 @@ export function LogicBuilderVariablesPanel({
                 <div className="space-y-2 min-w-0">
                   <button
                     onClick={() => setExternalSectionOpen(!externalSectionOpen)}
-                    className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-external w-full hover:text-external/80 transition-colors"
+                    className="flex min-w-0 items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-external w-full hover:text-external/80 transition-colors"
                   >
                     <motion.div
                       animate={{ rotate: externalSectionOpen ? 90 : 0 }}
                       transition={COLLAPSE_TRANSITION}
+                      className="shrink-0"
                     >
-                      <ChevronRight className="h-3 w-3" />
+                      <ChevronRight className="h-3 w-3 shrink-0" />
                     </motion.div>
-                    <Database className="h-3 w-3" />
-                    <span>{t('editor.variablesPanel.sections.externalVariables')}</span>
-                    <span className="ml-auto text-[9px] bg-external-muted/50 text-external-foreground px-1.5 rounded">
+                    <Database className="h-3 w-3 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-left">{t('editor.variablesPanel.sections.externalVariables')}</span>
+                    <span className="shrink-0 text-[9px] bg-external-muted/50 text-external-foreground px-1.5 rounded">
                       {ungroupedExternal.length}
                     </span>
                   </button>
@@ -367,17 +376,18 @@ export function LogicBuilderVariablesPanel({
                 <div className="space-y-2 min-w-0">
                   <button
                     onClick={() => setInternalSectionOpen(!internalSectionOpen)}
-                    className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
+                    className="flex min-w-0 items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
                   >
                     <motion.div
                       animate={{ rotate: internalSectionOpen ? 90 : 0 }}
                       transition={COLLAPSE_TRANSITION}
+                      className="shrink-0"
                     >
-                      <ChevronRight className="h-3 w-3" />
+                      <ChevronRight className="h-3 w-3 shrink-0" />
                     </motion.div>
-                    <Clock className="h-3 w-3" />
-                    <span>{t('editor.variablesPanel.sections.internalVariables')}</span>
-                    <span className="ml-auto text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
+                    <Clock className="h-3 w-3 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-left">{t('editor.variablesPanel.sections.internalVariables')}</span>
+                    <span className="shrink-0 text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
                       {ungroupedInternal.length}
                     </span>
                   </button>

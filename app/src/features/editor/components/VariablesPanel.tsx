@@ -278,105 +278,68 @@ export function VariablesPanel({
       animate={{ width: isCollapsed ? 56 : 288 }}
       transition={COLLAPSE_TRANSITION}
       className={cn(
-        'flex flex-col border-r border-border bg-card shrink-0 overflow-hidden',
+        'border-r border-border bg-card shrink-0 overflow-hidden grid-cols-1',
         className
       )}
     >
       {/* Header */}
-      <div
-        className={cn(
-          'relative flex items-center pt-3 pb-2 border-b border-border shrink-0',
-          isCollapsed ? 'px-2' : 'px-3'
-        )}
-      >
-        <div className={cn("flex items-center gap-2 min-w-0", !isCollapsed && "flex-1")}>
-          <VariableIcon
-            className={cn(
-              'h-4 w-4 text-muted-foreground shrink-0 transition-opacity',
-              isCollapsed && 'opacity-0'
-            )}
-          />
-          <motion.span
-            initial={false}
-            animate={{
-              opacity: isCollapsed ? 0 : 1,
-              width: isCollapsed ? 0 : 'auto',
-            }}
-            transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground overflow-hidden whitespace-nowrap"
-          >
-            {t('editor.variablesPanel.header')}
-          </motion.span>
-        </div>
-
-        {/* Variable count - hide when collapsed */}
-        <motion.span
-          initial={false}
-          animate={{
-            opacity: isCollapsed ? 0 : 1,
-            width: isCollapsed ? 0 : 'auto',
-          }}
-          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-          className="text-xs text-muted-foreground/70 min-w-[1ch] text-center overflow-hidden"
-        >
-          {totalCount}
-        </motion.span>
-
-        {/* Expand modal button - hide when collapsed */}
-        <motion.button
-          initial={false}
-          animate={{
-            opacity: isCollapsed ? 0 : 1,
-            width: isCollapsed ? 0 : 'auto',
-          }}
-          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-          onClick={() => setIsModalOpen(true)}
-          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1 overflow-hidden"
-          aria-label={t('editor.variablesPanel.expandModal')}
-          title={t('editor.variablesPanel.expandModal')}
-        >
-          <Maximize2 className="h-4 w-4 text-muted-foreground" />
-        </motion.button>
-
-        {/* Expand/Collapse all button - hide when collapsed */}
-        <motion.button
-          initial={false}
-          animate={{
-            opacity: isCollapsed ? 0 : 1,
-            width: isCollapsed ? 0 : 'auto',
-          }}
-          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-          onClick={toggleAllSections}
-          className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1 overflow-hidden"
-          aria-label={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
-          title={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
-        >
-          {allSectionsExpanded ? (
-            <ChevronsDownUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </motion.button>
-
+      <div className="relative flex items-center pt-3 pb-2 px-3 border-b border-border">
         {!isCollapsed && (
-          <button
-            onClick={toggleCollapsed}
-            className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1"
-            aria-label={t('editor.variablesPanel.collapse.collapse')}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <VariableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="truncate text-[10px] font-mono uppercase tracking-widest text-muted-foreground overflow-hidden whitespace-nowrap">
+                {t('editor.variablesPanel.header')}
+              </span>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-1 ml-2">
+              <span className="shrink-0 text-xs text-muted-foreground/70 min-w-[1ch] text-center">
+                {totalCount}
+              </span>
+
+              <button
+                onClick={toggleAllSections}
+                className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
+                title={allSectionsExpanded ? t('editor.variablesPanel.collapseAll') : t('editor.variablesPanel.expandAll')}
+              >
+                {allSectionsExpanded ? (
+                  <ChevronsDownUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label={t('editor.variablesPanel.expandModal')}
+                title={t('editor.variablesPanel.expandModal')}
+              >
+                <Maximize2 className="h-4 w-4 text-muted-foreground" />
+              </button>
+
+              <button
+                onClick={toggleCollapsed}
+                className="shrink-0 p-1 rounded-md hover:bg-muted transition-colors ml-1"
+                aria-label={t('editor.variablesPanel.collapse.collapse')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
         )}
 
-        {isCollapsed && (
+        {isCollapsed ? (
           <button
             onClick={toggleCollapsed}
-            className="absolute inset-0 z-20 flex items-center justify-center hover:bg-muted/50 transition-colors"
+            className="absolute inset-0 flex items-center justify-center hover:bg-muted/50 transition-colors"
             aria-label={t('editor.variablesPanel.collapse.expand')}
           >
-            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Content */}
@@ -387,7 +350,7 @@ export function VariablesPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex-1 min-h-0 flex flex-col"
+            className="min-h-0 flex flex-col overflow-hidden"
           >
             {/* Static Search Bar */}
             <div className="shrink-0 p-4 pb-2">
@@ -419,42 +382,48 @@ export function VariablesPanel({
             </div>
 
             {/* Variables Filter Toggle - 3-step segmented control */}
-            <div className="px-4 pb-2">
-              <div className="flex rounded-none border border-border bg-background p-0.5">
+            <div className="px-4 pb-2 min-w-0">
+              <div className="flex min-w-0 w-full overflow-hidden rounded-none border border-border bg-background p-0.5">
                 <button
                   onClick={() => setVariablesFilter('internal')}
+                  title="Internal"
+                  aria-label="Internal"
                   className={cn(
-                    'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                    'flex-1 basis-0 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
                     variablesFilter === 'internal'
                       ? 'bg-foreground text-background'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <Clock className="h-3 w-3" />
-                  Internal
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span className="truncate">Internal</span>
                 </button>
                 <button
                   onClick={() => setVariablesFilter('all')}
+                  title="All"
+                  aria-label="All"
                   className={cn(
-                    'flex-1 flex items-center justify-center px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                    'flex-1 basis-0 min-w-0 flex items-center justify-center px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
                     variablesFilter === 'all'
                       ? 'bg-foreground text-background'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  All
+                  <span className="truncate">All</span>
                 </button>
                 <button
                   onClick={() => setVariablesFilter('external')}
+                  title="External"
+                  aria-label="External"
                   className={cn(
-                    'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
+                    'flex-1 basis-0 min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors',
                     variablesFilter === 'external'
                       ? 'bg-foreground text-background'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <Database className="h-3 w-3" />
-                  External
+                  <Database className="h-3 w-3 shrink-0" />
+                  <span className="truncate">External</span>
                 </button>
               </div>
             </div>
@@ -502,17 +471,18 @@ export function VariablesPanel({
                   <div className="space-y-2 min-w-0">
                     <button
                       onClick={() => setRolesSectionOpen(!rolesSectionOpen)}
-                      className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-role w-full hover:text-role/80 transition-colors"
+                      className="flex min-w-0 items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-role w-full hover:text-role/80 transition-colors"
                     >
                       <motion.div
                         animate={{ rotate: rolesSectionOpen ? 90 : 0 }}
                         transition={COLLAPSE_TRANSITION}
+                        className="shrink-0"
                       >
-                        <ChevronRight className="h-3 w-3" />
+                        <ChevronRight className="h-3 w-3 shrink-0" />
                       </motion.div>
-                      <Users className="h-3 w-3" />
-                      <span>{t('editor.variablesPanel.sections.signerRoles')}</span>
-                      <span className="ml-auto text-[9px] bg-role-muted/50 text-role-foreground px-1.5 rounded">
+                      <Users className="h-3 w-3 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate text-left">{t('editor.variablesPanel.sections.signerRoles')}</span>
+                      <span className="shrink-0 text-[9px] bg-role-muted/50 text-role-foreground px-1.5 rounded">
                         {filteredRoleInjectables.length}
                       </span>
                     </button>
@@ -579,17 +549,18 @@ export function VariablesPanel({
                     <div className="space-y-2 min-w-0">
                       <button
                         onClick={() => setExternalSectionOpen(!externalSectionOpen)}
-                        className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-external w-full hover:text-external/80 transition-colors"
+                        className="flex min-w-0 items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-external w-full hover:text-external/80 transition-colors"
                       >
                         <motion.div
                           animate={{ rotate: externalSectionOpen ? 90 : 0 }}
                           transition={COLLAPSE_TRANSITION}
+                          className="shrink-0"
                         >
-                          <ChevronRight className="h-3 w-3" />
+                          <ChevronRight className="h-3 w-3 shrink-0" />
                         </motion.div>
-                        <Database className="h-3 w-3" />
-                        <span>{t('editor.variablesPanel.sections.externalVariables')}</span>
-                        <span className="ml-auto text-[9px] bg-external-muted/50 text-external-foreground px-1.5 rounded">
+                        <Database className="h-3 w-3 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate text-left">{t('editor.variablesPanel.sections.externalVariables')}</span>
+                        <span className="shrink-0 text-[9px] bg-external-muted/50 text-external-foreground px-1.5 rounded">
                           {ungroupedExternalVariables.length}
                         </span>
                       </button>
@@ -625,17 +596,18 @@ export function VariablesPanel({
                     <div className="space-y-2 min-w-0">
                       <button
                         onClick={() => setInternalSectionOpen(!internalSectionOpen)}
-                        className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
+                        className="flex min-w-0 items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-widest text-internal w-full hover:text-internal/80 transition-colors"
                       >
                         <motion.div
                           animate={{ rotate: internalSectionOpen ? 90 : 0 }}
                           transition={COLLAPSE_TRANSITION}
+                          className="shrink-0"
                         >
-                          <ChevronRight className="h-3 w-3" />
+                          <ChevronRight className="h-3 w-3 shrink-0" />
                         </motion.div>
-                        <Clock className="h-3 w-3" />
-                        <span>{t('editor.variablesPanel.sections.internalVariables')}</span>
-                        <span className="ml-auto text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate text-left">{t('editor.variablesPanel.sections.internalVariables')}</span>
+                        <span className="shrink-0 text-[9px] bg-internal-muted/50 text-internal-foreground px-1.5 rounded">
                           {ungroupedInternalVariables.length}
                         </span>
                       </button>
