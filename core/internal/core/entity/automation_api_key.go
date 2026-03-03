@@ -5,12 +5,19 @@ import (
 	"time"
 )
 
+// Key type constants distinguish automation keys from internal service keys.
+const (
+	KeyTypeAutomation = "automation"
+	KeyTypeInternal   = "internal"
+)
+
 // AutomationAPIKey represents an API key used for automation access.
 type AutomationAPIKey struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
 	KeyHash        string     `json:"-"`              // SHA-256 hex (64 chars), never exposed
 	KeyPrefix      string     `json:"keyPrefix"`      // first 12 chars of raw key for display
+	KeyType        string     `json:"keyType"`        // "automation" or "internal"
 	AllowedTenants []string   `json:"allowedTenants"` // nil/empty = access to all tenants
 	IsActive       bool       `json:"isActive"`
 	CreatedBy      string     `json:"createdBy"`
