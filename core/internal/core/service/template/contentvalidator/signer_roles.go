@@ -143,7 +143,7 @@ func validateInjectableField(
 		return
 	}
 
-	// Injectable must exist in variableIds
+	// Fallback to variableIds check only when accessible injectables could not be loaded.
 	variableSet := portabledoc.NewSet(variableIDs)
 	for idx, ref := range refs {
 		refPath := path + ".value"
@@ -151,16 +151,19 @@ func validateInjectableField(
 			refPath = path + fmt.Sprintf(".values[%d]", idx)
 		}
 
-		if !variableSet.Contains(ref) {
-			vctx.addErrorf(ErrCodeRoleInjectableNotFound, refPath,
-				"Role '%s': %s references unknown variable '%s'", roleLabel, fieldName, ref)
+		// Primary check: workspace-accessible injectables.
+		if accessibleInjectables.Len() > 0 {
+			if !accessibleInjectables.Contains(ref) {
+				vctx.addErrorf(ErrCodeInaccessibleInjectable, refPath,
+					"Role '%s': %s references inaccessible variable '%s'", roleLabel, fieldName, ref)
+			}
 			continue
 		}
 
-		// Injectable must be accessible to workspace
-		if accessibleInjectables.Len() > 0 && !accessibleInjectables.Contains(ref) {
-			vctx.addErrorf(ErrCodeInaccessibleInjectable, refPath,
-				"Role '%s': %s references inaccessible variable '%s'", roleLabel, fieldName, ref)
+		// Fallback check (when access list could not be loaded): document variableIds.
+		if !variableSet.Contains(ref) {
+			vctx.addErrorf(ErrCodeRoleInjectableNotFound, refPath,
+				"Role '%s': %s references unknown variable '%s'", roleLabel, fieldName, ref)
 		}
 	}
 }
@@ -186,18 +189,33 @@ func extractSignerRoles(versionID string, doc *portabledoc.Document) []*entity.T
 	return roles
 }
 
-// extractInjectables converts document variable IDs to template version injectables.
+// extractInjectables converts injectable references used by the document to
+// template version injectables.
+// Sources:
+//   - document variableIds
+//   - signer role name/email injectable references
+//
 // It filters out role variables (ROLE.*) and creates the appropriate injectable
 // based on whether it's a system injectable or workspace injectable.
 func extractInjectables(vctx *validationContext) []*entity.TemplateVersionInjectable {
-	if len(vctx.doc.VariableIDs) == 0 {
+	roleRefs := collectInjectableRefsFromSignerRoles(vctx.doc.SignerRoles)
+	if len(vctx.doc.VariableIDs) == 0 && len(roleRefs) == 0 {
 		return nil
 	}
 
 	injectableMap := buildInjectableMap(vctx.accessibleInjectableList)
-	injectables := make([]*entity.TemplateVersionInjectable, 0, len(vctx.doc.VariableIDs))
+	allRefs := make([]string, 0, len(vctx.doc.VariableIDs)+len(roleRefs))
+	allRefs = append(allRefs, vctx.doc.VariableIDs...)
+	allRefs = append(allRefs, roleRefs...)
+	injectables := make([]*entity.TemplateVersionInjectable, 0, len(allRefs))
+	seen := make(map[string]struct{}, len(allRefs))
 
-	for _, varID := range vctx.doc.VariableIDs {
+	for _, varID := range allRefs {
+		if _, exists := seen[varID]; exists {
+			continue
+		}
+		seen[varID] = struct{}{}
+
 		if strings.HasPrefix(varID, portabledoc.RoleVariablePrefix) {
 			continue
 		}
@@ -210,6 +228,23 @@ func extractInjectables(vctx *validationContext) []*entity.TemplateVersionInject
 		injectables = append(injectables, buildInjectable(vctx.versionID, varID, inj))
 	}
 	return injectables
+}
+
+func collectInjectableRefsFromSignerRoles(roles []portabledoc.SignerRole) []string {
+	if len(roles) == 0 {
+		return nil
+	}
+
+	refs := make([]string, 0, len(roles)*2)
+	for _, role := range roles {
+		if role.Name.IsInjectable() {
+			refs = append(refs, role.Name.InjectableRefs()...)
+		}
+		if role.Email.IsInjectable() {
+			refs = append(refs, role.Email.InjectableRefs()...)
+		}
+	}
+	return refs
 }
 
 // buildInjectableMap creates a key -> definition lookup map.
