@@ -76,6 +76,16 @@ logging:
   level: info   # debug, info, warn, error
   format: json  # json, text
 
+# Injectable source selection policy by canonical environment.
+# Useful for custom WorkspaceInjectableProvider implementations that resolve
+# data from multiple repositories/datasources (e.g., dev fallback to prod).
+injectable_sources:
+  env_resolution:
+    dev:
+      order: ["dev", "prod"]
+    prod:
+      order: ["prod"]
+
 # First-user bootstrap configuration
 # When enabled, the first user to login via OIDC becomes SUPERADMIN automatically.
 # This only happens when the database has zero users.

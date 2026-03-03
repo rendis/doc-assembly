@@ -7,21 +7,22 @@ import (
 
 // Config represents the complete application configuration.
 type Config struct {
-	Environment        string              `mapstructure:"environment"`
-	EnvironmentAliases map[string][]string `mapstructure:"environment_aliases"`
-	Server       ServerConfig       `mapstructure:"server"`
-	Database     DatabaseConfig     `mapstructure:"database"`
-	Auth         AuthConfig         `mapstructure:"auth"`
-	InternalAPI  InternalAPIConfig  `mapstructure:"internal_api"`
-	Signing      SigningConfig      `mapstructure:"signing"`
-	Storage      StorageConfig      `mapstructure:"storage"`
-	Logging      LoggingConfig      `mapstructure:"logging"`
-	Typst        TypstConfig        `mapstructure:"typst"`
-	Bootstrap    BootstrapConfig    `mapstructure:"bootstrap"`
-	Scheduler    SchedulerConfig    `mapstructure:"scheduler"`
-	Notification NotificationConfig `mapstructure:"notification"`
-	PublicAccess PublicAccessConfig `mapstructure:"public_access"`
-	Worker       WorkerConfig       `mapstructure:"worker"`
+	Environment        string                  `mapstructure:"environment"`
+	EnvironmentAliases map[string][]string     `mapstructure:"environment_aliases"`
+	Server             ServerConfig            `mapstructure:"server"`
+	Database           DatabaseConfig          `mapstructure:"database"`
+	Auth               AuthConfig              `mapstructure:"auth"`
+	InternalAPI        InternalAPIConfig       `mapstructure:"internal_api"`
+	Signing            SigningConfig           `mapstructure:"signing"`
+	Storage            StorageConfig           `mapstructure:"storage"`
+	Logging            LoggingConfig           `mapstructure:"logging"`
+	Typst              TypstConfig             `mapstructure:"typst"`
+	Bootstrap          BootstrapConfig         `mapstructure:"bootstrap"`
+	Scheduler          SchedulerConfig         `mapstructure:"scheduler"`
+	Notification       NotificationConfig      `mapstructure:"notification"`
+	PublicAccess       PublicAccessConfig      `mapstructure:"public_access"`
+	Worker             WorkerConfig            `mapstructure:"worker"`
+	InjectableSources  InjectableSourcesConfig `mapstructure:"injectable_sources"`
 
 	// DummyAuthUserID is the internal DB user ID for dummy auth mode.
 	// Set at runtime after seeding the dummy user (not loaded from YAML).
@@ -161,6 +162,16 @@ type StorageConfig struct {
 type LoggingConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
+}
+
+// InjectableSourcesConfig holds source selection policy for environment-based injectable resolution.
+type InjectableSourcesConfig struct {
+	EnvResolution map[string]InjectableEnvConfig `mapstructure:"env_resolution"`
+}
+
+// InjectableEnvConfig configures datasource resolution order for one canonical environment key.
+type InjectableEnvConfig struct {
+	Order []string `mapstructure:"order"`
 }
 
 // TypstConfig holds Typst-based PDF renderer configuration.

@@ -123,6 +123,16 @@ func setDefaults(v *viper.Viper) {
 		"dev":  {"dev", "develop", "development", "staging", "uat", "qa", "local", "sandbox"},
 		"prod": {"prod", "production"},
 	})
+
+	// Injectable source selection by canonical environment.
+	v.SetDefault("injectable_sources.env_resolution", map[string]map[string][]string{
+		"dev": {
+			"order": {"dev", "prod"},
+		},
+		"prod": {
+			"order": {"prod"},
+		},
+	})
 }
 
 // applySigningEnvOverrides reads DOC_ENGINE_SIGNING_* env vars into SigningConfig.

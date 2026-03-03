@@ -79,6 +79,7 @@ type generationContext struct {
 	referencedCodes []string
 	payload         any
 	resolvedValues  map[string]any
+	resolveErrors   map[string]error
 	recipients      []*entity.DocumentRecipient
 }
 
@@ -258,12 +259,23 @@ func (g *DocumentGenerator) resolveAndBuildRecipients(
 		return err
 	}
 
-	genCtx.resolvedValues, err = g.resolveInjectables(ctx, mapCtx, genCtx.payload, genCtx.referencedCodes)
+	genCtx.resolvedValues, genCtx.resolveErrors, err = g.resolveInjectables(
+		ctx,
+		mapCtx,
+		genCtx.payload,
+		genCtx.referencedCodes,
+	)
 	if err != nil {
 		return err
 	}
 
-	genCtx.recipients, err = g.buildRecipientsFromSignerRoles(ctx, genCtx.portableDoc.SignerRoles, genCtx.version.SignerRoles, genCtx.resolvedValues)
+	genCtx.recipients, err = g.buildRecipientsFromSignerRoles(
+		ctx,
+		genCtx.portableDoc.SignerRoles,
+		genCtx.version.SignerRoles,
+		genCtx.resolvedValues,
+		genCtx.resolveErrors,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "recipient validation failed", "error", err, slog.String("versionId", genCtx.version.ID))
 		return err
@@ -291,10 +303,11 @@ func (g *DocumentGenerator) findWorkspaceID(ctx context.Context, templateID stri
 func (g *DocumentGenerator) fetchAvailableInjectables(
 	ctx context.Context,
 	workspaceID string,
-	_ *entity.InjectorContext,
+	injCtx *entity.InjectorContext,
 ) ([]*entity.InjectableDefinition, error) {
 	result, err := g.injectableUC.ListInjectables(ctx, &injectable_uc.ListInjectablesRequest{
 		WorkspaceID: workspaceID,
+		Environment: injCtx.Environment(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing available injectables: %w", err)
@@ -471,7 +484,7 @@ func (g *DocumentGenerator) resolveInjectables(
 	mapCtx *port.MapperContext,
 	payload any,
 	referencedCodes []string,
-) (map[string]any, error) {
+) (map[string]any, map[string]error, error) {
 	var injCtx *entity.InjectorContext
 	if mapCtx.TenantCode != "" || mapCtx.WorkspaceCode != "" {
 		injCtx = entity.NewInjectorContextWithCodes(
@@ -506,7 +519,7 @@ func (g *DocumentGenerator) resolveInjectables(
 
 	resolveResult, err := g.resolver.Resolve(ctx, injCtx, referencedCodes)
 	if err != nil {
-		return nil, fmt.Errorf("resolving injectors: %w", err)
+		return nil, nil, fmt.Errorf("resolving injectors: %w", err)
 	}
 
 	slog.InfoContext(ctx, "injectables resolved for generation",
@@ -524,7 +537,12 @@ func (g *DocumentGenerator) resolveInjectables(
 		resolvedValues[code] = val.AsAny()
 	}
 
-	return resolvedValues, nil
+	resolveErrors := make(map[string]error, len(resolveResult.Errors))
+	for code, resolveErr := range resolveResult.Errors {
+		resolveErrors[code] = resolveErr
+	}
+
+	return resolvedValues, resolveErrors, nil
 }
 
 // buildRecipientsFromSignerRoles builds and validates DocumentRecipient entities from portable_doc SignerRoles.
@@ -533,6 +551,7 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	portableSignerRoles []portable_doc.SignerRole,
 	dbSignerRoles []*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
+	resolveErrors map[string]error,
 ) ([]*entity.DocumentRecipient, error) {
 	roleByAnchor := make(map[string]*entity.TemplateVersionSignerRole, len(dbSignerRoles))
 	for _, r := range dbSignerRoles {
@@ -543,7 +562,7 @@ func (g *DocumentGenerator) buildRecipientsFromSignerRoles(
 	recipients := make([]*entity.DocumentRecipient, 0, len(portableSignerRoles))
 
 	for _, sr := range portableSignerRoles {
-		recipient, err := g.buildAndValidateRecipient(ctx, sr, roleByAnchor, resolvedValues)
+		recipient, err := g.buildAndValidateRecipient(ctx, sr, roleByAnchor, resolvedValues, resolveErrors)
 		if err != nil {
 			validationErrors = append(validationErrors, err.Error())
 			continue
@@ -566,6 +585,7 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 	sr portable_doc.SignerRole,
 	roleByAnchor map[string]*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
+	resolveErrors map[string]error,
 ) (*entity.DocumentRecipient, error) {
 	anchor := portable_doc.GenerateAnchorString(sr.Label)
 	dbRole, found := roleByAnchor[anchor]
@@ -574,14 +594,14 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 	if !found {
 		return nil, fmt.Errorf("role '%s': no matching signature anchor found", sr.Label)
 	}
-	if missingNameRefs := unresolvedInjectableRefs(sr.Name, resolvedValues); len(missingNameRefs) > 0 {
+	if missingNameRefs := unresolvedInjectableRefs(sr.Name, resolvedValues, resolveErrors); len(missingNameRefs) > 0 {
 		return nil, fmt.Errorf(
 			"role '%s': name has unresolved injectables [%s]",
 			sr.Label,
 			strings.Join(missingNameRefs, ", "),
 		)
 	}
-	if missingEmailRefs := unresolvedInjectableRefs(sr.Email, resolvedValues); len(missingEmailRefs) > 0 {
+	if missingEmailRefs := unresolvedInjectableRefs(sr.Email, resolvedValues, resolveErrors); len(missingEmailRefs) > 0 {
 		return nil, fmt.Errorf(
 			"role '%s': email has unresolved injectables [%s]",
 			sr.Label,
@@ -701,6 +721,7 @@ func resolveFieldValueDiagnostics(
 func unresolvedInjectableRefs(
 	field portable_doc.FieldValue,
 	resolvedValues map[string]any,
+	resolveErrors map[string]error,
 ) []string {
 	if !field.IsInjectable() {
 		return nil
@@ -713,8 +734,16 @@ func unresolvedInjectableRefs(
 
 	unresolved := make([]string, 0, len(refs))
 	for _, ref := range refs {
+		if resolveErr, hasResolveErr := resolveErrors[ref]; hasResolveErr && resolveErr != nil {
+			unresolved = append(unresolved, ref)
+			continue
+		}
 		val, ok := resolvedValues[ref]
 		if !ok || val == nil {
+			unresolved = append(unresolved, ref)
+			continue
+		}
+		if strVal, isString := val.(string); isString && strings.TrimSpace(strVal) == "" {
 			unresolved = append(unresolved, ref)
 		}
 	}

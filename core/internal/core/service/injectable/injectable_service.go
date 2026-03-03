@@ -68,7 +68,13 @@ func (s *InjectableService) ListInjectables(
 	}
 
 	// Get provider injectables if provider is registered
-	providerInjectables, providerGroups, err := s.getProviderInjectablesAndGroups(ctx, req.WorkspaceID, dbInjectables, systemInjectables)
+	providerInjectables, providerGroups, err := s.getProviderInjectablesAndGroups(
+		ctx,
+		req.WorkspaceID,
+		req.Environment,
+		dbInjectables,
+		systemInjectables,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +102,14 @@ func (s *InjectableService) ListInjectables(
 func (s *InjectableService) getProviderInjectablesAndGroups(
 	ctx context.Context,
 	workspaceID string,
+	env entity.Environment,
 	dbInjectables, systemInjectables []*entity.InjectableDefinition,
 ) ([]*entity.InjectableDefinition, []port.GroupConfig, error) {
 	if s.workspaceProvider == nil {
 		return nil, nil, nil
 	}
 
-	providerResult, err := s.fetchProviderResult(ctx, workspaceID)
+	providerResult, err := s.fetchProviderResult(ctx, workspaceID, env)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting provider injectables: %w", err)
 	}
@@ -270,19 +277,25 @@ func (s *InjectableService) mergeInjectables(db, ext []*entity.InjectableDefinit
 
 // fetchProviderResult retrieves provider injectables by resolving workspace codes.
 func (s *InjectableService) fetchProviderResult(
-	ctx context.Context, workspaceID string,
+	ctx context.Context,
+	workspaceID string,
+	env entity.Environment,
 ) (*port.GetInjectablesResult, error) {
 	tenantCode, workspaceCode, err := s.getWorkspaceCodes(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("getting workspace codes: %w", err)
 	}
+	if env == "" {
+		env = entity.EnvironmentProd
+	}
 	slog.InfoContext(ctx, "fetching provider injectables",
 		"workspace_id", workspaceID,
 		"tenant_code", tenantCode,
 		"workspace_code", workspaceCode,
+		"environment", env,
 	)
 
-	injCtx := entity.NewInjectorContextWithCodes("", "", "", "list", tenantCode, workspaceCode, entity.EnvironmentProd, nil, nil)
+	injCtx := entity.NewInjectorContextWithCodes("", "", "", "list", tenantCode, workspaceCode, env, nil, nil)
 	result, err := s.workspaceProvider.GetInjectables(ctx, injCtx)
 	if err != nil {
 		return nil, err
@@ -292,6 +305,7 @@ func (s *InjectableService) fetchProviderResult(
 			"workspace_id", workspaceID,
 			"tenant_code", tenantCode,
 			"workspace_code", workspaceCode,
+			"environment", env,
 		)
 		return nil, nil
 	}
@@ -300,6 +314,7 @@ func (s *InjectableService) fetchProviderResult(
 		"workspace_id", workspaceID,
 		"tenant_code", tenantCode,
 		"workspace_code", workspaceCode,
+		"environment", env,
 		"injectables_count", len(result.Injectables),
 		"groups_count", len(result.Groups),
 	)

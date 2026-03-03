@@ -10,6 +10,7 @@ import (
 // ListInjectablesRequest contains parameters for listing injectables.
 type ListInjectablesRequest struct {
 	WorkspaceID string // Workspace ID to list injectables for
+	Environment entity.Environment
 }
 
 // ListInjectablesResult contains the list of injectables and groups.
