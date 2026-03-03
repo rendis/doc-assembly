@@ -119,25 +119,49 @@ func validateInjectableField(
 	variableIDs []string,
 	accessibleInjectables portabledoc.Set[string],
 ) {
+	refs := field.InjectableRefs()
+
 	// Injectable reference must not be empty
-	if field.IsEmpty() {
+	if len(refs) == 0 {
 		vctx.addErrorf(ErrCodeEmptyRoleFieldValue, path+".value",
 			"Role '%s': %s variable reference is required", roleLabel, fieldName)
 		return
 	}
 
-	// Injectable must exist in variableIds
-	variableSet := portabledoc.NewSet(variableIDs)
-	if !variableSet.Contains(field.Value) {
-		vctx.addErrorf(ErrCodeRoleInjectableNotFound, path+".value",
-			"Role '%s': %s references unknown variable '%s'", roleLabel, fieldName, field.Value)
+	// Email field supports a single injectable only.
+	if fieldName == "email" && len(refs) > 1 {
+		vctx.addErrorf(ErrCodeInvalidRoleField, path+".values",
+			"Role '%s': email supports a single injectable reference", roleLabel)
 		return
 	}
 
-	// Injectable must be accessible to workspace
-	if accessibleInjectables.Len() > 0 && !accessibleInjectables.Contains(field.Value) {
-		vctx.addErrorf(ErrCodeInaccessibleInjectable, path+".value",
-			"Role '%s': %s references inaccessible variable '%s'", roleLabel, fieldName, field.Value)
+	// Multi-reference name fields currently support only space separator.
+	if fieldName == "name" && len(refs) > 1 &&
+		field.Separator != "" && field.Separator != portabledoc.FieldSeparatorSpace {
+		vctx.addErrorf(ErrCodeInvalidRoleField, path+".separator",
+			"Role '%s': unsupported name separator '%s' (must be 'space')", roleLabel, field.Separator)
+		return
+	}
+
+	// Injectable must exist in variableIds
+	variableSet := portabledoc.NewSet(variableIDs)
+	for idx, ref := range refs {
+		refPath := path + ".value"
+		if len(refs) > 1 {
+			refPath = path + fmt.Sprintf(".values[%d]", idx)
+		}
+
+		if !variableSet.Contains(ref) {
+			vctx.addErrorf(ErrCodeRoleInjectableNotFound, refPath,
+				"Role '%s': %s references unknown variable '%s'", roleLabel, fieldName, ref)
+			continue
+		}
+
+		// Injectable must be accessible to workspace
+		if accessibleInjectables.Len() > 0 && !accessibleInjectables.Contains(ref) {
+			vctx.addErrorf(ErrCodeInaccessibleInjectable, refPath,
+				"Role '%s': %s references inaccessible variable '%s'", roleLabel, fieldName, ref)
+		}
 	}
 }
 

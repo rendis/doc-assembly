@@ -1,19 +1,13 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { GripVertical, AlertTriangle, ChevronDown, Check, Type, Variable } from 'lucide-react'
+import { GripVertical, AlertTriangle, ChevronDown, Check, Type, Variable, X } from 'lucide-react'
 import { Trash2 } from '@/components/animate-ui/icons/trash-2'
 import { AnimateIcon } from '@/components/animate-ui/icons/icon'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Dialog,
   DialogContent,
@@ -29,8 +23,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useRoleInjectables } from '../hooks/useRoleInjectables'
 import { useSignerRolesStore } from '../stores/signer-roles-store'
+import { getInjectableVariableIds } from '../types/signer-roles'
 import { NotificationBadge, NotificationConfigDialog } from './workflow'
+import { InjectablePickerContent } from './InjectablePickerContent'
 import type {
   SignerRoleDefinition,
   SignerRoleFieldValue,
@@ -148,6 +145,7 @@ function FieldTypeToggle({ value, onChange, disabled }: FieldTypeToggleProps) {
 }
 
 interface FieldEditorProps {
+  roleId: string
   label: string
   fieldType: 'name' | 'email'
   field: SignerRoleFieldValue
@@ -156,58 +154,256 @@ interface FieldEditorProps {
   onChange: (value: SignerRoleFieldValue) => void
 }
 
-function FieldEditor({ label, fieldType, field, variables, disabled, onChange }: FieldEditorProps) {
+function buildInjectableFieldValue(
+  fieldType: 'name' | 'email',
+  variableIds: string[]
+): SignerRoleFieldValue {
+  if (fieldType === 'name') {
+    return {
+      type: 'injectable',
+      value: variableIds[0] ?? '',
+      values: variableIds,
+      separator: 'space',
+    }
+  }
+
+  return {
+    type: 'injectable',
+    value: variableIds[0] ?? '',
+  }
+}
+
+function FieldEditor({
+  roleId,
+  label,
+  fieldType,
+  field,
+  variables,
+  disabled,
+  onChange,
+}: FieldEditorProps) {
   const { t } = useTranslation()
-  const textVariables = variables.filter((v) => v.type === 'TEXT')
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const targetRef = useRef<HTMLDivElement>(null)
+  const { roleInjectables } = useRoleInjectables()
+  const activeInjectionTarget = useSignerRolesStore((state) => state.activeInjectionTarget)
+  const setActiveInjectionTarget = useSignerRolesStore((state) => state.setActiveInjectionTarget)
+  const clearActiveInjectionTarget = useSignerRolesStore((state) => state.clearActiveInjectionTarget)
+
+  const textVariables = useMemo(
+    () => variables.filter((v) => v.type === 'TEXT'),
+    [variables]
+  )
+
+  const variableLabelMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const variable of textVariables) {
+      map.set(variable.variableId, variable.label)
+    }
+    for (const roleInjectable of roleInjectables) {
+      if (roleInjectable.type === 'TEXT') {
+        map.set(roleInjectable.variableId, roleInjectable.label)
+      }
+    }
+    return map
+  }, [textVariables, roleInjectables])
+
+  const selectedVariableIds = useMemo(() => {
+    const ids = getInjectableVariableIds(field)
+    if (fieldType === 'email') {
+      return ids.slice(0, 1)
+    }
+    return ids
+  }, [field, fieldType])
+
+  const clearTargetIfOwned = useCallback(() => {
+    if (
+      activeInjectionTarget?.roleId === roleId &&
+      activeInjectionTarget.fieldType === fieldType
+    ) {
+      clearActiveInjectionTarget()
+    }
+  }, [activeInjectionTarget, clearActiveInjectionTarget, roleId, fieldType])
+
+  const setAsActiveTarget = useCallback(() => {
+    if (disabled || field.type !== 'injectable') return
+    setActiveInjectionTarget({ roleId, fieldType })
+  }, [disabled, field.type, setActiveInjectionTarget, roleId, fieldType])
+
+  useEffect(() => {
+    return () => {
+      clearTargetIfOwned()
+    }
+  }, [clearTargetIfOwned])
+
+  const handleTypeChange = (type: 'text' | 'injectable') => {
+    if (type === 'text') {
+      onChange({ type: 'text', value: '' })
+      setIsPopoverOpen(false)
+      clearTargetIfOwned()
+      return
+    }
+
+    onChange(buildInjectableFieldValue(fieldType, []))
+    setIsPopoverOpen(true)
+    setActiveInjectionTarget({ roleId, fieldType })
+  }
+
+  const handleInjectableSelect = (data: {
+    variableId: string
+    injectorType: string
+  }) => {
+    if (disabled) return
+    if (data.injectorType !== 'TEXT') return
+
+    if (fieldType === 'email') {
+      onChange(buildInjectableFieldValue('email', [data.variableId]))
+      setIsPopoverOpen(false)
+      return
+    }
+
+    if (selectedVariableIds.includes(data.variableId)) {
+      return
+    }
+
+    onChange(
+      buildInjectableFieldValue('name', [...selectedVariableIds, data.variableId])
+    )
+  }
+
+  const handleRemoveInjectable = (variableId: string) => {
+    if (disabled) return
+
+    if (fieldType === 'email') {
+      onChange(buildInjectableFieldValue('email', []))
+      return
+    }
+
+    const nextIds = selectedVariableIds.filter((id) => id !== variableId)
+    onChange(buildInjectableFieldValue('name', nextIds))
+  }
+
+  const handleInjectableTriggerBlur = (
+    e: React.FocusEvent<HTMLDivElement>
+  ) => {
+    if (targetRef.current?.contains(e.relatedTarget as Node)) {
+      return
+    }
+    if (!isPopoverOpen) {
+      clearTargetIfOwned()
+    }
+  }
 
   return (
-    <div className={cn('flex items-center gap-2 overflow-hidden', disabled && 'opacity-50')}>
-      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-11 shrink-0">
+    <div
+      className={cn(
+        'flex items-start gap-2 overflow-visible',
+        fieldType === 'name' && field.type === 'injectable' && 'min-h-14',
+        disabled && 'opacity-50'
+      )}
+    >
+      <span className="mt-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-11 shrink-0">
         {label}:
       </span>
 
       <FieldTypeToggle
         value={field.type}
-        onChange={(type) => onChange({ type, value: '' })}
+        onChange={handleTypeChange}
         disabled={disabled}
       />
 
       {field.type === 'text' ? (
         <input
           type="text"
-          value={field.value}
+          value={field.value ?? ''}
           onChange={(e) => onChange({ type: 'text', value: e.target.value })}
+          onFocus={clearTargetIfOwned}
           placeholder={t(`editor.roles.card.placeholders.${fieldType}`)}
           disabled={disabled}
           className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent px-1 outline-none transition-all placeholder:text-muted-foreground focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-50"
         />
       ) : (
-        <Select
-          value={field.value}
-          onValueChange={(value) => onChange({ type: 'injectable', value })}
-          disabled={disabled}
+        <Popover
+          open={isPopoverOpen}
+          onOpenChange={(open) => {
+            setIsPopoverOpen(open)
+            if (open) {
+              setAsActiveTarget()
+            }
+          }}
         >
-          <SelectTrigger className="h-7 text-xs flex-1 min-w-0 border-0 border-b border-input rounded-none bg-transparent focus-visible:border-foreground focus-visible:ring-0 focus-visible:ring-offset-0">
-            <SelectValue placeholder={t('editor.roles.card.selectVariable')} />
-          </SelectTrigger>
-          <SelectContent>
-            {textVariables.length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+          <PopoverTrigger asChild>
+            <div
+              ref={targetRef}
+              role="button"
+              tabIndex={disabled ? -1 : 0}
+              onClick={() => !disabled && setIsPopoverOpen(true)}
+              onFocus={() => {
+                if (disabled) return
+                setAsActiveTarget()
+                setIsPopoverOpen(true)
+              }}
+              onBlur={handleInjectableTriggerBlur}
+              onKeyDown={(e) => {
+                if (disabled) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setIsPopoverOpen(true)
+                  setAsActiveTarget()
+                }
+              }}
+              className={cn(
+                'min-h-7 flex-1 min-w-0 border-0 border-b border-input bg-transparent px-1 py-1 text-xs outline-none transition-all focus-visible:border-foreground',
+                'cursor-pointer',
+                disabled && 'cursor-default'
+              )}
+            >
+              {selectedVariableIds.length === 0 ? (
+                <span className="text-muted-foreground">
+                  {t('editor.roles.card.selectVariable')}
+                </span>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1">
+                  {selectedVariableIds.map((variableId) => (
+                    <span
+                      key={variableId}
+                      className="inline-flex max-w-full items-center gap-1 rounded border border-role-border/50 bg-role-muted/40 px-1.5 py-0.5 text-[10px] text-role-foreground"
+                    >
+                      <span className="max-w-[140px] truncate">
+                        {variableLabelMap.get(variableId) ?? variableId}
+                      </span>
+                      {!disabled && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveInjectable(variableId)
+                          }}
+                          className="rounded p-0.5 hover:bg-role-muted/80"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </PopoverTrigger>
+          <PopoverContent align="start" side="bottom" className="w-[360px] p-3">
+            {textVariables.length === 0 && roleInjectables.length === 0 ? (
+              <div className="px-1 py-2 text-xs text-muted-foreground">
                 {t('editor.roles.card.noVariables')}
               </div>
             ) : (
-              textVariables.map((variable) => (
-                <SelectItem
-                  key={variable.id}
-                  value={variable.variableId}
-                  className="text-xs"
-                >
-                  {variable.label}
-                </SelectItem>
-              ))
+              <InjectablePickerContent
+                onSelect={handleInjectableSelect}
+                selectedVariableIds={selectedVariableIds}
+                className="max-h-[320px]"
+              />
             )}
-          </SelectContent>
-        </Select>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   )
@@ -527,6 +723,7 @@ export function SignerRoleItem({
         >
           <div className="space-y-2 pt-2">
             <FieldEditor
+              roleId={role.id}
               label={t('editor.roles.card.fields.name')}
               fieldType="name"
               field={role.name}
@@ -535,6 +732,7 @@ export function SignerRoleItem({
               onChange={handleNameChange}
             />
             <FieldEditor
+              roleId={role.id}
               label={t('editor.roles.card.fields.email')}
               fieldType="email"
               field={role.email}

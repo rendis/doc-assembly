@@ -17,6 +17,7 @@ import type {
   ProseMirrorNode,
   BackendVariable,
 } from '../types/document-format'
+import { getInjectableVariableIds } from '../types/signer-roles'
 
 // =============================================================================
 // Types
@@ -412,57 +413,73 @@ function validateSignerRoleReferences(
     const role = document.signerRoles[i]
     const path = `signerRoles[${i}]`
 
-    // Check name field
+    // Check name field (supports multiple injectable references)
     if (role.name.type === 'injectable') {
-      if (!context.documentVariableIds.has(role.name.value)) {
-        addWarning(
-          context,
-          'UNDEFINED_ROLE_NAME_VARIABLE',
-          `${path}.name.value`,
-          `Variable "${role.name.value}" usada en nombre de rol no está en variableIds`,
-          'Añade el ID de la variable o usa un valor de texto'
-        )
-      }
+      const nameVariableIds = getInjectableVariableIds(role.name)
+      for (const variableId of nameVariableIds) {
+        if (!context.documentVariableIds.has(variableId)) {
+          addWarning(
+            context,
+            'UNDEFINED_ROLE_NAME_VARIABLE',
+            `${path}.name`,
+            `Variable "${variableId}" usada en nombre de rol no está en variableIds`,
+            'Añade el ID de la variable o usa un valor de texto'
+          )
+        }
 
-      // Check if variable exists in backend
-      if (
-        context.backendVariableIds.size > 0 &&
-        !context.backendVariableIds.has(role.name.value)
-      ) {
-        addWarning(
-          context,
-          'ORPHANED_ROLE_NAME_VARIABLE',
-          `${path}.name.value`,
-          `Variable "${role.name.value}" usada en nombre de rol no existe en el backend`,
-          'La variable puede haber sido eliminada'
-        )
+        // Check if variable exists in backend
+        if (
+          context.backendVariableIds.size > 0 &&
+          !context.backendVariableIds.has(variableId)
+        ) {
+          addWarning(
+            context,
+            'ORPHANED_ROLE_NAME_VARIABLE',
+            `${path}.name`,
+            `Variable "${variableId}" usada en nombre de rol no existe en el backend`,
+            'La variable puede haber sido eliminada'
+          )
+        }
       }
     }
 
-    // Check email field
+    // Check email field (must reference at most one injectable)
     if (role.email.type === 'injectable') {
-      if (!context.documentVariableIds.has(role.email.value)) {
+      const emailVariableIds = getInjectableVariableIds(role.email)
+      if (emailVariableIds.length > 1) {
         addWarning(
           context,
-          'UNDEFINED_ROLE_EMAIL_VARIABLE',
-          `${path}.email.value`,
-          `Variable "${role.email.value}" usada en email de rol no está en variableIds`,
-          'Añade el ID de la variable o usa un valor de texto'
+          'ROLE_EMAIL_MULTI_INJECTABLE_NOT_SUPPORTED',
+          `${path}.email.values`,
+          'Email de rol no soporta múltiples inyectables',
+          'Usa solo una variable para email'
         )
       }
 
-      // Check if variable exists in backend
-      if (
-        context.backendVariableIds.size > 0 &&
-        !context.backendVariableIds.has(role.email.value)
-      ) {
-        addWarning(
-          context,
-          'ORPHANED_ROLE_EMAIL_VARIABLE',
-          `${path}.email.value`,
-          `Variable "${role.email.value}" usada en email de rol no existe en el backend`,
-          'La variable puede haber sido eliminada'
-        )
+      for (const variableId of emailVariableIds) {
+        if (!context.documentVariableIds.has(variableId)) {
+          addWarning(
+            context,
+            'UNDEFINED_ROLE_EMAIL_VARIABLE',
+            `${path}.email`,
+            `Variable "${variableId}" usada en email de rol no está en variableIds`,
+            'Añade el ID de la variable o usa un valor de texto'
+          )
+        }
+
+        // Check if variable exists in backend
+        if (
+          context.backendVariableIds.size > 0 &&
+          !context.backendVariableIds.has(variableId)
+        ) {
+          addWarning(
+            context,
+            'ORPHANED_ROLE_EMAIL_VARIABLE',
+            `${path}.email`,
+            `Variable "${variableId}" usada en email de rol no existe en el backend`,
+            'La variable puede haber sido eliminada'
+          )
+        }
       }
     }
   }

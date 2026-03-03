@@ -96,10 +96,13 @@ export const VariableIdSchema = z.string().min(1)
 // =============================================================================
 
 export const SignerRoleFieldTypeSchema = z.enum(['text', 'injectable'])
+export const SignerRoleFieldSeparatorSchema = z.enum(['space'])
 
 export const SignerRoleFieldValueSchema = z.object({
   type: SignerRoleFieldTypeSchema.default('text'),
-  value: z.string().default(''),
+  value: z.string().optional().default(''),
+  values: z.array(z.string().min(1)).optional(),
+  separator: SignerRoleFieldSeparatorSchema.optional(),
 })
 
 export const SignerRoleDefinitionSchema = z.object({

@@ -7,13 +7,28 @@ import type { Variable } from './variables'
  * - 'injectable': referencia a una variable/inyectable
  */
 export type SignerRoleFieldType = 'text' | 'injectable'
+export type SignerRoleFieldSeparator = 'space'
 
 /**
  * Valor de un campo de rol (nombre o email)
  */
 export interface SignerRoleFieldValue {
   type: SignerRoleFieldType
-  value: string // El texto fijo o el variableId
+  /**
+   * Legacy/single value.
+   * - text: literal value
+   * - injectable: single variableId (email, or name in backward-compatible format)
+   */
+  value?: string
+  /**
+   * Multi-value injectable support for name field.
+   * When present and non-empty, takes precedence over `value`.
+   */
+  values?: string[]
+  /**
+   * Separator for multi injectable resolution (default: space).
+   */
+  separator?: SignerRoleFieldSeparator
 }
 
 /**
@@ -35,9 +50,15 @@ export interface SignerRolesState {
   isCollapsed: boolean
   isCompactMode: boolean
   workflowConfig: SigningWorkflowConfig
+  activeInjectionTarget: SignerRoleInjectionTarget | null
   // Selection mode
   isSelectionMode: boolean
   selectedRoleIds: string[]
+}
+
+export interface SignerRoleInjectionTarget {
+  roleId: string
+  fieldType: 'name' | 'email'
 }
 
 /**
@@ -54,6 +75,8 @@ export interface SignerRolesActions {
   reorderRoles: (startIndex: number, endIndex: number) => void
   toggleCollapsed: () => void
   toggleCompactMode: () => void
+  setActiveInjectionTarget: (target: SignerRoleInjectionTarget | null) => void
+  clearActiveInjectionTarget: () => void
   reset: () => void
   // Selection mode actions
   enterSelectionMode: (initialId?: string) => void
@@ -109,8 +132,35 @@ export function getFieldDisplayValue(
     return field.value || i18n.t('editor.roles.emptyValue')
   }
 
-  const variable = variables.find((v) => v.variableId === field.value)
-  return variable ? `{{${variable.label}}}` : `{{${field.value}}}`
+  const variableIds = field.values?.filter(Boolean).length
+    ? field.values.filter(Boolean)
+    : (field.value ? [field.value] : [])
+
+  if (variableIds.length === 0) {
+    return i18n.t('editor.roles.emptyValue')
+  }
+
+  const parts = variableIds.map((variableId) => {
+    const variable = variables.find((v) => v.variableId === variableId)
+    return variable ? `{{${variable.label}}}` : `{{${variableId}}}`
+  })
+
+  return parts.join(field.separator === 'space' ? ' ' : ' ')
+}
+
+/**
+ * Returns normalized injectable variable IDs for a field.
+ * - `values` has priority for multi-reference fields
+ * - falls back to `value` for legacy/single-reference documents
+ */
+export function getInjectableVariableIds(
+  field: SignerRoleFieldValue
+): string[] {
+  if (field.type !== 'injectable') return []
+  if (field.values?.filter(Boolean).length) {
+    return field.values.filter(Boolean)
+  }
+  return field.value ? [field.value] : []
 }
 
 /**

@@ -168,30 +168,41 @@ func (s *Service) resolveSignerRoleValues(
 	result := make(map[string]port.SignerRoleValue)
 
 	for _, role := range signerRoles {
-		value := port.SignerRoleValue{}
-
-		// Resolve name
-		if role.Name.IsText() {
-			value.Name = role.Name.Value
-		} else if role.Name.IsInjectable() {
-			if v, ok := injectables[role.Name.Value]; ok {
-				value.Name = fmt.Sprintf("%v", v)
-			}
+		result[role.ID] = port.SignerRoleValue{
+			Name:  resolveSignerRoleFieldValue(role.Name, injectables),
+			Email: resolveSignerRoleFieldValue(role.Email, injectables),
 		}
-
-		// Resolve email
-		if role.Email.IsText() {
-			value.Email = role.Email.Value
-		} else if role.Email.IsInjectable() {
-			if v, ok := injectables[role.Email.Value]; ok {
-				value.Email = fmt.Sprintf("%v", v)
-			}
-		}
-
-		result[role.ID] = value
 	}
 
 	return result
+}
+
+func resolveSignerRoleFieldValue(
+	field portabledoc.FieldValue,
+	injectables map[string]any,
+) string {
+	if field.IsText() {
+		return field.Value
+	}
+	if !field.IsInjectable() {
+		return ""
+	}
+
+	refs := field.InjectableRefs()
+	if len(refs) == 0 {
+		return ""
+	}
+
+	resolved := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		if v, ok := injectables[ref]; ok {
+			resolved = append(resolved, fmt.Sprintf("%v", v))
+		}
+	}
+	if len(resolved) == 0 {
+		return ""
+	}
+	return strings.Join(resolved, field.ResolveSeparator())
 }
 
 // generateFilename creates a safe filename from the document title.

@@ -45,8 +45,9 @@ import { TableCornerHandle } from './TableCornerHandle'
 import { hasConfigurableOptions } from '../types/injectable'
 import { cn } from '@/lib/utils'
 import { type Variable } from '../types'
-import { usePaginationStore } from '../stores'
+import { usePaginationStore, useSignerRolesStore } from '../stores'
 import type { VariableDragData } from '../types/drag'
+import { getInjectableVariableIds } from '../types/signer-roles'
 import type { Editor } from '@tiptap/core'
 
 interface DocumentEditorProps {
@@ -81,6 +82,12 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   // Get page config from store (for visual width and margins)
   const { pageSize, margins } = usePaginationStore()
+  const roles = useSignerRolesStore((state) => state.roles)
+  const updateRole = useSignerRolesStore((state) => state.updateRole)
+  const activeInjectionTarget = useSignerRolesStore((state) => state.activeInjectionTarget)
+  const clearActiveInjectionTarget = useSignerRolesStore(
+    (state) => state.clearActiveInjectionTarget
+  )
 
   // Ref to store current content before editor recreation (JSON preserves custom nodes)
   const contentRef = useRef<string | Record<string, unknown>>(initialContent)
@@ -332,6 +339,63 @@ export function DocumentEditor({
     }, 200)
   }, [])
 
+  /**
+   * Assigns a clicked variable to the currently active signer role field target.
+   * Returns true when the click is consumed by role field assignment.
+   */
+  const assignVariableToActiveRoleTarget = useCallback(
+    (data: VariableDragData): boolean => {
+      if (!activeInjectionTarget) return false
+      if (data.injectorType !== 'TEXT') return false
+
+      const targetRole = roles.find((role) => role.id === activeInjectionTarget.roleId)
+      if (!targetRole) {
+        clearActiveInjectionTarget()
+        return false
+      }
+
+      const fieldType = activeInjectionTarget.fieldType
+      const currentField = targetRole[fieldType]
+
+      if (currentField.type !== 'injectable') {
+        clearActiveInjectionTarget()
+        return false
+      }
+
+      if (fieldType === 'email') {
+        updateRole(targetRole.id, {
+          email: {
+            type: 'injectable',
+            value: data.variableId,
+          },
+        })
+        return true
+      }
+
+      const currentIds = getInjectableVariableIds(currentField)
+      if (currentIds.includes(data.variableId)) {
+        return true
+      }
+
+      const nextIds = [...currentIds, data.variableId]
+      updateRole(targetRole.id, {
+        name: {
+          type: 'injectable',
+          value: nextIds[0] ?? '',
+          values: nextIds,
+          separator: 'space',
+        },
+      })
+      return true
+    },
+    [
+      activeInjectionTarget,
+      clearActiveInjectionTarget,
+      roles,
+      updateRole,
+    ]
+  )
+
   // --- DRAG & DROP HANDLERS ---
 
   /**
@@ -407,9 +471,12 @@ export function DocumentEditor({
    */
   const handleVariableClick = useCallback(
     (data: VariableDragData) => {
+      if (assignVariableToActiveRoleTarget(data)) {
+        return
+      }
       insertVariable(data)
     },
-    [insertVariable]
+    [insertVariable, assignVariableToActiveRoleTarget]
   )
 
   /**

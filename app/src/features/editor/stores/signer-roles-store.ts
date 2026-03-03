@@ -20,6 +20,7 @@ const initialState = {
   isCollapsed: false,
   isCompactMode: false,
   workflowConfig: createDefaultWorkflowConfig(),
+  activeInjectionTarget: null,
   // Selection mode
   isSelectionMode: false,
   selectedRoleIds: [] as string[],
@@ -56,7 +57,13 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
         ...role,
         order: index + 1,
       }))
-      return { roles: reorderedRoles }
+      return {
+        roles: reorderedRoles,
+        activeInjectionTarget:
+          state.activeInjectionTarget?.roleId === id
+            ? null
+            : state.activeInjectionTarget,
+      }
     })
   },
 
@@ -80,6 +87,14 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
 
   toggleCompactMode: () => {
     set((state) => ({ isCompactMode: !state.isCompactMode }))
+  },
+
+  setActiveInjectionTarget: (target) => {
+    set({ activeInjectionTarget: target })
+  },
+
+  clearActiveInjectionTarget: () => {
+    set({ activeInjectionTarget: null })
   },
 
   reset: () => set(initialState),
@@ -130,6 +145,11 @@ export const useSignerRolesStore = create<SignerRolesStore>()((set, get) => ({
       }))
       return {
         roles: reorderedRoles,
+        activeInjectionTarget:
+          state.activeInjectionTarget &&
+          state.selectedRoleIds.includes(state.activeInjectionTarget.roleId)
+            ? null
+            : state.activeInjectionTarget,
         isSelectionMode: false,
         selectedRoleIds: [],
       }

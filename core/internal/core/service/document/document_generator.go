@@ -319,23 +319,15 @@ func (g *DocumentGenerator) collectReferencedCodes(
 	versionInjectables []*entity.VersionInjectableWithDefinition,
 	signerRoles []portable_doc.SignerRole,
 ) []string {
-	codeSet := make(map[string]bool)
+	codeSet := make(map[string]struct{})
 
 	for _, vi := range versionInjectables {
-		if vi.Definition != nil {
-			codeSet[vi.Definition.Key] = true
-		} else if vi.SystemInjectableKey != nil {
-			codeSet[*vi.SystemInjectableKey] = true
-		}
+		addVersionInjectableCode(codeSet, vi)
 	}
 
 	for _, sr := range signerRoles {
-		if sr.Name.IsInjectable() && sr.Name.Value != "" {
-			codeSet[sr.Name.Value] = true
-		}
-		if sr.Email.IsInjectable() && sr.Email.Value != "" {
-			codeSet[sr.Email.Value] = true
-		}
+		addFieldInjectableRefs(codeSet, sr.Name)
+		addFieldInjectableRefs(codeSet, sr.Email)
 	}
 
 	codes := make([]string, 0, len(codeSet))
@@ -344,6 +336,34 @@ func (g *DocumentGenerator) collectReferencedCodes(
 	}
 
 	return codes
+}
+
+func addVersionInjectableCode(
+	codeSet map[string]struct{},
+	vi *entity.VersionInjectableWithDefinition,
+) {
+	switch {
+	case vi.Definition != nil:
+		addCodeIfNotEmpty(codeSet, vi.Definition.Key)
+	case vi.SystemInjectableKey != nil:
+		addCodeIfNotEmpty(codeSet, *vi.SystemInjectableKey)
+	}
+}
+
+func addFieldInjectableRefs(codeSet map[string]struct{}, field portable_doc.FieldValue) {
+	if !field.IsInjectable() {
+		return
+	}
+	for _, ref := range field.InjectableRefs() {
+		addCodeIfNotEmpty(codeSet, ref)
+	}
+}
+
+func addCodeIfNotEmpty(codeSet map[string]struct{}, code string) {
+	if code == "" {
+		return
+	}
+	codeSet[code] = struct{}{}
 }
 
 // validateRequiredInjectables validates that all required injectable codes are available.
@@ -520,16 +540,28 @@ func (g *DocumentGenerator) resolveFieldValue(
 		return ""
 	}
 
-	val, ok := resolvedValues[field.Value]
-	if !ok {
+	refs := field.InjectableRefs()
+	if len(refs) == 0 {
 		return ""
 	}
 
-	if strVal, ok := val.(string); ok {
-		return strVal
+	resolved := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		val, ok := resolvedValues[ref]
+		if !ok {
+			continue
+		}
+		if strVal, ok := val.(string); ok {
+			resolved = append(resolved, strVal)
+			continue
+		}
+		resolved = append(resolved, fmt.Sprintf("%v", val))
 	}
 
-	return fmt.Sprintf("%v", val)
+	if len(resolved) == 0 {
+		return ""
+	}
+	return strings.Join(resolved, field.ResolveSeparator())
 }
 
 // createDocument creates and persists the document entity.
