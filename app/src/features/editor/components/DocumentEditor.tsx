@@ -45,11 +45,9 @@ import { TableCornerHandle } from './TableCornerHandle'
 import { hasConfigurableOptions } from '../types/injectable'
 import { type Variable } from '../types'
 import { usePaginationStore, useSignerRolesStore } from '../stores'
-import { useVariablesPanelStore } from '../stores/variables-panel-store'
 import type { VariableDragData } from '../types/drag'
 import { getInjectableVariableIds } from '../types/signer-roles'
 import type { Editor } from '@tiptap/core'
-import { decideAdaptivePanels } from '../layout/adaptive-panels'
 import { getDocumentEditorGridClass } from '../layout/document-editor-grid'
 
 interface DocumentEditorProps {
@@ -84,12 +82,8 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   // Get page config from store (for visual width and margins)
   const { pageSize, margins } = usePaginationStore()
-  const variablesCollapsed = useVariablesPanelStore((state) => state.isCollapsed)
-  const setVariablesCollapsed = useVariablesPanelStore((state) => state.setCollapsed)
   const roles = useSignerRolesStore((state) => state.roles)
   const updateRole = useSignerRolesStore((state) => state.updateRole)
-  const rolesCollapsed = useSignerRolesStore((state) => state.isCollapsed)
-  const setRolesCollapsed = useSignerRolesStore((state) => state.setCollapsed)
   const activeInjectionTarget = useSignerRolesStore((state) => state.activeInjectionTarget)
   const clearActiveInjectionTarget = useSignerRolesStore(
     (state) => state.clearActiveInjectionTarget
@@ -125,9 +119,6 @@ export function DocumentEditor({
     height: number
   } | null>(null)
   const [dropPosition, setDropPosition] = useState<number | null>(null)
-  const [availableWidth, setAvailableWidth] = useState<number | null>(null)
-
-  const layoutContainerRef = useRef<HTMLDivElement>(null)
 
   // DnD sensors - require 8px movement before drag starts (allows clicks to pass)
   const sensors = useSensors(
@@ -137,62 +128,6 @@ export function DocumentEditor({
       },
     })
   )
-
-  // Observe available layout width to auto-collapse side panels when needed.
-  useEffect(() => {
-    const element = layoutContainerRef.current
-    if (!element) return
-
-    const updateWidth = () => {
-      setAvailableWidth(element.getBoundingClientRect().width)
-    }
-
-    updateWidth()
-
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(() => {
-        updateWidth()
-      })
-      observer.observe(element)
-      return () => observer.disconnect()
-    }
-
-    window.addEventListener('resize', updateWidth)
-    return () => window.removeEventListener('resize', updateWidth)
-  }, [])
-
-  useEffect(() => {
-    if (availableWidth === null) return
-
-    const decision = decideAdaptivePanels({
-      availableWidth,
-      pageSizeWidth: pageSize.width,
-      marginsLeft: margins.left,
-      marginsRight: margins.right,
-      editable,
-      variablesCollapsed,
-      rolesCollapsed,
-      priority: 'roles',
-      noAutoExpand: true,
-    })
-
-    if (decision.nextVariablesCollapsed !== variablesCollapsed) {
-      setVariablesCollapsed(decision.nextVariablesCollapsed)
-    }
-    if (decision.nextRolesCollapsed !== rolesCollapsed) {
-      setRolesCollapsed(decision.nextRolesCollapsed)
-    }
-  }, [
-    availableWidth,
-    editable,
-    margins.left,
-    margins.right,
-    pageSize.width,
-    rolesCollapsed,
-    setRolesCollapsed,
-    setVariablesCollapsed,
-    variablesCollapsed,
-  ])
 
   // eslint-disable-next-line react-hooks/refs -- Reading ref during render is intentional to preserve content on editor recreation
   const editor = useEditor({
@@ -641,10 +576,7 @@ export function DocumentEditor({
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
       >
-        <div
-          ref={layoutContainerRef}
-          className={getDocumentEditorGridClass(editable)}
-        >
+        <div className={getDocumentEditorGridClass(editable)}>
           {/* Left: Variables Panel - only show when editable */}
           {editable && (
             <VariablesPanel

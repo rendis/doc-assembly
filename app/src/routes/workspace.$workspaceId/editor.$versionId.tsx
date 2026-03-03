@@ -125,24 +125,24 @@ function EditorPage() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen min-w-0">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b bg-card">
-        <div className="flex items-center gap-4">
+      <header className="flex min-w-0 items-center justify-between px-4 py-2 border-b bg-card">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           <Link to="/workspace/$workspaceId/templates" params={{ workspaceId }}>
             <button className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t('common.back')}
             </button>
           </Link>
-          <span className="text-sm text-muted-foreground font-mono">
+          <span className="min-w-0 truncate text-sm text-muted-foreground font-mono">
             Version: {versionId}
           </span>
         </div>
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 flex items-center"
+          className="shrink-0 rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 flex items-center"
         >
           <Save className="mr-2 h-4 w-4" />
           {isSaving ? t('common.saving') : t('common.save')}
@@ -150,7 +150,7 @@ function EditorPage() {
       </header>
 
       {/* Editor */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <DocumentEditor
           key="editor"
           initialContent={contentRef.current}

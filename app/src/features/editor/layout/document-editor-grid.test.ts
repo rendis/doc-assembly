@@ -14,6 +14,7 @@ describe('getDocumentEditorGridClass', () => {
     expect(className).toContain(DOCUMENT_EDITOR_GRID_EDITABLE_CLASS)
     expect(className).toContain('w-full')
     expect(className).toContain('min-w-0')
+    expect(className).toContain('overflow-hidden')
   })
 
   it('uses minmax center column for read-only mode', () => {
@@ -23,5 +24,6 @@ describe('getDocumentEditorGridClass', () => {
     expect(className).toContain(DOCUMENT_EDITOR_GRID_READ_ONLY_CLASS)
     expect(className).toContain('w-full')
     expect(className).toContain('min-w-0')
+    expect(className).toContain('overflow-hidden')
   })
 })

@@ -1,5 +1,5 @@
 export const DOCUMENT_EDITOR_GRID_BASE_CLASS =
-  'grid grid-rows-[auto_1fr] h-full w-full min-w-0'
+  'grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden'
 
 export const DOCUMENT_EDITOR_GRID_EDITABLE_CLASS =
   'grid-cols-[auto_minmax(0,1fr)_auto]'

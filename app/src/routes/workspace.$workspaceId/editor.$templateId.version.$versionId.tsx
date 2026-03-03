@@ -292,25 +292,28 @@ function EditorPage() {
         documentName={version?.name}
       />
 
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <div className="flex flex-col h-[calc(100vh-4rem)] min-w-0">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 py-2 border-b bg-card">
-          <div className="flex items-center gap-4">
+        <header className="flex min-w-0 items-center justify-between px-4 py-2 border-b bg-card">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => router.history.back()}
+              className="shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-sm font-semibold">{version?.name || 'Editor'}</h1>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold">
+                {version?.name || 'Editor'}
+              </h1>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
+                <span className="truncate text-xs text-muted-foreground">
                   v{version?.versionNumber || versionId}
                 </span>
                 {isEditable && (
-                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                  <span className="shrink-0 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                     {t('editor.status.editable')}
                   </span>
                 )}
@@ -318,7 +321,7 @@ function EditorPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 shrink-0 items-center gap-3">
             {isEditable && (
               <>
                 <SaveStatusIndicator
@@ -330,12 +333,13 @@ function EditorPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleForceSave}
-                  disabled={autoSave.status === 'saving'}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {t('common.save') || 'Guardar'}
-                </Button>
+                    onClick={handleForceSave}
+                    disabled={autoSave.status === 'saving'}
+                    className="shrink-0"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {t('common.save') || 'Guardar'}
+                  </Button>
               </>
             )}
           </div>
@@ -352,7 +356,7 @@ function EditorPage() {
         )}
 
         {/* Editor - renders in background while overlay shows */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {!isLoading && (
             <DocumentEditor
               key="editor"
