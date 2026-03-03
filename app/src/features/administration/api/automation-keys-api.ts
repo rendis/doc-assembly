@@ -2,10 +2,13 @@ import { apiClient } from '@/lib/api-client'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+export type KeyType = 'automation' | 'internal'
+
 export interface AutomationKey {
   id: string
   name: string
   keyPrefix: string
+  keyType: KeyType
   allowedTenants: string[] | null
   isActive: boolean
   createdBy: string
@@ -46,6 +49,7 @@ export interface ListAuditLogResponse {
 
 export interface CreateKeyRequest {
   name: string
+  keyType?: KeyType
   allowedTenants?: string[]
 }
 

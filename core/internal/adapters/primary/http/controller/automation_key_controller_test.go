@@ -36,7 +36,8 @@ func TestAutomationKeyController_CreateKey(t *testing.T) {
 
 	t.Run("success creates key with correct fields", func(t *testing.T) {
 		req := dto.CreateAutomationKeyRequest{
-			Name: "my-key",
+			Name:    "my-key",
+			KeyType: "automation",
 		}
 
 		resp, body := client.POST("/api/v1/automation-keys/", req)
@@ -46,6 +47,7 @@ func TestAutomationKeyController_CreateKey(t *testing.T) {
 
 		assert.NotEmpty(t, created.ID)
 		assert.Equal(t, "my-key", created.Name)
+		assert.Equal(t, "automation", created.KeyType)
 		assert.True(t, strings.HasPrefix(created.RawKey, "doca_"), "rawKey should start with doca_")
 		assert.NotEmpty(t, created.KeyPrefix)
 		assert.True(t, created.IsActive)

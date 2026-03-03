@@ -135,8 +135,7 @@ type OIDCProvider struct {
 
 // InternalAPIConfig holds configuration for internal service-to-service API.
 type InternalAPIConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	APIKey  string `mapstructure:"api_key"`
+	Enabled bool `mapstructure:"enabled"`
 }
 
 // SigningConfig holds signing provider configuration.

@@ -8,6 +8,7 @@ import (
 // CreateAutomationKeyRequest is the request body for POST /admin/automation-keys.
 type CreateAutomationKeyRequest struct {
 	Name           string   `json:"name"           binding:"required"`
+	KeyType        string   `json:"keyType"        binding:"required"`
 	AllowedTenants []string `json:"allowedTenants"`
 }
 
@@ -16,6 +17,7 @@ type CreateAutomationKeyResponse struct {
 	ID             string    `json:"id"`
 	Name           string    `json:"name"`
 	KeyPrefix      string    `json:"keyPrefix"`
+	KeyType        string    `json:"keyType"`
 	AllowedTenants []string  `json:"allowedTenants"`
 	IsActive       bool      `json:"isActive"`
 	CreatedBy      string    `json:"createdBy"`
@@ -28,6 +30,7 @@ type AutomationKeyResponse struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
 	KeyPrefix      string     `json:"keyPrefix"`
+	KeyType        string     `json:"keyType"`
 	AllowedTenants []string   `json:"allowedTenants"`
 	IsActive       bool       `json:"isActive"`
 	CreatedBy      string     `json:"createdBy"`

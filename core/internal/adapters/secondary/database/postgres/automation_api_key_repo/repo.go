@@ -14,22 +14,22 @@ import (
 
 const (
 	queryCreate = `
-INSERT INTO automation.api_keys (name, key_hash, key_prefix, allowed_tenants, is_active, created_by)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, key_hash, key_prefix, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at`
+INSERT INTO automation.api_keys (name, key_hash, key_prefix, allowed_tenants, is_active, created_by, key_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, name, key_hash, key_prefix, key_type, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at`
 
 	queryFindByHash = `
-SELECT id, name, key_hash, key_prefix, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at
+SELECT id, name, key_hash, key_prefix, key_type, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at
 FROM automation.api_keys
 WHERE key_hash = $1 AND is_active = true`
 
 	queryFindByID = `
-SELECT id, name, key_hash, key_prefix, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at
+SELECT id, name, key_hash, key_prefix, key_type, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at
 FROM automation.api_keys
 WHERE id = $1`
 
 	queryList = `
-SELECT id, name, key_hash, key_prefix, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at
+SELECT id, name, key_hash, key_prefix, key_type, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at
 FROM automation.api_keys
 ORDER BY created_at DESC`
 
@@ -37,7 +37,7 @@ ORDER BY created_at DESC`
 UPDATE automation.api_keys
 SET name = $2, allowed_tenants = $3
 WHERE id = $1
-RETURNING id, name, key_hash, key_prefix, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at`
+RETURNING id, name, key_hash, key_prefix, key_type, allowed_tenants, is_active, created_by, last_used_at, created_at, revoked_at`
 
 	queryRevoke = `
 UPDATE automation.api_keys
@@ -69,6 +69,7 @@ func (r *Repository) Create(ctx context.Context, key *entity.AutomationAPIKey) (
 		key.AllowedTenants,
 		key.IsActive,
 		key.CreatedBy,
+		key.KeyType,
 	)
 	result, err := scanKey(row)
 	if err != nil {
@@ -161,7 +162,7 @@ func (r *Repository) TouchLastUsed(ctx context.Context, id string) error {
 func scanKey(row pgx.Row) (*entity.AutomationAPIKey, error) {
 	k := &entity.AutomationAPIKey{}
 	err := row.Scan(
-		&k.ID, &k.Name, &k.KeyHash, &k.KeyPrefix, &k.AllowedTenants,
+		&k.ID, &k.Name, &k.KeyHash, &k.KeyPrefix, &k.KeyType, &k.AllowedTenants,
 		&k.IsActive, &k.CreatedBy, &k.LastUsedAt, &k.CreatedAt, &k.RevokedAt,
 	)
 	if err != nil {

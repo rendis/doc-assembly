@@ -57,7 +57,7 @@ func (ctrl *AutomationKeyController) createKey(ctx *gin.Context) {
 
 	createdBy, _ := middleware.GetInternalUserID(ctx)
 
-	result, err := ctrl.apiKeyUseCase.CreateKey(ctx.Request.Context(), req.Name, req.AllowedTenants, createdBy)
+	result, err := ctrl.apiKeyUseCase.CreateKey(ctx.Request.Context(), req.Name, req.AllowedTenants, createdBy, req.KeyType)
 	if err != nil {
 		HandleError(ctx, err)
 		return
@@ -67,6 +67,7 @@ func (ctrl *AutomationKeyController) createKey(ctx *gin.Context) {
 		ID:             result.Key.ID,
 		Name:           result.Key.Name,
 		KeyPrefix:      result.Key.KeyPrefix,
+		KeyType:        result.Key.KeyType,
 		AllowedTenants: result.Key.AllowedTenants,
 		IsActive:       result.Key.IsActive,
 		CreatedBy:      result.Key.CreatedBy,
@@ -238,6 +239,7 @@ func mapKeyToResponse(k *entity.AutomationAPIKey) dto.AutomationKeyResponse {
 		ID:             k.ID,
 		Name:           k.Name,
 		KeyPrefix:      k.KeyPrefix,
+		KeyType:        k.KeyType,
 		AllowedTenants: k.AllowedTenants,
 		IsActive:       k.IsActive,
 		CreatedBy:      k.CreatedBy,

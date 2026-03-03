@@ -22,7 +22,8 @@ type CreateAPIKeyResult struct {
 type APIKeyUseCase interface {
 	// CreateKey generates a new API key, hashes it, and persists it.
 	// The raw key is returned once and never stored.
-	CreateKey(ctx context.Context, name string, allowedTenants []string, createdBy string) (*CreateAPIKeyResult, error)
+	// keyType must be entity.KeyTypeAutomation or entity.KeyTypeInternal.
+	CreateKey(ctx context.Context, name string, allowedTenants []string, createdBy string, keyType string) (*CreateAPIKeyResult, error)
 
 	// ListKeys returns all API keys (metadata only, no hash).
 	ListKeys(ctx context.Context) ([]*entity.AutomationAPIKey, error)
@@ -72,15 +73,26 @@ func generateKey() (rawKey, keyHash, keyPrefix string, err error) {
 }
 
 // CreateKey generates a new API key, hashes it, and persists it.
-func (s *apiKeyService) CreateKey(ctx context.Context, name string, allowedTenants []string, createdBy string) (*CreateAPIKeyResult, error) {
+func (s *apiKeyService) CreateKey(ctx context.Context, name string, allowedTenants []string, createdBy string, keyType string) (*CreateAPIKeyResult, error) {
+	if keyType != entity.KeyTypeAutomation && keyType != entity.KeyTypeInternal {
+		return nil, entity.ErrInvalidKeyType
+	}
+
 	rawKey, keyHash, keyPrefix, err := generateKey()
 	if err != nil {
 		return nil, fmt.Errorf("generate key: %w", err)
 	}
+
+	// Internal keys always have global tenant access.
+	if keyType == entity.KeyTypeInternal {
+		allowedTenants = nil
+	}
+
 	k := &entity.AutomationAPIKey{
 		Name:           name,
 		KeyHash:        keyHash,
 		KeyPrefix:      keyPrefix,
+		KeyType:        keyType,
 		AllowedTenants: allowedTenants,
 		IsActive:       true,
 		CreatedBy:      createdBy,
@@ -119,6 +131,10 @@ func (s *apiKeyService) UpdateKey(ctx context.Context, id string, name string, a
 		return nil, entity.ErrAPIKeyNotFound
 	}
 	key.Name = name
+	// Internal keys always have global tenant access.
+	if key.KeyType == entity.KeyTypeInternal {
+		allowedTenants = nil
+	}
 	key.AllowedTenants = allowedTenants
 	return s.keyRepo.Update(ctx, key)
 }
