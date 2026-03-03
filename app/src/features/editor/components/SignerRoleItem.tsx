@@ -194,10 +194,13 @@ function FieldEditor({
     [variables]
   )
 
-  const variableLabelMap = useMemo(() => {
-    const map = new Map<string, string>()
+  const variableMetaMap = useMemo(() => {
+    const map = new Map<string, { label: string; description?: string }>()
     for (const variable of textVariables) {
-      map.set(variable.variableId, variable.label)
+      map.set(variable.variableId, {
+        label: variable.label,
+        description: variable.description,
+      })
     }
     return map
   }, [textVariables])
@@ -356,30 +359,75 @@ function FieldEditor({
                   {t('editor.roles.card.selectVariable')}
                 </span>
               ) : (
-                <div className="flex flex-wrap items-center gap-1">
-                  {selectedVariableIds.map((variableId) => (
-                    <span
-                      key={variableId}
-                      className="inline-flex max-w-full items-center gap-1 rounded border border-role-border/50 bg-role-muted/40 px-1.5 py-0.5 text-[10px] text-role-foreground"
-                    >
-                      <span className="max-w-[140px] truncate">
-                        {variableLabelMap.get(variableId) ?? variableId}
-                      </span>
-                      {!disabled && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRemoveInjectable(variableId)
-                          }}
-                          className="rounded p-0.5 hover:bg-role-muted/80"
+                <TooltipProvider delayDuration={200}>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {selectedVariableIds.map((variableId) => {
+                      const variableMeta = variableMetaMap.get(variableId)
+
+                      return (
+                        <span
+                          key={variableId}
+                          className="inline-flex max-w-full items-center gap-1 rounded border border-role-border/50 bg-role-muted/40 px-1.5 py-0.5 text-[10px] text-role-foreground"
                         >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="max-w-[140px] truncate font-mono">
+                                {variableId}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="w-[280px] max-w-[calc(100vw-2rem)] p-0"
+                            >
+                              <div className="divide-y divide-border">
+                                <div className="px-3 py-2">
+                                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                                    Key
+                                  </span>
+                                  <p className="font-mono text-xs break-all">
+                                    {variableId}
+                                  </p>
+                                </div>
+                                {variableMeta?.label && (
+                                  <div className="px-3 py-2">
+                                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                                      Name
+                                    </span>
+                                    <p className="text-sm font-medium break-words">
+                                      {variableMeta.label}
+                                    </p>
+                                  </div>
+                                )}
+                                {variableMeta?.description && (
+                                  <div className="px-3 py-2">
+                                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                                      Description
+                                    </span>
+                                    <p className="text-xs break-words">
+                                      {variableMeta.description}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                          {!disabled && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveInjectable(variableId)
+                              }}
+                              className="rounded p-0.5 hover:bg-role-muted/80"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          )}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </TooltipProvider>
               )}
             </div>
           </PopoverAnchor>

@@ -243,7 +243,7 @@ func (g *DocumentGenerator) resolveAndBuildRecipients(
 
 	genCtx.recipients, err = g.buildRecipientsFromSignerRoles(ctx, genCtx.portableDoc.SignerRoles, genCtx.version.SignerRoles, genCtx.resolvedValues)
 	if err != nil {
-		slog.ErrorContext(ctx, "recipient validation failed", "error", err)
+		slog.ErrorContext(ctx, "recipient validation failed", "error", err, slog.String("versionId", genCtx.version.ID))
 		return err
 	}
 
@@ -499,8 +499,6 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 	roleByAnchor map[string]*entity.TemplateVersionSignerRole,
 	resolvedValues map[string]any,
 ) (*entity.DocumentRecipient, error) {
-	name := validation.NormalizeName(g.resolveFieldValue(sr.Name, resolvedValues))
-	email := strings.TrimSpace(g.resolveFieldValue(sr.Email, resolvedValues))
 	anchor := portable_doc.GenerateAnchorString(sr.Label)
 	dbRole, found := roleByAnchor[anchor]
 
@@ -508,6 +506,24 @@ func (g *DocumentGenerator) buildAndValidateRecipient(
 	if !found {
 		return nil, fmt.Errorf("role '%s': no matching signature anchor found", sr.Label)
 	}
+	if missingNameRefs := unresolvedInjectableRefs(sr.Name, resolvedValues); len(missingNameRefs) > 0 {
+		return nil, fmt.Errorf(
+			"role '%s': name has unresolved injectables [%s]",
+			sr.Label,
+			strings.Join(missingNameRefs, ", "),
+		)
+	}
+	if missingEmailRefs := unresolvedInjectableRefs(sr.Email, resolvedValues); len(missingEmailRefs) > 0 {
+		return nil, fmt.Errorf(
+			"role '%s': email has unresolved injectables [%s]",
+			sr.Label,
+			strings.Join(missingEmailRefs, ", "),
+		)
+	}
+
+	name := validation.NormalizeName(g.resolveFieldValue(sr.Name, resolvedValues))
+	email := strings.TrimSpace(g.resolveFieldValue(sr.Email, resolvedValues))
+
 	if name == "" {
 		return nil, fmt.Errorf("role '%s': name is empty after resolution", sr.Label)
 	}
@@ -562,6 +578,30 @@ func (g *DocumentGenerator) resolveFieldValue(
 		return ""
 	}
 	return strings.Join(resolved, field.ResolveSeparator())
+}
+
+func unresolvedInjectableRefs(
+	field portable_doc.FieldValue,
+	resolvedValues map[string]any,
+) []string {
+	if !field.IsInjectable() {
+		return nil
+	}
+
+	refs := field.InjectableRefs()
+	if len(refs) == 0 {
+		return nil
+	}
+
+	unresolved := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		val, ok := resolvedValues[ref]
+		if !ok || val == nil {
+			unresolved = append(unresolved, ref)
+		}
+	}
+
+	return unresolved
 }
 
 // createDocument creates and persists the document entity.

@@ -514,6 +514,9 @@ func (e *Engine) buildRegistries() (port.InjectorRegistry, port.MapperRegistry, 
 	if e.initFunc != nil {
 		injReg.SetInitFunc(e.initFunc)
 	}
+	if e.workspaceProvider != nil {
+		injReg.SetWorkspaceInjectableProvider(e.workspaceProvider)
+	}
 
 	return injReg, mapReg, nil
 }

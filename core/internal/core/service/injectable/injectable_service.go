@@ -271,24 +271,24 @@ func (s *InjectableService) mergeInjectables(db, ext []*entity.InjectableDefinit
 func (s *InjectableService) fetchProviderResult(
 	ctx context.Context, workspaceID string,
 ) (*port.GetInjectablesResult, error) {
-	tenantCode, workspaceName, err := s.getWorkspaceCodes(ctx, workspaceID)
+	tenantCode, workspaceCode, err := s.getWorkspaceCodes(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("getting workspace codes: %w", err)
 	}
 
-	injCtx := entity.NewInjectorContextWithCodes("", "", "", "list", tenantCode, workspaceName, entity.EnvironmentProd, nil, nil)
+	injCtx := entity.NewInjectorContextWithCodes("", "", "", "list", tenantCode, workspaceCode, entity.EnvironmentProd, nil, nil)
 	return s.workspaceProvider.GetInjectables(ctx, injCtx)
 }
 
-// getWorkspaceCodes retrieves tenant code and workspace name from workspace ID.
+// getWorkspaceCodes retrieves tenant code and workspace code from workspace ID.
 func (s *InjectableService) getWorkspaceCodes(
 	ctx context.Context, workspaceID string,
-) (tenantCode, workspaceName string, err error) {
+) (tenantCode, workspaceCode string, err error) {
 	workspace, err := s.workspaceRepo.FindByID(ctx, workspaceID)
 	if err != nil {
 		return "", "", fmt.Errorf("finding workspace: %w", err)
 	}
-	workspaceName = workspace.Name
+	workspaceCode = workspace.Code
 
 	if workspace.TenantID != nil {
 		tenant, err := s.tenantRepo.FindByID(ctx, *workspace.TenantID)
@@ -298,7 +298,7 @@ func (s *InjectableService) getWorkspaceCodes(
 		tenantCode = tenant.Code
 	}
 
-	return tenantCode, workspaceName, nil
+	return tenantCode, workspaceCode, nil
 }
 
 // convertProviderInjectables converts provider injectables to entity definitions.
