@@ -5,6 +5,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
 import { AlertTriangle, Key, MoreHorizontal, Pencil, Plus, ShieldOff } from 'lucide-react'
@@ -19,7 +20,7 @@ import { ApiKeyRawKeyModal } from './ApiKeyRawKeyModal'
 
 const TH_CLASS =
   'p-4 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground'
-const TOTAL_COLUMNS = 7
+const TOTAL_COLUMNS = 8
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -97,6 +98,7 @@ export function ApiKeysTab(): React.ReactElement {
             <tr>
               <th className={TH_CLASS}>{t('administration.apiKeys.columns.prefix', 'Prefix')}</th>
               <th className={TH_CLASS}>{t('administration.apiKeys.columns.name', 'Name')}</th>
+              <th className={TH_CLASS}>{t('administration.apiKeys.columns.type', 'Type')}</th>
               <th className={TH_CLASS}>
                 {t('administration.apiKeys.columns.tenants', 'Allowed Tenants')}
               </th>
@@ -160,8 +162,23 @@ export function ApiKeysTab(): React.ReactElement {
                   >
                     <td className="p-4 font-mono text-xs">{key.keyPrefix}…</td>
                     <td className="p-4 text-sm font-medium">{key.name}</td>
+                    <td className="p-4">
+                      {key.keyType === 'internal' ? (
+                        <Badge className="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400">
+                          {t('administration.apiKeys.internal', 'Internal')}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          {t('administration.apiKeys.automation', 'Automation')}
+                        </Badge>
+                      )}
+                    </td>
                     <td className="p-4 text-sm">
-                      {(key.allowedTenants?.length ?? 0) === 0 ? (
+                      {key.keyType === 'internal' ? (
+                        <span className="text-muted-foreground">
+                          {t('administration.apiKeys.globalAccess', 'Global')}
+                        </span>
+                      ) : (key.allowedTenants?.length ?? 0) === 0 ? (
                         <span className="text-muted-foreground">
                           {t('administration.apiKeys.tenants.global', 'Global')}
                         </span>
