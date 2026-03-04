@@ -16,9 +16,14 @@ import (
 type fakePublicDocAuth struct {
 	claims *port.PublicDocumentAccessClaims
 	err    error
+	abort  bool
 }
 
-func (f *fakePublicDocAuth) Authenticate(_ *gin.Context, _ *port.AuthenticateRequest) (*port.PublicDocumentAccessClaims, error) {
+func (f *fakePublicDocAuth) Authenticate(c *gin.Context, _ *port.AuthenticateRequest) (*port.PublicDocumentAccessClaims, error) {
+	if f.abort {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return nil, errors.New("aborted unauthorized")
+	}
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -119,4 +124,25 @@ func TestCustomPublicDocumentAccess_SetsClaimsOnPOST(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.JSONEq(t, `{"email":"bob@example.com"}`, w.Body.String())
+}
+
+func TestCustomPublicDocumentAccess_StopsWhenAuthenticatorAborts(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.POST("/public/doc/:documentId/request-access",
+		CustomPublicDocumentAccess(&fakePublicDocAuth{
+			abort: true,
+		}),
+		func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"handler": "should-not-run"})
+		},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/public/doc/doc-1/request-access", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.JSONEq(t, `{"error":"unauthorized"}`, w.Body.String())
 }

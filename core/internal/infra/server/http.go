@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -102,6 +103,12 @@ func NewHTTPServer(
 		base = engine.Group(basePath)
 	}
 
+	// Public signing/document pages are rendered by SPA on browser navigation,
+	// but keep JSON responses for API clients on the same endpoints.
+	if frontendFS != nil {
+		base.Use(publicPageEntrySPAMiddleware(frontendFS, basePath))
+	}
+
 	base.GET("/health", healthHandler)
 	base.GET("/ready", readyHandler)
 	base.GET("/api/v1/config", clientConfigHandler(cfg))
@@ -136,7 +143,7 @@ func NewHTTPServer(
 
 	// CSP middleware for public signing routes — allows iframe from signing provider domain.
 	if cfg.Signing.SigningBaseURL != "" {
-		base.Use(signingCSPMiddleware(cfg.Signing.SigningBaseURL))
+		base.Use(signingCSPMiddleware(cfg.Signing.SigningBaseURL, cfg.Server.PublicSigningFrameAncestors))
 	}
 	publicSigningController.RegisterRoutes(base)
 	automationController.RegisterRoutes(engine, middlewareProvider)
@@ -361,6 +368,7 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 		"Origin", "Content-Type", "Accept", "Authorization",
 		"Cache-Control", "Pragma",
 		"X-Workspace-ID", "X-Tenant-ID", "X-Tenant-Code", "X-Sandbox-Mode", "X-API-Key",
+		"X-Environment", "X-Automation-Key", "X-Operation-ID",
 		"X-Workspace-Code", "X-Document-Type",
 		"X-External-ID", "X-Transactional-ID",
 		"X-Process", "X-Process-Type",
@@ -391,10 +399,40 @@ func corsMiddleware(corsCfg config.CORSConfig) gin.HandlerFunc {
 	}
 }
 
+// publicPageEntrySPAMiddleware serves SPA index.html for browser navigations to
+// public entry pages while preserving JSON behavior for API clients.
+func publicPageEntrySPAMiddleware(frontendFS fs.FS, basePath string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if frontendFS == nil || c.Request.Method != http.MethodGet {
+			c.Next()
+			return
+		}
+		if !requestWantsHTML(c.GetHeader("Accept")) {
+			c.Next()
+			return
+		}
+
+		strippedPath, ok := stripBasePath(c.Request.URL.Path, basePath)
+		if !ok || !isPublicPageEntryPath(strippedPath) {
+			c.Next()
+			return
+		}
+
+		serveIndexHTML(c, frontendFS)
+		c.Abort()
+	}
+}
+
 // signingCSPMiddleware adds Content-Security-Policy headers for pages that embed the signing
 // provider in an iframe. Only applied to /public/sign/* routes.
-func signingCSPMiddleware(signingBaseURL string) gin.HandlerFunc {
-	csp := fmt.Sprintf("frame-src %s; frame-ancestors 'self'", signingBaseURL)
+func signingCSPMiddleware(signingBaseURL string, frameAncestors []string) gin.HandlerFunc {
+	csp := buildSigningCSP(signingBaseURL, frameAncestors)
+	if csp == "" {
+		return func(c *gin.Context) {
+			c.Next()
+		}
+	}
+
 	return func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/public/sign/") ||
 			strings.Contains(c.Request.URL.Path, "/public/sign/") {
@@ -402,6 +440,85 @@ func signingCSPMiddleware(signingBaseURL string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func buildSigningCSP(signingBaseURL string, frameAncestors []string) string {
+	frameSrc := normalizeCSPOrigin(signingBaseURL)
+	if frameSrc == "" {
+		return ""
+	}
+
+	ancestors := normalizeCSPOrigins(frameAncestors)
+	ancestorsClause := "'self'"
+	if len(ancestors) > 0 {
+		ancestorsClause = strings.Join(ancestors, " ")
+	}
+
+	return fmt.Sprintf("frame-src %s; frame-ancestors %s", frameSrc, ancestorsClause)
+}
+
+func normalizeCSPOrigins(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+
+	for _, value := range values {
+		normalized := normalizeCSPOrigin(value)
+		if normalized == "" {
+			continue
+		}
+
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		out = append(out, normalized)
+	}
+
+	return out
+}
+
+func normalizeCSPOrigin(raw string) string {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return ""
+	}
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return ""
+	}
+	if parsed.Path != "" && parsed.Path != "/" {
+		return ""
+	}
+
+	return strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host)
+}
+
+func requestWantsHTML(acceptHeader string) bool {
+	for _, part := range strings.Split(strings.ToLower(acceptHeader), ",") {
+		mediaType := strings.TrimSpace(strings.SplitN(part, ";", 2)[0])
+		if mediaType == "text/html" || mediaType == "application/xhtml+xml" {
+			return true
+		}
+	}
+	return false
+}
+
+func isPublicPageEntryPath(p string) bool {
+	trimmed := strings.Trim(strings.TrimSpace(strings.ToLower(p)), "/")
+	if trimmed == "" {
+		return false
+	}
+
+	parts := strings.Split(trimmed, "/")
+	if len(parts) != 3 || parts[0] != "public" || parts[2] == "" {
+		return false
+	}
+
+	return parts[1] == "sign" || parts[1] == "doc"
 }
 
 // stripBasePath removes the basePath prefix from reqPath.

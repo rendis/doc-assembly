@@ -31,14 +31,15 @@ type Config struct {
 
 // ServerConfig holds HTTP server configuration.
 type ServerConfig struct {
-	Port            string     `mapstructure:"port"`
-	BasePath        string     `mapstructure:"base_path"`
-	PublicURL       string     `mapstructure:"public_url"` // Public-facing URL for signing links in emails
-	ReadTimeout     int        `mapstructure:"read_timeout"`
-	WriteTimeout    int        `mapstructure:"write_timeout"`
-	ShutdownTimeout int        `mapstructure:"shutdown_timeout"`
-	SwaggerUI       bool       `mapstructure:"swagger_ui"`
-	CORS            CORSConfig `mapstructure:"cors"`
+	Port                        string     `mapstructure:"port"`
+	BasePath                    string     `mapstructure:"base_path"`
+	PublicURL                   string     `mapstructure:"public_url"` // Public-facing URL for signing links in emails
+	ReadTimeout                 int        `mapstructure:"read_timeout"`
+	WriteTimeout                int        `mapstructure:"write_timeout"`
+	ShutdownTimeout             int        `mapstructure:"shutdown_timeout"`
+	SwaggerUI                   bool       `mapstructure:"swagger_ui"`
+	CORS                        CORSConfig `mapstructure:"cors"`
+	PublicSigningFrameAncestors []string   `mapstructure:"public_signing_frame_ancestors"`
 }
 
 // NormalizedBasePath returns the base path with leading slash and no trailing slash.

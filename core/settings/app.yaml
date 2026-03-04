@@ -26,6 +26,7 @@ server:
   write_timeout: 30   # seconds
   shutdown_timeout: 10 # seconds
   swagger_ui: false   # DOC_ENGINE_SERVER_SWAGGER_UI - Enable Swagger UI at /swagger/
+  public_signing_frame_ancestors: []  # DOC_ENGINE_SERVER_PUBLIC_SIGNING_FRAME_ANCESTORS (CSV env override)
   cors:
     allowed_origins: []  # Empty = allow all origins (*)
     # allowed_headers:       # Extra headers for CORS preflight (appended to built-in list)

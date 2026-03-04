@@ -15,10 +15,11 @@ const publicDocAccessClaimsKey = "public_doc_access_claims"
 // CustomPublicDocumentAccess runs a custom authenticator for
 // public /public/doc/:documentId requests (GET and POST).
 //
-// This middleware never blocks the request. On auth success, claims are stored
-// in context so the controller can redirect directly to /public/sign/:token
-// or return a signing URL in the response.
-// On auth failure/miss, flow falls back to the standard email gate.
+// By default this middleware does not block requests: on auth success, claims
+// are stored in context so the controller can redirect directly to
+// /public/sign/:token or return a signing URL. On auth failure/miss, flow
+// falls back to the standard email gate.
+// If the authenticator explicitly aborts the context, the chain stops.
 func CustomPublicDocumentAccess(auth port.PublicDocumentAccessAuthenticator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == http.MethodOptions {
@@ -36,6 +37,10 @@ func CustomPublicDocumentAccess(auth port.PublicDocumentAccessAuthenticator) gin
 			DocumentID:  documentID,
 			Environment: GetEnvironment(c),
 		})
+		if c.IsAborted() {
+			return
+		}
+
 		if err != nil {
 			slog.InfoContext(c.Request.Context(), "custom public doc auth fallback",
 				slog.String("document_id", documentID),

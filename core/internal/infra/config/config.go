@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const serverPublicSigningFrameAncestorsEnv = "DOC_ENGINE_SERVER_PUBLIC_SIGNING_FRAME_ANCESTORS"
+
 // Load reads configuration from YAML files and environment variables.
 // Environment variables take precedence over YAML values.
 // Env prefix: DOC_ENGINE_ (e.g., DOC_ENGINE_SERVER_PORT)
@@ -72,6 +74,7 @@ func Load() (*Config, error) {
 	}
 
 	// Explicit env overrides for nested config (same Viper nested env issue).
+	applyServerEnvOverrides(&cfg.Server)
 	applySigningEnvOverrides(&cfg.Signing)
 	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
 	applyBootstrapEnvOverrides(&cfg.Bootstrap)
@@ -94,6 +97,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.read_timeout", 30)
 	v.SetDefault("server.write_timeout", 30)
 	v.SetDefault("server.shutdown_timeout", 10)
+	v.SetDefault("server.public_signing_frame_ancestors", []string{})
 
 	// Database defaults
 	v.SetDefault("database.host", "localhost")
@@ -155,6 +159,20 @@ func applySigningEnvOverrides(cfg *SigningConfig) {
 	if v := os.Getenv("DOC_ENGINE_SIGNING_WEBHOOK_URL"); v != "" {
 		cfg.WebhookURL = v
 	}
+}
+
+// applyServerEnvOverrides reads DOC_ENGINE_SERVER_* env vars into ServerConfig.
+func applyServerEnvOverrides(cfg *ServerConfig) {
+	if cfg == nil {
+		return
+	}
+
+	raw := strings.TrimSpace(os.Getenv(serverPublicSigningFrameAncestorsEnv))
+	if raw == "" {
+		return
+	}
+
+	cfg.PublicSigningFrameAncestors = parseCSVList(raw)
 }
 
 // applyAuthPanelEnvOverrides reads DOC_ENGINE_AUTH_PANEL_* env vars into OIDCProvider.
@@ -228,6 +246,7 @@ func LoadFromFile(filePath string) (*Config, error) {
 	}
 
 	applySigningEnvOverrides(&cfg.Signing)
+	applyServerEnvOverrides(&cfg.Server)
 	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
 	applyBootstrapEnvOverrides(&cfg.Bootstrap)
 
@@ -247,4 +266,26 @@ func MustLoad() *Config {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 	return cfg
+}
+
+func parseCSVList(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value == "" {
+			continue
+		}
+
+		key := strings.ToLower(value)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, value)
+	}
+
+	return out
 }
