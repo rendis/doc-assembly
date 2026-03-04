@@ -63,6 +63,17 @@ interface PublicSigningPageProps {
   token: string
 }
 
+const uuidLikePattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function sanitizeDocumentTitle(title: string | undefined, fallback: string): string {
+  const trimmed = (title ?? '').trim()
+  if (!trimmed || uuidLikePattern.test(trimmed)) {
+    return fallback
+  }
+  return trimmed
+}
+
 export function PublicSigningPage({ token }: PublicSigningPageProps) {
   const { t } = useTranslation()
   const [pageState, setPageState] = useState<PageState>({ status: 'loading' })
@@ -284,12 +295,16 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
         : null
 
   if (!data) return <LoadingScreen />
+  const displayDocumentTitle = sanitizeDocumentTitle(
+    data.documentTitle,
+    t('publicSigning.access.documentTitle'),
+  )
 
   // Step: completed.
   if (data.step === 'completed') {
     return (
       <CompletedScreen
-        documentTitle={data.documentTitle}
+        documentTitle={displayDocumentTitle}
         canDownload={data.canDownload}
         downloadUrl={data.downloadUrl}
       />
@@ -298,14 +313,14 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
 
   // Step: declined.
   if (data.step === 'declined') {
-    return <DeclinedScreen documentTitle={data.documentTitle} />
+    return <DeclinedScreen documentTitle={displayDocumentTitle} />
   }
 
   // Step: waiting for previous signers.
   if (data.step === 'waiting') {
     return (
       <WaitingScreen
-        documentTitle={data.documentTitle}
+        documentTitle={displayDocumentTitle}
         recipientName={data.recipientName}
         position={data.signingPosition ?? 0}
         total={data.totalSigners ?? 0}
@@ -322,7 +337,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     }
 
     return (
-      <PageShell documentTitle={data.documentTitle}>
+      <PageShell documentTitle={displayDocumentTitle}>
         <EmbeddedSigningFrame
           url={data.embeddedSigningUrl!}
           token={token}
@@ -337,12 +352,14 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
   // Path B: has form with interactive fields.
   if (data.form && data.form.fields.length > 0) {
     const isSubmitting = pageState.status === 'submitting'
+    const allowedFieldIds = new Set(data.form.fields.map((field) => field.id))
+    const showValidationSummary = submitted && validationErrors.size > 0
     return (
-      <PageShell documentTitle={data.documentTitle}>
-        <div className="mx-auto max-w-4xl px-6 py-8">
+      <PageShell documentTitle={displayDocumentTitle}>
+        <div className="mx-auto max-w-4xl px-6 pt-8 pb-56">
           <div className="mb-8 space-y-2">
             <h1 className="text-2xl font-semibold text-foreground">
-              {data.documentTitle}
+              {displayDocumentTitle}
             </h1>
             <div className="text-sm text-muted-foreground">
               <span>
@@ -357,6 +374,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               <DocumentViewer
                 content={data.form.content}
                 signerRoleId={data.form.roleId}
+                allowedFieldIds={allowedFieldIds}
                 responses={responses}
                 onResponseChange={handleResponseChange}
                 validationErrors={validationErrors}
@@ -364,9 +382,11 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               />
             </div>
           </div>
+        </div>
 
-          {/* Agreement + Submit */}
-          <div className="mb-12 space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <div className="mx-auto max-w-4xl px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+            <div className="space-y-4 rounded-lg border border-border bg-card/95 p-4 shadow-xl">
             <label className="flex items-start gap-3 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -380,7 +400,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               </span>
             </label>
 
-            {submitted && validationErrors.size > 0 && (
+            {showValidationSummary && (
               <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 <AlertCircle size={16} />
                 <span>
@@ -396,7 +416,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
               onClick={handleSubmit}
               disabled={isSubmitting || !agreed}
               className={cn(
-                'flex w-full items-center justify-center gap-3 rounded-none py-3.5',
+                'flex w-full items-center justify-center gap-3 rounded-md py-3',
                 'font-mono text-sm uppercase tracking-wider transition-colors',
                 'bg-foreground text-background hover:bg-foreground/90',
                 'disabled:cursor-not-allowed disabled:opacity-50',
@@ -414,6 +434,7 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
                 </>
               )}
             </button>
+            </div>
           </div>
         </div>
       </PageShell>
@@ -422,11 +443,11 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
 
   // Path A / Path B after submit: show real PDF preview with proceed button.
   return (
-    <PageShell documentTitle={data.documentTitle}>
+    <PageShell documentTitle={displayDocumentTitle}>
       <div className="mx-auto max-w-4xl px-6 py-8">
         <PDFPreview
           token={token}
-          documentTitle={data.documentTitle}
+          documentTitle={displayDocumentTitle}
           recipientName={data.recipientName}
           onProceed={handleProceed}
           isLoading={pageState.status === 'proceeding'}
@@ -669,6 +690,7 @@ function ProceedingOverlay() {
 interface DocumentViewerProps {
   content: Record<string, unknown>
   signerRoleId: string
+  allowedFieldIds: Set<string>
   responses: FieldResponses
   onResponseChange: (
     fieldId: string,
@@ -682,23 +704,42 @@ interface DocumentViewerProps {
 function DocumentViewer({
   content,
   signerRoleId,
+  allowedFieldIds,
   responses,
   onResponseChange,
   validationErrors,
   submitted,
 }: DocumentViewerProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null)
+  const runtimeStateRef = useRef({
+    responses,
+    validationErrors,
+    submitted,
+  })
+  const allowedFieldIdsRef = useRef(allowedFieldIds)
+
+  useEffect(() => {
+    runtimeStateRef.current = {
+      responses,
+      validationErrors,
+      submitted,
+    }
+  }, [responses, validationErrors, submitted])
+
+  useEffect(() => {
+    allowedFieldIdsRef.current = allowedFieldIds
+  }, [allowedFieldIds])
 
   const PublicFieldComponent = useMemo(
     () =>
+      // eslint-disable-next-line react-hooks/refs
       createPublicInteractiveFieldComponent({
         signerRoleId,
-        responses,
+        allowedFieldIdsRef,
+        runtimeStateRef,
         onResponseChange,
-        validationErrors,
-        submitted,
       }),
-    [signerRoleId, responses, onResponseChange, validationErrors, submitted],
+    [signerRoleId, onResponseChange],
   )
 
   const PublicInteractiveFieldExtension = useMemo(

@@ -22,6 +22,17 @@ type publicSigningState struct {
 	CanDownload bool   `json:"canDownload"`
 }
 
+type publicSigningPageResponse struct {
+	Step string                  `json:"step"`
+	Form *publicSigningFormState `json:"form,omitempty"`
+}
+
+type publicSigningFormState struct {
+	RoleID  string           `json:"roleId"`
+	Fields  []map[string]any `json:"fields"`
+	Content map[string]any   `json:"content"`
+}
+
 func TestPublicSigningController_CompletedFlowSupportsDownload(t *testing.T) {
 	env := setupDocumentEnv(t)
 	setTemplateVersionContent(t, env, `{}`)
@@ -187,6 +198,87 @@ func TestPublicSigningController_ConcurrentProceedCreatesOneProviderDoc(t *testi
 	t.Logf("results: %d signing, %d processing out of %d calls", signingCount, processingCount, concurrency)
 }
 
+func TestPublicSigningController_InteractiveFieldsUsePortableRoleID(t *testing.T) {
+	env := setupDocumentEnv(t)
+	setTemplateVersionInteractiveContent(t, env, "rol 1", "rol 2")
+
+	doc := env.createDocument(t, "Interactive Role Mapping")
+
+	resp, _ := env.client.POST("/public/doc/"+doc.ID+"/request-access", map[string]string{
+		"email": "alice@test.com",
+	})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	token := findLatestAccessToken(t, env, doc.ID, "alice@test.com")
+	require.NotEmpty(t, token)
+
+	resp, body := env.client.GET("/public/sign/" + token)
+	require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
+
+	var page publicSigningPageResponse
+	require.NoError(t, json.Unmarshal(body, &page))
+	require.Equal(t, "preview", page.Step)
+	require.NotNil(t, page.Form)
+	require.Len(t, page.Form.Fields, 1)
+	require.Equal(t, "portable-role-1", page.Form.RoleID)
+}
+
+func TestPublicSigningController_GetSigningPageReturnsConflictOnMissingRoleMapping(t *testing.T) {
+	env := setupDocumentEnv(t)
+	setTemplateVersionInteractiveContent(t, env, "guardian", "co-signer")
+
+	doc := env.createDocument(t, "Missing Role Mapping")
+
+	resp, _ := env.client.POST("/public/doc/"+doc.ID+"/request-access", map[string]string{
+		"email": "alice@test.com",
+	})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	token := findLatestAccessToken(t, env, doc.ID, "alice@test.com")
+	require.NotEmpty(t, token)
+
+	resp, body := env.client.GET("/public/sign/" + token)
+	require.Equal(t, http.StatusConflict, resp.StatusCode, string(body))
+}
+
+func TestPublicSigningController_SubmitFormReturnsConflictOnMissingRoleMapping(t *testing.T) {
+	env := setupDocumentEnv(t)
+	setTemplateVersionInteractiveContent(t, env, "guardian", "co-signer")
+
+	doc := env.createDocument(t, "Missing Role Mapping Submit")
+
+	resp, _ := env.client.POST("/public/doc/"+doc.ID+"/request-access", map[string]string{
+		"email": "alice@test.com",
+	})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	token := findLatestAccessToken(t, env, doc.ID, "alice@test.com")
+	require.NotEmpty(t, token)
+
+	req := map[string]any{
+		"responses": []map[string]any{
+			{
+				"fieldId": "field-1",
+				"response": map[string]any{
+					"selectedOptionIds": []string{"opt-1"},
+				},
+			},
+		},
+	}
+
+	resp, body := env.client.POST("/public/sign/"+token, req)
+	require.Equal(t, http.StatusConflict, resp.StatusCode, string(body))
+
+	var count int
+	err := env.ts.Pool.QueryRow(
+		context.Background(),
+		`SELECT COUNT(*) FROM execution.document_field_responses WHERE document_id = $1`,
+		doc.ID,
+	).Scan(&count)
+	require.NoError(t, err)
+	require.Equal(t, 0, count)
+}
+
 func findLatestAccessToken(t *testing.T, env *documentTestEnv, documentID, email string) string {
 	t.Helper()
 
@@ -214,4 +306,78 @@ func setTemplateVersionContent(t *testing.T, env *documentTestEnv, content strin
 		env.versionID,
 	)
 	require.NoError(t, err)
+}
+
+func setTemplateVersionInteractiveContent(
+	t *testing.T,
+	env *documentTestEnv,
+	signer1Label string,
+	signer2Label string,
+) {
+	t.Helper()
+
+	content := map[string]any{
+		"version": "1.1.0",
+		"meta": map[string]any{
+			"title":    "Interactive Form Test",
+			"language": "es",
+		},
+		"pageConfig": map[string]any{
+			"formatId":        "A4",
+			"width":           595.28,
+			"height":          841.89,
+			"margins":         map[string]any{"top": 40, "bottom": 40, "left": 40, "right": 40},
+			"showPageNumbers": false,
+			"pageGap":         24,
+		},
+		"variableIds": []any{},
+		"signerRoles": []any{
+			map[string]any{
+				"id":    "portable-role-1",
+				"label": signer1Label,
+				"name":  map[string]any{"type": "text", "value": "Alice"},
+				"email": map[string]any{"type": "text", "value": "alice@test.com"},
+				"order": 1,
+			},
+			map[string]any{
+				"id":    "portable-role-2",
+				"label": signer2Label,
+				"name":  map[string]any{"type": "text", "value": "Bob"},
+				"email": map[string]any{"type": "text", "value": "bob@test.com"},
+				"order": 2,
+			},
+		},
+		"content": map[string]any{
+			"type": "doc",
+			"content": []any{
+				map[string]any{
+					"type": "paragraph",
+					"content": []any{
+						map[string]any{"type": "text", "text": "Consentimiento"},
+					},
+				},
+				map[string]any{
+					"type": "interactiveField",
+					"attrs": map[string]any{
+						"id":        "field-1",
+						"fieldType": "checkbox",
+						"roleId":    "portable-role-1",
+						"label":     "Consent",
+						"required":  true,
+						"options": []any{
+							map[string]any{"id": "opt-1", "label": "Authorize"},
+						},
+					},
+				},
+			},
+		},
+		"exportInfo": map[string]any{
+			"exportedAt": "2026-01-01T00:00:00Z",
+			"sourceApp":  "integration-test",
+		},
+	}
+
+	raw, err := json.Marshal(content)
+	require.NoError(t, err)
+	setTemplateVersionContent(t, env, string(raw))
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -148,7 +149,10 @@ func (s *PreSigningService) SubmitPreSigningForm(
 	}
 
 	// Map DB role to portable doc role for field extraction.
-	portableRoleID := s.findPortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
+	portableRoleID, err := s.resolvePortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
+	if err != nil {
+		return nil, err
+	}
 	fieldDefs := extractInteractiveFieldsForRole(portableDoc, portableRoleID)
 
 	// Validate responses against field definitions.
@@ -497,12 +501,15 @@ func (s *PreSigningService) buildPreviewFormResponse(
 		return nil, fmt.Errorf("document has no content")
 	}
 
-	content, err := s.resolveContent(portableDoc, doc)
+	content, err := s.resolveContent(ctx, portableDoc, doc)
 	if err != nil {
 		return nil, fmt.Errorf("resolving content: %w", err)
 	}
 
-	portableRoleID := s.findPortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
+	portableRoleID, err := s.resolvePortableRoleID(ctx, version, portableDoc, recipient.TemplateVersionRoleID)
+	if err != nil {
+		return nil, err
+	}
 	fields := extractInteractiveFieldsForRole(portableDoc, portableRoleID)
 
 	resp := &documentuc.PublicSigningResponse{
@@ -514,7 +521,7 @@ func (s *PreSigningService) buildPreviewFormResponse(
 			DocumentStatus: string(doc.Status),
 			RecipientName:  recipient.Name,
 			RecipientEmail: recipient.Email,
-			RoleID:         recipient.TemplateVersionRoleID,
+			RoleID:         portableRoleID,
 			Content:        content,
 			Fields:         fields,
 		},
@@ -749,11 +756,169 @@ func (s *PreSigningService) validateTokenAllowUsed(ctx context.Context, token st
 }
 
 // resolveContent serializes the portable doc content with injected values applied.
-func (s *PreSigningService) resolveContent(portableDoc *portabledoc.Document, doc *entity.Document) (json.RawMessage, error) {
+func (s *PreSigningService) resolveContent(
+	ctx context.Context,
+	portableDoc *portabledoc.Document,
+	doc *entity.Document,
+) (json.RawMessage, error) {
 	if portableDoc.Content == nil {
 		return nil, fmt.Errorf("document has no ProseMirror content")
 	}
-	return json.Marshal(portableDoc.Content)
+
+	signerRoleValues, err := s.loadSignerRoleValues(ctx, doc, portableDoc)
+	if err != nil {
+		slog.WarnContext(ctx, "failed to load signer role values for preview content",
+			slog.String("document_id", doc.ID),
+			slog.String("error", err.Error()),
+		)
+		signerRoleValues = nil
+	}
+
+	var injectables map[string]any
+	if doc.InjectedValuesSnapshot != nil {
+		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectables)
+	}
+
+	resolvedContent := &portabledoc.ProseMirrorDoc{
+		Type:    portableDoc.Content.Type,
+		Content: resolvePreviewNodes(portableDoc.Content.Content, injectables, signerRoleValues),
+	}
+
+	return json.Marshal(resolvedContent)
+}
+
+func (s *PreSigningService) loadSignerRoleValues(
+	ctx context.Context,
+	doc *entity.Document,
+	portableDoc *portabledoc.Document,
+) (map[string]port.SignerRoleValue, error) {
+	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
+	if err != nil {
+		return nil, fmt.Errorf("loading recipients: %w", err)
+	}
+
+	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("loading signer roles: %w", err)
+	}
+
+	return buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles), nil
+}
+
+func resolvePreviewNodes(
+	nodes []portabledoc.Node,
+	injectables map[string]any,
+	signerRoleValues map[string]port.SignerRoleValue,
+) []portabledoc.Node {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	out := make([]portabledoc.Node, 0, len(nodes))
+	for _, node := range nodes {
+		if node.Type == portabledoc.NodeTypeInjector {
+			if text, ok := resolvePreviewInjector(node.Attrs, injectables, signerRoleValues); ok {
+				resolvedText := text
+				out = append(out, portabledoc.Node{
+					Type:  portabledoc.NodeTypeText,
+					Marks: node.Marks,
+					Text:  &resolvedText,
+				})
+			}
+			continue
+		}
+
+		clone := node
+		if len(node.Content) > 0 {
+			clone.Content = resolvePreviewNodes(node.Content, injectables, signerRoleValues)
+		}
+		out = append(out, clone)
+	}
+
+	return out
+}
+
+func resolvePreviewInjector(
+	attrs map[string]any,
+	injectables map[string]any,
+	signerRoleValues map[string]port.SignerRoleValue,
+) (string, bool) {
+	variableID, _ := attrs["variableId"].(string)
+	isRoleVariable, _ := attrs["isRoleVariable"].(bool)
+	roleID, _ := attrs["roleId"].(string)
+	propertyKey, _ := attrs["propertyKey"].(string)
+	injectorType, _ := attrs["type"].(string)
+	format, _ := attrs["format"].(string)
+	prefix, _ := attrs["prefix"].(string)
+	suffix, _ := attrs["suffix"].(string)
+	defaultValue, _ := attrs["defaultValue"].(string)
+	showLabelIfEmpty, _ := attrs["showLabelIfEmpty"].(bool)
+
+	value := ""
+	if isRoleVariable {
+		if roleValue, ok := signerRoleValues[roleID]; ok {
+			switch propertyKey {
+			case portabledoc.RolePropertyName:
+				value = roleValue.Name
+			case portabledoc.RolePropertyEmail:
+				value = roleValue.Email
+			}
+		}
+	}
+
+	if value == "" && variableID != "" {
+		if raw, ok := injectables[variableID]; ok {
+			value = formatPreviewInjectableValue(raw, injectorType, format)
+		}
+	}
+
+	if value == "" {
+		value = defaultValue
+	}
+
+	if value == "" {
+		if !showLabelIfEmpty {
+			return "", false
+		}
+		placeholder := prefix + suffix
+		if placeholder == "" {
+			return "", false
+		}
+		return placeholder, true
+	}
+
+	return prefix + value + suffix, true
+}
+
+func formatPreviewInjectableValue(value any, injectorType, format string) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case float64:
+		if injectorType == portabledoc.InjectorTypeCurrency {
+			if format != "" {
+				return fmt.Sprintf("%s %.2f", format, v)
+			}
+			return fmt.Sprintf("%.2f", v)
+		}
+		if v == float64(int64(v)) {
+			return strconv.FormatInt(int64(v), 10)
+		}
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case int:
+		return strconv.Itoa(v)
+	case int32:
+		return strconv.FormatInt(int64(v), 10)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case bool:
+		if v {
+			return "Sí"
+		}
+		return "No"
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 // findPortableRoleID maps a DB signer role ID to the portable doc role ID.
@@ -788,9 +953,25 @@ func (s *PreSigningService) findPortableRoleID(
 	return ""
 }
 
+func (s *PreSigningService) resolvePortableRoleID(
+	ctx context.Context,
+	version *entity.TemplateVersion,
+	portableDoc *portabledoc.Document,
+	dbRoleID string,
+) (string, error) {
+	portableRoleID := s.findPortableRoleID(ctx, version, portableDoc, dbRoleID)
+	if portableRoleID == "" {
+		return "", fmt.Errorf("%w: signer role mapping not found", entity.ErrInvalidDocumentState)
+	}
+	return portableRoleID, nil
+}
+
 // extractInteractiveFieldsForRole extracts interactive fields for a specific role.
 func extractInteractiveFieldsForRole(doc *portabledoc.Document, roleID string) []documentuc.InteractiveFieldDTO {
 	fields := make([]documentuc.InteractiveFieldDTO, 0, 8)
+	if roleID == "" {
+		return fields
+	}
 
 	for _, node := range doc.CollectNodesOfType(portabledoc.NodeTypeInteractiveField) {
 		attrs, err := portabledoc.ParseInteractiveFieldAttrs(node.Attrs)
@@ -798,7 +979,7 @@ func extractInteractiveFieldsForRole(doc *portabledoc.Document, roleID string) [
 			continue
 		}
 
-		if roleID != "" && attrs.RoleID != roleID {
+		if attrs.RoleID != roleID {
 			continue
 		}
 

@@ -327,6 +327,8 @@ func handlePublicError(ctx *gin.Context, err error) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
 	case errors.Is(err, entity.ErrForbidden):
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+	case errors.Is(err, entity.ErrInvalidDocumentState):
+		ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case isPublicUserError(err):
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	default:

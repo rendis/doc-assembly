@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { CheckSquare, Circle, Type, FormInput } from 'lucide-react'
@@ -10,27 +10,41 @@ import type {
 
 type InteractiveFieldType = 'checkbox' | 'radio' | 'text'
 
+interface PublicFieldRuntimeState {
+  responses: FieldResponses
+  validationErrors: Set<string>
+  submitted: boolean
+}
+
 interface PublicFieldContext {
   /** The role ID of the current signer */
   signerRoleId: string
-  /** Shared form responses state */
-  responses: FieldResponses
+  /** Explicit field IDs owned by this signer according to backend */
+  allowedFieldIdsRef: RefObject<Set<string>>
+  /** Latest runtime state without recreating node views */
+  runtimeStateRef: RefObject<PublicFieldRuntimeState>
   /** Update a single field response */
   onResponseChange: (
     fieldId: string,
     fieldType: string,
     response: { selectedOptionIds?: string[]; text?: string },
   ) => void
-  /** Set of field IDs with validation errors */
-  validationErrors: Set<string>
-  /** Whether the form has been submitted (to show errors) */
-  submitted: boolean
 }
 
 const fieldTypeIcons: Record<InteractiveFieldType, typeof CheckSquare> = {
   checkbox: CheckSquare,
   radio: Circle,
   text: Type,
+}
+
+interface PublicFieldOwnershipInput {
+  roleId: string
+  signerRoleId: string
+  hasAllowedFieldAccess: boolean
+}
+
+export function isPublicFieldOwned(input: PublicFieldOwnershipInput): boolean {
+  return input.hasAllowedFieldAccess || input.roleId === input.signerRoleId
 }
 
 /**
@@ -53,18 +67,50 @@ export function createPublicInteractiveFieldComponent(ctx: PublicFieldContext) {
     const roleId = (node.attrs.roleId ?? '') as string
     const label = (node.attrs.label ?? '') as string
     const required = (node.attrs.required ?? false) as boolean
+    const signerRoleId = ctx.signerRoleId
+    const hasFallbackOwnership = ctx.allowedFieldIdsRef.current?.has(fieldId) ?? false
     const options = useMemo(
       () => (node.attrs.options ?? []) as InteractiveFieldOption[],
       [node.attrs.options],
     )
     const placeholder = (node.attrs.placeholder ?? '') as string
     const maxLength = (node.attrs.maxLength ?? 0) as number
+    const runtimeState = ctx.runtimeStateRef.current ?? {
+      responses: {},
+      validationErrors: new Set<string>(),
+      submitted: false,
+    }
+    const { responses, validationErrors, submitted } = runtimeState
 
-    const isOwnField = roleId === ctx.signerRoleId
+    const isOwnField = isPublicFieldOwned({
+      roleId,
+      signerRoleId,
+      hasAllowedFieldAccess: hasFallbackOwnership,
+    })
     const disabled = !isOwnField
-    const currentResponse = ctx.responses[fieldId]
+    const currentResponse = responses[fieldId]
     const hasError =
-      ctx.submitted && ctx.validationErrors.has(fieldId)
+      submitted && validationErrors.has(fieldId)
+    const warnedMismatchRef = useRef(false)
+
+    useEffect(() => {
+      if (
+        hasFallbackOwnership &&
+        roleId &&
+        roleId !== signerRoleId &&
+        !warnedMismatchRef.current
+      ) {
+        warnedMismatchRef.current = true
+        console.warn(
+          '[public-signing] interactive field role mismatch resolved with allowedFieldIds fallback',
+          {
+            fieldId,
+            fieldRoleId: roleId,
+            signerRoleId,
+          },
+        )
+      }
+    }, [hasFallbackOwnership, fieldId, roleId, signerRoleId])
 
     const Icon = fieldTypeIcons[fieldType] || CheckSquare
 
