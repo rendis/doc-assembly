@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { CheckSquare, Circle, Type, FormInput } from 'lucide-react'
@@ -92,6 +92,27 @@ export function createPublicInteractiveFieldComponent(ctx: PublicFieldContext) {
     const hasError =
       submitted && validationErrors.has(fieldId)
     const warnedMismatchRef = useRef(false)
+    const [localSelectedIds, setLocalSelectedIds] = useState<string[]>(
+      () => currentResponse?.response.selectedOptionIds ?? [],
+    )
+    const [localTextValue, setLocalTextValue] = useState<string>(
+      () => currentResponse?.response.text ?? '',
+    )
+
+    const responseSelectedIds = useMemo(
+      () => currentResponse?.response.selectedOptionIds ?? [],
+      [currentResponse],
+    )
+    const responseTextValue = currentResponse?.response.text ?? ''
+    const selectedDeps = responseSelectedIds.join('|')
+
+    useEffect(() => {
+      setLocalSelectedIds(responseSelectedIds)
+    }, [fieldId, responseSelectedIds, selectedDeps])
+
+    useEffect(() => {
+      setLocalTextValue(responseTextValue)
+    }, [fieldId, responseTextValue])
 
     useEffect(() => {
       if (
@@ -117,20 +138,22 @@ export function createPublicInteractiveFieldComponent(ctx: PublicFieldContext) {
     // --- Checkbox handlers ---
     const handleCheckboxChange = useCallback(
       (optionId: string, checked: boolean) => {
-        const current = currentResponse?.response.selectedOptionIds ?? []
+        const current = localSelectedIds
         const next = checked
           ? [...current, optionId]
           : current.filter((id) => id !== optionId)
+        setLocalSelectedIds(next)
         ctx.onResponseChange(fieldId, fieldType, {
           selectedOptionIds: next,
         })
       },
-      [fieldId, fieldType, currentResponse],
+      [fieldId, fieldType, localSelectedIds],
     )
 
     // --- Radio handler ---
     const handleRadioChange = useCallback(
       (optionId: string) => {
+        setLocalSelectedIds([optionId])
         ctx.onResponseChange(fieldId, fieldType, {
           selectedOptionIds: [optionId],
         })
@@ -141,13 +164,14 @@ export function createPublicInteractiveFieldComponent(ctx: PublicFieldContext) {
     // --- Text handler ---
     const handleTextChange = useCallback(
       (value: string) => {
+        setLocalTextValue(value)
         ctx.onResponseChange(fieldId, fieldType, { text: value })
       },
       [fieldId, fieldType],
     )
 
-    const selectedIds = currentResponse?.response.selectedOptionIds ?? []
-    const textValue = currentResponse?.response.text ?? ''
+    const selectedIds = localSelectedIds
+    const textValue = localTextValue
 
     // Max length validation message
     const isOverMaxLength =
