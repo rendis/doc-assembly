@@ -36,7 +36,8 @@ func (b *TypstBuilder) Build(doc *portabledoc.Document) (string, int, []port.Sig
 	sb.WriteString("#import \"@preview/wrap-it:0.1.1\": wrap-content\n\n")
 
 	// Page configuration
-	sb.WriteString(b.pageSetup(&doc.PageConfig))
+	hasHeader := doc.Header != nil && doc.Header.Enabled
+	sb.WriteString(b.pageSetup(&doc.PageConfig, hasHeader))
 
 	// Base typography
 	sb.WriteString(b.typographySetup())
@@ -47,6 +48,11 @@ func (b *TypstBuilder) Build(doc *portabledoc.Document) (string, int, []port.Sig
 	// Set page dimensions for column and signature field calculations
 	b.converter.SetPageWidthPx(doc.PageConfig.Width)
 	b.converter.SetContentWidthPx(doc.PageConfig.Width - doc.PageConfig.Margins.Left - doc.PageConfig.Margins.Right)
+
+	// Render header block (letterhead, first page only)
+	if doc.Header != nil && doc.Header.Enabled {
+		sb.WriteString(b.headerBlock(doc.Header))
+	}
 
 	// Render content via converter
 	if doc.Content != nil {
@@ -60,8 +66,11 @@ func (b *TypstBuilder) Build(doc *portabledoc.Document) (string, int, []port.Sig
 }
 
 // pageSetup generates #set page(...) directive from PageConfig.
-func (b *TypstBuilder) pageSetup(config *portabledoc.PageConfig) string {
+func (b *TypstBuilder) pageSetup(config *portabledoc.PageConfig, hasHeader bool) string {
 	marginTopPt := config.Margins.Top * pxToPt
+	if hasHeader {
+		marginTopPt /= 2
+	}
 	marginBottomPt := config.Margins.Bottom * pxToPt
 	marginLeftPt := config.Margins.Left * pxToPt
 	marginRightPt := config.Margins.Right * pxToPt
@@ -142,4 +151,67 @@ func (b *TypstBuilder) headingStyles() string {
 // collected during build by the converter.
 func (b *TypstBuilder) RemoteImages() map[string]string {
 	return b.converter.RemoteImages()
+}
+
+// headerBlock renders the document header (letterhead) as a Typst content block.
+// It supports three layout modes: image-left, image-right, and image-center.
+func (b *TypstBuilder) headerBlock(header *portabledoc.DocumentHeader) string {
+	var sb strings.Builder
+
+	hasImage := header.HasImage()
+	textNodes := header.TextNodes()
+	hasText := len(textNodes) > 0
+
+	var imageFilename string
+	if hasImage {
+		imageFilename = b.converter.RegisterRemoteImage(*header.ImageURL)
+	}
+
+	imageTypst := ""
+	if hasImage {
+		imageTypst = fmt.Sprintf("#image(\"%s\", height: 90pt)", imageFilename)
+	}
+
+	textTypst := ""
+	if hasText {
+		converted, _ := b.converter.ConvertNodes(textNodes)
+		textTypst = converted
+	}
+
+	switch header.Layout {
+	case portabledoc.HeaderLayoutImageCenter:
+		// Image centered (no text column), or fallback to text-only
+		if hasImage {
+			sb.WriteString(fmt.Sprintf("#pad(y: 6pt)[#align(center)[%s]]\n", imageTypst))
+		} else if hasText {
+			sb.WriteString(fmt.Sprintf("#align(center)[%s]\n", textTypst))
+		}
+
+	case portabledoc.HeaderLayoutImageRight:
+		if hasImage && hasText {
+			sb.WriteString(fmt.Sprintf(
+				"#grid(\n  columns: (1fr, 30%%),\n  column-gutter: 1em,\n  align: (left + top, center + horizon),\n  [%s],\n  [%s],\n)\n",
+				textTypst, imageTypst,
+			))
+		} else if hasImage {
+			sb.WriteString(fmt.Sprintf("#align(center)[%s]\n", imageTypst))
+		} else if hasText {
+			sb.WriteString(textTypst)
+		}
+
+	default: // image-left (default)
+		if hasImage && hasText {
+			sb.WriteString(fmt.Sprintf(
+				"#grid(\n  columns: (30%%, 1fr),\n  column-gutter: 1em,\n  align: (center + horizon, left + top),\n  [%s],\n  [%s],\n)\n",
+				imageTypst, textTypst,
+			))
+		} else if hasImage {
+			sb.WriteString(fmt.Sprintf("#align(center)[%s]\n", imageTypst))
+		} else if hasText {
+			sb.WriteString(textTypst)
+		}
+	}
+
+	sb.WriteString("#v(1em)\n")
+	return sb.String()
 }
