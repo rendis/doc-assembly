@@ -229,7 +229,7 @@ export function exportDocument(
       layout: headerState.layout,
       imageUrl: headerState.imageUrl,
       imageAlt: headerState.imageAlt,
-      text: headerState.text,
+      content: headerState.content ?? undefined,
     },
   }
 
