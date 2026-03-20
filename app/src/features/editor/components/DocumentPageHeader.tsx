@@ -10,6 +10,7 @@ import type { Editor } from '@tiptap/core'
 import { cn } from '@/lib/utils'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { useDocumentHeaderStore, type DocumentHeaderLayout } from '../stores/document-header-store'
+import { StoredMarksPersistenceExtension } from '../extensions/StoredMarksPersistence'
 
 interface DocumentPageHeaderProps {
   editable: boolean
@@ -124,14 +125,16 @@ function LayoutPicker({ current, onChange }: { current: DocumentHeaderLayout; on
 
 export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBlur }: DocumentPageHeaderProps) {
   const { t } = useTranslation()
-  const { layout, imageUrl, imageAlt, text, setEnabled, setLayout, setImage, setText } =
+  const { layout, imageUrl, imageAlt, content: storeContent, setEnabled, setLayout, setImage, setContent } =
     useDocumentHeaderStore()
 
   const [imageModalOpen, setImageModalOpen] = useState(false)
 
-  // Track the last text we set from the store so we don't re-apply on our own updates
-  const lastExternalText = useRef(text)
+  // Track the last content we set from the store so we don't re-apply on our own updates
+  const lastExternalContent = useRef<string>(JSON.stringify(storeContent))
   const isExternalUpdate = useRef(false)
+
+  const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
 
   const headerEditor = useEditor({
     immediatelyRender: false,
@@ -142,14 +145,15 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
       FontFamily.configure({ types: ['textStyle'] }),
       FontSize.configure({ types: ['textStyle'] }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      StoredMarksPersistenceExtension,
     ],
-    content: text || '<p></p>',
+    content: storeContent ?? emptyDoc,
     editable,
     onUpdate: ({ editor }) => {
       if (isExternalUpdate.current) return
-      const html = editor.getHTML()
-      lastExternalText.current = html
-      setText(html)
+      const json = editor.getJSON()
+      lastExternalContent.current = JSON.stringify(json)
+      setContent(json)
     },
     onFocus: ({ editor }) => {
       onTextEditorFocus?.(editor)
@@ -164,14 +168,16 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
     },
   })
 
-  // Sync store text → editor when changed externally (e.g. document import)
+  // Sync store content → editor when changed externally (e.g. document import)
   useEffect(() => {
-    if (!headerEditor || text === lastExternalText.current) return
-    lastExternalText.current = text
+    if (!headerEditor) return
+    const serialized = JSON.stringify(storeContent)
+    if (serialized === lastExternalContent.current) return
+    lastExternalContent.current = serialized
     isExternalUpdate.current = true
-    headerEditor.commands.setContent(text || '<p></p>')
+    headerEditor.commands.setContent(storeContent ?? emptyDoc)
     isExternalUpdate.current = false
-  }, [text, headerEditor])
+  }, [storeContent, headerEditor])
 
   // Sync editable flag
   useEffect(() => {
@@ -198,13 +204,13 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
   const textSlot = headerEditor ? (
     <EditorContent
       editor={headerEditor}
-      className="flex-1 overflow-hidden"
+      className="flex-1 min-w-0"
     />
   ) : null
 
   return (
     <>
-      <div className="relative border-b border-border">
+      <div className="relative">
         {/* Controls row */}
         {editable && (
           <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
@@ -229,7 +235,7 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
               editable={editable}
               onOpenModal={() => setImageModalOpen(true)}
               onRemove={() => setImage('', '')}
-              className="w-[30%] border-r border-border"
+              className="w-[30%]"
             />
             {textSlot}
           </div>
@@ -244,7 +250,7 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
               editable={editable}
               onOpenModal={() => setImageModalOpen(true)}
               onRemove={() => setImage('', '')}
-              className="w-[30%] border-l border-border"
+              className="w-[30%]"
             />
           </div>
         )}

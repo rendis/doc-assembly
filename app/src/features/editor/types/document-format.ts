@@ -73,7 +73,7 @@ export interface PortableDocument {
     layout?: 'image-left' | 'image-right' | 'image-center'
     imageUrl?: string | null
     imageAlt?: string
-    text?: string
+    content?: Record<string, unknown>
   }
 }
 

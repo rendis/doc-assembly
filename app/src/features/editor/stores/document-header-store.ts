@@ -11,14 +11,14 @@ export interface DocumentHeaderState {
   layout: DocumentHeaderLayout
   imageUrl: string | null
   imageAlt: string
-  text: string
+  content: Record<string, unknown> | null
 }
 
 export interface DocumentHeaderActions {
   setEnabled: (enabled: boolean) => void
   setLayout: (layout: DocumentHeaderLayout) => void
   setImage: (url: string, alt: string) => void
-  setText: (text: string) => void
+  setContent: (content: Record<string, unknown>) => void
   reset: () => void
   configure: (partial: Partial<DocumentHeaderState>) => void
 }
@@ -34,7 +34,7 @@ const initialState: DocumentHeaderState = {
   layout: 'image-left',
   imageUrl: null,
   imageAlt: '',
-  text: '',
+  content: null,
 }
 
 // =============================================================================
@@ -50,7 +50,7 @@ export const useDocumentHeaderStore = create<DocumentHeaderStore>()((set) => ({
 
   setImage: (imageUrl, imageAlt) => set({ imageUrl, imageAlt }),
 
-  setText: (text) => set({ text }),
+  setContent: (content) => set({ content }),
 
   reset: () => set(initialState),
 
