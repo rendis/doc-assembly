@@ -80,8 +80,8 @@ func (c *typstConverter) SetPageWidthPx(width float64) {
 	c.pageWidthPx = width
 }
 
-// registerRemoteImage registers a remote URL or data URL and returns a local filename.
-func (c *typstConverter) registerRemoteImage(url string) string {
+// RegisterRemoteImage registers a remote URL or data URL and returns a local filename.
+func (c *typstConverter) RegisterRemoteImage(url string) string {
 	if existing, ok := c.remoteImages[url]; ok {
 		return existing
 	}
@@ -505,7 +505,7 @@ func (c *typstConverter) resolveImagePath(attrs map[string]any) string {
 	}
 
 	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") || strings.HasPrefix(src, "data:") {
-		return c.registerRemoteImage(src)
+		return c.RegisterRemoteImage(src)
 	}
 	return src
 }
