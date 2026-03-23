@@ -1115,34 +1115,38 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	var sb strings.Builder
 	anchorString := c.getAnchorString(sig)
 
-	// Signature image (if signed)
+	// Always reserve a fixed slot above the line so all lines in a grid row align.
+	// The image is placed out-of-flow (via #place) so its size never affects layout.
+	const slotHeightPt = 60.0 // matches editor h-20 (80px × 0.75 pxToPt)
+	const gapPt = 6.0         // matches editor mb-2 (8px × 0.75 pxToPt)
+	sb.WriteString(fmt.Sprintf("    #v(%.1fpt)\n", slotHeightPt))
+	sb.WriteString(fmt.Sprintf("    #v(%.1fpt)\n", gapPt))
+
+	// Build image markup ahead of the line block (only when signed)
+	imgMarkup := ""
 	if sig.IsSigned() {
 		imgFile := c.RegisterRemoteImage(*sig.ImageData)
-
-		// Container in the editor is h-20 (80px). Scale is a multiplier (1.0 = 100%).
-		const slotHeightPt = 60.0 // 80px × 0.75 pxToPt
 		scale := 1.0
 		if sig.ImageScale != nil && *sig.ImageScale > 0 {
 			scale = *sig.ImageScale
 		}
 		heightPt := slotHeightPt * scale
-
-		imgMarkup := fmt.Sprintf("#image(\"%s\", height: %.1fpt, fit: \"contain\")",
+		imgMarkup = fmt.Sprintf("#image(\"%s\", height: %.1fpt, fit: \"contain\")",
 			escapeTypstString(imgFile), heightPt)
-
-		// Apply rotation if present
 		if sig.ImageRotation != nil && *sig.ImageRotation != 0 {
 			imgMarkup = fmt.Sprintf("#rotate(%ddeg)[%s]", *sig.ImageRotation, imgMarkup)
 		}
-
-		sb.WriteString(fmt.Sprintf("    #align(center)[%s]\n", imgMarkup))
-		sb.WriteString("    #v(0.25em)\n")
 	}
 
 	// Anchor text (invisible but present for PDF anchor extraction)
 	sb.WriteString(fmt.Sprintf("    #text(size: 0.1pt, fill: white)[%s]\n", escapeTypst(anchorString)))
 
 	sb.WriteString(fmt.Sprintf("    #block(width: %s)[\n", lineWidthPt))
+	if imgMarkup != "" {
+		// Float the image out-of-flow, centered above the line.
+		// dy moves the image's top edge up into the reserved slot so it sits over the line.
+		sb.WriteString(fmt.Sprintf("      #place(top + center, dy: -%.1fpt)[%s]\n", slotHeightPt+gapPt, imgMarkup))
+	}
 	sb.WriteString("      #line(length: 100%, stroke: 0.5pt)\n")
 	label := sig.Label
 	if label == "" {
