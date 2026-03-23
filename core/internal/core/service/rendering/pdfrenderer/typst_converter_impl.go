@@ -1116,8 +1116,27 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	anchorString := c.getAnchorString(sig)
 
 	// Signature image (if signed)
-	if sig.IsSigned() && sig.ImageData != nil && *sig.ImageData != "" {
-		sb.WriteString("    #v(0.5em)\n")
+	if sig.IsSigned() {
+		imgFile := c.RegisterRemoteImage(*sig.ImageData)
+
+		// Container in the editor is h-20 (80px). Scale is a multiplier (1.0 = 100%).
+		const slotHeightPt = 60.0 // 80px × 0.75 pxToPt
+		scale := 1.0
+		if sig.ImageScale != nil && *sig.ImageScale > 0 {
+			scale = *sig.ImageScale
+		}
+		heightPt := slotHeightPt * scale
+
+		imgMarkup := fmt.Sprintf("#image(\"%s\", height: %.1fpt, fit: \"contain\")",
+			escapeTypstString(imgFile), heightPt)
+
+		// Apply rotation if present
+		if sig.ImageRotation != nil && *sig.ImageRotation != 0 {
+			imgMarkup = fmt.Sprintf("#rotate(%ddeg)[%s]", *sig.ImageRotation, imgMarkup)
+		}
+
+		sb.WriteString(fmt.Sprintf("    #align(center)[%s]\n", imgMarkup))
+		sb.WriteString("    #v(0.25em)\n")
 	}
 
 	// Anchor text (invisible but present for PDF anchor extraction)
