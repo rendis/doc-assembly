@@ -494,6 +494,21 @@ func TestTypstConverter_ImageInjectable(t *testing.T) {
 	}
 }
 
+func TestTypstConverter_ImageStorageURL(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type:  portabledoc.NodeTypeImage,
+		Attrs: map[string]any{"src": "storage://asset-key", "width": float64(200)},
+	}
+	got := c.convertNode(node)
+	if !strings.Contains(got, "img_1") {
+		t.Fatalf("expected generated local filename, got %q", got)
+	}
+	if _, ok := c.RemoteImages()["storage://asset-key"]; !ok {
+		t.Fatalf("expected storage URL to be tracked as remote image")
+	}
+}
+
 // --- Injector ---
 
 func TestTypstConverter_InjectorWithValue(t *testing.T) {
