@@ -11,11 +11,11 @@ type Document struct {
 	Meta            Meta            `json:"meta"`
 	PageConfig      PageConfig      `json:"pageConfig"`
 	VariableIDs     []string        `json:"variableIds"`
-	SignerRoles     []SignerRole     `json:"signerRoles"`
-	SigningWorkflow *WorkflowConfig  `json:"signingWorkflow,omitempty"`
-	Header          *DocumentHeader  `json:"header,omitempty"`
-	Content         *ProseMirrorDoc  `json:"content"`
-	ExportInfo      ExportInfo       `json:"exportInfo"`
+	SignerRoles     []SignerRole    `json:"signerRoles"`
+	SigningWorkflow *WorkflowConfig `json:"signingWorkflow,omitempty"`
+	Header          *DocumentHeader `json:"header,omitempty"`
+	Content         *ProseMirrorDoc `json:"content"`
+	ExportInfo      ExportInfo      `json:"exportInfo"`
 }
 
 // ExportInfo contains export metadata.

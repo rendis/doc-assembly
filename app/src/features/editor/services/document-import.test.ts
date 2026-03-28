@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Editor } from '@tiptap/core'
 import type { PortableDocument } from '../types/document-format'
 import { importDocument } from './document-import'
+import { useDocumentHeaderStore } from '../stores/document-header-store'
 
 function createBaseDocument(overrides: Partial<PortableDocument> = {}): PortableDocument {
   return {
@@ -137,5 +138,97 @@ describe('importDocument', () => {
     expect(result.success).toBe(false)
     expect(result.validation.errors[0]?.code).toBe('VERSION_TOO_NEW')
     expect(editor.commands.setContent).not.toHaveBeenCalled()
+  })
+
+  it('restores header configuration from the imported document', () => {
+    useDocumentHeaderStore.getState().reset()
+
+    const editor = {
+      commands: {
+        setContent: vi.fn(),
+      },
+    } as unknown as Editor
+
+    const storeActions = {
+      setPaginationConfig: vi.fn(),
+      setSignerRoles: vi.fn(),
+      setWorkflowConfig: vi.fn(),
+    }
+
+    const result = importDocument(
+      createBaseDocument({
+        header: {
+          enabled: true,
+          layout: 'image-center',
+          imageUrl: 'data:image/png;base64,abc123',
+          imageAlt: 'Inline logo',
+          content: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Header text' }],
+              },
+            ],
+          },
+        },
+      }),
+      editor,
+      storeActions,
+      []
+    )
+
+    expect(result.success).toBe(true)
+    expect(useDocumentHeaderStore.getState()).toMatchObject({
+      enabled: true,
+      layout: 'image-center',
+      imageUrl: 'data:image/png;base64,abc123',
+      imageAlt: 'Inline logo',
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Header text' }],
+          },
+        ],
+      },
+    })
+  })
+
+  it('resets header configuration when the imported document has no header block', () => {
+    useDocumentHeaderStore.getState().configure({
+      enabled: true,
+      layout: 'image-right',
+      imageUrl: 'https://example.com/old-logo.png',
+      imageAlt: 'Old logo',
+      content: {
+        type: 'doc',
+        content: [{ type: 'paragraph' }],
+      },
+    })
+
+    const editor = {
+      commands: {
+        setContent: vi.fn(),
+      },
+    } as unknown as Editor
+
+    const storeActions = {
+      setPaginationConfig: vi.fn(),
+      setSignerRoles: vi.fn(),
+      setWorkflowConfig: vi.fn(),
+    }
+
+    const result = importDocument(createBaseDocument(), editor, storeActions, [])
+
+    expect(result.success).toBe(true)
+    expect(useDocumentHeaderStore.getState()).toMatchObject({
+      enabled: false,
+      layout: 'image-left',
+      imageUrl: null,
+      imageAlt: '',
+      content: null,
+    })
   })
 })

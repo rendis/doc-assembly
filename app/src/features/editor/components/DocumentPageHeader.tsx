@@ -94,6 +94,8 @@ const LAYOUTS: { value: DocumentHeaderLayout; icon: typeof PanelLeft; labelKey: 
   { value: 'image-right',  icon: PanelRight,     labelKey: 'editor.documentHeader.layoutImageRight' },
 ]
 
+const EMPTY_HEADER_DOC = { type: 'doc', content: [{ type: 'paragraph' }] }
+
 function LayoutPicker({ current, onChange }: { current: DocumentHeaderLayout; onChange: (l: DocumentHeaderLayout) => void }) {
   const { t } = useTranslation()
   return (
@@ -134,8 +136,6 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
   const lastExternalContent = useRef<string>(JSON.stringify(storeContent))
   const isExternalUpdate = useRef(false)
 
-  const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
-
   const headerEditor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -147,7 +147,7 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       StoredMarksPersistenceExtension,
     ],
-    content: storeContent ?? emptyDoc,
+    content: storeContent ?? EMPTY_HEADER_DOC,
     editable,
     onUpdate: ({ editor }) => {
       if (isExternalUpdate.current) return
@@ -175,7 +175,7 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
     if (serialized === lastExternalContent.current) return
     lastExternalContent.current = serialized
     isExternalUpdate.current = true
-    headerEditor.commands.setContent(storeContent ?? emptyDoc)
+    headerEditor.commands.setContent(storeContent ?? EMPTY_HEADER_DOC)
     isExternalUpdate.current = false
   }, [storeContent, headerEditor])
 

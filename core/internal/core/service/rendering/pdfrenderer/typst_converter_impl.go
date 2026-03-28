@@ -615,7 +615,7 @@ func (c *typstConverter) interactiveField(node portabledoc.Node) string {
 
 	// Render label if present
 	if attrs.Label != "" {
-		sb.WriteString(fmt.Sprintf("  #text(weight: \"bold\")[%s]\n", escapeTypst(attrs.Label)))
+		fmt.Fprintf(&sb, "  #text(weight: \"bold\")[%s]\n", escapeTypst(attrs.Label))
 		sb.WriteString("  #v(2pt)\n")
 	}
 
@@ -1050,10 +1050,10 @@ func (c *typstConverter) renderSignatureGrid(sigs []portabledoc.SignatureItem, c
 	colSpec := strings.TrimRight(strings.Repeat("1fr, ", cols), ", ")
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(
+	fmt.Fprintf(&sb,
 		"#grid(\n  columns: (%s),\n  column-gutter: 1em,\n  row-gutter: 3em,\n  align: center + top,\n",
 		colSpec,
-	))
+	)
 	for i := range sigs {
 		sb.WriteString("  [\n")
 		sb.WriteString(c.renderTypstSignatureItemContent(&sigs[i], lwPt))
@@ -1069,7 +1069,7 @@ func (c *typstConverter) renderSignatureGrid(sigs []portabledoc.SignatureItem, c
 // renderAlignedSignature renders a single signature with the given alignment.
 func (c *typstConverter) renderAlignedSignature(sig *portabledoc.SignatureItem, alignment, lwPt string) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("#align(%s)[\n", alignment))
+	fmt.Fprintf(&sb, "#align(%s)[\n", alignment)
 	sb.WriteString(c.renderTypstSignatureItemContent(sig, lwPt))
 	sb.WriteString("]\n")
 	return sb.String()
@@ -1119,8 +1119,8 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	// The image is placed out-of-flow (via #place) so its size never affects layout.
 	const slotHeightPt = 60.0 // matches editor h-20 (80px × 0.75 pxToPt)
 	const gapPt = 6.0         // matches editor mb-2 (8px × 0.75 pxToPt)
-	sb.WriteString(fmt.Sprintf("    #v(%.1fpt)\n", slotHeightPt))
-	sb.WriteString(fmt.Sprintf("    #v(%.1fpt)\n", gapPt))
+	fmt.Fprintf(&sb, "    #v(%.1fpt)\n", slotHeightPt)
+	fmt.Fprintf(&sb, "    #v(%.1fpt)\n", gapPt)
 
 	// Build image markup ahead of the line block (only when signed)
 	imgMarkup := ""
@@ -1139,22 +1139,22 @@ func (c *typstConverter) renderTypstSignatureItemContent(sig *portabledoc.Signat
 	}
 
 	// Anchor text (invisible but present for PDF anchor extraction)
-	sb.WriteString(fmt.Sprintf("    #text(size: 0.1pt, fill: white)[%s]\n", escapeTypst(anchorString)))
+	fmt.Fprintf(&sb, "    #text(size: 0.1pt, fill: white)[%s]\n", escapeTypst(anchorString))
 
-	sb.WriteString(fmt.Sprintf("    #block(width: %s)[\n", lineWidthPt))
+	fmt.Fprintf(&sb, "    #block(width: %s)[\n", lineWidthPt)
 	if imgMarkup != "" {
 		// Float the image out-of-flow, centered above the line.
 		// dy moves the image's top edge up into the reserved slot so it sits over the line.
-		sb.WriteString(fmt.Sprintf("      #place(top + center, dy: -%.1fpt)[%s]\n", slotHeightPt+gapPt, imgMarkup))
+		fmt.Fprintf(&sb, "      #place(top + center, dy: -%.1fpt)[%s]\n", slotHeightPt+gapPt, imgMarkup)
 	}
 	sb.WriteString("      #line(length: 100%, stroke: 0.5pt)\n")
 	label := sig.Label
 	if label == "" {
 		label = "Firma"
 	}
-	sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 9pt)[%s]]\n", escapeTypst(label)))
+	fmt.Fprintf(&sb, "      #align(center)[#text(size: 9pt)[%s]]\n", escapeTypst(label))
 	if sig.Subtitle != nil && *sig.Subtitle != "" {
-		sb.WriteString(fmt.Sprintf("      #align(center)[#text(size: 8pt, fill: luma(100))[%s]]\n", escapeTypst(*sig.Subtitle)))
+		fmt.Fprintf(&sb, "      #align(center)[#text(size: 8pt, fill: luma(100))[%s]]\n", escapeTypst(*sig.Subtitle))
 	}
 	sb.WriteString("    ]\n")
 
@@ -1569,7 +1569,7 @@ func (c *typstConverter) renderTypstTable(tableData *entity.TableValue, lang str
 
 	colWidths := c.buildTypstColumnWidths(tableData.Columns)
 	headerFill := c.getTableHeaderFillColor(headerStyles)
-	sb.WriteString(fmt.Sprintf("#table(\n  columns: (%s),\n  inset: (x: 0pt, y: 0pt),\n  stroke: 0.5pt + %s,\n  fill: (x, y) => if y == 0 { rgb(\"%s\") },\n", colWidths, c.tokens.TableStrokeColor, headerFill))
+	fmt.Fprintf(&sb, "#table(\n  columns: (%s),\n  inset: (x: 0pt, y: 0pt),\n  stroke: 0.5pt + %s,\n  fill: (x, y) => if y == 0 { rgb(%q) },\n", colWidths, c.tokens.TableStrokeColor, headerFill)
 	sb.WriteString(c.buildTableAlignParam(headerStyles, bodyStyles))
 	sb.WriteString(c.renderTypstTableHeader(tableData.Columns, lang))
 	sb.WriteString(c.renderTypstTableRows(tableData))
@@ -1585,7 +1585,7 @@ func (c *typstConverter) renderTypstTableHeader(columns []entity.TableColumn, la
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(fmt.Sprintf("table.cell(inset: %s)[%s]", c.tokens.TableHeaderCellInset, escapeTypst(c.getColumnLabel(col, lang))))
+		fmt.Fprintf(&sb, "table.cell(inset: %s)[%s]", c.tokens.TableHeaderCellInset, escapeTypst(c.getColumnLabel(col, lang)))
 	}
 	sb.WriteString("),\n")
 	return sb.String()
@@ -1727,7 +1727,7 @@ func (c *typstConverter) table(node portabledoc.Node) string {
 	sb.WriteString(c.buildTableBodyStyleRules(c.currentTableBodyStyles))
 
 	headerFill := c.getTableHeaderFillColor(c.currentTableHeaderStyles)
-	sb.WriteString(fmt.Sprintf("#table(\n  columns: (%s),\n  inset: %s,\n  stroke: 0.5pt + %s,\n  fill: (x, y) => if y == 0 { rgb(\"%s\") },\n", colWidths, c.tokens.TableCellInset, c.tokens.TableStrokeColor, headerFill))
+	fmt.Fprintf(&sb, "#table(\n  columns: (%s),\n  inset: %s,\n  stroke: 0.5pt + %s,\n  fill: (x, y) => if y == 0 { rgb(%q) },\n", colWidths, c.tokens.TableCellInset, c.tokens.TableStrokeColor, headerFill)
 	sb.WriteString(c.buildTableAlignParam(c.currentTableHeaderStyles, c.currentTableBodyStyles))
 
 	isFirstRow := true

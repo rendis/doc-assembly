@@ -71,24 +71,24 @@ func (b *TypstBuilder) pageSetup(config *portabledoc.PageConfig, hasHeader bool)
 	if hasHeader {
 		marginTopPt /= 2
 	}
-	marginBottomPt := config.Margins.Bottom * pxToPt
-	marginLeftPt := config.Margins.Left * pxToPt
-	marginRightPt := config.Margins.Right * pxToPt
-
 	var sb strings.Builder
 
 	// Check if this matches a standard paper size
 	paper := detectPaperSize(config.FormatID)
 	if paper != "" {
-		sb.WriteString(fmt.Sprintf("#set page(\n  paper: \"%s\",\n", paper))
+		fmt.Fprintf(&sb, "#set page(\n  paper: %q,\n", paper)
 	} else {
 		widthPt := config.Width * pxToPt
 		heightPt := config.Height * pxToPt
-		sb.WriteString(fmt.Sprintf("#set page(\n  width: %.1fpt,\n  height: %.1fpt,\n", widthPt, heightPt))
+		fmt.Fprintf(&sb, "#set page(\n  width: %.1fpt,\n  height: %.1fpt,\n", widthPt, heightPt)
 	}
 
-	sb.WriteString(fmt.Sprintf("  margin: (top: %.1fpt, bottom: %.1fpt, left: %.1fpt, right: %.1fpt),\n",
-		marginTopPt, marginBottomPt, marginLeftPt, marginRightPt))
+	fmt.Fprintf(&sb, "  margin: (top: %.1fpt, bottom: %.1fpt, left: %.1fpt, right: %.1fpt),\n",
+		marginTopPt,
+		config.Margins.Bottom*pxToPt,
+		config.Margins.Left*pxToPt,
+		config.Margins.Right*pxToPt,
+	)
 
 	// Page numbering (always enabled)
 	sb.WriteString("  numbering: \"1 / 1\",\n")
@@ -122,17 +122,17 @@ func (b *TypstBuilder) typographySetup() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(fmt.Sprintf("\"%s\"", font))
+		fmt.Fprintf(&sb, "%q", font)
 	}
 	sb.WriteString("),\n")
 
-	sb.WriteString(fmt.Sprintf("  size: %s,\n", b.tokens.BaseFontSize))
-	sb.WriteString(fmt.Sprintf("  fill: rgb(\"%s\"),\n", b.tokens.BaseTextColor))
+	fmt.Fprintf(&sb, "  size: %s,\n", b.tokens.BaseFontSize)
+	fmt.Fprintf(&sb, "  fill: rgb(%q),\n", b.tokens.BaseTextColor)
 	sb.WriteString("  hyphenate: true,\n")
 	sb.WriteString("  number-width: \"proportional\",\n")
 	sb.WriteString(")\n\n")
 
-	sb.WriteString(fmt.Sprintf("#set par(leading: %s, spacing: %s)\n\n", b.tokens.ParagraphLeading, b.tokens.ParagraphSpacing))
+	fmt.Fprintf(&sb, "#set par(leading: %s, spacing: %s)\n\n", b.tokens.ParagraphLeading, b.tokens.ParagraphSpacing)
 
 	return sb.String()
 }
@@ -141,7 +141,7 @@ func (b *TypstBuilder) typographySetup() string {
 func (b *TypstBuilder) headingStyles() string {
 	var sb strings.Builder
 	for i, size := range b.tokens.HeadingSizes {
-		sb.WriteString(fmt.Sprintf("#show heading.where(level: %d): set text(size: %s, weight: %s)\n", i+1, size, b.tokens.HeadingWeight))
+		fmt.Fprintf(&sb, "#show heading.where(level: %d): set text(size: %s, weight: %s)\n", i+1, size, b.tokens.HeadingWeight)
 	}
 	sb.WriteString("\n")
 	return sb.String()
@@ -156,62 +156,72 @@ func (b *TypstBuilder) RemoteImages() map[string]string {
 // headerBlock renders the document header (letterhead) as a Typst content block.
 // It supports three layout modes: image-left, image-right, and image-center.
 func (b *TypstBuilder) headerBlock(header *portabledoc.DocumentHeader) string {
-	var sb strings.Builder
+	imageTypst := b.renderHeaderImage(header)
+	textTypst := b.renderHeaderText(header.TextNodes())
 
-	hasImage := header.HasImage()
-	textNodes := header.TextNodes()
-	hasText := len(textNodes) > 0
-
-	var imageFilename string
-	if hasImage {
-		imageFilename = b.converter.RegisterRemoteImage(*header.ImageURL)
-	}
-
-	imageTypst := ""
-	if hasImage {
-		imageTypst = fmt.Sprintf("#image(\"%s\", height: 90pt)", imageFilename)
-	}
-
-	textTypst := ""
-	if hasText {
-		converted, _ := b.converter.ConvertNodes(textNodes)
-		textTypst = converted
-	}
+	var content string
 
 	switch header.Layout {
 	case portabledoc.HeaderLayoutImageCenter:
-		// Image centered (no text column), or fallback to text-only
-		if hasImage {
-			sb.WriteString(fmt.Sprintf("#pad(y: 6pt)[#align(center)[%s]]\n", imageTypst))
-		} else if hasText {
-			sb.WriteString(fmt.Sprintf("#align(center)[%s]\n", textTypst))
-		}
-
+		content = renderCenteredHeader(imageTypst, textTypst)
 	case portabledoc.HeaderLayoutImageRight:
-		if hasImage && hasText {
-			sb.WriteString(fmt.Sprintf(
-				"#grid(\n  columns: (1fr, 30%%),\n  column-gutter: 1em,\n  align: (left + top, center + horizon),\n  [%s],\n  [%s],\n)\n",
-				textTypst, imageTypst,
-			))
-		} else if hasImage {
-			sb.WriteString(fmt.Sprintf("#align(center)[%s]\n", imageTypst))
-		} else if hasText {
-			sb.WriteString(textTypst)
-		}
-
+		content = renderTwoColumnHeader(textTypst, imageTypst, false, "(1fr, 30%)", "(left + top, center + horizon)")
 	default: // image-left (default)
-		if hasImage && hasText {
-			sb.WriteString(fmt.Sprintf(
-				"#grid(\n  columns: (30%%, 1fr),\n  column-gutter: 1em,\n  align: (center + horizon, left + top),\n  [%s],\n  [%s],\n)\n",
-				imageTypst, textTypst,
-			))
-		} else if hasImage {
-			sb.WriteString(fmt.Sprintf("#align(center)[%s]\n", imageTypst))
-		} else if hasText {
-			sb.WriteString(textTypst)
-		}
+		content = renderTwoColumnHeader(imageTypst, textTypst, true, "(30%, 1fr)", "(center + horizon, left + top)")
 	}
 
-	sb.WriteString("#v(1em)\n")
-	return sb.String()
+	return content + "#v(1em)\n"
+}
+
+func (b *TypstBuilder) renderHeaderImage(header *portabledoc.DocumentHeader) string {
+	if !header.HasImage() {
+		return ""
+	}
+
+	imageFilename := b.converter.RegisterRemoteImage(*header.ImageURL)
+	return fmt.Sprintf("#image(%q, height: 90pt)", imageFilename)
+}
+
+func (b *TypstBuilder) renderHeaderText(nodes []portabledoc.Node) string {
+	if len(nodes) == 0 {
+		return ""
+	}
+
+	converted, _ := b.converter.ConvertNodes(nodes)
+	return converted
+}
+
+func renderCenteredHeader(imageTypst, textTypst string) string {
+	if imageTypst != "" {
+		return fmt.Sprintf("#pad(y: 6pt)[#align(center)[%s]]\n", imageTypst)
+	}
+	if textTypst != "" {
+		return fmt.Sprintf("#align(center)[%s]\n", textTypst)
+	}
+	return ""
+}
+
+func renderTwoColumnHeader(leftContent, rightContent string, imageOnLeft bool, columns, align string) string {
+	switch {
+	case leftContent != "" && rightContent != "":
+		return fmt.Sprintf(
+			"#grid(\n  columns: %s,\n  column-gutter: 1em,\n  align: %s,\n  [%s],\n  [%s],\n)\n",
+			columns,
+			align,
+			leftContent,
+			rightContent,
+		)
+	case leftContent != "":
+		if imageOnLeft {
+			return fmt.Sprintf("#align(center)[%s]\n", leftContent)
+		}
+		return leftContent
+	case rightContent != "":
+		if imageOnLeft {
+			return rightContent
+		}
+		return fmt.Sprintf("#align(center)[%s]\n", rightContent)
+	default:
+		return ""
+	}
 }
