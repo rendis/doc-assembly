@@ -11,18 +11,26 @@ import { DOCUMENT_FORMAT_VERSION } from '../types/document-format'
 // Migration Registry
 // =============================================================================
 
-/**
- * Migration function type
- * Each migration transforms a document from version N to version N+1
- */
 type MigrationFunction = (doc: PortableDocument) => PortableDocument
+
+interface MigrationStep {
+  toVersion: string
+  migrate: MigrationFunction
+}
 
 /**
  * Registry of all migrations
  * Key is the source version (version to migrate FROM)
  */
-const migrations: Record<string, MigrationFunction> = {
-  '1.1.0': migrateFrom_1_1_0_to_1_1_1,
+const migrations: Record<string, MigrationStep> = {
+  '1.1.0': {
+    toVersion: '1.1.1',
+    migrate: migrateFrom_1_1_0_to_1_1_1,
+  },
+  '1.1.1': {
+    toVersion: '1.2.0',
+    migrate: migrateFrom_1_1_1_to_1_2_0,
+  },
 }
 
 // =============================================================================
@@ -31,6 +39,22 @@ const migrations: Record<string, MigrationFunction> = {
 
 function migrateFrom_1_1_0_to_1_1_1(doc: PortableDocument): PortableDocument {
   return { ...doc }
+}
+
+function migrateFrom_1_1_1_to_1_2_0(doc: PortableDocument): PortableDocument {
+  return {
+    ...doc,
+    header: doc.header
+      ? {
+          ...doc.header,
+          imageInjectableId: doc.header.imageInjectableId ?? null,
+          imageInjectableLabel: doc.header.imageInjectableLabel ?? null,
+          imageUrl: doc.header.imageUrl ?? null,
+          imageWidth: doc.header.imageWidth ?? null,
+          imageHeight: doc.header.imageHeight ?? null,
+        }
+      : doc.header,
+  }
 }
 
 /**
@@ -45,28 +69,19 @@ export function migrateDocument(document: PortableDocument): PortableDocument {
 
   let currentDoc = { ...document }
 
-  // Apply migrations in sequence
-  // This will be expanded when we have actual migrations
-  const versions = Object.keys(migrations).sort()
-  for (const version of versions) {
-    if (currentDoc.version === version) {
-      currentDoc = migrations[version](currentDoc)
-      currentDoc.version = getNextVersion(version)
+  for (;;) {
+    if (currentDoc.version === DOCUMENT_FORMAT_VERSION) {
+      return currentDoc
     }
+
+    const step = migrations[currentDoc.version]
+    if (!step) {
+      throw new Error(`No migration available from version ${currentDoc.version}`)
+    }
+
+    currentDoc = step.migrate(currentDoc)
+    currentDoc.version = step.toVersion
   }
-
-  return currentDoc
-}
-
-/**
- * Gets the next version number for a given version
- * This is a simplified version - in real implementation would use semver library
- */
-function getNextVersion(version: string): string {
-  const parts = version.split('.').map(Number)
-  // Increment patch version
-  parts[2] = (parts[2] ?? 0) + 1
-  return parts.join('.')
 }
 
 /**

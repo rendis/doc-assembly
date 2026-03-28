@@ -1,6 +1,7 @@
 import type { ImageShape } from '../../extensions/Image/types'
 
-export type ImageInsertTab = 'url' | 'gallery' | 'variable'
+export type ImageInsertTab = 'url' | 'gallery'
+export type ImageSourceMode = 'url' | 'variable'
 
 export interface ImageInsertResult {
   src: string
@@ -50,5 +51,4 @@ export interface ImageGalleryTabProps {
 export interface ImageVariableTabProps {
   onSelect: (result: ImageInsertResult) => void
   currentSelection?: string
-  hasUrlSelection?: boolean
 }

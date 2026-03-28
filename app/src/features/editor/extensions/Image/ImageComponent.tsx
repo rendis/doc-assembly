@@ -261,6 +261,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
           style={{
             width: width ? `${width}px` : undefined,
             height: height ? `${height}px` : undefined,
+            objectFit: injectableId ? 'contain' : undefined,
           }}
           onLoad={handleImageLoad}
           onDoubleClick={handleDoubleClick}

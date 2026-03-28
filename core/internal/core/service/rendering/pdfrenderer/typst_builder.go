@@ -205,7 +205,27 @@ func (b *TypstBuilder) renderHeaderImage(header *portabledoc.DocumentHeader, max
 		return ""
 	}
 
-	imageFilename := b.converter.RegisterRemoteImage(*header.ImageURL)
+	attrs := map[string]any{}
+	if header.ImageURL != nil {
+		attrs["src"] = *header.ImageURL
+	}
+	if header.ImageInjectableID != nil {
+		attrs["injectableId"] = *header.ImageInjectableID
+	}
+
+	src := b.converter.ResolveImageSource(attrs)
+	if src == "" {
+		return ""
+	}
+
+	imageFilename := src
+	if strings.HasPrefix(src, "http://") ||
+		strings.HasPrefix(src, "https://") ||
+		strings.HasPrefix(src, "data:") ||
+		strings.HasPrefix(src, "storage://") {
+		imageFilename = b.converter.RegisterRemoteImage(src)
+	}
+
 	heightPx := headerImageHeightPx
 	if header.ImageHeight != nil && *header.ImageHeight > 0 {
 		heightPx = float64(*header.ImageHeight)
@@ -216,9 +236,14 @@ func (b *TypstBuilder) renderHeaderImage(header *portabledoc.DocumentHeader, max
 		fmt.Sprintf("height: %.1fpt", heightPx*pxToPt),
 	}
 
+	isInjectableImage := header.ImageInjectableID != nil && *header.ImageInjectableID != ""
 	if widthPt, ok := resolveHeaderImageWidthPt(header, maxWidthPx); ok {
 		args = append(args, fmt.Sprintf("width: %.1fpt", widthPt))
-		args = append(args, `fit: "stretch"`)
+		if isInjectableImage {
+			args = append(args, `fit: "contain"`)
+		} else {
+			args = append(args, `fit: "stretch"`)
+		}
 	}
 
 	return fmt.Sprintf("#image(%s)", strings.Join(args, ", "))

@@ -337,10 +337,19 @@ export const DocumentHeaderConfigSchema = z.object({
   layout: z.enum(['image-left', 'image-right', 'image-center']).optional(),
   imageUrl: z.string().nullable().optional(),
   imageAlt: z.string().optional(),
+  imageInjectableId: z.string().nullable().optional(),
+  imageInjectableLabel: z.string().nullable().optional(),
   imageWidth: z.number().positive().nullable().optional(),
   imageHeight: z.number().positive().nullable().optional(),
   content: z.record(z.string(), z.unknown()).optional(),
-})
+}).transform((header) => ({
+  ...header,
+  imageUrl: header.imageUrl ?? null,
+  imageInjectableId: header.imageInjectableId ?? null,
+  imageInjectableLabel: header.imageInjectableLabel ?? null,
+  imageWidth: header.imageWidth ?? null,
+  imageHeight: header.imageHeight ?? null,
+}))
 
 // =============================================================================
 // Complete Portable Document Schema

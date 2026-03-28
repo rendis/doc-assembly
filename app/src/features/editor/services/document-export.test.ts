@@ -44,7 +44,7 @@ describe('exportDocument', () => {
       editor,
       {
         pagination: {
-          pageSize: { width: 794, height: 1123, id: 'A4', label: 'A4', margins: { top: 72, right: 72, bottom: 72, left: 72 } },
+          pageSize: { width: 794, height: 1123, label: 'A4' },
           margins: { top: 72, right: 72, bottom: 72, left: 72 },
         },
         signerRoles: [],
@@ -70,6 +70,8 @@ describe('exportDocument', () => {
       layout: 'image-right',
       imageUrl: 'https://example.com/logo.png',
       imageAlt: 'Company logo',
+      imageInjectableId: null,
+      imageInjectableLabel: null,
       imageWidth: 180,
       imageHeight: 72,
       content: {
@@ -115,7 +117,7 @@ describe('exportDocument', () => {
       editor,
       {
         pagination: {
-          pageSize: { width: 794, height: 1123, id: 'A4', label: 'A4', margins: { top: 72, right: 72, bottom: 72, left: 72 } },
+          pageSize: { width: 794, height: 1123, label: 'A4' },
           margins: { top: 72, right: 72, bottom: 72, left: 72 },
         },
         signerRoles: [],
@@ -141,12 +143,75 @@ describe('exportDocument', () => {
       layout: 'image-left',
       imageUrl: null,
       imageAlt: '',
+      imageInjectableId: null,
+      imageInjectableLabel: null,
       imageWidth: null,
       imageHeight: null,
       content: {
         type: 'doc',
         content: [{ type: 'paragraph' }],
       },
+    })
+  })
+
+  it('tracks image injectables used only in body and header', () => {
+    useDocumentHeaderStore.getState().configure({
+      enabled: true,
+      layout: 'image-left',
+      imageUrl: 'data:image/svg+xml;base64,placeholder',
+      imageAlt: 'Company logo',
+      imageInjectableId: 'header_logo',
+      imageInjectableLabel: 'Logo Header',
+      imageWidth: 180,
+      imageHeight: 72,
+      content: null,
+    })
+
+    const editor = {
+      getJSON: () => ({
+        type: 'doc',
+        content: [
+          {
+            type: 'customImage',
+            attrs: {
+              src: 'data:image/svg+xml;base64,placeholder',
+              injectableId: 'body_logo',
+              injectableLabel: 'Logo Body',
+              width: 240,
+              height: 120,
+            },
+          },
+        ],
+      }),
+    } as unknown as Editor
+
+    const exported = exportDocument(
+      editor,
+      {
+        pagination: {
+          pageSize: { width: 794, height: 1123, label: 'A4' },
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        signerRoles: [],
+        workflowConfig: {
+          orderMode: 'parallel',
+          notifications: {
+            scope: 'global',
+            globalTriggers: {},
+            roleConfigs: [],
+          },
+        },
+      },
+      {
+        title: 'Image injectables',
+        language: 'es',
+      }
+    )
+
+    expect(exported.variableIds).toEqual(['body_logo', 'header_logo'])
+    expect(exported.header).toMatchObject({
+      imageInjectableId: 'header_logo',
+      imageInjectableLabel: 'Logo Header',
     })
   })
 })

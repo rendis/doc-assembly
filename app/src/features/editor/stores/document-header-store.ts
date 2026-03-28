@@ -12,6 +12,8 @@ export interface DocumentHeaderState {
   layout: DocumentHeaderLayout
   imageUrl: string | null
   imageAlt: string
+  imageInjectableId: string | null
+  imageInjectableLabel: string | null
   imageWidth: number | null
   imageHeight: number | null
   content: Record<string, unknown> | null
@@ -19,7 +21,12 @@ export interface DocumentHeaderState {
 
 export interface DocumentHeaderActions {
   setLayout: (layout: DocumentHeaderLayout) => void
-  setImage: (url: string, alt: string) => void
+  setImage: (
+    url: string,
+    alt: string,
+    injectableId?: string | null,
+    injectableLabel?: string | null,
+  ) => void
   setImageDimensions: (width: number | null, height: number | null) => void
   setContent: (content: Record<string, unknown> | null) => void
   reset: () => void
@@ -37,6 +44,8 @@ const initialState: DocumentHeaderState = {
   layout: 'image-left',
   imageUrl: null,
   imageAlt: '',
+  imageInjectableId: null,
+  imageInjectableLabel: null,
   imageWidth: null,
   imageHeight: null,
   content: null,
@@ -51,14 +60,17 @@ export const useDocumentHeaderStore = create<DocumentHeaderStore>()((set) => ({
 
   setLayout: (layout) => set({ layout }),
 
-  setImage: (imageUrl, imageAlt) =>
+  setImage: (imageUrl, imageAlt, imageInjectableId = null, imageInjectableLabel = null) =>
     set((state) => ({
       imageUrl: imageUrl || null,
       imageAlt,
+      imageInjectableId,
+      imageInjectableLabel,
       imageWidth: imageUrl && imageUrl === state.imageUrl ? state.imageWidth : null,
       imageHeight: imageUrl && imageUrl === state.imageUrl ? state.imageHeight : null,
       enabled: deriveHeaderEnabled({
         imageUrl,
+        imageInjectableId,
         content: state.content,
       }),
     })),
@@ -74,10 +86,11 @@ export const useDocumentHeaderStore = create<DocumentHeaderStore>()((set) => ({
       const normalizedContent = normalizeHeaderContent(content)
       return {
         content: normalizedContent,
-      enabled: deriveHeaderEnabled({
-        imageUrl: state.imageUrl,
-        content: normalizedContent,
-      }),
+        enabled: deriveHeaderEnabled({
+          imageUrl: state.imageUrl,
+          imageInjectableId: state.imageInjectableId,
+          content: normalizedContent,
+        }),
       }
     }),
 

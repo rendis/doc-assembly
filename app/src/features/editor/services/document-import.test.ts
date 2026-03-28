@@ -171,6 +171,8 @@ describe('importDocument', () => {
           layout: 'image-center',
           imageUrl: 'data:image/png;base64,abc123',
           imageAlt: 'Inline logo',
+          imageInjectableId: 'company_logo',
+          imageInjectableLabel: 'Company logo',
           imageWidth: 210,
           imageHeight: 84,
           content: {
@@ -195,6 +197,8 @@ describe('importDocument', () => {
       layout: 'image-center',
       imageUrl: 'data:image/png;base64,abc123',
       imageAlt: 'Inline logo',
+      imageInjectableId: 'company_logo',
+      imageInjectableLabel: 'Company logo',
       imageWidth: 210,
       imageHeight: 84,
       content: {
@@ -250,6 +254,8 @@ describe('importDocument', () => {
       layout: 'image-left',
       imageUrl: null,
       imageAlt: '',
+      imageInjectableId: null,
+      imageInjectableLabel: null,
       imageWidth: null,
       imageHeight: null,
       content: {
@@ -293,8 +299,66 @@ describe('importDocument', () => {
       layout: 'image-left',
       imageUrl: null,
       imageAlt: '',
+      imageInjectableId: null,
+      imageInjectableLabel: null,
       imageWidth: null,
       imageHeight: null,
+      content: null,
+    })
+  })
+
+  it('clears stale header image bindings when importing a header without injector fields', () => {
+    useDocumentHeaderStore.getState().configure({
+      enabled: true,
+      layout: 'image-right',
+      imageUrl: 'data:image/svg+xml;base64,placeholder',
+      imageAlt: 'Old logo',
+      imageInjectableId: 'stale_logo',
+      imageInjectableLabel: 'Stale logo',
+      imageWidth: 150,
+      imageHeight: 60,
+      content: null,
+    })
+
+    const editor = {
+      commands: {
+        setContent: vi.fn(),
+      },
+    } as unknown as Editor
+
+    const storeActions = {
+      setPaginationConfig: vi.fn(),
+      setSignerRoles: vi.fn(),
+      setWorkflowConfig: vi.fn(),
+    }
+
+    const result = importDocument(
+      createBaseDocument({
+        version: '1.1.1',
+        header: {
+          enabled: true,
+          layout: 'image-left',
+          imageUrl: 'data:image/svg+xml;base64,new-placeholder',
+          imageAlt: 'New logo',
+          imageWidth: 200,
+          imageHeight: 80,
+        },
+      }),
+      editor,
+      storeActions,
+      []
+    )
+
+    expect(result.success).toBe(true)
+    expect(useDocumentHeaderStore.getState()).toMatchObject({
+      enabled: true,
+      layout: 'image-left',
+      imageUrl: 'data:image/svg+xml;base64,new-placeholder',
+      imageAlt: 'New logo',
+      imageInjectableId: null,
+      imageInjectableLabel: null,
+      imageWidth: 200,
+      imageHeight: 80,
       content: null,
     })
   })

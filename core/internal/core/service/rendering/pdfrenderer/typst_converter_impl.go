@@ -70,6 +70,11 @@ func (c *typstConverter) RemoteImages() map[string]string {
 	return c.remoteImages
 }
 
+// ResolveImageSource resolves the final image source after injectable substitution.
+func (c *typstConverter) ResolveImageSource(attrs map[string]any) string {
+	return c.resolveImageSource(attrs)
+}
+
 // SetContentWidthPx sets the page content area width in pixels.
 func (c *typstConverter) SetContentWidthPx(width float64) {
 	c.contentWidthPx = width
@@ -581,30 +586,47 @@ func (c *typstConverter) imageMarkup(node portabledoc.Node) string {
 	}
 
 	width, _ := node.Attrs["width"].(float64)
+	height, _ := node.Attrs["height"].(float64)
 	shape, _ := node.Attrs["shape"].(string)
+	injectableID, _ := node.Attrs["injectableId"].(string)
+	isInjectableImage := injectableID != ""
 
 	var markup string
-	if width > 0 {
+	if width > 0 && height > 0 && isInjectableImage {
+		markup = typstImageCall(
+			imgPath,
+			fmt.Sprintf("width: %.0fpt", width*pxToPt),
+			fmt.Sprintf("height: %.0fpt", height*pxToPt),
+			`fit: "contain"`,
+		)
+	} else if width > 0 {
 		markup = typstImageCall(imgPath, fmt.Sprintf("width: %.0fpt", width*pxToPt))
 	} else {
 		markup = typstImageCall(imgPath, "width: 100%")
 	}
 
-	if shape == "circle" {
-		height, _ := node.Attrs["height"].(float64)
-		if height <= 0 {
-			height = width
-		}
-		size := math.Min(width, height) * pxToPt
-		if size > 0 {
-			markup = fmt.Sprintf(
-				"#box(width: %.0fpt, height: %.0fpt, clip: true, radius: 50%%)[%s]",
-				size, size, typstImageCall(imgPath, "width: 100%", "height: 100%"),
-			)
-		}
+	if shape != "circle" {
+		return markup
 	}
 
-	return markup
+	if height <= 0 {
+		height = width
+	}
+
+	size := math.Min(width, height) * pxToPt
+	if size <= 0 {
+		return markup
+	}
+
+	imageArgs := []string{"width: 100%", "height: 100%"}
+	if isInjectableImage {
+		imageArgs = append(imageArgs, `fit: "contain"`)
+	}
+
+	return fmt.Sprintf(
+		"#box(width: %.0fpt, height: %.0fpt, clip: true, radius: 50%%)[%s]",
+		size, size, typstImageCall(imgPath, imageArgs...),
+	)
 }
 
 // wrapImage generates a wrap-content block: image + following paragraphs as body.

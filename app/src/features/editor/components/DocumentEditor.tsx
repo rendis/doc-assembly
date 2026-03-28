@@ -96,13 +96,15 @@ export function DocumentEditor({
   const { pageSize, margins } = usePaginationStore()
   const headerContent = useDocumentHeaderStore((state) => state.content)
   const headerImageUrl = useDocumentHeaderStore((state) => state.imageUrl)
+  const headerImageInjectableId = useDocumentHeaderStore((state) => state.imageInjectableId)
   const headerHasMeaningfulContent = useMemo(
     () =>
       deriveHeaderEnabled({
         content: headerContent,
         imageUrl: headerImageUrl,
+        imageInjectableId: headerImageInjectableId,
       }),
-    [headerContent, headerImageUrl]
+    [headerContent, headerImageInjectableId, headerImageUrl]
   )
 
   const [activeSurface, setActiveSurface] = useState<ActiveSurface>('body')

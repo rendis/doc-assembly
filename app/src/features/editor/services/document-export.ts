@@ -8,7 +8,6 @@
  * Variables are stored as IDs only; full definitions come from the backend.
  */
 
-// @ts-expect-error - tiptap types incompatible with moduleResolution: bundler
 import type { Editor, JSONContent } from '@tiptap/core'
 import type {
   PortableDocument,
@@ -65,6 +64,10 @@ function findInjectorNodes(content: ProseMirrorNode[]): Set<string> {
         variableIds.add(node.attrs.variableId as string)
       }
 
+      if ((node.type === 'image' || node.type === 'customImage') && node.attrs?.injectableId) {
+        variableIds.add(node.attrs.injectableId as string)
+      }
+
       // Also check conditional nodes for variable references in conditions
       if (node.type === 'conditional' && node.attrs?.conditions) {
         extractVariablesFromConditions(node.attrs.conditions, variableIds)
@@ -78,6 +81,13 @@ function findInjectorNodes(content: ProseMirrorNode[]): Set<string> {
 
   traverse(content)
   return variableIds
+}
+
+function addHeaderVariableIds(variableIds: Set<string>) {
+  const headerState = useDocumentHeaderStore.getState()
+  if (headerState.imageInjectableId) {
+    variableIds.add(headerState.imageInjectableId)
+  }
 }
 
 /**
@@ -109,7 +119,9 @@ function extractVariablesFromConditions(
 export function extractVariableIdsFromEditor(editor: Editor): string[] {
   const json = editor.getJSON() as JSONContent
   const content = (json.content || []) as ProseMirrorNode[]
-  return Array.from(findInjectorNodes(content))
+  const variableIds = findInjectorNodes(content)
+  addHeaderVariableIds(variableIds)
+  return Array.from(variableIds).sort()
 }
 
 /**
@@ -118,6 +130,7 @@ export function extractVariableIdsFromEditor(editor: Editor): string[] {
  */
 function extractVariableIds(content: ProseMirrorDocument): string[] {
   const usedVariableIds = findInjectorNodes(content.content)
+  addHeaderVariableIds(usedVariableIds)
   return Array.from(usedVariableIds).sort()
 }
 
@@ -160,7 +173,7 @@ function extractPageConfig(pagination: EditorStoreData['pagination']): PageConfi
 function generateExportInfo(options: ExportOptions = {}): ExportInfo {
   const info: ExportInfo = {
     exportedAt: new Date().toISOString(),
-    sourceApp: 'doc-assembly-web/1.1.0',
+    sourceApp: `doc-assembly-web/${DOCUMENT_FORMAT_VERSION}`,
   }
 
   if (options.exportedBy) {
@@ -231,6 +244,8 @@ export function exportDocument(
       layout: headerState.layout,
       imageUrl: headerState.imageUrl,
       imageAlt: headerState.imageAlt,
+      imageInjectableId: headerState.imageInjectableId,
+      imageInjectableLabel: headerState.imageInjectableLabel,
       imageWidth: headerState.imageWidth,
       imageHeight: headerState.imageHeight,
       content: headerState.content ?? undefined,

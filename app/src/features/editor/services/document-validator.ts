@@ -138,6 +138,61 @@ function validateInjectorReferences(
   }
 }
 
+function validateImageReferences(
+  document: PortableDocument,
+  context: ValidationContext
+): void {
+  function validateImageVariableId(variableId: string, path: string) {
+    if (!context.documentVariableIds.has(variableId)) {
+      addWarning(
+        context,
+        'UNDEFINED_IMAGE_VARIABLE',
+        path,
+        `Variable "${variableId}" referenciada en imagen no está en variableIds del documento`,
+        'Añade el ID de la variable a la lista variableIds'
+      )
+    }
+
+    if (
+      context.backendVariableIds.size > 0 &&
+      !context.backendVariableIds.has(variableId)
+    ) {
+      addWarning(
+        context,
+        'ORPHANED_IMAGE_VARIABLE',
+        path,
+        `Variable "${variableId}" referenciada en imagen no existe en el backend`,
+        'La variable puede haber sido eliminada o el ID es incorrecto'
+      )
+    }
+  }
+
+  function traverse(nodes: ProseMirrorNode[], path: string) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      const nodePath = `${path}.content[${i}]`
+      const variableId = node.attrs?.injectableId as string | undefined
+
+      if ((node.type === 'image' || node.type === 'customImage') && variableId) {
+        validateImageVariableId(variableId, `${nodePath}.attrs.injectableId`)
+      }
+
+      if (node.content) {
+        traverse(node.content, nodePath)
+      }
+    }
+  }
+
+  traverse(document.content.content, 'content')
+
+  if (document.header?.imageInjectableId) {
+    validateImageVariableId(
+      document.header.imageInjectableId,
+      'header.imageInjectableId',
+    )
+  }
+}
+
 /**
  * Validates signature role references
  */
@@ -576,6 +631,7 @@ export function validateDocumentSemantics(
 
   // Validate content references
   validateInjectorReferences(document.content.content, context)
+  validateImageReferences(document, context)
   validateSignatureReferences(document.content.content, context)
   validateConditionalReferences(document.content.content, context)
 
@@ -620,6 +676,10 @@ export function getUsedVariableIds(document: PortableDocument): string[] {
         ids.add(node.attrs.variableId as string)
       }
 
+      if ((node.type === 'image' || node.type === 'customImage') && node.attrs?.injectableId) {
+        ids.add(node.attrs.injectableId as string)
+      }
+
       if (node.type === 'conditional' && node.attrs?.conditions) {
         collectConditionVariables(node.attrs.conditions, ids)
       }
@@ -656,6 +716,11 @@ export function getUsedVariableIds(document: PortableDocument): string[] {
   }
 
   traverse(document.content.content)
+
+  if (document.header?.imageInjectableId) {
+    ids.add(document.header.imageInjectableId)
+  }
+
   return Array.from(ids)
 }
 

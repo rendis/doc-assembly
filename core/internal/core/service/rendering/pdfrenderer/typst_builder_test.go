@@ -42,6 +42,13 @@ func (s *typstBuilderConverterStub) RegisterRemoteImage(url string) string {
 	return filename
 }
 
+func (s *typstBuilderConverterStub) ResolveImageSource(attrs map[string]any) string {
+	if src, ok := attrs["src"].(string); ok && src != "" {
+		return src
+	}
+	return ""
+}
+
 func TestTypstBuilderHeaderBlock_ImageLeftWithText(t *testing.T) {
 	converter := &typstBuilderConverterStub{}
 	builder := NewTypstBuilder(converter, DefaultDesignTokens())
@@ -204,6 +211,42 @@ func TestTypstBuilderHeaderBlock_ImageCenterUsesDedicatedCenteredLayout(t *testi
 	if strings.Contains(got, "#grid(") {
 		t.Fatalf("expected center layout to avoid lateral grid composition, got %q", got)
 	}
+}
+
+func TestTypstBuilderHeaderBlock_InjectableImageUsesContainFit(t *testing.T) {
+	converter := &typstBuilderConverterStub{}
+	builder := NewTypstBuilder(converter, DefaultDesignTokens())
+	imageURL := "https://example.com/dynamic-logo.png"
+	imageWidth := 180
+	imageHeight := 96
+	pageConfig := &portabledoc.PageConfig{
+		FormatID: portabledoc.PageFormatA4,
+		Width:    794,
+		Height:   1123,
+		Margins: portabledoc.Margins{
+			Top:    72,
+			Bottom: 72,
+			Left:   72,
+			Right:  72,
+		},
+	}
+
+	got := builder.headerBlock(&portabledoc.DocumentHeader{
+		Enabled:           true,
+		Layout:            portabledoc.HeaderLayoutImageLeft,
+		ImageURL:          &imageURL,
+		ImageInjectableID: ptrTo("company_logo"),
+		ImageWidth:        &imageWidth,
+		ImageHeight:       &imageHeight,
+	}, pageConfig)
+
+	if !strings.Contains(got, "#image(\"remote-image-1\", height: 72.0pt, width: 135.0pt, fit: \"contain\")") {
+		t.Fatalf("expected injectable header image to preserve its box with contain fit, got %q", got)
+	}
+}
+
+func ptrTo[T any](value T) *T {
+	return &value
 }
 
 func TestTypstBuilderHeaderBlock_TextOnlyDoesNotForceImageRightAlignment(t *testing.T) {

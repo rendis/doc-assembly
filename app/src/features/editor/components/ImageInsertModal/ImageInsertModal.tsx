@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { X, Link, Images, Database } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { X, Link, Images } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getAuthConfig } from '@/lib/auth-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageUrlTab } from './ImageUrlTab'
 import { ImageGalleryTab } from './ImageGalleryTab'
-import { ImageVariableTab } from './ImageVariableTab'
 import { ImageCropper } from './ImageCropper'
 import type { ImageInsertModalProps, ImageInsertResult, ImageInsertTab } from './types'
 import type { ImageShape } from '../../extensions/Image/types'
@@ -15,9 +15,6 @@ function resolveInitialTab(
   image: ImageInsertResult | undefined,
   galleryEnabled: boolean,
 ): ImageInsertTab {
-  if (image?.injectableId) {
-    return 'variable'
-  }
   if (galleryEnabled && image?.src?.startsWith('storage://')) {
     return 'gallery'
   }
@@ -31,6 +28,7 @@ export function ImageInsertModal({
   initialShape = 'square',
   initialImage,
 }: ImageInsertModalProps) {
+  const { t } = useTranslation()
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [activeTab, setActiveTab] = useState<ImageInsertTab>('url')
   const [currentImage, setCurrentImage] = useState<ImageInsertResult | null>(null)
@@ -115,10 +113,6 @@ export function ImageInsertModal({
     setCurrentImage(result)
   }, [])
 
-  const handleVariableSelect = useCallback((result: ImageInsertResult) => {
-    setCurrentImage(result)
-  }, [])
-
   const handleTabChange = useCallback((tab: ImageInsertTab) => {
     setActiveTab(tab)
   }, [])
@@ -126,12 +120,7 @@ export function ImageInsertModal({
   const gallerySelectionKey = currentImage?.src?.startsWith('storage://')
     ? currentImage.src.slice('storage://'.length)
     : undefined
-  const displayedTab =
-    !galleryEnabled && activeTab === 'gallery'
-      ? currentImage?.injectableId
-        ? 'variable'
-        : 'url'
-      : activeTab
+  const displayedTab = !galleryEnabled && activeTab === 'gallery' ? 'url' : activeTab
 
   return (
     <>
@@ -147,10 +136,10 @@ export function ImageInsertModal({
             <div className="flex items-start justify-between border-b border-border p-6">
               <div>
                 <DialogPrimitive.Title className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
-                  Insertar imagen
+                  {t('editor.image.modal.title')}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 text-sm font-light text-muted-foreground">
-                  Añade una imagen desde URL{galleryEnabled ? ', galería' : ''} o variable
+                  {t('editor.image.modal.description')}
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
@@ -161,7 +150,7 @@ export function ImageInsertModal({
 
             <div className="p-6">
               <Tabs value={displayedTab} onValueChange={(v) => handleTabChange(v as ImageInsertTab)}>
-                <TabsList className={cn('grid w-full rounded-none', galleryEnabled ? 'grid-cols-3' : 'grid-cols-2')}>
+                <TabsList className={cn('grid w-full rounded-none', galleryEnabled ? 'grid-cols-2' : 'grid-cols-1')}>
                   <TabsTrigger value="url" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
                     <Link className="h-4 w-4" />
                     URL
@@ -172,10 +161,6 @@ export function ImageInsertModal({
                       Galería
                     </TabsTrigger>
                   )}
-                  <TabsTrigger value="variable" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
-                    <Database className="h-4 w-4" />
-                    Variable
-                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="url" className="mt-4">
@@ -194,14 +179,6 @@ export function ImageInsertModal({
                     />
                   </TabsContent>
                 )}
-
-                <TabsContent value="variable" className="mt-4">
-                  <ImageVariableTab
-                    onSelect={handleVariableSelect}
-                    currentSelection={currentImage?.injectableId}
-                    hasUrlSelection={Boolean(currentImage && !currentImage.injectableId)}
-                  />
-                </TabsContent>
               </Tabs>
             </div>
 
@@ -211,7 +188,7 @@ export function ImageInsertModal({
                 onClick={handleClose}
                 className="rounded-none border border-border bg-background px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
               >
-                Cancelar
+                {t('editor.image.modal.cancel')}
               </button>
               <button
                 type="button"
@@ -219,7 +196,7 @@ export function ImageInsertModal({
                 disabled={!currentImage}
                 className="rounded-none bg-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
               >
-                Insertar imagen
+                {t('editor.image.modal.insert')}
               </button>
             </div>
           </DialogPrimitive.Content>

@@ -14,6 +14,7 @@ import { LineSpacingExtension } from '../extensions/LineSpacing'
 import { useDocumentHeaderStore, type DocumentHeaderLayout } from '../stores/document-header-store'
 import { StoredMarksPersistenceExtension } from '../extensions/StoredMarksPersistence'
 import { hasMeaningfulHeaderContent, normalizeHeaderContent } from '../utils/document-header'
+import { IMAGE_VARIABLE_PLACEHOLDER_SRC } from '../utils/image-variable-placeholder'
 
 interface DocumentPageHeaderProps {
   editable: boolean
@@ -30,6 +31,7 @@ interface ImageSlotProps {
   imageUrl: string | null
   imageAlt: string
   imageWidth: number | null
+  preserveAspectRatio?: boolean
   editable: boolean
   active: boolean
   selected: boolean
@@ -45,6 +47,7 @@ function ImageSlot({
   imageUrl,
   imageAlt,
   imageWidth,
+  preserveAspectRatio = false,
   editable,
   active,
   selected,
@@ -79,7 +82,8 @@ function ImageSlot({
             src={imageUrl}
             alt={imageAlt}
             className={cn(
-              'block max-h-none object-fill transition-shadow',
+              'block max-h-none transition-shadow',
+              preserveAspectRatio ? 'object-contain' : 'object-fill',
               editable && 'cursor-pointer',
               selected && 'ring-2 ring-primary ring-offset-2'
             )}
@@ -201,6 +205,8 @@ export function DocumentPageHeader({
     layout,
     imageUrl,
     imageAlt,
+    imageInjectableId,
+    imageInjectableLabel,
     imageWidth,
     imageHeight,
     content: storeContent,
@@ -212,6 +218,7 @@ export function DocumentPageHeader({
 
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [isImageSelected, setIsImageSelected] = useState(false)
+  const displayImageUrl = imageUrl || (imageInjectableId ? IMAGE_VARIABLE_PLACEHOLDER_SRC : null)
   const hasHeaderText = useMemo(
     () => hasMeaningfulHeaderContent(storeContent),
     [storeContent]
@@ -346,7 +353,7 @@ export function DocumentPageHeader({
   }, [headerEditor, editable])
 
   const isLateralLayout = layout === 'image-left' || layout === 'image-right'
-  const hasTextAndLateralImage = Boolean(imageUrl) && isLateralLayout && hasHeaderText
+  const hasTextAndLateralImage = Boolean(displayImageUrl) && isLateralLayout && hasHeaderText
 
   const getRowWidth = useCallback(() => {
     const rowWidth = rowRef.current?.clientWidth
@@ -432,10 +439,10 @@ export function DocumentPageHeader({
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [imageUrl, imageWidth, layout, isImageSelected])
+  }, [displayImageUrl, imageWidth, layout, isImageSelected])
 
   useEffect(() => {
-    if (!imageUrl || !imageWidth) return
+    if (!displayImageUrl || !imageWidth) return
 
     const frame = requestAnimationFrame(() => {
       const maxWidth = getMaxImageWidth()
@@ -448,7 +455,7 @@ export function DocumentPageHeader({
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [getMaxImageWidth, imageUrl, imageWidth, layout, setImageDimensions])
+  }, [displayImageUrl, getMaxImageWidth, imageWidth, layout, setImageDimensions])
 
   useEffect(() => {
     if (openImageModalToken > 0) {
@@ -492,7 +499,12 @@ export function DocumentPageHeader({
   }
 
   const handleImageInsert = (result: ImageInsertResult) => {
-    setImage(result.src, result.injectableLabel ?? '')
+    setImage(
+      result.src,
+      result.alt ?? result.injectableLabel ?? '',
+      result.injectableId ?? null,
+      result.injectableLabel ?? null,
+    )
     setIsImageSelected(true)
     setImageModalOpen(false)
   }
@@ -515,8 +527,8 @@ export function DocumentPageHeader({
     </div>
   ) : null
 
-  const renderCenteredImageOnly = layout === 'image-center' && imageUrl
-  const imageSelected = isImageSelected && Boolean(imageUrl)
+  const renderCenteredImageOnly = layout === 'image-center' && displayImageUrl
+  const imageSelected = isImageSelected && Boolean(displayImageUrl)
 
   return (
     <>
@@ -530,7 +542,7 @@ export function DocumentPageHeader({
         onMouseDownCapture={handleSurfaceActivate}
         onClick={handleSurfaceClick}
       >
-        {editable && active && imageUrl && (
+        {editable && active && displayImageUrl && (
           <div className="absolute top-3 left-full ml-3 z-20">
             <LayoutPicker current={layout} onChange={setLayout} />
           </div>
@@ -541,12 +553,13 @@ export function DocumentPageHeader({
             className="py-3"
             style={{ paddingLeft, paddingRight, minHeight: `${HEADER_SURFACE_MIN_HEIGHT}px` }}
           >
-            {imageUrl ? (
+            {displayImageUrl ? (
               <div ref={rowRef} className="flex h-24 min-w-0 flex-nowrap items-stretch gap-4 overflow-hidden">
                 <ImageSlot
-                  imageUrl={imageUrl}
-                  imageAlt={imageAlt}
+                  imageUrl={displayImageUrl}
+                  imageAlt={imageAlt || imageInjectableLabel || ''}
                   imageWidth={imageWidth}
+                  preserveAspectRatio={Boolean(imageInjectableId)}
                   editable={editable}
                   active={active}
                   selected={imageSelected}
@@ -560,7 +573,7 @@ export function DocumentPageHeader({
                     setIsImageSelected(true)
                   }}
                   onLoad={handleImageLoad}
-                  onRemove={() => setImage('', '')}
+                  onRemove={() => setImage('', '', null, null)}
                   className="shrink-0"
                 />
                 {textSlot}
@@ -576,13 +589,14 @@ export function DocumentPageHeader({
             className="py-3"
             style={{ paddingLeft, paddingRight, minHeight: `${HEADER_SURFACE_MIN_HEIGHT}px` }}
           >
-            {imageUrl ? (
+            {displayImageUrl ? (
               <div ref={rowRef} className="flex h-24 min-w-0 flex-nowrap items-stretch gap-4 overflow-hidden">
                 {textSlot}
                 <ImageSlot
-                  imageUrl={imageUrl}
-                  imageAlt={imageAlt}
+                  imageUrl={displayImageUrl}
+                  imageAlt={imageAlt || imageInjectableLabel || ''}
                   imageWidth={imageWidth}
+                  preserveAspectRatio={Boolean(imageInjectableId)}
                   editable={editable}
                   active={active}
                   selected={imageSelected}
@@ -596,7 +610,7 @@ export function DocumentPageHeader({
                     setIsImageSelected(true)
                   }}
                   onLoad={handleImageLoad}
-                  onRemove={() => setImage('', '')}
+                  onRemove={() => setImage('', '', null, null)}
                   className="shrink-0"
                 />
               </div>
@@ -617,9 +631,10 @@ export function DocumentPageHeader({
             {renderCenteredImageOnly ? (
               <div ref={rowRef} className="flex h-24 w-full min-w-0 flex-nowrap items-center justify-center overflow-hidden">
                 <ImageSlot
-                imageUrl={imageUrl}
-                imageAlt={imageAlt}
+                imageUrl={displayImageUrl}
+                imageAlt={imageAlt || imageInjectableLabel || ''}
                 imageWidth={imageWidth}
+                preserveAspectRatio={Boolean(imageInjectableId)}
                 editable={editable}
                 active={active}
                 selected={imageSelected}
@@ -633,7 +648,7 @@ export function DocumentPageHeader({
                   setIsImageSelected(true)
                 }}
                 onLoad={handleImageLoad}
-                onRemove={() => setImage('', '')}
+                onRemove={() => setImage('', '', null, null)}
                 className="shrink-0"
               />
               </div>
@@ -646,7 +661,7 @@ export function DocumentPageHeader({
 
       {editable && active && imageSelected && imageElement && (
         <Moveable
-          key={`${layout}-${imageUrl ?? 'none'}-${imageWidth ?? 'auto'}-${imageSelected ? 'selected' : 'idle'}`}
+          key={`${layout}-${displayImageUrl ?? 'none'}-${imageWidth ?? 'auto'}-${imageSelected ? 'selected' : 'idle'}`}
           ref={moveableRef as never}
           target={imageElement}
           resizable
@@ -680,11 +695,13 @@ export function DocumentPageHeader({
         onOpenChange={setImageModalOpen}
         onInsert={handleImageInsert}
         initialShape="square"
-        initialImage={imageUrl ? {
-          src: imageUrl,
-          isBase64: imageUrl.startsWith('data:'),
+        initialImage={displayImageUrl ? {
+          src: displayImageUrl,
+          isBase64: displayImageUrl.startsWith('data:'),
           shape: 'square',
-          injectableLabel: imageAlt || undefined,
+          alt: imageAlt || undefined,
+          injectableId: imageInjectableId ?? undefined,
+          injectableLabel: imageInjectableLabel ?? undefined,
         } : undefined}
       />
     </>

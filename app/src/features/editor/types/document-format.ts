@@ -27,11 +27,12 @@ import type {
  * - Patch: Bug fixes, clarifications
  *
  * Changelog:
+ * - 1.2.0: Added image injectable bindings for header/body image nodes
  * - 1.1.1: Added paragraph/heading line spacing formatting support
  * - 1.1.0: Added signingWorkflow (orderMode, notifications)
  * - 1.0.0: Initial version
  */
-export const DOCUMENT_FORMAT_VERSION = '1.1.1'
+export const DOCUMENT_FORMAT_VERSION = '1.2.0'
 
 // =============================================================================
 // Document Envelope
@@ -74,6 +75,8 @@ export interface PortableDocument {
     layout?: 'image-left' | 'image-right' | 'image-center'
     imageUrl?: string | null
     imageAlt?: string
+    imageInjectableId?: string | null
+    imageInjectableLabel?: string | null
     imageWidth?: number | null
     imageHeight?: number | null
     content?: Record<string, unknown>
@@ -272,6 +275,8 @@ export interface ImageAttrs {
   displayMode: ImageDisplayMode
   align: ImageAlign
   shape: ImageShape
+  injectableId?: string | null
+  injectableLabel?: string | null
 }
 
 /** Signature node attributes */

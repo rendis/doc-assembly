@@ -2,6 +2,7 @@ import type { JSONContent } from '@tiptap/core'
 
 export interface DocumentHeaderSnapshot {
   imageUrl?: string | null
+  imageInjectableId?: string | null
   content?: JSONContent | null
 }
 
@@ -35,6 +36,10 @@ export function hasHeaderImage(imageUrl?: string | null): boolean {
   return typeof imageUrl === 'string' && imageUrl.trim().length > 0
 }
 
+export function hasHeaderImageInjectable(imageInjectableId?: string | null): boolean {
+  return typeof imageInjectableId === 'string' && imageInjectableId.trim().length > 0
+}
+
 export function hasMeaningfulHeaderContent(
   content?: JSONContent | null
 ): boolean {
@@ -42,7 +47,11 @@ export function hasMeaningfulHeaderContent(
 }
 
 export function deriveHeaderEnabled(snapshot: DocumentHeaderSnapshot): boolean {
-  return hasHeaderImage(snapshot.imageUrl) || hasMeaningfulHeaderContent(snapshot.content)
+  return (
+    hasHeaderImage(snapshot.imageUrl) ||
+    hasHeaderImageInjectable(snapshot.imageInjectableId) ||
+    hasMeaningfulHeaderContent(snapshot.content)
+  )
 }
 
 function isParagraphNode(node: JSONContent | undefined): node is JSONContent {

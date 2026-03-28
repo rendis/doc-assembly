@@ -11,6 +11,8 @@ export interface ImageAttributes {
   displayMode: ImageDisplayMode;
   align: ImageAlign;
   shape: ImageShape;
+  injectableId?: string | null;
+  injectableLabel?: string | null;
 }
 
 export interface ImageAlignOption {

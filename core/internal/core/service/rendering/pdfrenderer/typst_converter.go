@@ -31,4 +31,7 @@ type TypstConverter interface {
 	// RegisterRemoteImage registers a URL or data URI for deferred download and
 	// returns the local filename to reference in the Typst source.
 	RegisterRemoteImage(url string) string
+
+	// ResolveImageSource resolves the final image source after injectable substitution.
+	ResolveImageSource(attrs map[string]any) string
 }

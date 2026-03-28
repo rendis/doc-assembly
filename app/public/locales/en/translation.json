@@ -924,7 +924,7 @@
       },
       "modal": {
         "title": "Insert image",
-        "description": "Add an image from URL or gallery",
+        "description": "Add an image from URL, variable, or gallery",
         "gallery": "Gallery",
         "cancel": "Cancel",
         "insert": "Insert image",
@@ -936,7 +936,10 @@
         "loading": "Loading image...",
         "enterUrl": "Enter a URL to see preview",
         "preview": "Preview",
-        "cropImage": "Crop image"
+        "cropImage": "Crop image",
+        "sourceLabel": "Image source",
+        "sourceUrl": "Direct URL",
+        "sourceVariable": "IMAGE variable"
       },
       "gallery": {
         "title": "Image gallery",

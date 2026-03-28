@@ -89,6 +89,8 @@ export function useAutoSave({
   const headerLayout = useDocumentHeaderStore((s) => s.layout)
   const headerImageUrl = useDocumentHeaderStore((s) => s.imageUrl)
   const headerImageAlt = useDocumentHeaderStore((s) => s.imageAlt)
+  const headerImageInjectableId = useDocumentHeaderStore((s) => s.imageInjectableId)
+  const headerImageInjectableLabel = useDocumentHeaderStore((s) => s.imageInjectableLabel)
   const headerImageWidth = useDocumentHeaderStore((s) => s.imageWidth)
   const headerImageHeight = useDocumentHeaderStore((s) => s.imageHeight)
   const headerContent = useDocumentHeaderStore((s) => s.content)
@@ -99,6 +101,8 @@ export function useAutoSave({
         layout: headerLayout,
         imageUrl: headerImageUrl,
         imageAlt: headerImageAlt,
+        imageInjectableId: headerImageInjectableId,
+        imageInjectableLabel: headerImageInjectableLabel,
         imageWidth: headerImageWidth,
         imageHeight: headerImageHeight,
         content: headerContent,
@@ -107,6 +111,8 @@ export function useAutoSave({
       headerContent,
       headerImageAlt,
       headerImageHeight,
+      headerImageInjectableId,
+      headerImageInjectableLabel,
       headerImageUrl,
       headerImageWidth,
       headerLayout,

@@ -199,14 +199,16 @@ func extractSignerRoles(versionID string, doc *portabledoc.Document) []*entity.T
 // based on whether it's a system injectable or workspace injectable.
 func extractInjectables(vctx *validationContext) []*entity.TemplateVersionInjectable {
 	roleRefs := collectInjectableRefsFromSignerRoles(vctx.doc.SignerRoles)
-	if len(vctx.doc.VariableIDs) == 0 && len(roleRefs) == 0 {
+	imageRefs := collectInjectableRefsFromImages(vctx.doc)
+	if len(vctx.doc.VariableIDs) == 0 && len(roleRefs) == 0 && len(imageRefs) == 0 {
 		return nil
 	}
 
 	injectableMap := buildInjectableMap(vctx.accessibleInjectableList)
-	allRefs := make([]string, 0, len(vctx.doc.VariableIDs)+len(roleRefs))
+	allRefs := make([]string, 0, len(vctx.doc.VariableIDs)+len(roleRefs)+len(imageRefs))
 	allRefs = append(allRefs, vctx.doc.VariableIDs...)
 	allRefs = append(allRefs, roleRefs...)
+	allRefs = append(allRefs, imageRefs...)
 	injectables := make([]*entity.TemplateVersionInjectable, 0, len(allRefs))
 	seen := make(map[string]struct{}, len(allRefs))
 
@@ -244,6 +246,30 @@ func collectInjectableRefsFromSignerRoles(roles []portabledoc.SignerRole) []stri
 			refs = append(refs, role.Email.InjectableRefs()...)
 		}
 	}
+	return refs
+}
+
+func collectInjectableRefsFromImages(doc *portabledoc.Document) []string {
+	if doc == nil {
+		return nil
+	}
+
+	refs := make([]string, 0)
+	for node := range doc.AllNodes() {
+		if node.Type != portabledoc.NodeTypeImage && node.Type != portabledoc.NodeTypeCustomImage {
+			continue
+		}
+
+		injectableID, _ := node.Attrs["injectableId"].(string)
+		if injectableID != "" {
+			refs = append(refs, injectableID)
+		}
+	}
+
+	if doc.Header != nil && doc.Header.ImageInjectableID != nil && *doc.Header.ImageInjectableID != "" {
+		refs = append(refs, *doc.Header.ImageInjectableID)
+	}
+
 	return refs
 }
 

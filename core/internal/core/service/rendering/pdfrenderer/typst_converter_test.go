@@ -639,6 +639,27 @@ func TestTypstConverter_ImageInjectable(t *testing.T) {
 	}
 }
 
+func TestTypstConverter_ImageInjectableUsesContainForFixedBox(t *testing.T) {
+	c := newTestConverter(map[string]any{"img1": "https://resolved.com/photo.jpg"}, nil)
+	node := portabledoc.Node{
+		Type: portabledoc.NodeTypeImage,
+		Attrs: map[string]any{
+			"src":          "",
+			"injectableId": "img1",
+			"width":        float64(240),
+			"height":       float64(120),
+		},
+	}
+
+	got := c.convertNode(node)
+	if !strings.Contains(got, `width: 180pt`) || !strings.Contains(got, `height: 90pt`) {
+		t.Fatalf("expected fixed image box dimensions in typst output, got %q", got)
+	}
+	if !strings.Contains(got, `fit: "contain"`) {
+		t.Fatalf("expected injectable image to use contain fit, got %q", got)
+	}
+}
+
 func TestTypstConverter_ImageStorageURL(t *testing.T) {
 	c := newTestConverter(nil, nil)
 	node := portabledoc.Node{

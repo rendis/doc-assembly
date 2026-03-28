@@ -924,7 +924,7 @@
       },
       "modal": {
         "title": "Insertar imagen",
-        "description": "Añade una imagen desde URL o galería",
+        "description": "Añade una imagen desde URL, variable o galería",
         "gallery": "Galería",
         "cancel": "Cancelar",
         "insert": "Insertar imagen",
@@ -936,7 +936,10 @@
         "loading": "Cargando imagen...",
         "enterUrl": "Ingresa una URL para ver la vista previa",
         "preview": "Vista previa",
-        "cropImage": "Recortar imagen"
+        "cropImage": "Recortar imagen",
+        "sourceLabel": "Origen de la imagen",
+        "sourceUrl": "URL directa",
+        "sourceVariable": "Variable IMAGE"
       },
       "gallery": {
         "title": "Galería de imágenes",

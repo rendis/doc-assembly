@@ -3,7 +3,7 @@
 package portabledoc
 
 // CurrentVersion is the latest supported format version.
-const CurrentVersion = "1.1.0"
+const CurrentVersion = "1.2.0"
 
 // Document represents the complete portable document format.
 type Document struct {
