@@ -1,6 +1,8 @@
 package pdfrenderer
 
 import (
+	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -78,6 +80,27 @@ func detectExtFromURL(url string) string {
 		}
 	}
 	return ".png"
+}
+
+func isRasterImageExt(ext string) bool {
+	switch strings.ToLower(ext) {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp":
+		return true
+	default:
+		return false
+	}
+}
+
+func isRasterImagePath(path string) bool {
+	return isRasterImageExt(filepath.Ext(path))
+}
+
+func typstImageCall(path string, args ...string) string {
+	parts := append([]string{fmt.Sprintf("%q", escapeTypstString(path))}, args...)
+	if isRasterImagePath(path) {
+		parts = append(parts, `scaling: "smooth"`)
+	}
+	return fmt.Sprintf("#image(%s)", strings.Join(parts, ", "))
 }
 
 // --- List utilities ---

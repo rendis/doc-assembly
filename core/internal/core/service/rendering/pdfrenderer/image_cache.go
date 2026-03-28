@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	_ "image/gif"
 	"image/png"
 	"io"
 	"log/slog"
@@ -18,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	_ "golang.org/x/image/webp"
 )
 
 // ImageCache provides a shared disk-based cache for downloaded images.
@@ -201,6 +204,16 @@ func (ic *ImageCache) downloadAndStore(ctx context.Context, url string, httpClie
 	if err != nil {
 		return "", err
 	}
+	originalData, originalExt := data, ext
+
+	data, ext, err = sanitizeTransparentRaster(data, ext)
+	if err != nil {
+		slog.WarnContext(ctx, "failed to sanitize transparent raster image; using original bytes",
+			slog.String("url", url),
+			slog.Any("error", err),
+		)
+		data, ext = originalData, originalExt
+	}
 
 	storedPath, err := ic.Store(url, ext, data)
 	if err != nil {
@@ -283,6 +296,120 @@ func downloadImage(ctx context.Context, url string, httpClient *http.Client) ([]
 	return data, ext, nil
 }
 
+func sanitizeTransparentRaster(data []byte, ext string) ([]byte, string, error) {
+	if !isRasterImageExt(ext) || strings.EqualFold(ext, ".jpg") || strings.EqualFold(ext, ".jpeg") {
+		return data, ext, nil
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, "", fmt.Errorf("decode raster image: %w", err)
+	}
+
+	rgba, hasAlpha, hasFullyTransparent := toNRGBAWithAlphaInfo(img)
+	if !hasAlpha {
+		return data, ext, nil
+	}
+
+	if hasFullyTransparent {
+		alphaBleedTransparentPixels(rgba)
+	}
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, rgba); err != nil {
+		return nil, "", fmt.Errorf("encode sanitized png: %w", err)
+	}
+
+	return buf.Bytes(), ".png", nil
+}
+
+func toNRGBAWithAlphaInfo(src image.Image) (*image.NRGBA, bool, bool) {
+	bounds := src.Bounds()
+	dst := image.NewNRGBA(bounds)
+	hasAlpha := false
+	hasFullyTransparent := false
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := color.NRGBAModel.Convert(src.At(x, y)).(color.NRGBA)
+			dst.SetNRGBA(x, y, c)
+			if c.A < 255 {
+				hasAlpha = true
+			}
+			if c.A == 0 {
+				hasFullyTransparent = true
+			}
+		}
+	}
+
+	return dst, hasAlpha, hasFullyTransparent
+}
+
+func alphaBleedTransparentPixels(img *image.NRGBA) {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	if width == 0 || height == 0 {
+		return
+	}
+
+	type point struct{ x, y int }
+	directions := [8]point{
+		{-1, -1}, {0, -1}, {1, -1},
+		{-1, 0}, {1, 0},
+		{-1, 1}, {0, 1}, {1, 1},
+	}
+
+	visited := make([]bool, width*height)
+	queue := make([]point, 0, width*height)
+
+	index := func(x, y int) int {
+		return (y-bounds.Min.Y)*width + (x - bounds.Min.X)
+	}
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			if img.NRGBAAt(x, y).A == 0 {
+				continue
+			}
+			i := index(x, y)
+			visited[i] = true
+			queue = append(queue, point{x: x, y: y})
+		}
+	}
+
+	for head := 0; head < len(queue); head++ {
+		p := queue[head]
+		source := img.NRGBAAt(p.x, p.y)
+
+		for _, dir := range directions {
+			nx := p.x + dir.x
+			ny := p.y + dir.y
+			if nx < bounds.Min.X || nx >= bounds.Max.X || ny < bounds.Min.Y || ny >= bounds.Max.Y {
+				continue
+			}
+
+			i := index(nx, ny)
+			if visited[i] {
+				continue
+			}
+			visited[i] = true
+
+			neighbor := img.NRGBAAt(nx, ny)
+			if neighbor.A == 0 {
+				img.SetNRGBA(nx, ny, color.NRGBA{
+					R: source.R,
+					G: source.G,
+					B: source.B,
+					A: 0,
+				})
+			}
+
+			queue = append(queue, point{x: nx, y: ny})
+		}
+	}
+}
+
 // detectImageExt returns the file extension for the detected image type, or "" if not a valid image.
 func detectImageExt(data []byte) string {
 	if len(data) < 4 {
@@ -335,6 +462,16 @@ func downloadImages(ctx context.Context, images map[string]string, dir string, h
 				renames[filename] = placeholderName
 			}
 			continue
+		}
+		originalData, originalExt := data, ext
+
+		data, ext, err = sanitizeTransparentRaster(data, ext)
+		if err != nil {
+			slog.WarnContext(ctx, "failed to sanitize transparent raster image; using original bytes",
+				slog.String("url", url),
+				slog.Any("error", err),
+			)
+			data, ext = originalData, originalExt
 		}
 
 		// Fix extension to match actual content

@@ -27,6 +27,7 @@ import (
 	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
 	documenttyperepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_type_repo"
 	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
+	galleryassetrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/gallery_asset_repo"
 	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
 	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	systemrolerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_role_repo"
@@ -51,6 +52,7 @@ import (
 	accesssvc "github.com/rendis/doc-assembly/core/internal/core/service/access"
 	catalogsvc "github.com/rendis/doc-assembly/core/internal/core/service/catalog"
 	documentsvc "github.com/rendis/doc-assembly/core/internal/core/service/document"
+	gallerysvc "github.com/rendis/doc-assembly/core/internal/core/service/gallery"
 	injectablesvc "github.com/rendis/doc-assembly/core/internal/core/service/injectable"
 	organizationsvc "github.com/rendis/doc-assembly/core/internal/core/service/organization"
 	templatesvc "github.com/rendis/doc-assembly/core/internal/core/service/template"
@@ -128,6 +130,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	// Create repositories - Content
 	injectableRepo := injectablerepo.New(pool)
 	systemInjectableRepo := systeminjectablerepo.New(pool)
+	galleryRepo := galleryassetrepo.New(pool)
 	templateRepo := templaterepo.New(pool)
 	templateTagRepo := templatetagrepo.New(pool)
 	templateVersionRepo := templateversionrepo.New(pool)
@@ -190,6 +193,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	eventEmitter := documentsvc.NewEventEmitter(docEventRepo)
 	noopNotifier := noopnotification.New()
 	testPublicURL := "http://localhost:8080"
+	galleryService := gallerysvc.New(storageAdapter, galleryRepo, testPublicURL)
 	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo, docAccessTokenRepo, testPublicURL)
 
 	// Document service
@@ -287,6 +291,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 		templateMapper,
 		templateVersionController,
 	)
+	galleryController := controller.NewGalleryController(galleryService)
 
 	// Create controllers - Document & Webhook
 	documentController := controller.NewDocumentController(documentService, preSigningService, eventEmitter)
@@ -332,6 +337,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	// Document routes (within workspace context)
 	wsGroup := v1.Group("", middlewareProvider.WorkspaceContext())
 	documentController.RegisterRoutes(wsGroup)
+	galleryController.RegisterRoutes(v1, middlewareProvider)
 
 	// --- Automation infrastructure (created early, needed by internal routes) ---
 	automationKeyRepo := automationapikeyrepo.New(pool)

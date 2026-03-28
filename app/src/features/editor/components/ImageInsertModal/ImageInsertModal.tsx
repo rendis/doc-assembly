@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { X, Link, Images, Database } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
+import { getAuthConfig } from '@/lib/auth-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageUrlTab } from './ImageUrlTab'
 import { ImageGalleryTab } from './ImageGalleryTab'
@@ -10,6 +11,19 @@ import { ImageCropper } from './ImageCropper'
 import type { ImageInsertModalProps, ImageInsertResult, ImageInsertTab } from './types'
 import type { ImageShape } from '../../extensions/Image/types'
 
+function resolveInitialTab(
+  image: ImageInsertResult | undefined,
+  galleryEnabled: boolean,
+): ImageInsertTab {
+  if (image?.injectableId) {
+    return 'variable'
+  }
+  if (galleryEnabled && image?.src?.startsWith('storage://')) {
+    return 'gallery'
+  }
+  return 'url'
+}
+
 export function ImageInsertModal({
   open,
   onOpenChange,
@@ -17,27 +31,53 @@ export function ImageInsertModal({
   initialShape = 'square',
   initialImage,
 }: ImageInsertModalProps) {
+  const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [activeTab, setActiveTab] = useState<ImageInsertTab>('url')
   const [currentImage, setCurrentImage] = useState<ImageInsertResult | null>(null)
   const [cropperOpen, setCropperOpen] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    getAuthConfig()
+      .then((config) => {
+        if (!cancelled) {
+          const nextGalleryEnabled = Boolean(config.features?.gallery)
+          setGalleryEnabled(nextGalleryEnabled)
+          if (
+            nextGalleryEnabled &&
+            open &&
+            initialImage?.src?.startsWith('storage://') &&
+            !initialImage.injectableId
+          ) {
+            setActiveTab('gallery')
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGalleryEnabled(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [initialImage?.injectableId, initialImage?.src, open])
 
   // Reset form when dialog opens (adjust state based on props)
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      if (initialImage) {
-        setCurrentImage(initialImage)
-        if (initialImage.injectableId) {
-          setActiveTab('variable')
-        } else {
-          setActiveTab('url')
-        }
-      } else {
-        setCurrentImage(null)
-        setActiveTab('url')
-      }
+      setCurrentImage(initialImage ?? null)
+      setActiveTab(resolveInitialTab(initialImage, galleryEnabled))
+      setImageToCrop(null)
+      setCropperOpen(false)
+    } else {
+      setCurrentImage(null)
+      setActiveTab('url')
       setImageToCrop(null)
       setCropperOpen(false)
     }
@@ -81,9 +121,17 @@ export function ImageInsertModal({
 
   const handleTabChange = useCallback((tab: ImageInsertTab) => {
     setActiveTab(tab)
-    // Don't clear currentImage - preserve selection when navigating between tabs
-    // Selection only changes when user makes a new selection in a tab
   }, [])
+
+  const gallerySelectionKey = currentImage?.src?.startsWith('storage://')
+    ? currentImage.src.slice('storage://'.length)
+    : undefined
+  const displayedTab =
+    !galleryEnabled && activeTab === 'gallery'
+      ? currentImage?.injectableId
+        ? 'variable'
+        : 'url'
+      : activeTab
 
   return (
     <>
@@ -93,17 +141,16 @@ export function ImageInsertModal({
           <DialogPrimitive.Content
             className={cn(
               'fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border border-border bg-background p-0 shadow-lg duration-200',
-              'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
+              'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
             )}
           >
-            {/* Header */}
             <div className="flex items-start justify-between border-b border-border p-6">
               <div>
                 <DialogPrimitive.Title className="font-mono text-sm font-medium uppercase tracking-widest text-foreground">
                   Insertar imagen
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 text-sm font-light text-muted-foreground">
-                  Añade una imagen desde URL o galería
+                  Añade una imagen desde URL{galleryEnabled ? ', galería' : ''} o variable
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close className="text-muted-foreground transition-colors hover:text-foreground">
@@ -112,18 +159,19 @@ export function ImageInsertModal({
               </DialogPrimitive.Close>
             </div>
 
-            {/* Content */}
             <div className="p-6">
-              <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as ImageInsertTab)}>
-                <TabsList className="grid w-full grid-cols-3 rounded-none">
+              <Tabs value={displayedTab} onValueChange={(v) => handleTabChange(v as ImageInsertTab)}>
+                <TabsList className={cn('grid w-full rounded-none', galleryEnabled ? 'grid-cols-3' : 'grid-cols-2')}>
                   <TabsTrigger value="url" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
                     <Link className="h-4 w-4" />
                     URL
                   </TabsTrigger>
-                  <TabsTrigger value="gallery" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
-                    <Images className="h-4 w-4" />
-                    Galería
-                  </TabsTrigger>
+                  {galleryEnabled && (
+                    <TabsTrigger value="gallery" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
+                      <Images className="h-4 w-4" />
+                      Galería
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="variable" className="gap-2 rounded-none font-mono text-xs uppercase tracking-wider">
                     <Database className="h-4 w-4" />
                     Variable
@@ -138,9 +186,14 @@ export function ImageInsertModal({
                   />
                 </TabsContent>
 
-                <TabsContent value="gallery" className="mt-4">
-                  <ImageGalleryTab onSelect={handleGallerySelect} />
-                </TabsContent>
+                {galleryEnabled && (
+                  <TabsContent value="gallery" className="mt-4">
+                    <ImageGalleryTab
+                      onSelect={handleGallerySelect}
+                      currentSelectionKey={gallerySelectionKey}
+                    />
+                  </TabsContent>
+                )}
 
                 <TabsContent value="variable" className="mt-4">
                   <ImageVariableTab
@@ -152,7 +205,6 @@ export function ImageInsertModal({
               </Tabs>
             </div>
 
-            {/* Footer */}
             <div className="flex justify-end gap-3 border-t border-border p-6">
               <button
                 type="button"

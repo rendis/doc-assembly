@@ -528,9 +528,9 @@ func (c *typstConverter) pageBreak(_ portabledoc.Node) string {
 
 // --- Image Nodes ---
 
-// resolveImagePath resolves the final local image path from node attributes.
-// Handles injectable bindings, remote URLs, and data URLs.
-func (c *typstConverter) resolveImagePath(attrs map[string]any) string {
+// resolveImageSource resolves the final image source from node attributes.
+// Handles injectable bindings before any remote/local path conversion.
+func (c *typstConverter) resolveImageSource(attrs map[string]any) string {
 	src, _ := attrs["src"].(string)
 
 	if injectableId, ok := attrs["injectableId"].(string); ok && injectableId != "" {
@@ -545,8 +545,20 @@ func (c *typstConverter) resolveImagePath(attrs map[string]any) string {
 		return ""
 	}
 
-	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") || strings.HasPrefix(src, "data:") {
+	return src
+}
+
+// resolveImagePath resolves the final local image path from node attributes.
+// Handles injectable bindings, remote URLs, and data URLs.
+func (c *typstConverter) resolveImagePath(attrs map[string]any) string {
+	src := c.resolveImageSource(attrs)
+	if src == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") || strings.HasPrefix(src, "data:") || strings.HasPrefix(src, "storage://") {
 		return c.RegisterRemoteImage(src)
+
 	}
 	return src
 }
@@ -562,8 +574,9 @@ func (c *typstConverter) isInlineImage(node portabledoc.Node) bool {
 
 // imageMarkup generates just the Typst image/box markup without alignment wrapping.
 func (c *typstConverter) imageMarkup(node portabledoc.Node) string {
+	src := c.resolveImageSource(node.Attrs)
 	imgPath := c.resolveImagePath(node.Attrs)
-	if imgPath == "" {
+	if src == "" || imgPath == "" {
 		return ""
 	}
 
@@ -572,9 +585,9 @@ func (c *typstConverter) imageMarkup(node portabledoc.Node) string {
 
 	var markup string
 	if width > 0 {
-		markup = fmt.Sprintf("#image(\"%s\", width: %.0fpt)", escapeTypstString(imgPath), width*pxToPt)
+		markup = typstImageCall(imgPath, fmt.Sprintf("width: %.0fpt", width*pxToPt))
 	} else {
-		markup = fmt.Sprintf("#image(\"%s\", width: 100%%)", escapeTypstString(imgPath))
+		markup = typstImageCall(imgPath, "width: 100%")
 	}
 
 	if shape == "circle" {
@@ -585,8 +598,8 @@ func (c *typstConverter) imageMarkup(node portabledoc.Node) string {
 		size := math.Min(width, height) * pxToPt
 		if size > 0 {
 			markup = fmt.Sprintf(
-				"#box(width: %.0fpt, height: %.0fpt, clip: true, radius: 50%%)[#image(\"%s\", width: 100%%, height: 100%%)]",
-				size, size, escapeTypstString(imgPath),
+				"#box(width: %.0fpt, height: %.0fpt, clip: true, radius: 50%%)[%s]",
+				size, size, typstImageCall(imgPath, "width: 100%", "height: 100%"),
 			)
 		}
 	}

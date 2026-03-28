@@ -194,6 +194,26 @@ Lista workspaces del tenant actual con paginación y búsqueda opcional.
 
 **Archivo fuente**: `internal/adapters/primary/http/controller/workspace_controller.go`
 
+### Endpoints de Gallery (`/api/v1/workspace/gallery`)
+
+Gestión de imágenes del workspace para reutilizarlas en el editor y en render/PDF mediante referencias `storage://`.
+
+| Método | Endpoint | Descripción | OWNER | ADMIN | EDITOR | OPERATOR | VIEWER |
+|--------|----------|-------------|:-----:|:-----:|:------:|:--------:|:------:|
+| GET | `/workspace/gallery?page=1&perPage=20` | Lista assets de la galería del workspace | ✅ | ✅ | ✅ | ✅ | ✅ |
+| GET | `/workspace/gallery/search?q={query}&page=1&perPage=20` | Busca assets por nombre dentro del workspace | ✅ | ✅ | ✅ | ✅ | ✅ |
+| POST | `/workspace/gallery` | Sube una nueva imagen vía multipart/form-data | ✅ | ✅ | ✅ | ❌ | ❌ |
+| DELETE | `/workspace/gallery?key={key}` | Elimina un asset de storage y su metadata | ✅ | ✅ | ❌ | ❌ | ❌ |
+| GET | `/workspace/gallery/url?key={key}` | Resuelve una URL descargable para un asset propio del workspace | ✅ | ✅ | ✅ | ✅ | ✅ |
+| GET | `/workspace/gallery/serve?key={key}` | Sirve bytes del asset cuando storage local requiere fallback autenticado | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+**Notas:**
+- Todos los endpoints exigen `X-Workspace-ID` y operan estrictamente sobre assets pertenecientes a ese workspace.
+- `url`, `serve` y `delete` validan ownership por `workspace + key` antes de tocar storage.
+- `POST /workspace/gallery` además requiere `X-Tenant-ID` porque persiste metadata multi-tenant.
+
+**Archivo fuente**: `internal/adapters/primary/http/controller/gallery_controller.go`
+
 ### Endpoints de Injectables - Lectura (`/api/v1/content/injectables`)
 
 > **Nota**: Estos endpoints son de solo lectura y listan todos los injectables disponibles para el workspace (globales + propios del workspace). Solo se muestran injectables activos (`is_active=true`) y no eliminados (`is_deleted=false`).

@@ -9,9 +9,11 @@ import (
 
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/dto"
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
+	galleryuc "github.com/rendis/doc-assembly/core/internal/core/usecase/gallery"
 )
 
 var notFoundErrors = []error{
+	entity.ErrGalleryAssetNotFound,
 	entity.ErrInjectableNotFound,
 	entity.ErrTemplateNotFound,
 	entity.ErrTagNotFound,
@@ -55,6 +57,11 @@ var conflictErrors = []error{
 }
 
 var badRequestErrors = []error{
+	galleryuc.ErrQueryRequired,
+	galleryuc.ErrAssetKeyRequired,
+	galleryuc.ErrUploadEmpty,
+	entity.ErrGalleryInvalidContentType,
+	entity.ErrGalleryFileTooLarge,
 	entity.ErrInjectableInUse,
 	entity.ErrNoPublishedVersion,
 	entity.ErrInvalidInjectableKey,

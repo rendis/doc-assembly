@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import { resolveStorageImageSrc } from '../../utils/storage-image-src';
 import { useTranslation } from 'react-i18next';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { NodeSelection } from '@tiptap/pm/state';
@@ -60,6 +61,32 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     injectableId?: string;
     injectableLabel?: string;
   };
+
+  // Resolve storage:// URLs to HTTP URLs at render time.
+  const [resolvedSrc, setResolvedSrc] = useState<string>(
+    src.startsWith('storage://') ? '' : src
+  );
+  useEffect(() => {
+    if (!src.startsWith('storage://')) {
+      setResolvedSrc(src);
+      return;
+    }
+    let cancelled = false;
+    resolveStorageImageSrc(src).then((url) => {
+      if (cancelled) {
+        return;
+      }
+      setResolvedSrc(url);
+    }).catch(() => {
+      if (!cancelled) {
+        setResolvedSrc('');
+      }
+      // Keep empty so the image shows nothing instead of a broken icon.
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
 
   const handleAlignChange = useCallback(
     (newDisplayMode: ImageDisplayMode, newAlign: ImageAlign) => {
@@ -227,7 +254,7 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
       <div className="relative">
         <img
           ref={imageRef}
-          src={src}
+          src={resolvedSrc}
           alt={alt || ''}
           title={title}
           className={imageStyles}

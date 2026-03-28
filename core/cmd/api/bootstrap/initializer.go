@@ -24,6 +24,7 @@ import (
 	documentrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_repo"
 	documenttyperepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/document_type_repo"
 	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
+	galleryassetrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/gallery_asset_repo"
 	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
 	processrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/process_repo"
 	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
@@ -52,6 +53,7 @@ import (
 	accesssvc "github.com/rendis/doc-assembly/core/internal/core/service/access"
 	catalogsvc "github.com/rendis/doc-assembly/core/internal/core/service/catalog"
 	documentsvc "github.com/rendis/doc-assembly/core/internal/core/service/document"
+	gallerysvc "github.com/rendis/doc-assembly/core/internal/core/service/gallery"
 	injectablesvc "github.com/rendis/doc-assembly/core/internal/core/service/injectable"
 	organizationsvc "github.com/rendis/doc-assembly/core/internal/core/service/organization"
 	"github.com/rendis/doc-assembly/core/internal/core/service/rendering/pdfrenderer"
@@ -193,8 +195,14 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		templateRepo, templateTagRepo, contentValidator, workspaceRepo,
 	)
 
+	// --- Storage Adapter ---
+	storageAdapter, err := e.resolveStorageAdapter(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	// --- PDF Renderer ---
-	pdfRenderer, err := buildPDFRenderer(cfg, e.designTokens)
+	pdfRenderer, err := buildPDFRenderer(cfg, e.designTokens, storageAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -205,10 +213,12 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		return nil, err
 	}
 
-	// --- Storage Adapter ---
-	storageAdapter, err := e.resolveStorageAdapter(cfg)
-	if err != nil {
-		return nil, err
+	// --- Gallery ---
+	var galleryCtrl *controller.GalleryController
+	if cfg.Storage.Enabled {
+		galleryAssetRepo := galleryassetrepo.New(pool)
+		gallerySvc := gallerysvc.New(storageAdapter, galleryAssetRepo, cfg.Server.PublicURL)
+		galleryCtrl = controller.NewGalleryController(gallerySvc)
 	}
 
 	// --- Notification Provider ---
@@ -359,6 +369,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		signingSessionCtrl,
 		automationKeyCtrl,
 		automationCtrl,
+		galleryCtrl,
 		publicDocAuth,
 		e.signingSessionAuth,
 		automationAPIKeyRepo,
@@ -379,7 +390,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 }
 
 // buildPDFRenderer creates the Typst-based PDF renderer service.
-func buildPDFRenderer(cfg *config.Config, customTokens *pdfrenderer.TypstDesignTokens) (port.PDFRenderer, error) {
+func buildPDFRenderer(cfg *config.Config, customTokens *pdfrenderer.TypstDesignTokens, storageAdapter port.StorageAdapter) (port.PDFRenderer, error) {
 	typstCfg := &cfg.Typst
 	opts := pdfrenderer.TypstOptions{
 		BinPath:        typstCfg.BinPath,
@@ -408,7 +419,7 @@ func buildPDFRenderer(cfg *config.Config, customTokens *pdfrenderer.TypstDesignT
 	}
 
 	factory := pdfrenderer.NewTypstConverterFactory(tokens)
-	return pdfrenderer.NewService(opts, imageCache, factory, tokens)
+	return pdfrenderer.NewService(opts, imageCache, factory, tokens, storageAdapter)
 }
 
 func resolveTypstFontDirs(fontDirs []string) []string {

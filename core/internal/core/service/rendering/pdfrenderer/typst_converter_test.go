@@ -577,6 +577,9 @@ func TestTypstConverter_Image(t *testing.T) {
 	if !strings.Contains(got, "img_1.png") {
 		t.Errorf("expected local filename, got %q", got)
 	}
+	if !strings.Contains(got, `scaling: "smooth"`) {
+		t.Errorf("expected raster images to request smooth scaling, got %q", got)
+	}
 }
 
 func TestTypstConverter_ImageCenter(t *testing.T) {
@@ -591,6 +594,21 @@ func TestTypstConverter_ImageCenter(t *testing.T) {
 	}
 	if !strings.Contains(got, "img_1.png") {
 		t.Errorf("expected local filename for remote URL, got %q", got)
+	}
+	if !strings.Contains(got, `scaling: "smooth"`) {
+		t.Errorf("expected raster images to request smooth scaling, got %q", got)
+	}
+}
+
+func TestTypstConverter_ImageSVGDoesNotForceSmoothScaling(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type:  portabledoc.NodeTypeImage,
+		Attrs: map[string]any{"src": "https://example.com/logo.svg", "width": float64(120)},
+	}
+	got := c.convertNode(node)
+	if strings.Contains(got, `scaling: "smooth"`) {
+		t.Errorf("expected svg images to omit raster scaling hint, got %q", got)
 	}
 }
 
@@ -618,6 +636,21 @@ func TestTypstConverter_ImageInjectable(t *testing.T) {
 	}
 	if len(c.RemoteImages()) != 1 {
 		t.Errorf("expected 1 remote image registered, got %d", len(c.RemoteImages()))
+	}
+}
+
+func TestTypstConverter_ImageStorageURL(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type:  portabledoc.NodeTypeImage,
+		Attrs: map[string]any{"src": "storage://asset-key", "width": float64(200)},
+	}
+	got := c.convertNode(node)
+	if !strings.Contains(got, "img_1") {
+		t.Fatalf("expected generated local filename, got %q", got)
+	}
+	if _, ok := c.RemoteImages()["storage://asset-key"]; !ok {
+		t.Fatalf("expected storage URL to be tracked as remote image")
 	}
 }
 
