@@ -159,8 +159,14 @@ func TestTypstConverter_NestedMarks(t *testing.T) {
 func TestTypstConverter_Paragraph(t *testing.T) {
 	c := newTestConverter(nil, nil)
 	got := c.convertNode(paragraphNode(textNode("Hello")))
-	if got != "Hello\n\n" {
-		t.Errorf("got %q, want %q", got, "Hello\n\n")
+	if !strings.Contains(got, "Hello") {
+		t.Fatalf("expected paragraph content, got %q", got)
+	}
+	if !strings.Contains(got, "#set text(top-edge: 0.8em, bottom-edge: -0.2em)") {
+		t.Fatalf("expected paragraph text edge rule, got %q", got)
+	}
+	if !strings.Contains(got, "#set par(leading: 0.50em)") {
+		t.Fatalf("expected default paragraph leading, got %q", got)
 	}
 }
 
@@ -170,6 +176,75 @@ func TestTypstConverter_ParagraphEmpty(t *testing.T) {
 	want := fmt.Sprintf("#v(%s)", c.tokens.ParagraphSpacing)
 	if !strings.Contains(got, want) {
 		t.Errorf("empty paragraph should produce %q, got %q", want, got)
+	}
+}
+
+func TestTypstConverter_ParagraphWithLocalLineSpacing(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type:    portabledoc.NodeTypeParagraph,
+		Attrs:   map[string]any{"lineSpacing": "relaxed"},
+		Content: []portabledoc.Node{textNode("Hello")},
+	}
+
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "#set par(leading: 1.00em)") {
+		t.Fatalf("expected local leading rule, got %q", got)
+	}
+	if !strings.Contains(got, "#set text(top-edge: 0.8em, bottom-edge: -0.2em)") {
+		t.Fatalf("expected text edge rule inside scoped paragraph, got %q", got)
+	}
+	if !strings.Contains(got, "Hello") {
+		t.Fatalf("expected paragraph content, got %q", got)
+	}
+}
+
+func TestTypstConverter_ParagraphWithAlignAndLocalLineSpacing(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type: portabledoc.NodeTypeParagraph,
+		Attrs: map[string]any{
+			"lineSpacing": "loose",
+			"textAlign":   "right",
+		},
+		Content: []portabledoc.Node{textNode("Aligned")},
+	}
+
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "#align(right)[") {
+		t.Fatalf("expected aligned paragraph wrapper, got %q", got)
+	}
+	if !strings.Contains(got, "#set par(leading: 1.50em)") {
+		t.Fatalf("expected scoped leading inside aligned paragraph, got %q", got)
+	}
+	if !strings.Contains(got, "#set text(top-edge: 0.8em, bottom-edge: -0.2em)") {
+		t.Fatalf("expected text edge rule inside aligned paragraph, got %q", got)
+	}
+}
+
+func TestTypstConverter_ParagraphWithJustifyAndLocalLineSpacing(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type: portabledoc.NodeTypeParagraph,
+		Attrs: map[string]any{
+			"lineSpacing": "tight",
+			"textAlign":   "justify",
+		},
+		Content: []portabledoc.Node{textNode("Justified")},
+	}
+
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "#par(justify: true)[Justified]") {
+		t.Fatalf("expected justified paragraph, got %q", got)
+	}
+	if !strings.Contains(got, "#set par(leading: 0em)") {
+		t.Fatalf("expected scoped leading inside justified paragraph, got %q", got)
+	}
+	if !strings.Contains(got, "#set text(top-edge: 0.8em, bottom-edge: -0.2em)") {
+		t.Fatalf("expected text edge rule inside justified paragraph, got %q", got)
 	}
 }
 
@@ -281,8 +356,11 @@ func TestTypstConverter_Headings(t *testing.T) {
 			Content: []portabledoc.Node{textNode("Title")},
 		}
 		got := c.convertNode(node)
-		if got != tt.want {
-			t.Errorf("level %.0f: got %q, want %q", tt.level, got, tt.want)
+		if !strings.Contains(got, tt.want) {
+			t.Errorf("level %.0f: got %q, want content %q", tt.level, got, tt.want)
+		}
+		if !strings.Contains(got, "#set par(leading: 0.50em)") {
+			t.Errorf("level %.0f: expected default heading leading, got %q", tt.level, got)
 		}
 	}
 }
@@ -294,8 +372,57 @@ func TestTypstConverter_HeadingDefaultLevel(t *testing.T) {
 		Content: []portabledoc.Node{textNode("Title")},
 	}
 	got := c.convertNode(node)
-	if !strings.HasPrefix(got, "= ") {
+	if !strings.Contains(got, "= Title") {
 		t.Errorf("expected level 1 heading, got %q", got)
+	}
+}
+
+func TestTypstConverter_HeadingWithLocalLineSpacing(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type: portabledoc.NodeTypeHeading,
+		Attrs: map[string]any{
+			"level":       float64(2),
+			"lineSpacing": "compact",
+		},
+		Content: []portabledoc.Node{textNode("Wrapped title")},
+	}
+
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "== Wrapped title") {
+		t.Fatalf("expected heading markup, got %q", got)
+	}
+	if !strings.Contains(got, "#set par(leading: 0.15em)") {
+		t.Fatalf("expected scoped heading leading, got %q", got)
+	}
+	if !strings.Contains(got, "#set text(top-edge: 0.8em, bottom-edge: -0.2em)") {
+		t.Fatalf("expected text edge rule inside heading, got %q", got)
+	}
+}
+
+func TestTypstConverter_HeadingWithAlignAndLocalLineSpacing(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type: portabledoc.NodeTypeHeading,
+		Attrs: map[string]any{
+			"level":       float64(3),
+			"textAlign":   "center",
+			"lineSpacing": "loose",
+		},
+		Content: []portabledoc.Node{textNode("Centered title")},
+	}
+
+	got := c.convertNode(node)
+
+	if !strings.Contains(got, "#align(center)[") {
+		t.Fatalf("expected aligned heading wrapper, got %q", got)
+	}
+	if !strings.Contains(got, "#set par(leading: 1.50em)") {
+		t.Fatalf("expected scoped heading leading inside align wrapper, got %q", got)
+	}
+	if !strings.Contains(got, "#set text(top-edge: 0.8em, bottom-edge: -0.2em)") {
+		t.Fatalf("expected text edge rule inside aligned heading, got %q", got)
 	}
 }
 
@@ -362,7 +489,7 @@ func TestTypstConverter_BulletList(t *testing.T) {
 		},
 	}
 	got := c.convertNode(node)
-	if !strings.Contains(got, "- item1") || !strings.Contains(got, "- item2") {
+	if !strings.Contains(got, "- #[") || !strings.Contains(got, "item1") || !strings.Contains(got, "item2") {
 		t.Errorf("expected bullet list items, got %q", got)
 	}
 }
@@ -377,7 +504,7 @@ func TestTypstConverter_OrderedList(t *testing.T) {
 		},
 	}
 	got := c.convertNode(node)
-	if !strings.Contains(got, "+ first") || !strings.Contains(got, "+ second") {
+	if !strings.Contains(got, "+ #[") || !strings.Contains(got, "first") || !strings.Contains(got, "second") {
 		t.Errorf("expected ordered list items, got %q", got)
 	}
 }

@@ -3,6 +3,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { useCallback, useEffect, useState } from 'react'
 import { PAGE_SIZES, DEFAULT_MARGINS, type PageSize, type PageMargins } from '../types'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
+import { LineSpacingExtension } from '../extensions/LineSpacing'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 
 interface EditorProps {
@@ -33,6 +34,7 @@ export function Editor({
           levels: [1, 2, 3],
         },
       }),
+      LineSpacingExtension,
       ImageExtension,
     ],
     content,

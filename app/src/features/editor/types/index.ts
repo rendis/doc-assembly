@@ -12,6 +12,8 @@ export interface PageMargins {
   right: number
 }
 
+export type LineSpacingPreset = 'tight' | 'compact' | 'normal' | 'relaxed' | 'loose'
+
 export interface PageSettings {
   pageSize: PageSize
   margins: PageMargins

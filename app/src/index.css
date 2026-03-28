@@ -2,6 +2,30 @@
 @plugin "@tailwindcss/typography";
 @plugin "tailwindcss-animate";
 
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter/Inter-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter/Inter-Italic-Variable.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk/SpaceGrotesk-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 /* ============================================
    CSS Variables - Design Tokens (from v1)
    ============================================ */
@@ -640,6 +664,36 @@ body {
 /* Editor ProseMirror content */
 .ProseMirror {
   background: hsl(var(--card));
+}
+
+.ProseMirror p,
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  line-height: 1.5;
+}
+
+.ProseMirror [data-line-spacing='tight'] {
+  line-height: 1 !important;
+}
+
+.ProseMirror [data-line-spacing='compact'] {
+  line-height: 1.15 !important;
+}
+
+.ProseMirror [data-line-spacing='normal'] {
+  line-height: 1.5 !important;
+}
+
+.ProseMirror [data-line-spacing='relaxed'] {
+  line-height: 2 !important;
+}
+
+.ProseMirror [data-line-spacing='loose'] {
+  line-height: 2.5 !important;
 }
 
 /* Dark mode: make ProseMirror transparent to inherit container background */

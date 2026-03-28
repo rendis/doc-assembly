@@ -25,6 +25,7 @@ import { MentionExtension } from '../extensions/Mentions'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
 import { PageBreakHR } from '../extensions/PageBreak'
 import { SlashCommandsExtension, slashCommandsSuggestion } from '../extensions/SlashCommands'
+import { LineSpacingExtension } from '../extensions/LineSpacing'
 import {
   TableExtension,
   TableRowExtension,
@@ -36,6 +37,7 @@ import { ListInjectorExtension } from '../extensions/ListInjector'
 import { InteractiveFieldExtension } from '../extensions/InteractiveField'
 import { StoredMarksPersistenceExtension } from '../extensions/StoredMarksPersistence'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
+import { DocumentPageHeader } from './DocumentPageHeader'
 import { VariableFormatDialog } from './VariableFormatDialog'
 import { VariablesPanel } from './VariablesPanel'
 import { VariableDragOverlay } from './VariableDragOverlay'
@@ -44,7 +46,7 @@ import { TableBubbleMenu } from './TableBubbleMenu'
 import { TableCornerHandle } from './TableCornerHandle'
 import { hasConfigurableOptions } from '../types/injectable'
 import { type Variable } from '../types'
-import { usePaginationStore, useSignerRolesStore } from '../stores'
+import { usePaginationStore, useSignerRolesStore, useDocumentHeaderStore } from '../stores'
 import { useVariablesPanelStore } from '../stores/variables-panel-store'
 import type { VariableDragData } from '../types/drag'
 import { getInjectableVariableIds } from '../types/signer-roles'
@@ -53,6 +55,9 @@ import {
   getDocumentEditorGridClass,
   getDocumentEditorGridTemplateColumns,
 } from '../layout/document-editor-grid'
+import { deriveHeaderEnabled } from '../utils/document-header'
+
+type ActiveSurface = 'header' | 'body'
 
 interface DocumentEditorProps {
   initialContent?: string
@@ -69,6 +74,8 @@ interface DocumentEditorProps {
   templateId?: string
   /** Version ID for preview functionality */
   versionId?: string
+  /** Ensures the saved preview source is up to date before generating PDF */
+  onBeforePreview?: () => Promise<void>
 }
 
 export function DocumentEditor({
@@ -83,9 +90,23 @@ export function DocumentEditor({
   onFullyReady,
   templateId,
   versionId,
+  onBeforePreview,
 }: DocumentEditorProps) {
   // Get page config from store (for visual width and margins)
   const { pageSize, margins } = usePaginationStore()
+  const headerContent = useDocumentHeaderStore((state) => state.content)
+  const headerImageUrl = useDocumentHeaderStore((state) => state.imageUrl)
+  const headerHasMeaningfulContent = useMemo(
+    () =>
+      deriveHeaderEnabled({
+        content: headerContent,
+        imageUrl: headerImageUrl,
+      }),
+    [headerContent, headerImageUrl]
+  )
+
+  const [activeSurface, setActiveSurface] = useState<ActiveSurface>('body')
+  const [headerToolbarEditor, setHeaderToolbarEditor] = useState<Editor | null>(null)
   const isVariablesPanelCollapsed = useVariablesPanelStore((state) => state.isCollapsed)
   const isRolesPanelCollapsed = useSignerRolesStore((state) => state.isCollapsed)
   const roles = useSignerRolesStore((state) => state.roles)
@@ -109,6 +130,7 @@ export function DocumentEditor({
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
   const [editingImageData, setEditingImageData] = useState<ImageInsertResult | null>(null)
+  const [headerImageModalToken, setHeaderImageModalToken] = useState(0)
 
   // Format dialog state
   const [formatDialogOpen, setFormatDialogOpen] = useState(false)
@@ -145,6 +167,11 @@ export function DocumentEditor({
     [editable, isVariablesPanelCollapsed, isRolesPanelCollapsed]
   )
 
+  const bodyTopPadding = useMemo(
+    () => (headerHasMeaningfulContent ? Math.round(margins.top / 2) : margins.top),
+    [headerHasMeaningfulContent, margins.top]
+  )
+
   // eslint-disable-next-line react-hooks/refs -- Reading ref during render is intentional to preserve content on editor recreation
   const editor = useEditor({
     immediatelyRender: false,
@@ -160,6 +187,7 @@ export function DocumentEditor({
       FontSize.configure({ types: ['textStyle'] }),
       StoredMarksPersistenceExtension,
       TextAlign.configure({ types: ['heading', 'paragraph', 'tableCell', 'tableHeader'] }),
+      LineSpacingExtension,
       InjectorExtension,
       MentionExtension,
       SignatureExtension,
@@ -186,6 +214,9 @@ export function DocumentEditor({
       contentRef.current = editor.getJSON()
       onContentChange?.(editor.getHTML())
     },
+    onFocus: () => {
+      setActiveSurface('body')
+    },
     editorProps: {
       attributes: {
         class:
@@ -202,6 +233,37 @@ export function DocumentEditor({
     // Notify parent when editor is ready
     onEditorReady?.(editor ?? null)
   }, [editor, editorRef, onEditorReady])
+
+  const showHeaderSurface = editable || headerHasMeaningfulContent
+  const toolbarEditor = activeSurface === 'header'
+    ? headerToolbarEditor
+    : editor
+
+  // Reset to body when the header surface disappears (e.g. readonly empty header)
+  useEffect(() => {
+    if (!showHeaderSurface && activeSurface === 'header') {
+      setActiveSurface('body')
+    }
+  }, [activeSurface, showHeaderSurface])
+
+  const handleHeaderEditorFocus = useCallback((headerEditor: Editor) => {
+    setHeaderToolbarEditor(headerEditor)
+    setActiveSurface('header')
+  }, [])
+
+  const handleHeaderEditorReady = useCallback((headerEditor: Editor | null) => {
+    setHeaderToolbarEditor(headerEditor)
+  }, [])
+
+  const handleActivateHeader = useCallback(() => {
+    if (!editable) return
+    setActiveSurface('header')
+  }, [editable])
+
+  const handleActivateBody = useCallback(() => {
+    if (!editable) return
+    setActiveSurface('body')
+  }, [editable])
 
   // Notify when editor is fully rendered and styles are applied
   useEffect(() => {
@@ -285,6 +347,22 @@ export function DocumentEditor({
       )
     }
   }, [editor])
+
+  const handleOpenBodyImageModal = useCallback(() => {
+    if (!editor) return
+
+    setActiveSurface('body')
+    setPendingImagePosition(editor.state.selection.from)
+    setIsEditingImage(false)
+    setImageModalOpen(true)
+  }, [editor])
+
+  const handleOpenHeaderImageModal = useCallback(() => {
+    if (!editable) return
+
+    setActiveSurface('header')
+    setHeaderImageModalToken((token) => token + 1)
+  }, [editable])
 
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return
@@ -611,9 +689,13 @@ export function DocumentEditor({
             <div className="flex items-center justify-between border-b border-border bg-card min-w-0">
               {editable ? (
                 <EditorToolbar
-                  editor={editor}
+                  editor={toolbarEditor ?? editor}
+                  documentEditor={editor}
+                  activeSurface={activeSurface}
+                  onOpenImage={activeSurface === 'header' ? handleOpenHeaderImageModal : handleOpenBodyImageModal}
                   onExport={onExport}
                   onImport={onImport}
+                  onBeforePreview={onBeforePreview}
                   templateId={templateId}
                   versionId={versionId}
                 />
@@ -637,18 +719,36 @@ export function DocumentEditor({
               )}
 
               <div
-                className="mx-auto bg-muted shadow-lg"
+                className="mx-auto bg-muted shadow-lg overflow-visible"
                 style={{
                   width: pageSize.width,
                   minHeight: pageSize.height,
-                  paddingTop: margins.top,
-                  paddingBottom: margins.bottom,
-                  paddingLeft: margins.left,
-                  paddingRight: margins.right,
                 }}
               >
-                <EditorContent editor={editor} />
-                {editable && <TableBubbleMenu editor={editor} />}
+                {showHeaderSurface && (
+                  <DocumentPageHeader
+                    editable={editable}
+                    active={activeSurface === 'header'}
+                    onActivate={handleActivateHeader}
+                    onTextEditorFocus={handleHeaderEditorFocus}
+                    onEditorReady={handleHeaderEditorReady}
+                    openImageModalToken={headerImageModalToken}
+                    paddingLeft={margins.left}
+                    paddingRight={margins.right}
+                  />
+                )}
+                <div
+                  onMouseDownCapture={handleActivateBody}
+                  style={{
+                    paddingTop: bodyTopPadding,
+                    paddingBottom: margins.bottom,
+                    paddingLeft: margins.left,
+                    paddingRight: margins.right,
+                  }}
+                >
+                  <EditorContent editor={editor} />
+                  {editable && <TableBubbleMenu editor={editor} />}
+                </div>
               </div>
               {/* Table corner handle - positioned relative to scroll container */}
               {editable && <TableCornerHandle editor={editor} />}

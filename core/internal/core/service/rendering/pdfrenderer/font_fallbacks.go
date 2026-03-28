@@ -15,7 +15,8 @@ var cssFontFallbacks = map[string][]string{
 	"helvetica":       {"Helvetica", "Liberation Sans", "DejaVu Sans"},
 	"helvetica neue":  {"Helvetica Neue", "Helvetica", "Liberation Sans"},
 	"georgia":         {"Georgia", "Noto Serif", "Liberation Serif"},
-	"inter":           {"Inter", "Noto Sans", "Liberation Sans"},
+	"inter":           {"Inter", "Arial", "Helvetica Neue", "Liberation Sans"},
+	"space grotesk":   {"Space Grotesk", "Inter", "Arial", "Helvetica Neue", "Liberation Sans"},
 }
 
 // fontWithFallbacks returns a Typst font parameter with cross-platform fallbacks.

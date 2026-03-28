@@ -31,6 +31,7 @@ interface InjectablesFormModalProps {
   onOpenChange: (open: boolean) => void
   templateId: string
   versionId: string
+  beforeGenerate?: () => Promise<void>
   /** Variable IDs actually used in the document. If provided, only shows these variables */
   usedVariableIds?: string[]
 }
@@ -40,6 +41,7 @@ export function InjectablesFormModal({
   onOpenChange,
   templateId,
   versionId,
+  beforeGenerate,
   usedVariableIds,
 }: InjectablesFormModalProps) {
   const { t } = useTranslation()
@@ -55,6 +57,7 @@ export function InjectablesFormModal({
   } = usePreviewPDF({
     templateId,
     versionId,
+    beforeGenerate,
   })
   const { getEmulatedValue } = useEmulatedValues()
 

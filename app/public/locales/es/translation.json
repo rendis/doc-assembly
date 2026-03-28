@@ -491,6 +491,8 @@
       "insertImage": "Insertar imagen",
       "signatureBlock": "Bloque de firma",
       "conditionalBlock": "Bloque condicional",
+      "addHeader": "Agregar encabezado",
+      "removeHeader": "Quitar encabezado",
       "exportDocument": "Exportar documento (JSON)",
       "importDocument": "Importar documento (JSON)",
       "history": "Historial",
@@ -500,7 +502,13 @@
       "blockElements": "Bloques",
       "actions": "Acciones",
       "exportDocumentShort": "Exportar documento",
-      "importDocumentShort": "Importar documento"
+      "importDocumentShort": "Importar documento",
+      "lineSpacing": "Interlineado",
+      "lineSpacingTight": "Muy compacto",
+      "lineSpacingCompact": "Compacto",
+      "lineSpacingNormal": "Normal",
+      "lineSpacingRelaxed": "Amplio",
+      "lineSpacingLoose": "Muy amplio"
     },
     "preparation": {
       "title": "Preparando documento"
@@ -766,6 +774,16 @@
       },
       "activeCount": "{{count}} activos",
       "notConfigured": "No configurado"
+    },
+    "documentHeader": {
+      "addLogo": "Haz clic para agregar logo",
+      "editLogo": "Editar logo del encabezado",
+      "textPlaceholder": "Agregar texto de encabezado...",
+      "surfaceLabel": "Encabezado del documento",
+      "surfaceHint": "Haz clic para editar el encabezado o agregar un logo",
+      "layoutImageLeft": "Imagen izquierda, texto derecha",
+      "layoutImageCenter": "Imagen centrada",
+      "layoutImageRight": "Texto izquierda, imagen derecha"
     },
     "signature": {
       "title": "Firma",

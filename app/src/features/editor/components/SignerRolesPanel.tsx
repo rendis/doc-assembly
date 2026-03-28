@@ -175,7 +175,7 @@ export function SignerRolesPanel({
       {/* Header */}
       <div
         className={cn(
-          'relative flex items-center pt-3 pb-2 border-b border-border shrink-0',
+          'relative z-20 isolate flex items-center pt-3 pb-2 border-b border-border shrink-0 bg-card',
           isCollapsed ? 'px-2' : 'px-3'
         )}
       >

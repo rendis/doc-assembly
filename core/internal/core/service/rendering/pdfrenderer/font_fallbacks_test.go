@@ -21,7 +21,8 @@ func TestFontWithFallbacks_KnownFonts(t *testing.T) {
 		{"Helvetica", `("Helvetica", "Liberation Sans", "DejaVu Sans")`},
 		{"Helvetica Neue", `("Helvetica Neue", "Helvetica", "Liberation Sans")`},
 		{"Georgia", `("Georgia", "Noto Serif", "Liberation Serif")`},
-		{"Inter", `("Inter", "Noto Sans", "Liberation Sans")`},
+		{"Inter", `("Inter", "Arial", "Helvetica Neue", "Liberation Sans")`},
+		{"Space Grotesk", `("Space Grotesk", "Inter", "Arial", "Helvetica Neue", "Liberation Sans")`},
 	}
 
 	for _, tt := range tests {
@@ -130,7 +131,7 @@ func TestTypstConverter_TextStyleAllEditorFonts(t *testing.T) {
 		expectedFont string
 		expectedFB   string
 	}{
-		{"Inter", "Inter", "Noto Sans"},
+		{"Inter", "Inter", "Helvetica Neue"},
 		{"Arial, sans-serif", "Arial", "Liberation Sans"},
 		{"Times New Roman, serif", "Times New Roman", "Liberation Serif"},
 		{"Helvetica, sans-serif", "Helvetica", "Liberation Sans"},
@@ -235,18 +236,15 @@ func TestTypstConverter_TableBodyFontFallback(t *testing.T) {
 
 // --- Design tokens font stack ---
 
-func TestDefaultDesignTokens_FontStackIncludesLiberation(t *testing.T) {
+func TestDefaultDesignTokens_FontStackStartsWithInter(t *testing.T) {
 	tokens := DefaultDesignTokens()
 
-	found := false
-	for _, f := range tokens.FontStack {
-		if f == "Liberation Sans" {
-			found = true
-			break
-		}
+	if len(tokens.FontStack) == 0 {
+		t.Fatal("default font stack should not be empty")
 	}
-	if !found {
-		t.Errorf("default font stack should include Liberation Sans, got %v", tokens.FontStack)
+
+	if tokens.FontStack[0] != "Inter" {
+		t.Errorf("default font stack should start with Inter, got %v", tokens.FontStack)
 	}
 }
 
@@ -266,11 +264,11 @@ func TestTypstBuilder_TypographyIncludesFallbackFonts(t *testing.T) {
 	builder := NewTypstBuilder(conv, tokens)
 	got, _, _ := builder.Build(doc)
 
-	if !strings.Contains(got, `"Liberation Sans"`) {
-		t.Errorf("expected Liberation Sans in base typography, got:\n%s", got)
+	if !strings.Contains(got, `"Inter"`) {
+		t.Errorf("expected Inter in base typography, got:\n%s", got)
 	}
-	if !strings.Contains(got, `"Helvetica Neue"`) {
-		t.Errorf("expected Helvetica Neue in base typography, got:\n%s", got)
+	if !strings.Contains(got, `"Arial"`) {
+		t.Errorf("expected Arial fallback in base typography, got:\n%s", got)
 	}
 }
 
