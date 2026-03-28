@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { deriveHeaderEnabled } from '../utils/document-header'
 
 // =============================================================================
 // Types
@@ -11,14 +12,16 @@ export interface DocumentHeaderState {
   layout: DocumentHeaderLayout
   imageUrl: string | null
   imageAlt: string
+  imageWidth: number | null
+  imageHeight: number | null
   content: Record<string, unknown> | null
 }
 
 export interface DocumentHeaderActions {
-  setEnabled: (enabled: boolean) => void
   setLayout: (layout: DocumentHeaderLayout) => void
   setImage: (url: string, alt: string) => void
-  setContent: (content: Record<string, unknown>) => void
+  setImageDimensions: (width: number | null, height: number | null) => void
+  setContent: (content: Record<string, unknown> | null) => void
   reset: () => void
   configure: (partial: Partial<DocumentHeaderState>) => void
 }
@@ -34,6 +37,8 @@ const initialState: DocumentHeaderState = {
   layout: 'image-left',
   imageUrl: null,
   imageAlt: '',
+  imageWidth: null,
+  imageHeight: null,
   content: null,
 }
 
@@ -44,15 +49,43 @@ const initialState: DocumentHeaderState = {
 export const useDocumentHeaderStore = create<DocumentHeaderStore>()((set) => ({
   ...initialState,
 
-  setEnabled: (enabled) => set({ enabled }),
-
   setLayout: (layout) => set({ layout }),
 
-  setImage: (imageUrl, imageAlt) => set({ imageUrl, imageAlt }),
+  setImage: (imageUrl, imageAlt) =>
+    set((state) => ({
+      imageUrl: imageUrl || null,
+      imageAlt,
+      imageWidth: imageUrl && imageUrl === state.imageUrl ? state.imageWidth : null,
+      imageHeight: imageUrl && imageUrl === state.imageUrl ? state.imageHeight : null,
+      enabled: deriveHeaderEnabled({
+        imageUrl,
+        content: state.content,
+      }),
+    })),
 
-  setContent: (content) => set({ content }),
+  setImageDimensions: (imageWidth, imageHeight) =>
+    set({
+      imageWidth,
+      imageHeight,
+    }),
+
+  setContent: (content) =>
+    set((state) => ({
+      content,
+      enabled: deriveHeaderEnabled({
+        imageUrl: state.imageUrl,
+        content,
+      }),
+    })),
 
   reset: () => set(initialState),
 
-  configure: (partial) => set((state) => ({ ...state, ...partial })),
+  configure: (partial) =>
+    set((state) => {
+      const nextState = { ...state, ...partial }
+      return {
+        ...nextState,
+        enabled: deriveHeaderEnabled(nextState),
+      }
+    }),
 }))

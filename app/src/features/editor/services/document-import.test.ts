@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Editor } from '@tiptap/core'
 import type { PortableDocument } from '../types/document-format'
 import { importDocument } from './document-import'
+import { DOCUMENT_FORMAT_VERSION } from '../types/document-format'
 import { useDocumentHeaderStore } from '../stores/document-header-store'
 
 function createBaseDocument(overrides: Partial<PortableDocument> = {}): PortableDocument {
   return {
-    version: '1.1.0',
+    version: DOCUMENT_FORMAT_VERSION,
     meta: {
       title: 'Test Document',
       language: 'es',
@@ -89,6 +90,14 @@ describe('importDocument', () => {
     expect(storeActions.setPaginationConfig).toHaveBeenCalledTimes(1)
     expect(storeActions.setSignerRoles).toHaveBeenCalledTimes(1)
     expect(storeActions.setWorkflowConfig).toHaveBeenCalledTimes(1)
+    expect(storeActions.setPaginationConfig).toHaveBeenCalledWith(expect.objectContaining({
+      margins: {
+        top: 72,
+        bottom: 72,
+        left: 72,
+        right: 72,
+      },
+    }))
   })
 
   it('returns orphaned variables when backend definitions are missing', () => {
@@ -162,6 +171,8 @@ describe('importDocument', () => {
           layout: 'image-center',
           imageUrl: 'data:image/png;base64,abc123',
           imageAlt: 'Inline logo',
+          imageWidth: 210,
+          imageHeight: 84,
           content: {
             type: 'doc',
             content: [
@@ -184,6 +195,8 @@ describe('importDocument', () => {
       layout: 'image-center',
       imageUrl: 'data:image/png;base64,abc123',
       imageAlt: 'Inline logo',
+      imageWidth: 210,
+      imageHeight: 84,
       content: {
         type: 'doc',
         content: [
@@ -196,12 +209,64 @@ describe('importDocument', () => {
     })
   })
 
+  it('derives imported header enabled from actual content instead of stale toggle state', () => {
+    useDocumentHeaderStore.getState().reset()
+
+    const editor = {
+      commands: {
+        setContent: vi.fn(),
+      },
+    } as unknown as Editor
+
+    const storeActions = {
+      setPaginationConfig: vi.fn(),
+      setSignerRoles: vi.fn(),
+      setWorkflowConfig: vi.fn(),
+    }
+
+    const result = importDocument(
+      createBaseDocument({
+        header: {
+          enabled: true,
+          layout: 'image-left',
+          imageUrl: null,
+          imageAlt: '',
+          imageWidth: null,
+          imageHeight: null,
+          content: {
+            type: 'doc',
+            content: [{ type: 'paragraph' }],
+          },
+        },
+      }),
+      editor,
+      storeActions,
+      []
+    )
+
+    expect(result.success).toBe(true)
+    expect(useDocumentHeaderStore.getState()).toMatchObject({
+      enabled: false,
+      layout: 'image-left',
+      imageUrl: null,
+      imageAlt: '',
+      imageWidth: null,
+      imageHeight: null,
+      content: {
+        type: 'doc',
+        content: [{ type: 'paragraph' }],
+      },
+    })
+  })
+
   it('resets header configuration when the imported document has no header block', () => {
     useDocumentHeaderStore.getState().configure({
       enabled: true,
       layout: 'image-right',
       imageUrl: 'https://example.com/old-logo.png',
       imageAlt: 'Old logo',
+      imageWidth: 150,
+      imageHeight: 60,
       content: {
         type: 'doc',
         content: [{ type: 'paragraph' }],
@@ -228,7 +293,87 @@ describe('importDocument', () => {
       layout: 'image-left',
       imageUrl: null,
       imageAlt: '',
+      imageWidth: null,
+      imageHeight: null,
       content: null,
+    })
+  })
+
+  it('migrates older documents to the current version without changing page config', () => {
+    const editor = {
+      commands: {
+        setContent: vi.fn(),
+      },
+    } as unknown as Editor
+
+    const storeActions = {
+      setPaginationConfig: vi.fn(),
+      setSignerRoles: vi.fn(),
+      setWorkflowConfig: vi.fn(),
+    }
+
+    const legacyDocument = createBaseDocument({
+      version: '1.1.0',
+      pageConfig: {
+        formatId: 'A4',
+        width: 794,
+        height: 1123,
+        margins: {
+          top: 72,
+          bottom: 72,
+          left: 72,
+          right: 72,
+        },
+      },
+    })
+
+    const result = importDocument(legacyDocument, editor, storeActions, [])
+
+    expect(result.success).toBe(true)
+    expect(result.document?.version).toBe(DOCUMENT_FORMAT_VERSION)
+  })
+
+  it('preserves paragraph line spacing attrs in imported content', () => {
+    const editor = {
+      commands: {
+        setContent: vi.fn(),
+      },
+    } as unknown as Editor
+
+    const storeActions = {
+      setPaginationConfig: vi.fn(),
+      setSignerRoles: vi.fn(),
+      setWorkflowConfig: vi.fn(),
+    }
+
+    const result = importDocument(
+      createBaseDocument({
+        content: {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              attrs: { lineSpacing: 'loose' },
+              content: [{ type: 'text', text: 'Hello world' }],
+            },
+          ],
+        },
+      }),
+      editor,
+      storeActions,
+      []
+    )
+
+    expect(result.success).toBe(true)
+    expect(editor.commands.setContent).toHaveBeenCalledWith({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          attrs: { lineSpacing: 'loose' },
+          content: [{ type: 'text', text: 'Hello world' }],
+        },
+      ],
     })
   })
 })

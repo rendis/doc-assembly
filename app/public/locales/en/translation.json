@@ -502,7 +502,13 @@
       "blockElements": "Blocks",
       "actions": "Actions",
       "exportDocumentShort": "Export document",
-      "importDocumentShort": "Import document"
+      "importDocumentShort": "Import document",
+      "lineSpacing": "Line spacing",
+      "lineSpacingTight": "Very compact",
+      "lineSpacingCompact": "Compact",
+      "lineSpacingNormal": "Normal",
+      "lineSpacingRelaxed": "Relaxed",
+      "lineSpacingLoose": "Very relaxed"
     },
     "preparation": {
       "title": "Preparing document"
@@ -771,7 +777,10 @@
     },
     "documentHeader": {
       "addLogo": "Click to add logo",
+      "editLogo": "Edit header logo",
       "textPlaceholder": "Add header text...",
+      "surfaceLabel": "Document header",
+      "surfaceHint": "Click to edit the header or add a logo",
       "layoutImageLeft": "Image left, text right",
       "layoutImageCenter": "Image centered",
       "layoutImageRight": "Text left, image right"

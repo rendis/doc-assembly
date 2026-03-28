@@ -25,6 +25,7 @@ import { MentionExtension } from '../extensions/Mentions'
 import { ImageExtension, type ImageShape } from '../extensions/Image'
 import { PageBreakHR } from '../extensions/PageBreak'
 import { SlashCommandsExtension, slashCommandsSuggestion } from '../extensions/SlashCommands'
+import { LineSpacingExtension } from '../extensions/LineSpacing'
 import {
   TableExtension,
   TableRowExtension,
@@ -54,6 +55,9 @@ import {
   getDocumentEditorGridClass,
   getDocumentEditorGridTemplateColumns,
 } from '../layout/document-editor-grid'
+import { deriveHeaderEnabled } from '../utils/document-header'
+
+type ActiveSurface = 'header' | 'body'
 
 interface DocumentEditorProps {
   initialContent?: string
@@ -87,11 +91,19 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   // Get page config from store (for visual width and margins)
   const { pageSize, margins } = usePaginationStore()
-  const headerEnabled = useDocumentHeaderStore((state) => state.enabled)
+  const headerContent = useDocumentHeaderStore((state) => state.content)
+  const headerImageUrl = useDocumentHeaderStore((state) => state.imageUrl)
+  const headerHasMeaningfulContent = useMemo(
+    () =>
+      deriveHeaderEnabled({
+        content: headerContent,
+        imageUrl: headerImageUrl,
+      }),
+    [headerContent, headerImageUrl]
+  )
 
-  // Track which editor the toolbar should target (main or header text editor).
-  // null means "use the main editor". Set to a header editor instance when its text area is focused.
-  const [toolbarEditor, setToolbarEditor] = useState<Editor | null>(null)
+  const [activeSurface, setActiveSurface] = useState<ActiveSurface>('body')
+  const [headerToolbarEditor, setHeaderToolbarEditor] = useState<Editor | null>(null)
   const isVariablesPanelCollapsed = useVariablesPanelStore((state) => state.isCollapsed)
   const isRolesPanelCollapsed = useSignerRolesStore((state) => state.isCollapsed)
   const roles = useSignerRolesStore((state) => state.roles)
@@ -115,6 +127,7 @@ export function DocumentEditor({
   const [pendingImagePosition, setPendingImagePosition] = useState<number | null>(null)
   const [editingImageShape, setEditingImageShape] = useState<ImageShape>('square')
   const [editingImageData, setEditingImageData] = useState<ImageInsertResult | null>(null)
+  const [headerImageModalToken, setHeaderImageModalToken] = useState(0)
 
   // Format dialog state
   const [formatDialogOpen, setFormatDialogOpen] = useState(false)
@@ -151,6 +164,11 @@ export function DocumentEditor({
     [editable, isVariablesPanelCollapsed, isRolesPanelCollapsed]
   )
 
+  const bodyTopPadding = useMemo(
+    () => (headerHasMeaningfulContent ? Math.round(margins.top / 2) : margins.top),
+    [headerHasMeaningfulContent, margins.top]
+  )
+
   // eslint-disable-next-line react-hooks/refs -- Reading ref during render is intentional to preserve content on editor recreation
   const editor = useEditor({
     immediatelyRender: false,
@@ -166,6 +184,7 @@ export function DocumentEditor({
       FontSize.configure({ types: ['textStyle'] }),
       StoredMarksPersistenceExtension,
       TextAlign.configure({ types: ['heading', 'paragraph', 'tableCell', 'tableHeader'] }),
+      LineSpacingExtension,
       InjectorExtension,
       MentionExtension,
       SignatureExtension,
@@ -192,10 +211,8 @@ export function DocumentEditor({
       contentRef.current = editor.getJSON()
       onContentChange?.(editor.getHTML())
     },
-    onFocus: ({ editor }) => {
-      setToolbarEditor(null) // null = use main editor (see toolbar render)
-      // Suppress unused variable lint (editor is passed by TipTap but we don't need it here)
-      void editor
+    onFocus: () => {
+      setActiveSurface('body')
     },
     editorProps: {
       attributes: {
@@ -204,9 +221,6 @@ export function DocumentEditor({
       },
     },
   }, [editorKey]) // Recreate editor when editorKey changes
-
-  // True when the header text editor (not the main editor) is driving the toolbar
-  const isHeaderEditorActive = toolbarEditor !== null
 
   // Store editor reference for export/import
   useEffect(() => {
@@ -217,18 +231,36 @@ export function DocumentEditor({
     onEditorReady?.(editor ?? null)
   }, [editor, editorRef, onEditorReady])
 
-  // Default toolbar to main editor; reset when header is hidden
+  const showHeaderSurface = editable || headerHasMeaningfulContent
+  const toolbarEditor = activeSurface === 'header'
+    ? headerToolbarEditor
+    : editor
+
+  // Reset to body when the header surface disappears (e.g. readonly empty header)
   useEffect(() => {
-    if (!headerEnabled) setToolbarEditor(null)
-  }, [headerEnabled])
+    if (!showHeaderSurface && activeSurface === 'header') {
+      setActiveSurface('body')
+    }
+  }, [activeSurface, showHeaderSurface])
 
   const handleHeaderEditorFocus = useCallback((headerEditor: Editor) => {
-    setToolbarEditor(headerEditor)
+    setHeaderToolbarEditor(headerEditor)
+    setActiveSurface('header')
   }, [])
 
-  const handleHeaderEditorBlur = useCallback(() => {
-    setToolbarEditor(null)
+  const handleHeaderEditorReady = useCallback((headerEditor: Editor | null) => {
+    setHeaderToolbarEditor(headerEditor)
   }, [])
+
+  const handleActivateHeader = useCallback(() => {
+    if (!editable) return
+    setActiveSurface('header')
+  }, [editable])
+
+  const handleActivateBody = useCallback(() => {
+    if (!editable) return
+    setActiveSurface('body')
+  }, [editable])
 
   // Notify when editor is fully rendered and styles are applied
   useEffect(() => {
@@ -312,6 +344,22 @@ export function DocumentEditor({
       )
     }
   }, [editor])
+
+  const handleOpenBodyImageModal = useCallback(() => {
+    if (!editor) return
+
+    setActiveSurface('body')
+    setPendingImagePosition(editor.state.selection.from)
+    setIsEditingImage(false)
+    setImageModalOpen(true)
+  }, [editor])
+
+  const handleOpenHeaderImageModal = useCallback(() => {
+    if (!editable) return
+
+    setActiveSurface('header')
+    setHeaderImageModalToken((token) => token + 1)
+  }, [editable])
 
   const handleImageInsert = useCallback((result: ImageInsertResult) => {
     if (!editor) return
@@ -639,7 +687,9 @@ export function DocumentEditor({
               {editable ? (
                 <EditorToolbar
                   editor={toolbarEditor ?? editor}
-                  showSpecialBlocks={!isHeaderEditorActive}
+                  documentEditor={editor}
+                  activeSurface={activeSurface}
+                  onOpenImage={activeSurface === 'header' ? handleOpenHeaderImageModal : handleOpenBodyImageModal}
                   onExport={onExport}
                   onImport={onImport}
                   templateId={templateId}
@@ -671,16 +721,22 @@ export function DocumentEditor({
                   minHeight: pageSize.height,
                 }}
               >
-                {headerEnabled && (
+                {showHeaderSurface && (
                   <DocumentPageHeader
                     editable={editable}
+                    active={activeSurface === 'header'}
+                    onActivate={handleActivateHeader}
                     onTextEditorFocus={handleHeaderEditorFocus}
-                    onTextEditorBlur={handleHeaderEditorBlur}
+                    onEditorReady={handleHeaderEditorReady}
+                    openImageModalToken={headerImageModalToken}
+                    paddingLeft={margins.left}
+                    paddingRight={margins.right}
                   />
                 )}
                 <div
+                  onMouseDownCapture={handleActivateBody}
                   style={{
-                    paddingTop: margins.top,
+                    paddingTop: bodyTopPadding,
                     paddingBottom: margins.bottom,
                     paddingLeft: margins.left,
                     paddingRight: margins.right,

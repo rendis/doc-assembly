@@ -2,7 +2,6 @@
  * Document Migrations Service
  *
  * Handles version migrations for PortableDocument format.
- * Currently at v1.1.0, this provides placeholder for future migrations.
  */
 
 import type { PortableDocument } from '../types/document-format'
@@ -23,14 +22,16 @@ type MigrationFunction = (doc: PortableDocument) => PortableDocument
  * Key is the source version (version to migrate FROM)
  */
 const migrations: Record<string, MigrationFunction> = {
-  // Future migrations will be added here
-  // Example:
-  // '1.0.0': migrateFrom_1_0_0_to_1_1_0,
+  '1.1.0': migrateFrom_1_1_0_to_1_1_1,
 }
 
 // =============================================================================
 // Migration Functions
 // =============================================================================
+
+function migrateFrom_1_1_0_to_1_1_1(doc: PortableDocument): PortableDocument {
+  return { ...doc }
+}
 
 /**
  * Migrates a document to the current version

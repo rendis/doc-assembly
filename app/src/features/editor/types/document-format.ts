@@ -27,10 +27,11 @@ import type {
  * - Patch: Bug fixes, clarifications
  *
  * Changelog:
+ * - 1.1.1: Added paragraph/heading line spacing formatting support
  * - 1.1.0: Added signingWorkflow (orderMode, notifications)
  * - 1.0.0: Initial version
  */
-export const DOCUMENT_FORMAT_VERSION = '1.1.0'
+export const DOCUMENT_FORMAT_VERSION = '1.1.1'
 
 // =============================================================================
 // Document Envelope
@@ -73,6 +74,8 @@ export interface PortableDocument {
     layout?: 'image-left' | 'image-right' | 'image-center'
     imageUrl?: string | null
     imageAlt?: string
+    imageWidth?: number | null
+    imageHeight?: number | null
     content?: Record<string, unknown>
   }
 }

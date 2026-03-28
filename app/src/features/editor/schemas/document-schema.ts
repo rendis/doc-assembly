@@ -337,6 +337,8 @@ export const DocumentHeaderConfigSchema = z.object({
   layout: z.enum(['image-left', 'image-right', 'image-center']).optional(),
   imageUrl: z.string().nullable().optional(),
   imageAlt: z.string().optional(),
+  imageWidth: z.number().positive().nullable().optional(),
+  imageHeight: z.number().positive().nullable().optional(),
   content: z.record(z.string(), z.unknown()).optional(),
 })
 

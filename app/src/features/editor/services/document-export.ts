@@ -25,6 +25,7 @@ import type { PaginationStore } from '../stores/pagination-store'
 import { useDocumentHeaderStore } from '../stores/document-header-store'
 import { DOCUMENT_FORMAT_VERSION } from '../types/document-format'
 import { PAGE_SIZES } from '../types'
+import { deriveHeaderEnabled } from '../utils/document-header'
 
 // =============================================================================
 // Helper Types
@@ -213,6 +214,7 @@ export function exportDocument(
 
   // Read header state
   const headerState = useDocumentHeaderStore.getState()
+  const headerEnabled = deriveHeaderEnabled(headerState)
 
   // Assemble the document
   const document: PortableDocument = {
@@ -225,10 +227,12 @@ export function exportDocument(
     content,
     exportInfo,
     header: {
-      enabled: headerState.enabled,
+      enabled: headerEnabled,
       layout: headerState.layout,
       imageUrl: headerState.imageUrl,
       imageAlt: headerState.imageAlt,
+      imageWidth: headerState.imageWidth,
+      imageHeight: headerState.imageHeight,
       content: headerState.content ?? undefined,
     },
   }

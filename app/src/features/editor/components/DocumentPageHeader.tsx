@@ -1,140 +1,252 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import TextAlign from '@tiptap/extension-text-align'
-import { ImageIcon, X, PanelLeft, PanelRight, LayoutTemplate } from 'lucide-react'
-import type { Editor } from '@tiptap/core'
+import Moveable from 'react-moveable'
+import { ImageIcon, PanelLeft, PanelRight, LayoutTemplate, Trash2 } from 'lucide-react'
+import type { Editor, JSONContent } from '@tiptap/core'
 import { cn } from '@/lib/utils'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
+import { LineSpacingExtension } from '../extensions/LineSpacing'
 import { useDocumentHeaderStore, type DocumentHeaderLayout } from '../stores/document-header-store'
 import { StoredMarksPersistenceExtension } from '../extensions/StoredMarksPersistence'
+import { hasMeaningfulHeaderContent } from '../utils/document-header'
 
 interface DocumentPageHeaderProps {
   editable: boolean
+  active?: boolean
+  onActivate?: () => void
   onTextEditorFocus?: (editor: Editor) => void
-  onTextEditorBlur?: () => void
+  onEditorReady?: (editor: Editor | null) => void
+  openImageModalToken?: number
+  paddingLeft?: number
+  paddingRight?: number
 }
-
-// =============================================================================
-// Image slot
-// =============================================================================
 
 interface ImageSlotProps {
   imageUrl: string | null
   imageAlt: string
+  imageWidth: number | null
   editable: boolean
+  active: boolean
+  selected: boolean
+  imageRef: RefObject<HTMLImageElement | null>
   onOpenModal: () => void
+  onSelect: () => void
+  onLoad: () => void
   onRemove: () => void
   className?: string
 }
 
-function ImageSlot({ imageUrl, imageAlt, editable, onOpenModal, onRemove, className }: ImageSlotProps) {
+function ImageSlot({
+  imageUrl,
+  imageAlt,
+  imageWidth,
+  editable,
+  active,
+  selected,
+  imageRef,
+  onOpenModal,
+  onSelect,
+  onLoad,
+  onRemove,
+  className,
+}: ImageSlotProps) {
   const { t } = useTranslation()
 
   return (
     <div
       className={cn(
-        'relative flex items-center justify-center',
-        'min-h-[80px] max-h-[120px]',
+        'relative flex items-center justify-center overflow-hidden',
+        imageUrl
+          ? 'h-24 min-h-0 shrink-0 bg-transparent'
+          : 'min-h-[88px] rounded-lg border border-dashed border-border/70 bg-background/40',
+        active && editable && !imageUrl && 'border-primary/60 bg-primary/5',
         className
       )}
+      style={imageUrl ? {
+        width: imageWidth ? `${imageWidth}px` : undefined,
+        height: `${HEADER_IMAGE_HEIGHT}px`,
+      } : undefined}
     >
       {imageUrl ? (
         <>
           <img
+            ref={imageRef}
             src={imageUrl}
             alt={imageAlt}
-            className="object-contain max-h-[120px] w-full p-2"
+            className={cn(
+              'block max-h-none object-fill transition-shadow',
+              editable && 'cursor-pointer',
+              selected && 'ring-2 ring-primary ring-offset-2'
+            )}
+            style={{
+              width: '100%',
+              height: `${HEADER_IMAGE_HEIGHT}px`,
+              maxWidth: 'none',
+            }}
+            onClick={(event) => {
+              event.stopPropagation()
+              if (editable) {
+                onSelect()
+              }
+            }}
+            onLoad={onLoad}
           />
           {editable && (
             <>
-              <button
-                type="button"
-                onClick={onOpenModal}
-                className="absolute inset-0 opacity-0 hover:opacity-100 flex items-center justify-center bg-background/60 transition-opacity"
-                title={t('editor.documentHeader.addLogo')}
-              >
-                <ImageIcon className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={onRemove}
-                className="absolute top-1 right-1 z-10 rounded-full bg-background/80 p-0.5 text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
-                title={t('common.remove')}
-              >
-                <X className="h-3 w-3" />
-              </button>
+              {active && selected && (
+                <button
+                  type="button"
+                  data-header-no-focus="true"
+                  onClick={onOpenModal}
+                  className="absolute left-2 top-2 z-10 rounded-full bg-background/90 p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                  title={t('editor.documentHeader.editLogo')}
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {active && selected && (
+                <button
+                  type="button"
+                  data-header-no-focus="true"
+                  onClick={onRemove}
+                  className="absolute right-2 top-2 z-10 rounded-full bg-background/90 p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                  title={t('common.remove')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </>
           )}
         </>
-      ) : editable ? (
-        <button
-          type="button"
-          onClick={onOpenModal}
-          className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors p-4 rounded border-2 border-dashed border-border hover:border-muted-foreground"
-        >
-          <ImageIcon className="h-5 w-5" />
-          <span className="text-xs">{t('editor.documentHeader.addLogo')}</span>
-        </button>
       ) : null}
     </div>
   )
 }
 
-// =============================================================================
-// Layout picker
-// =============================================================================
-
 const LAYOUTS: { value: DocumentHeaderLayout; icon: typeof PanelLeft; labelKey: string }[] = [
-  { value: 'image-left',   icon: PanelLeft,      labelKey: 'editor.documentHeader.layoutImageLeft' },
+  { value: 'image-left', icon: PanelLeft, labelKey: 'editor.documentHeader.layoutImageLeft' },
   { value: 'image-center', icon: LayoutTemplate, labelKey: 'editor.documentHeader.layoutImageCenter' },
-  { value: 'image-right',  icon: PanelRight,     labelKey: 'editor.documentHeader.layoutImageRight' },
+  { value: 'image-right', icon: PanelRight, labelKey: 'editor.documentHeader.layoutImageRight' },
 ]
 
 const EMPTY_HEADER_DOC = { type: 'doc', content: [{ type: 'paragraph' }] }
+const HEADER_IMAGE_HEIGHT = 96
+const HEADER_IMAGE_MIN_WIDTH = 32
+const HEADER_IMAGE_GAP = 16
+const HEADER_TEXT_MIN_WIDTH = 240
+const HEADER_TEXT_HEIGHT = 96
+const HEADER_OVERFLOW_TOLERANCE = 4
+const HEADER_SURFACE_VERTICAL_PADDING = 12
+const HEADER_SURFACE_MIN_HEIGHT = HEADER_TEXT_HEIGHT + HEADER_SURFACE_VERTICAL_PADDING * 2
 
-function LayoutPicker({ current, onChange }: { current: DocumentHeaderLayout; onChange: (l: DocumentHeaderLayout) => void }) {
+function LayoutPicker({
+  current,
+  onChange,
+}: {
+  current: DocumentHeaderLayout
+  onChange: (layout: DocumentHeaderLayout) => void
+}) {
   const { t } = useTranslation()
+
   return (
-    <div className="flex items-center gap-0.5 rounded border border-border bg-background/80 p-0.5">
+    <div className="flex items-center gap-1 rounded-full border border-border bg-background/90 p-1 shadow-sm">
       {LAYOUTS.map(({ value, icon: Icon, labelKey }) => (
         <button
           key={value}
           type="button"
-          onMouseDown={(e) => e.preventDefault()}
+          data-header-no-focus="true"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => onChange(value)}
           title={t(labelKey)}
           className={cn(
-            'rounded p-1 transition-colors',
+            'rounded-full p-1.5 transition-colors',
             current === value
               ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
-          <Icon className="h-3 w-3" />
+          <Icon className="h-3.5 w-3.5" />
         </button>
       ))}
     </div>
   )
 }
 
-// =============================================================================
-// Main component
-// =============================================================================
-
-export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBlur }: DocumentPageHeaderProps) {
+export function DocumentPageHeader({
+  editable,
+  active = false,
+  onActivate,
+  onTextEditorFocus,
+  onEditorReady,
+  openImageModalToken = 0,
+  paddingLeft = 32,
+  paddingRight = 32,
+}: DocumentPageHeaderProps) {
   const { t } = useTranslation()
-  const { layout, imageUrl, imageAlt, content: storeContent, setEnabled, setLayout, setImage, setContent } =
-    useDocumentHeaderStore()
+  const {
+    layout,
+    imageUrl,
+    imageAlt,
+    imageWidth,
+    imageHeight,
+    content: storeContent,
+    setLayout,
+    setImage,
+    setImageDimensions,
+    setContent,
+  } = useDocumentHeaderStore()
 
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [isImageSelected, setIsImageSelected] = useState(false)
+  const hasHeaderText = useMemo(
+    () => hasMeaningfulHeaderContent(storeContent),
+    [storeContent]
+  )
 
-  // Track the last content we set from the store so we don't re-apply on our own updates
+  const surfaceRef = useRef<HTMLDivElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const textSlotRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
+  const moveableRef = useRef<{ updateRect?: () => void } | null>(null)
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null)
   const lastExternalContent = useRef<string>(JSON.stringify(storeContent))
+  const lastValidContent = useRef<JSONContent>(storeContent ?? EMPTY_HEADER_DOC)
   const isExternalUpdate = useRef(false)
+  const lastInputTypeRef = useRef<string | null>(null)
+
+  const resetHeaderScroll = (editor: Editor) => {
+    const editorElement = editor.view.dom as HTMLElement | null
+    if (editorElement) {
+      editorElement.scrollTop = 0
+    }
+  }
+
+  const isHeaderOverflowing = (editor: Editor) => {
+    const editorElement = editor.view.dom as HTMLElement | null
+    if (!editorElement) return false
+
+    return editorElement.scrollHeight > editorElement.clientHeight + HEADER_OVERFLOW_TOLERANCE
+  }
+
+  const restoreLastValidHeaderContent = (editor: Editor) => {
+    const serialized = JSON.stringify(lastValidContent.current)
+    lastExternalContent.current = serialized
+    isExternalUpdate.current = true
+    editor.commands.setContent(lastValidContent.current)
+    isExternalUpdate.current = false
+
+    requestAnimationFrame(() => {
+      resetHeaderScroll(editor)
+      if (editor.isFocused) {
+        editor.commands.focus('end')
+      }
+    })
+  }
 
   const headerEditor = useEditor({
     immediatelyRender: false,
@@ -145,6 +257,7 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
       FontFamily.configure({ types: ['textStyle'] }),
       FontSize.configure({ types: ['textStyle'] }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      LineSpacingExtension,
       StoredMarksPersistenceExtension,
     ],
     content: storeContent ?? EMPTY_HEADER_DOC,
@@ -152,121 +265,415 @@ export function DocumentPageHeader({ editable, onTextEditorFocus, onTextEditorBl
     onUpdate: ({ editor }) => {
       if (isExternalUpdate.current) return
       const json = editor.getJSON()
+      const lastInputType = lastInputTypeRef.current
+      lastInputTypeRef.current = null
+
+      if (isHeaderOverflowing(editor)) {
+        const isDeletion = lastInputType?.startsWith('delete') ?? false
+        const isHistoryAction = lastInputType === 'historyUndo' || lastInputType === 'historyRedo'
+
+        if (!isDeletion && !isHistoryAction) {
+          restoreLastValidHeaderContent(editor)
+          return
+        }
+      }
+
+      lastValidContent.current = json
       lastExternalContent.current = JSON.stringify(json)
       setContent(json)
     },
     onFocus: ({ editor }) => {
+      onActivate?.()
+      setIsImageSelected(false)
+      resetHeaderScroll(editor)
       onTextEditorFocus?.(editor)
-    },
-    onBlur: () => {
-      onTextEditorBlur?.()
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[60px] p-3',
+        class: cn(
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none pt-2 pb-1',
+          'prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0',
+          'h-full min-h-full whitespace-pre-wrap overflow-hidden'
+        ),
+      },
+      handleDOMEvents: {
+        beforeinput: (_view, event) => {
+          lastInputTypeRef.current = event.inputType ?? null
+          return false
+        },
       },
     },
   })
 
-  // Sync store content → editor when changed externally (e.g. document import)
+  useEffect(() => {
+    onEditorReady?.(headerEditor ?? null)
+
+    return () => {
+      onEditorReady?.(null)
+    }
+  }, [headerEditor, onEditorReady])
+
   useEffect(() => {
     if (!headerEditor) return
     const serialized = JSON.stringify(storeContent)
     if (serialized === lastExternalContent.current) return
+
+    lastValidContent.current = storeContent ?? EMPTY_HEADER_DOC
     lastExternalContent.current = serialized
     isExternalUpdate.current = true
     headerEditor.commands.setContent(storeContent ?? EMPTY_HEADER_DOC)
     isExternalUpdate.current = false
+    requestAnimationFrame(() => {
+      resetHeaderScroll(headerEditor)
+    })
   }, [storeContent, headerEditor])
 
-  // Sync editable flag
   useEffect(() => {
     if (!headerEditor) return
     headerEditor.setEditable(editable)
   }, [headerEditor, editable])
 
+  const isLateralLayout = layout === 'image-left' || layout === 'image-right'
+  const hasTextAndLateralImage = Boolean(imageUrl) && isLateralLayout && hasHeaderText
+
+  const getRowWidth = useCallback(() => {
+    const rowWidth = rowRef.current?.clientWidth
+    if (rowWidth && rowWidth > 0) {
+      return rowWidth
+    }
+
+    const surfaceWidth = surfaceRef.current?.clientWidth ?? 0
+    return Math.max(surfaceWidth - paddingLeft - paddingRight, 0)
+  }, [paddingLeft, paddingRight])
+
+  const doesHeaderTextFitWidth = useCallback((textWidth: number) => {
+    if (!hasTextAndLateralImage || !headerEditor) return true
+
+    const textSlot = textSlotRef.current
+    const editorElement = headerEditor.view.dom as HTMLElement | null
+    if (!textSlot || !editorElement) return true
+
+    const previousWidth = textSlot.style.width
+    const previousMinWidth = textSlot.style.minWidth
+    const previousMaxWidth = textSlot.style.maxWidth
+    const previousFlex = textSlot.style.flex
+
+    textSlot.style.width = `${textWidth}px`
+    textSlot.style.minWidth = `${textWidth}px`
+    textSlot.style.maxWidth = `${textWidth}px`
+    textSlot.style.flex = '0 0 auto'
+
+    const fits = editorElement.scrollHeight <= editorElement.clientHeight + HEADER_OVERFLOW_TOLERANCE
+
+    textSlot.style.width = previousWidth
+    textSlot.style.minWidth = previousMinWidth
+    textSlot.style.maxWidth = previousMaxWidth
+    textSlot.style.flex = previousFlex
+
+    return fits
+  }, [hasTextAndLateralImage, headerEditor])
+
+  const getMaxImageWidth = useCallback((hasText = hasTextAndLateralImage) => {
+    const availableWidth = getRowWidth()
+    if (availableWidth <= 0) {
+      return HEADER_IMAGE_MIN_WIDTH
+    }
+
+    const baseMaxWidth = hasText
+      ? availableWidth - HEADER_IMAGE_GAP - HEADER_TEXT_MIN_WIDTH
+      : availableWidth
+
+    const clampedBaseMaxWidth = Math.max(HEADER_IMAGE_MIN_WIDTH, Math.floor(baseMaxWidth))
+
+    if (!hasText) {
+      return clampedBaseMaxWidth
+    }
+
+    let low = HEADER_IMAGE_MIN_WIDTH
+    let high = clampedBaseMaxWidth
+    let best = HEADER_IMAGE_MIN_WIDTH
+
+    while (low <= high) {
+      const candidate = Math.floor((low + high) / 2)
+      const textWidth = availableWidth - HEADER_IMAGE_GAP - candidate
+
+      if (textWidth < HEADER_TEXT_MIN_WIDTH) {
+        high = candidate - 1
+        continue
+      }
+
+      if (doesHeaderTextFitWidth(textWidth)) {
+        best = candidate
+        low = candidate + 1
+      } else {
+        high = candidate - 1
+      }
+    }
+
+    return best
+  }, [doesHeaderTextFitWidth, getRowWidth, hasTextAndLateralImage])
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setImageElement(imageRef.current)
+      moveableRef.current?.updateRect?.()
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [imageUrl, imageWidth, layout, isImageSelected])
+
+  useEffect(() => {
+    if (!imageUrl || !imageWidth) return
+
+    const frame = requestAnimationFrame(() => {
+      const maxWidth = getMaxImageWidth()
+      if (imageWidth > maxWidth) {
+        setImageDimensions(maxWidth, HEADER_IMAGE_HEIGHT)
+        return
+      }
+
+      moveableRef.current?.updateRect?.()
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [getMaxImageWidth, imageUrl, imageWidth, layout, setImageDimensions])
+
+  useEffect(() => {
+    if (openImageModalToken > 0) {
+      queueMicrotask(() => {
+        setImageModalOpen(true)
+      })
+    }
+  }, [openImageModalToken])
+
+  const handleSurfaceActivate = () => {
+    if (!editable) return
+    onActivate?.()
+  }
+
+  const handleImageLoad = () => {
+    if (!imageRef.current) return
+    if (imageWidth && imageHeight) return
+
+    const { naturalWidth, naturalHeight } = imageRef.current
+    if (!naturalWidth || !naturalHeight) return
+
+    const maxWidth = getMaxImageWidth()
+    const scaledWidth = naturalWidth * (HEADER_IMAGE_HEIGHT / naturalHeight)
+    const nextWidth = Math.min(maxWidth, Math.max(HEADER_IMAGE_MIN_WIDTH, scaledWidth))
+
+    setImageDimensions(Math.round(nextWidth), HEADER_IMAGE_HEIGHT)
+  }
+
+  const handleSurfaceClick = (event: MouseEvent<HTMLDivElement>) => {
+    handleSurfaceActivate()
+
+    if (!editable || !headerEditor) return
+
+    const target = event.target instanceof Element ? event.target : null
+    if (target?.closest('[data-header-no-focus="true"]')) {
+      return
+    }
+
+    setIsImageSelected(false)
+    headerEditor.chain().focus().run()
+  }
+
   const handleImageInsert = (result: ImageInsertResult) => {
     setImage(result.src, result.injectableLabel ?? '')
+    setIsImageSelected(true)
     setImageModalOpen(false)
   }
 
-  const imageSlot = (
-    <ImageSlot
-      imageUrl={imageUrl}
-      imageAlt={imageAlt}
-      editable={editable}
-      onOpenModal={() => setImageModalOpen(true)}
-      onRemove={() => setImage('', '')}
-      className={layout === 'image-center' ? 'w-full' : 'w-[30%]'}
-    />
-  )
-
   const textSlot = headerEditor ? (
-    <EditorContent
-      editor={headerEditor}
-      className="flex-1 min-w-0"
-    />
+    <div
+      ref={textSlotRef}
+      className={cn(
+        'relative flex-1 basis-0 overflow-hidden',
+        hasTextAndLateralImage ? 'min-w-[240px]' : 'min-w-0'
+      )}
+      style={{ height: `${HEADER_TEXT_HEIGHT}px` }}
+    >
+      {!hasHeaderText && (
+        <span className="pointer-events-none absolute left-0 top-3 text-sm text-muted-foreground/80">
+          {t('editor.documentHeader.textPlaceholder')}
+        </span>
+      )}
+      <EditorContent editor={headerEditor} className="h-full min-w-0 overflow-hidden" />
+    </div>
   ) : null
+
+  const renderCenteredImageOnly = layout === 'image-center' && imageUrl
+  const imageSelected = isImageSelected && Boolean(imageUrl)
 
   return (
     <>
-      <div className="relative">
-        {/* Controls row */}
-        {editable && (
-          <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
+      <div
+        ref={surfaceRef}
+        className={cn(
+          'relative w-full transition-colors',
+          editable && 'border-y border-dashed border-border/80 bg-background/70',
+          editable && active && 'border-primary/60 bg-primary/5'
+        )}
+        onMouseDownCapture={handleSurfaceActivate}
+        onClick={handleSurfaceClick}
+      >
+        {editable && active && imageUrl && (
+          <div className="absolute right-3 top-3 z-10">
             <LayoutPicker current={layout} onChange={setLayout} />
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setEnabled(false)}
-              className="rounded-full bg-background/80 p-0.5 text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
-              title={t('editor.toolbar.removeHeader')}
-            >
-              <X className="h-3 w-3" />
-            </button>
           </div>
         )}
 
         {layout === 'image-left' && (
-          <div className="flex">
-            <ImageSlot
-              imageUrl={imageUrl}
-              imageAlt={imageAlt}
-              editable={editable}
-              onOpenModal={() => setImageModalOpen(true)}
-              onRemove={() => setImage('', '')}
-              className="w-[30%]"
-            />
-            {textSlot}
+          <div
+            className="py-3"
+            style={{ paddingLeft, paddingRight, minHeight: `${HEADER_SURFACE_MIN_HEIGHT}px` }}
+          >
+            {imageUrl ? (
+              <div ref={rowRef} className="flex h-24 min-w-0 flex-nowrap items-stretch gap-4 overflow-hidden">
+                <ImageSlot
+                  imageUrl={imageUrl}
+                  imageAlt={imageAlt}
+                  imageWidth={imageWidth}
+                  editable={editable}
+                  active={active}
+                  selected={imageSelected}
+                  imageRef={imageRef}
+                  onOpenModal={() => {
+                    handleSurfaceActivate()
+                    setImageModalOpen(true)
+                  }}
+                  onSelect={() => {
+                    handleSurfaceActivate()
+                    setIsImageSelected(true)
+                  }}
+                  onLoad={handleImageLoad}
+                  onRemove={() => setImage('', '')}
+                  className="shrink-0"
+                />
+                {textSlot}
+              </div>
+            ) : (
+              textSlot
+            )}
           </div>
         )}
 
         {layout === 'image-right' && (
-          <div className="flex">
-            {textSlot}
-            <ImageSlot
-              imageUrl={imageUrl}
-              imageAlt={imageAlt}
-              editable={editable}
-              onOpenModal={() => setImageModalOpen(true)}
-              onRemove={() => setImage('', '')}
-              className="w-[30%]"
-            />
+          <div
+            className="py-3"
+            style={{ paddingLeft, paddingRight, minHeight: `${HEADER_SURFACE_MIN_HEIGHT}px` }}
+          >
+            {imageUrl ? (
+              <div ref={rowRef} className="flex h-24 min-w-0 flex-nowrap items-stretch gap-4 overflow-hidden">
+                {textSlot}
+                <ImageSlot
+                  imageUrl={imageUrl}
+                  imageAlt={imageAlt}
+                  imageWidth={imageWidth}
+                  editable={editable}
+                  active={active}
+                  selected={imageSelected}
+                  imageRef={imageRef}
+                  onOpenModal={() => {
+                    handleSurfaceActivate()
+                    setImageModalOpen(true)
+                  }}
+                  onSelect={() => {
+                    handleSurfaceActivate()
+                    setIsImageSelected(true)
+                  }}
+                  onLoad={handleImageLoad}
+                  onRemove={() => setImage('', '')}
+                  className="shrink-0"
+                />
+              </div>
+            ) : (
+              textSlot
+            )}
           </div>
         )}
 
         {layout === 'image-center' && (
-          <div className="flex justify-center py-2 px-4">
-            {imageSlot}
+          <div
+            className={cn(
+              'py-3',
+              renderCenteredImageOnly ? 'flex h-24 items-center justify-center' : 'flex'
+            )}
+            style={{ paddingLeft, paddingRight, minHeight: `${HEADER_SURFACE_MIN_HEIGHT}px` }}
+          >
+            {renderCenteredImageOnly ? (
+              <div ref={rowRef} className="flex h-24 w-full min-w-0 flex-nowrap items-center justify-center overflow-hidden">
+                <ImageSlot
+                imageUrl={imageUrl}
+                imageAlt={imageAlt}
+                imageWidth={imageWidth}
+                editable={editable}
+                active={active}
+                selected={imageSelected}
+                imageRef={imageRef}
+                onOpenModal={() => {
+                  handleSurfaceActivate()
+                  setImageModalOpen(true)
+                }}
+                onSelect={() => {
+                  handleSurfaceActivate()
+                  setIsImageSelected(true)
+                }}
+                onLoad={handleImageLoad}
+                onRemove={() => setImage('', '')}
+                className="shrink-0"
+              />
+              </div>
+            ) : (
+              textSlot
+            )}
           </div>
         )}
       </div>
 
+      {editable && active && imageSelected && imageElement && (
+        <Moveable
+          key={`${layout}-${imageUrl ?? 'none'}-${imageWidth ?? 'auto'}-${imageSelected ? 'selected' : 'idle'}`}
+          ref={moveableRef as never}
+          target={imageElement}
+          resizable
+          keepRatio={false}
+          throttleResize={0}
+          renderDirections={['e', 'w']}
+          onResize={({ target, width }) => {
+            const maxWidth = getMaxImageWidth()
+            const clampedWidth = Math.max(HEADER_IMAGE_MIN_WIDTH, Math.min(width, maxWidth))
+            target.style.width = '100%'
+            target.style.height = `${HEADER_IMAGE_HEIGHT}px`
+
+            const imageContainer = target.parentElement as HTMLElement | null
+            if (imageContainer) {
+              imageContainer.style.width = `${clampedWidth}px`
+              imageContainer.style.height = `${HEADER_IMAGE_HEIGHT}px`
+            }
+          }}
+          onResizeEnd={({ target }) => {
+            const imageContainer = target.parentElement as HTMLElement | null
+            const nextWidth = Math.round(parseFloat(imageContainer?.style.width ?? ''))
+            if (!Number.isNaN(nextWidth)) {
+              setImageDimensions(nextWidth, HEADER_IMAGE_HEIGHT)
+            }
+          }}
+        />
+      )}
+
       <ImageInsertModal
         open={imageModalOpen}
-        onOpenChange={(open) => { if (!open) setImageModalOpen(false) }}
+        onOpenChange={setImageModalOpen}
         onInsert={handleImageInsert}
         initialShape="square"
+        initialImage={imageUrl ? {
+          src: imageUrl,
+          isBase64: imageUrl.startsWith('data:'),
+          shape: 'square',
+          injectableLabel: imageAlt || undefined,
+        } : undefined}
       />
     </>
   )

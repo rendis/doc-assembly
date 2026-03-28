@@ -206,6 +206,7 @@ function restorePageConfig(
 
   actions.setPaginationConfig({
     pageSize: format,
+    margins: { ...pageConfig.margins },
   })
 }
 
