@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"image"
@@ -246,6 +247,27 @@ func getPlaceholderPNG() []byte {
 
 // downloadImage fetches an image URL, validates the content, and returns the bytes with correct extension.
 func downloadImage(ctx context.Context, url string, httpClient *http.Client) ([]byte, string, error) {
+	// Handle data URLs (e.g. "data:image/png;base64,iVBORw0KGg...")
+	if strings.HasPrefix(url, "data:") {
+		commaIdx := strings.Index(url, ",")
+		if commaIdx < 0 {
+			return nil, "", fmt.Errorf("malformed data URL: no comma")
+		}
+		data, err := base64.StdEncoding.DecodeString(url[commaIdx+1:])
+		if err != nil {
+			// Some encoders omit padding — try raw encoding
+			data, err = base64.RawStdEncoding.DecodeString(url[commaIdx+1:])
+			if err != nil {
+				return nil, "", fmt.Errorf("decoding data URL base64: %w", err)
+			}
+		}
+		ext := detectImageExt(data)
+		if ext == "" {
+			return nil, "", fmt.Errorf("not a valid image in data URL")
+		}
+		return data, ext, nil
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("creating request: %w", err)

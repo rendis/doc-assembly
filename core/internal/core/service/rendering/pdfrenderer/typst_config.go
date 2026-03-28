@@ -6,7 +6,7 @@ type TypstDesignTokens struct {
 	FontStack        []string // Default font family chain
 	BaseFontSize     string   // Base font size (e.g., "12pt")
 	BaseTextColor    string   // Default text color hex (e.g., "#333333")
-	ParagraphLeading string   // Line spacing within paragraphs (e.g., "0.75em")
+	ParagraphLeading string   // Line spacing within paragraphs (e.g., "0.50em")
 	ParagraphSpacing string   // Spacing between paragraphs (e.g., "1.5em")
 
 	// Heading styles (level 1-6)
@@ -35,10 +35,10 @@ type TypstDesignTokens struct {
 // DefaultDesignTokens returns the built-in design tokens matching the current rendering output.
 func DefaultDesignTokens() TypstDesignTokens {
 	return TypstDesignTokens{
-		FontStack:        []string{"Helvetica Neue", "Arial", "Liberation Sans", "Libertinus Serif"},
+		FontStack:        []string{"Inter", "Arial", "Helvetica Neue", "Liberation Sans", "Libertinus Serif"},
 		BaseFontSize:     "12pt",
 		BaseTextColor:    "#333333",
-		ParagraphLeading: "0.75em",
+		ParagraphLeading: "0.50em",
 		ParagraphSpacing: "1.5em",
 
 		HeadingSizes:  [6]string{"24pt", "20pt", "16pt", "14pt", "12pt", "11pt"},

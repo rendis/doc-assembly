@@ -281,7 +281,7 @@ export function VariablesPanel({
       )}
     >
       {/* Header */}
-      <div className="relative flex items-center pt-3 pb-2 px-3 border-b border-border">
+      <div className="relative z-20 isolate flex items-center pt-3 pb-2 px-3 border-b border-border bg-card">
         {!isCollapsed && (
           <>
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -427,9 +427,9 @@ export function VariablesPanel({
             </div>
 
             {/* Scroll container with gradient overlays */}
-            <div className="relative flex-1 min-h-0 overflow-hidden">
+            <div className="relative z-0 flex-1 min-h-0 overflow-hidden">
               {/* Top fade area - solid bg + gradient */}
-              <div className="absolute top-0 left-0 right-0 h-10 pointer-events-none z-10 flex flex-col">
+              <div className="absolute top-0 left-0 right-0 h-10 pointer-events-none z-0 flex flex-col">
                 <div className="h-4 bg-card" />
                 <div className="h-6 bg-linear-to-b from-card to-transparent" />
               </div>

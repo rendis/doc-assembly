@@ -27,4 +27,8 @@ type TypstConverter interface {
 	// SetPageWidthPx sets the full page width in pixels (including margins).
 	// Used for computing signature field width as a percentage of full page.
 	SetPageWidthPx(width float64)
+
+	// RegisterRemoteImage registers a URL or data URI for deferred download and
+	// returns the local filename to reference in the Typst source.
+	RegisterRemoteImage(url string) string
 }

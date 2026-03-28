@@ -13,6 +13,7 @@ type Document struct {
 	VariableIDs     []string        `json:"variableIds"`
 	SignerRoles     []SignerRole    `json:"signerRoles"`
 	SigningWorkflow *WorkflowConfig `json:"signingWorkflow,omitempty"`
+	Header          *DocumentHeader `json:"header,omitempty"`
 	Content         *ProseMirrorDoc `json:"content"`
 	ExportInfo      ExportInfo      `json:"exportInfo"`
 }
