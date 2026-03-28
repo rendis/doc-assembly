@@ -67,6 +67,7 @@ interface EditorToolbarProps {
   onOpenImage?: () => void
   onExport?: () => void
   onImport?: () => void
+  onBeforePreview?: () => Promise<void>
   templateId?: string
   versionId?: string
 }
@@ -86,6 +87,7 @@ export function EditorToolbar({
   onOpenImage,
   onExport,
   onImport,
+  onBeforePreview,
   templateId,
   versionId,
 }: EditorToolbarProps) {
@@ -364,7 +366,12 @@ export function EditorToolbar({
                 </ToolbarButton>
               )}
               {templateId && versionId && (
-                <PreviewButton templateId={templateId} versionId={versionId} editor={previewEditor} />
+                <PreviewButton
+                  templateId={templateId}
+                  versionId={versionId}
+                  editor={previewEditor}
+                  beforeGenerate={onBeforePreview}
+                />
               )}
             </>
           )}

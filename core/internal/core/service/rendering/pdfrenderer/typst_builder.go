@@ -2,6 +2,7 @@ package pdfrenderer
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity/portabledoc"
@@ -10,6 +11,25 @@ import (
 
 // pxToPt converts pixels (at 96 DPI) to typographic points.
 const pxToPt = 0.75 // 1px at 96 DPI = 0.75pt
+
+const (
+	headerImageMinWidthPx = 32.0
+	headerTextMinWidthPx  = 240.0
+	headerImageGapPx      = 16.0
+	headerImageHeightPx   = 96.0
+	headerTextHeightPx    = 96.0
+	headerTextBaseFontPt  = 10.5
+	headerSurfacePadPx    = 12.0
+	headerSurfaceMinPx    = headerTextHeightPx + (headerSurfacePadPx * 2)
+)
+
+type headerRenderMetrics struct {
+	surfaceMinHeightPt   float64
+	surfaceVerticalPadPt float64
+	textSlotHeightPt     float64
+	imageGapPt           float64
+	headerVisualOffsetPt float64
+}
 
 // TypstBuilder constructs complete Typst documents from portable documents.
 // It generates the document preamble (page setup, fonts, heading styles)
@@ -51,7 +71,7 @@ func (b *TypstBuilder) Build(doc *portabledoc.Document) (string, int, []port.Sig
 
 	// Render header block (letterhead, first page only)
 	if doc.Header != nil && doc.Header.Enabled {
-		sb.WriteString(b.headerBlock(doc.Header))
+		sb.WriteString(b.headerBlock(doc.Header, &doc.PageConfig))
 	}
 
 	// Render content via converter
@@ -128,6 +148,8 @@ func (b *TypstBuilder) typographySetup() string {
 
 	fmt.Fprintf(&sb, "  size: %s,\n", b.tokens.BaseFontSize)
 	fmt.Fprintf(&sb, "  fill: rgb(%q),\n", b.tokens.BaseTextColor)
+	sb.WriteString("  top-edge: 0.8em,\n")
+	sb.WriteString("  bottom-edge: -0.2em,\n")
 	sb.WriteString("  hyphenate: true,\n")
 	sb.WriteString("  number-width: \"proportional\",\n")
 	sb.WriteString(")\n\n")
@@ -155,73 +177,285 @@ func (b *TypstBuilder) RemoteImages() map[string]string {
 
 // headerBlock renders the document header (letterhead) as a Typst content block.
 // It supports three layout modes: image-left, image-right, and image-center.
-func (b *TypstBuilder) headerBlock(header *portabledoc.DocumentHeader) string {
-	imageTypst := b.renderHeaderImage(header)
-	textTypst := b.renderHeaderText(header.TextNodes())
+func (b *TypstBuilder) headerBlock(header *portabledoc.DocumentHeader, pageConfig *portabledoc.PageConfig) string {
+	metrics := resolveHeaderRenderMetrics(pageConfig)
+	textTypst := b.renderHeaderText(header.TextNodes(), metrics)
+	hasText := strings.TrimSpace(textTypst) != ""
+	maxImageWidthPx := resolveHeaderMaxImageWidthPx(pageConfig, hasText)
+	imageTypst := b.renderHeaderImage(header, maxImageWidthPx)
+	imageWidthPt, hasImageWidth := resolveHeaderImageWidthPt(header, maxImageWidthPx)
+	imageSlot := renderHeaderImageSlot(imageTypst, imageWidthPt, hasImageWidth, metrics)
 
 	var content string
 
 	switch header.Layout {
 	case portabledoc.HeaderLayoutImageCenter:
-		content = renderCenteredHeader(imageTypst, textTypst)
+		content = renderCenteredHeader(imageSlot, textTypst)
 	case portabledoc.HeaderLayoutImageRight:
-		content = renderTwoColumnHeader(textTypst, imageTypst, false, "(1fr, 30%)", "(left + top, center + horizon)")
+		content = renderLateralHeader(textTypst, imageSlot, false, imageWidthPt, hasImageWidth, metrics)
 	default: // image-left (default)
-		content = renderTwoColumnHeader(imageTypst, textTypst, true, "(30%, 1fr)", "(center + horizon, left + top)")
+		content = renderLateralHeader(imageSlot, textTypst, true, imageWidthPt, hasImageWidth, metrics)
 	}
 
-	return content + "#v(1em)\n"
+	return renderHeaderSurface(content, metrics)
 }
 
-func (b *TypstBuilder) renderHeaderImage(header *portabledoc.DocumentHeader) string {
+func (b *TypstBuilder) renderHeaderImage(header *portabledoc.DocumentHeader, maxWidthPx float64) string {
 	if !header.HasImage() {
 		return ""
 	}
 
 	imageFilename := b.converter.RegisterRemoteImage(*header.ImageURL)
-	return fmt.Sprintf("#image(%q, height: 90pt)", imageFilename)
+	heightPx := headerImageHeightPx
+	if header.ImageHeight != nil && *header.ImageHeight > 0 {
+		heightPx = float64(*header.ImageHeight)
+	}
+
+	args := []string{
+		fmt.Sprintf("%q", imageFilename),
+		fmt.Sprintf("height: %.1fpt", heightPx*pxToPt),
+	}
+
+	if widthPt, ok := resolveHeaderImageWidthPt(header, maxWidthPx); ok {
+		args = append(args, fmt.Sprintf("width: %.1fpt", widthPt))
+		args = append(args, `fit: "stretch"`)
+	}
+
+	return fmt.Sprintf("#image(%s)", strings.Join(args, ", "))
 }
 
-func (b *TypstBuilder) renderHeaderText(nodes []portabledoc.Node) string {
+func (b *TypstBuilder) renderHeaderText(nodes []portabledoc.Node, metrics headerRenderMetrics) string {
 	if len(nodes) == 0 {
 		return ""
 	}
 
-	converted, _ := b.converter.ConvertNodes(nodes)
-	return converted
+	converted, _ := b.converter.ConvertNodes(normalizeHeaderTextNodes(nodes))
+	if strings.TrimSpace(converted) == "" {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"#block(width: 100%%, height: %.1fpt)[\n#set text(size: %.1fpt)\n#set par(linebreaks: \"simple\")\n#set par(spacing: 0pt)\n%s\n]\n",
+		metrics.textSlotHeightPt,
+		headerTextBaseFontPt,
+		strings.TrimRight(converted, "\n"),
+	)
 }
 
-func renderCenteredHeader(imageTypst, textTypst string) string {
-	if imageTypst != "" {
-		return fmt.Sprintf("#pad(y: 6pt)[#align(center)[%s]]\n", imageTypst)
+func normalizeHeaderTextNodes(nodes []portabledoc.Node) []portabledoc.Node {
+	if len(nodes) <= 1 {
+		return nodes
+	}
+
+	normalized := make([]portabledoc.Node, 0, len(nodes))
+
+	for _, node := range nodes {
+		if len(normalized) == 0 {
+			normalized = append(normalized, clonePortableNode(node))
+			continue
+		}
+
+		prev := &normalized[len(normalized)-1]
+		if prev.Type == portabledoc.NodeTypeParagraph &&
+			node.Type == portabledoc.NodeTypeParagraph &&
+			reflect.DeepEqual(prev.Attrs, node.Attrs) {
+			if len(prev.Content) > 0 {
+				prev.Content = append(prev.Content, portabledoc.Node{Type: portabledoc.NodeTypeHardBreak})
+			}
+			prev.Content = append(prev.Content, clonePortableNodes(node.Content)...)
+			continue
+		}
+
+		normalized = append(normalized, clonePortableNode(node))
+	}
+
+	return normalized
+}
+
+func clonePortableNodes(nodes []portabledoc.Node) []portabledoc.Node {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	cloned := make([]portabledoc.Node, 0, len(nodes))
+	for _, node := range nodes {
+		cloned = append(cloned, clonePortableNode(node))
+	}
+	return cloned
+}
+
+func clonePortableNode(node portabledoc.Node) portabledoc.Node {
+	cloned := node
+	if node.Content != nil {
+		cloned.Content = clonePortableNodes(node.Content)
+	}
+	if node.Attrs != nil {
+		cloned.Attrs = clonePortableAttrs(node.Attrs)
+	}
+	if node.Text != nil {
+		text := *node.Text
+		cloned.Text = &text
+	}
+	if node.Marks != nil {
+		cloned.Marks = append([]portabledoc.Mark(nil), node.Marks...)
+	}
+
+	return cloned
+}
+
+func clonePortableAttrs(attrs map[string]any) map[string]any {
+	if attrs == nil {
+		return nil
+	}
+
+	cloned := make(map[string]any, len(attrs))
+	for key, value := range attrs {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func renderCenteredHeader(imageSlot, textTypst string) string {
+	if imageSlot != "" {
+		return fmt.Sprintf("#align(center)[%s]\n", imageSlot)
 	}
 	if textTypst != "" {
-		return fmt.Sprintf("#align(center)[%s]\n", textTypst)
+		return textTypst
 	}
 	return ""
 }
 
-func renderTwoColumnHeader(leftContent, rightContent string, imageOnLeft bool, columns, align string) string {
+func renderLateralHeader(
+	leftContent, rightContent string,
+	imageOnLeft bool,
+	imageWidthPt float64,
+	hasImageWidth bool,
+	metrics headerRenderMetrics,
+) string {
 	switch {
 	case leftContent != "" && rightContent != "":
+		columns := "(auto, 1fr)"
+		if imageOnLeft {
+			if hasImageWidth {
+				columns = fmt.Sprintf("(%.1fpt, 1fr)", imageWidthPt)
+			}
+		} else {
+			if hasImageWidth {
+				columns = fmt.Sprintf("(1fr, %.1fpt)", imageWidthPt)
+			}
+		}
+
 		return fmt.Sprintf(
-			"#grid(\n  columns: %s,\n  column-gutter: 1em,\n  align: %s,\n  [%s],\n  [%s],\n)\n",
+			"#block(width: 100%%)[\n  #grid(\n    columns: %s,\n    column-gutter: %.1fpt,\n    [%s],\n    [%s],\n  )\n]\n",
 			columns,
-			align,
+			metrics.imageGapPt,
 			leftContent,
 			rightContent,
 		)
 	case leftContent != "":
 		if imageOnLeft {
-			return fmt.Sprintf("#align(center)[%s]\n", leftContent)
+			return fmt.Sprintf("#align(left)[%s]\n", leftContent)
 		}
 		return leftContent
 	case rightContent != "":
 		if imageOnLeft {
 			return rightContent
 		}
-		return fmt.Sprintf("#align(center)[%s]\n", rightContent)
+		return fmt.Sprintf("#align(right)[%s]\n", rightContent)
 	default:
 		return ""
 	}
+}
+
+func renderHeaderImageSlot(imageTypst string, imageWidthPt float64, hasImageWidth bool, metrics headerRenderMetrics) string {
+	if imageTypst == "" {
+		return ""
+	}
+
+	if hasImageWidth {
+		return fmt.Sprintf(
+			"#block(width: %.1fpt, height: %.1fpt)[\n#align(center + horizon)[%s]\n]\n",
+			imageWidthPt,
+			metrics.textSlotHeightPt,
+			imageTypst,
+		)
+	}
+
+	return fmt.Sprintf(
+		"#block(height: %.1fpt)[\n#align(center + horizon)[%s]\n]\n",
+		metrics.textSlotHeightPt,
+		imageTypst,
+	)
+}
+
+func renderHeaderSurface(content string, metrics headerRenderMetrics) string {
+	if strings.TrimSpace(content) == "" {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"#block(width: 100%%, height: %.1fpt)[\n  #place(top + left, dy: -%.1fpt)[\n    #block(width: 100%%)[\n      #pad(y: %.1fpt)[\n%s\n      ]\n    ]\n  ]\n]\n",
+		metrics.surfaceMinHeightPt,
+		metrics.headerVisualOffsetPt,
+		metrics.surfaceVerticalPadPt,
+		indentTypstBlock(strings.TrimRight(content, "\n"), "        "),
+	)
+}
+
+func indentTypstBlock(content, prefix string) string {
+	if content == "" {
+		return ""
+	}
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if line == "" {
+			lines[i] = prefix
+			continue
+		}
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
+}
+
+func resolveHeaderRenderMetrics(pageConfig *portabledoc.PageConfig) headerRenderMetrics {
+	headerVisualOffsetPx := 0.0
+	if pageConfig != nil {
+		headerVisualOffsetPx = pageConfig.Margins.Top / 2
+	}
+
+	return headerRenderMetrics{
+		surfaceMinHeightPt:   headerSurfaceMinPx * pxToPt,
+		surfaceVerticalPadPt: headerSurfacePadPx * pxToPt,
+		textSlotHeightPt:     headerTextHeightPx * pxToPt,
+		imageGapPt:           headerImageGapPx * pxToPt,
+		headerVisualOffsetPt: headerVisualOffsetPx * pxToPt,
+	}
+}
+
+func resolveHeaderMaxImageWidthPx(pageConfig *portabledoc.PageConfig, hasText bool) float64 {
+	if pageConfig == nil {
+		if hasText {
+			return headerTextMinWidthPx
+		}
+		return 0
+	}
+
+	usableWidth := pageConfig.Width - pageConfig.Margins.Left - pageConfig.Margins.Right
+	if !hasText {
+		return max(headerImageMinWidthPx, usableWidth)
+	}
+
+	return max(headerImageMinWidthPx, usableWidth-headerImageGapPx-headerTextMinWidthPx)
+}
+
+func resolveHeaderImageWidthPt(header *portabledoc.DocumentHeader, maxWidthPx float64) (float64, bool) {
+	if header == nil || header.ImageWidth == nil || *header.ImageWidth <= 0 {
+		return 0, false
+	}
+
+	widthPx := min(float64(*header.ImageWidth), maxWidthPx)
+	widthPx = max(headerImageMinWidthPx, widthPx)
+
+	return widthPx * pxToPt, true
 }

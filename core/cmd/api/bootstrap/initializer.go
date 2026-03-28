@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -382,7 +384,7 @@ func buildPDFRenderer(cfg *config.Config, customTokens *pdfrenderer.TypstDesignT
 	opts := pdfrenderer.TypstOptions{
 		BinPath:        typstCfg.BinPath,
 		Timeout:        typstCfg.TimeoutDuration(),
-		FontDirs:       typstCfg.FontDirs,
+		FontDirs:       resolveTypstFontDirs(typstCfg.FontDirs),
 		MaxConcurrent:  typstCfg.MaxConcurrent,
 		AcquireTimeout: typstCfg.AcquireTimeoutDuration(),
 	}
@@ -407,6 +409,37 @@ func buildPDFRenderer(cfg *config.Config, customTokens *pdfrenderer.TypstDesignT
 
 	factory := pdfrenderer.NewTypstConverterFactory(tokens)
 	return pdfrenderer.NewService(opts, imageCache, factory, tokens)
+}
+
+func resolveTypstFontDirs(fontDirs []string) []string {
+	resolved := make([]string, 0, len(fontDirs))
+	for _, dir := range fontDirs {
+		if strings.TrimSpace(dir) == "" {
+			continue
+		}
+
+		candidates := []string{dir}
+		if !filepath.IsAbs(dir) {
+			candidates = append(candidates, filepath.Join("..", dir), filepath.Join("core", dir))
+		}
+
+		chosen := dir
+		for _, candidate := range candidates {
+			info, err := os.Stat(candidate)
+			if err == nil && info.IsDir() {
+				chosen = candidate
+				break
+			}
+		}
+
+		if abs, err := filepath.Abs(chosen); err == nil {
+			chosen = abs
+		}
+
+		resolved = append(resolved, chosen)
+	}
+
+	return resolved
 }
 
 // resolveSigningProvider returns the engine override or auto-selects from config.

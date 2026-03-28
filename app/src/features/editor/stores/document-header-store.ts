@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { deriveHeaderEnabled } from '../utils/document-header'
+import { deriveHeaderEnabled, normalizeHeaderContent } from '../utils/document-header'
 
 // =============================================================================
 // Types
@@ -70,19 +70,26 @@ export const useDocumentHeaderStore = create<DocumentHeaderStore>()((set) => ({
     }),
 
   setContent: (content) =>
-    set((state) => ({
-      content,
+    set((state) => {
+      const normalizedContent = normalizeHeaderContent(content)
+      return {
+        content: normalizedContent,
       enabled: deriveHeaderEnabled({
         imageUrl: state.imageUrl,
-        content,
+        content: normalizedContent,
       }),
-    })),
+      }
+    }),
 
   reset: () => set(initialState),
 
   configure: (partial) =>
     set((state) => {
-      const nextState = { ...state, ...partial }
+      const nextState = {
+        ...state,
+        ...partial,
+        content: partial.content !== undefined ? normalizeHeaderContent(partial.content) : state.content,
+      }
       return {
         ...nextState,
         enabled: deriveHeaderEnabled(nextState),

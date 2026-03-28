@@ -7,13 +7,13 @@ import { Color } from '@tiptap/extension-color'
 import TextAlign from '@tiptap/extension-text-align'
 import Moveable from 'react-moveable'
 import { ImageIcon, PanelLeft, PanelRight, LayoutTemplate, Trash2 } from 'lucide-react'
-import type { Editor, JSONContent } from '@tiptap/core'
+import { Extension, type Editor, type JSONContent } from '@tiptap/core'
 import { cn } from '@/lib/utils'
 import { ImageInsertModal, type ImageInsertResult } from './ImageInsertModal'
 import { LineSpacingExtension } from '../extensions/LineSpacing'
 import { useDocumentHeaderStore, type DocumentHeaderLayout } from '../stores/document-header-store'
 import { StoredMarksPersistenceExtension } from '../extensions/StoredMarksPersistence'
-import { hasMeaningfulHeaderContent } from '../utils/document-header'
+import { hasMeaningfulHeaderContent, normalizeHeaderContent } from '../utils/document-header'
 
 interface DocumentPageHeaderProps {
   editable: boolean
@@ -144,6 +144,15 @@ const HEADER_OVERFLOW_TOLERANCE = 4
 const HEADER_SURFACE_VERTICAL_PADDING = 12
 const HEADER_SURFACE_MIN_HEIGHT = HEADER_TEXT_HEIGHT + HEADER_SURFACE_VERTICAL_PADDING * 2
 
+const HeaderEnterAsBreakExtension = Extension.create({
+  name: 'headerEnterAsBreak',
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => this.editor.commands.setHardBreak(),
+    }
+  },
+})
+
 function LayoutPicker({
   current,
   onChange,
@@ -234,10 +243,11 @@ export function DocumentPageHeader({
   }
 
   const restoreLastValidHeaderContent = (editor: Editor) => {
-    const serialized = JSON.stringify(lastValidContent.current)
+    const normalized = normalizeHeaderContent(lastValidContent.current) ?? EMPTY_HEADER_DOC
+    const serialized = JSON.stringify(normalized)
     lastExternalContent.current = serialized
     isExternalUpdate.current = true
-    editor.commands.setContent(lastValidContent.current)
+    editor.commands.setContent(normalized)
     isExternalUpdate.current = false
 
     requestAnimationFrame(() => {
@@ -259,6 +269,7 @@ export function DocumentPageHeader({
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       LineSpacingExtension,
       StoredMarksPersistenceExtension,
+      HeaderEnterAsBreakExtension,
     ],
     content: storeContent ?? EMPTY_HEADER_DOC,
     editable,
@@ -278,9 +289,10 @@ export function DocumentPageHeader({
         }
       }
 
-      lastValidContent.current = json
-      lastExternalContent.current = JSON.stringify(json)
-      setContent(json)
+      const normalized = normalizeHeaderContent(json) ?? EMPTY_HEADER_DOC
+      lastValidContent.current = normalized
+      lastExternalContent.current = JSON.stringify(normalized)
+      setContent(normalized)
     },
     onFocus: ({ editor }) => {
       onActivate?.()
@@ -291,9 +303,9 @@ export function DocumentPageHeader({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none pt-2 pb-1',
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none',
           'prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0',
-          'h-full min-h-full whitespace-pre-wrap overflow-hidden'
+          '-mt-[0.2em] h-[calc(100%+0.2em)] min-h-[calc(100%+0.2em)] whitespace-pre-wrap overflow-hidden'
         ),
       },
       handleDOMEvents: {
@@ -495,7 +507,7 @@ export function DocumentPageHeader({
       style={{ height: `${HEADER_TEXT_HEIGHT}px` }}
     >
       {!hasHeaderText && (
-        <span className="pointer-events-none absolute left-0 top-3 text-sm text-muted-foreground/80">
+        <span className="pointer-events-none absolute left-0 top-0 text-sm text-muted-foreground/80">
           {t('editor.documentHeader.textPlaceholder')}
         </span>
       )}
@@ -519,7 +531,7 @@ export function DocumentPageHeader({
         onClick={handleSurfaceClick}
       >
         {editable && active && imageUrl && (
-          <div className="absolute right-3 top-3 z-10">
+          <div className="absolute top-3 left-full ml-3 z-20">
             <LayoutPicker current={layout} onChange={setLayout} />
           </div>
         )}

@@ -74,6 +74,8 @@ interface DocumentEditorProps {
   templateId?: string
   /** Version ID for preview functionality */
   versionId?: string
+  /** Ensures the saved preview source is up to date before generating PDF */
+  onBeforePreview?: () => Promise<void>
 }
 
 export function DocumentEditor({
@@ -88,6 +90,7 @@ export function DocumentEditor({
   onFullyReady,
   templateId,
   versionId,
+  onBeforePreview,
 }: DocumentEditorProps) {
   // Get page config from store (for visual width and margins)
   const { pageSize, margins } = usePaginationStore()
@@ -692,6 +695,7 @@ export function DocumentEditor({
                   onOpenImage={activeSurface === 'header' ? handleOpenHeaderImageModal : handleOpenBodyImageModal}
                   onExport={onExport}
                   onImport={onImport}
+                  onBeforePreview={onBeforePreview}
                   templateId={templateId}
                   versionId={versionId}
                 />
@@ -715,7 +719,7 @@ export function DocumentEditor({
               )}
 
               <div
-                className="mx-auto bg-muted shadow-lg overflow-hidden"
+                className="mx-auto bg-muted shadow-lg overflow-visible"
                 style={{
                   width: pageSize.width,
                   minHeight: pageSize.height,

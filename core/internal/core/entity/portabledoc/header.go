@@ -2,11 +2,13 @@ package portabledoc
 
 // DocumentHeader represents the letterhead block rendered at the top of the first page.
 type DocumentHeader struct {
-	Enabled  bool            `json:"enabled"`
-	Layout   string          `json:"layout,omitempty"`   // "image-left" | "image-right" | "image-center"
-	ImageURL *string         `json:"imageUrl,omitempty"` // data URI or remote URL; nil/empty = no image
-	ImageAlt string          `json:"imageAlt,omitempty"`
-	Content  *ProseMirrorDoc `json:"content,omitempty"` // ProseMirror doc for header text
+	Enabled     bool            `json:"enabled"`
+	Layout      string          `json:"layout,omitempty"`   // "image-left" | "image-right" | "image-center"
+	ImageURL    *string         `json:"imageUrl,omitempty"` // data URI or remote URL; nil/empty = no image
+	ImageAlt    string          `json:"imageAlt,omitempty"`
+	ImageWidth  *int            `json:"imageWidth,omitempty"`
+	ImageHeight *int            `json:"imageHeight,omitempty"`
+	Content     *ProseMirrorDoc `json:"content,omitempty"` // ProseMirror doc for header text
 }
 
 // Header layout constants.

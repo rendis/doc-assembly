@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveHeaderEnabled,
   hasMeaningfulHeaderContent,
+  normalizeHeaderContent,
 } from './document-header'
 
 describe('document-header helpers', () => {
@@ -48,5 +49,51 @@ describe('document-header helpers', () => {
         imageUrl: 'data:image/png;base64,abc123',
       })
     ).toBe(true)
+  })
+
+  it('normalizes consecutive header paragraphs into hard breaks', () => {
+    const normalized = normalizeHeaderContent({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Line 1' }],
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Line 2' }],
+        },
+      ],
+    })
+
+    expect(normalized?.content).toHaveLength(1)
+    expect(normalized?.content?.[0]).toMatchObject({
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Line 1' },
+        { type: 'hardBreak' },
+        { type: 'text', text: 'Line 2' },
+      ],
+    })
+  })
+
+  it('keeps header paragraphs separate when attrs differ', () => {
+    const normalized = normalizeHeaderContent({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          attrs: { lineSpacing: 'compact' },
+          content: [{ type: 'text', text: 'Line 1' }],
+        },
+        {
+          type: 'paragraph',
+          attrs: { lineSpacing: 'loose' },
+          content: [{ type: 'text', text: 'Line 2' }],
+        },
+      ],
+    })
+
+    expect(normalized?.content).toHaveLength(2)
   })
 })

@@ -183,31 +183,20 @@ func (c *typstConverter) paragraph(node portabledoc.Node) string {
 	if content == "" {
 		return fmt.Sprintf("#v(%s)\n", c.tokens.ParagraphSpacing)
 	}
-	if align, ok := node.Attrs["textAlign"].(string); ok {
-		if align == "justify" {
-			return fmt.Sprintf("#par(justify: true)[%s]\n\n", content)
-		}
-		if typstAlign := toTypstAlign(align); typstAlign != "" {
-			return fmt.Sprintf("#align(%s)[%s]\n\n", typstAlign, content)
-		}
-	}
-	return content + "\n\n"
+
+	leading := c.resolveLineSpacing(node.Attrs)
+	body := c.applyLocalParagraphFormatting(content, node.Attrs, leading)
+	return body + "\n\n"
 }
 
 func (c *typstConverter) heading(node portabledoc.Node) string {
 	level := c.parseHeadingLevel(node.Attrs)
 	content := c.convertNodes(node.Content)
 	prefix := strings.Repeat("=", level)
-	heading := fmt.Sprintf("%s %s\n", prefix, content)
-	if align, ok := node.Attrs["textAlign"].(string); ok {
-		if align == "justify" {
-			return fmt.Sprintf("#par(justify: true)[%s]\n", strings.TrimSuffix(heading, "\n"))
-		}
-		if typstAlign := toTypstAlign(align); typstAlign != "" {
-			return fmt.Sprintf("#align(%s)[%s]\n", typstAlign, strings.TrimSuffix(heading, "\n"))
-		}
-	}
-	return heading
+	heading := fmt.Sprintf("%s %s", prefix, content)
+	leading := c.resolveLineSpacing(node.Attrs)
+	body := c.applyLocalParagraphFormatting(heading, node.Attrs, leading)
+	return body + "\n"
 }
 
 func (c *typstConverter) parseHeadingLevel(attrs map[string]any) int {
@@ -216,6 +205,58 @@ func (c *typstConverter) parseHeadingLevel(attrs map[string]any) int {
 		level = int(l)
 	}
 	return clamp(level, 1, 6)
+}
+
+func (c *typstConverter) resolveLineSpacing(attrs map[string]any) string {
+	if attrs == nil {
+		return c.tokens.ParagraphLeading
+	}
+
+	raw, ok := attrs["lineSpacing"].(string)
+	if !ok || raw == "" {
+		return c.tokens.ParagraphLeading
+	}
+
+	switch portabledoc.NormalizeLineSpacing(raw) {
+	case portabledoc.LineSpacingTight:
+		return "0em"
+	case portabledoc.LineSpacingCompact:
+		return "0.15em"
+	case portabledoc.LineSpacingRelaxed:
+		return "1.00em"
+	case portabledoc.LineSpacingLoose:
+		return "1.50em"
+	default:
+		return c.tokens.ParagraphLeading
+	}
+}
+
+func (c *typstConverter) applyLocalParagraphFormatting(
+	content string,
+	attrs map[string]any,
+	leading string,
+) string {
+	align, _ := attrs["textAlign"].(string)
+
+	if align == "justify" {
+		body := fmt.Sprintf("#par(justify: true)[%s]", content)
+		return wrapTypstBlockWithLineSpacing(body, leading)
+	}
+
+	body := wrapTypstBlockWithLineSpacing(content, leading)
+	if typstAlign := toTypstAlign(align); typstAlign != "" {
+		return fmt.Sprintf("#align(%s)[%s]", typstAlign, body)
+	}
+
+	return body
+}
+
+func wrapTypstBlockWithLineSpacing(content, leading string) string {
+	return fmt.Sprintf(
+		"#[\n#set text(top-edge: 0.8em, bottom-edge: -0.2em)\n#set par(leading: %s)\n%s\n]",
+		leading,
+		strings.TrimRight(content, "\n"),
+	)
 }
 
 func (c *typstConverter) blockquote(node portabledoc.Node) string {

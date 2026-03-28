@@ -364,6 +364,7 @@ function EditorPage() {
               editable={isEditable}
               variables={variables}
               onImport={isEditable ? handleImport : undefined}
+              onBeforePreview={autoSave.ensureSaved}
               editorRef={editorRef}
               onEditorReady={setEditorInstance}
               onFullyReady={handleEditorFullyReady}
