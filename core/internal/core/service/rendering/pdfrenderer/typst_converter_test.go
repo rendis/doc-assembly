@@ -450,6 +450,9 @@ func TestTypstConverter_Image(t *testing.T) {
 	if !strings.Contains(got, "img_1.png") {
 		t.Errorf("expected local filename, got %q", got)
 	}
+	if !strings.Contains(got, `scaling: "smooth"`) {
+		t.Errorf("expected raster images to request smooth scaling, got %q", got)
+	}
 }
 
 func TestTypstConverter_ImageCenter(t *testing.T) {
@@ -464,6 +467,21 @@ func TestTypstConverter_ImageCenter(t *testing.T) {
 	}
 	if !strings.Contains(got, "img_1.png") {
 		t.Errorf("expected local filename for remote URL, got %q", got)
+	}
+	if !strings.Contains(got, `scaling: "smooth"`) {
+		t.Errorf("expected raster images to request smooth scaling, got %q", got)
+	}
+}
+
+func TestTypstConverter_ImageSVGDoesNotForceSmoothScaling(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	node := portabledoc.Node{
+		Type:  portabledoc.NodeTypeImage,
+		Attrs: map[string]any{"src": "https://example.com/logo.svg", "width": float64(120)},
+	}
+	got := c.convertNode(node)
+	if strings.Contains(got, `scaling: "smooth"`) {
+		t.Errorf("expected svg images to omit raster scaling hint, got %q", got)
 	}
 }
 

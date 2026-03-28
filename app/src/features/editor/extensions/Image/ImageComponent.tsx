@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import { galleryApi } from '../../api/gallery-api';
+import { resolveStorageImageSrc } from '../../utils/storage-image-src';
 import { useTranslation } from 'react-i18next';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { NodeSelection } from '@tiptap/pm/state';
@@ -72,16 +72,10 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
       return;
     }
     let cancelled = false;
-    let blobURL = '';
-    const key = src.slice('storage://'.length);
-    galleryApi.getSrc(key).then((url) => {
+    resolveStorageImageSrc(src).then((url) => {
       if (cancelled) {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
         return;
       }
-      if (url.startsWith('blob:')) blobURL = url;
       setResolvedSrc(url);
     }).catch(() => {
       if (!cancelled) {
@@ -91,7 +85,6 @@ export function ImageComponent({ node, updateAttributes, selected, deleteNode, e
     });
     return () => {
       cancelled = true;
-      if (blobURL) URL.revokeObjectURL(blobURL);
     };
   }, [src]);
 
