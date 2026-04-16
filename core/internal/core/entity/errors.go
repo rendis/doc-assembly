@@ -92,12 +92,13 @@ var (
 
 // Workspace Member errors.
 var (
-	ErrMemberNotFound          = errors.New("workspace member not found")
-	ErrMemberAlreadyExists     = errors.New("user is already a member of this workspace")
-	ErrMembershipPending       = errors.New("membership is pending")
-	ErrCannotRemoveOwner       = errors.New("cannot remove workspace owner")
-	ErrInvalidRole             = errors.New("invalid workspace role")
-	ErrInvalidMembershipStatus = errors.New("invalid membership status")
+	ErrMemberNotFound               = errors.New("workspace member not found")
+	ErrMemberAlreadyExists          = errors.New("user is already a member of this workspace")
+	ErrMembershipPending            = errors.New("membership is pending")
+	ErrCannotRemoveOwner            = errors.New("cannot remove workspace owner")
+	ErrCannotRemoveLastSystemMember = errors.New("cannot remove the last direct member from the global system workspace")
+	ErrInvalidRole                  = errors.New("invalid workspace role")
+	ErrInvalidMembershipStatus      = errors.New("invalid membership status")
 )
 
 // Folder errors.

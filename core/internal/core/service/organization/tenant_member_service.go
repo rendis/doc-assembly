@@ -17,10 +17,12 @@ import (
 func NewTenantMemberService(
 	memberRepo port.TenantMemberRepository,
 	userRepo port.UserRepository,
+	tenantRepo port.TenantRepository,
 ) organizationuc.TenantMemberUseCase {
 	return &TenantMemberService{
 		memberRepo: memberRepo,
 		userRepo:   userRepo,
+		tenantRepo: tenantRepo,
 	}
 }
 
@@ -28,6 +30,7 @@ func NewTenantMemberService(
 type TenantMemberService struct {
 	memberRepo port.TenantMemberRepository
 	userRepo   port.UserRepository
+	tenantRepo port.TenantRepository
 }
 
 // ListMembers lists all members of a tenant.
@@ -130,8 +133,15 @@ func (s *TenantMemberService) UpdateMemberRole(ctx context.Context, cmd organiza
 		return nil, entity.ErrTenantMemberNotFound
 	}
 
-	// If changing from TENANT_OWNER, verify there will be at least one owner remaining
-	if member.Role == entity.TenantRoleOwner && cmd.NewRole != entity.TenantRoleOwner {
+	// Only the global system tenant must always retain a direct TENANT_OWNER.
+	mustPreserveOwner, err := s.mustPreserveDirectTenantOwner(ctx, cmd.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	if member.Role == entity.TenantRoleOwner &&
+		cmd.NewRole != entity.TenantRoleOwner &&
+		mustPreserveOwner {
 		count, err := s.memberRepo.CountByRole(ctx, cmd.TenantID, entity.TenantRoleOwner)
 		if err != nil {
 			return nil, fmt.Errorf("counting tenant owners: %w", err)
@@ -177,8 +187,13 @@ func (s *TenantMemberService) RemoveMember(ctx context.Context, cmd organization
 		return entity.ErrTenantMemberNotFound
 	}
 
-	// Cannot remove the last TENANT_OWNER
-	if member.Role == entity.TenantRoleOwner {
+	// Only the global system tenant must always retain a direct TENANT_OWNER.
+	mustPreserveOwner, err := s.mustPreserveDirectTenantOwner(ctx, cmd.TenantID)
+	if err != nil {
+		return err
+	}
+
+	if member.Role == entity.TenantRoleOwner && mustPreserveOwner {
 		count, err := s.memberRepo.CountByRole(ctx, cmd.TenantID, entity.TenantRoleOwner)
 		if err != nil {
 			return fmt.Errorf("counting tenant owners: %w", err)
@@ -204,4 +219,16 @@ func (s *TenantMemberService) RemoveMember(ctx context.Context, cmd organization
 // CountOwners counts the number of TENANT_OWNER members in a tenant.
 func (s *TenantMemberService) CountOwners(ctx context.Context, tenantID string) (int, error) {
 	return s.memberRepo.CountByRole(ctx, tenantID, entity.TenantRoleOwner)
+}
+
+func (s *TenantMemberService) mustPreserveDirectTenantOwner(ctx context.Context, tenantID string) (bool, error) {
+	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
+	if err != nil {
+		return false, fmt.Errorf("finding tenant: %w", err)
+	}
+	if tenant == nil {
+		return false, entity.ErrTenantNotFound
+	}
+
+	return tenant.IsSystem, nil
 }

@@ -21,6 +21,9 @@ import {
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { useAuthStore } from '@/stores/auth-store'
+import { useNavigate } from '@tanstack/react-router'
 import type { TenantMember } from '@/types/api'
 import { AddTenantMemberDialog } from './AddTenantMemberDialog'
 import { RemoveTenantMemberDialog } from './RemoveTenantMemberDialog'
@@ -70,6 +73,9 @@ function formatMembershipStatus(membershipStatus: string, userStatus?: string): 
 export function TenantMembersTab(): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const navigate = useNavigate()
+  const { userProfile } = useAuthStore()
+  const { currentTenant, clearContext } = useAppContextStore()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
@@ -96,6 +102,7 @@ export function TenantMembersTab(): React.ReactElement {
   )
 
   const getOwnerGuardReason = (member: TenantMember): string | null => {
+    if (!currentTenant?.isSystem) return null
     if (member.role !== 'TENANT_OWNER' || ownerCount > 1) return null
     return t(
       'administration.members.guards.lastOwner',
@@ -120,6 +127,13 @@ export function TenantMembersTab(): React.ReactElement {
       toast({
         title: t('administration.members.roleUpdated', 'Role updated'),
       })
+
+      const isCurrentUser = member.user?.email && userProfile?.email === member.user.email
+      const isSelfDemotion = isCurrentUser && member.role === 'TENANT_OWNER' && newRole !== 'TENANT_OWNER'
+      if (isSelfDemotion) {
+        clearContext()
+        await navigate({ to: '/select-tenant' })
+      }
     } catch (error) {
       toast({
         variant: 'destructive',

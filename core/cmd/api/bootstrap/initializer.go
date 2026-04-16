@@ -178,9 +178,10 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		userRepo,
 		systemRoleRepo,
 		workspaceRepo,
+		tenantRepo,
 		tenantMemberRepo,
 	)
-	tenantMemberSvc := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
+	tenantMemberSvc := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo, tenantRepo)
 
 	// --- Services: Catalog ---
 	folderSvc := catalogsvc.NewFolderService(folderRepo)

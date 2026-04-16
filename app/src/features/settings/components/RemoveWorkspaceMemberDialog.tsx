@@ -10,6 +10,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useRemoveWorkspaceMember } from '@/features/workspaces/hooks/useWorkspaceMembers'
 import { useToast } from '@/components/ui/use-toast'
+import { getApiErrorMessage } from '@/lib/api-client'
 import type { WorkspaceMember } from '@/types/api'
 
 interface RemoveWorkspaceMemberDialogProps {
@@ -38,14 +39,11 @@ export function RemoveWorkspaceMemberDialog({
         title: t('settings.members.remove.success', 'Member removed'),
       })
       onOpenChange(false)
-    } catch {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: t('common.error', 'Error'),
-        description: t(
-          'settings.members.remove.error',
-          'Failed to remove member'
-        ),
+        description: getApiErrorMessage(error),
       })
     }
   }

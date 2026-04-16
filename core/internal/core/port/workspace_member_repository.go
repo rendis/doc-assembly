@@ -26,6 +26,9 @@ type WorkspaceMemberRepository interface {
 	// FindActiveByUserAndWorkspace finds an active membership.
 	FindActiveByUserAndWorkspace(ctx context.Context, userID, workspaceID string) (*entity.WorkspaceMember, error)
 
+	// CountActiveByWorkspace counts direct active memberships in a workspace.
+	CountActiveByWorkspace(ctx context.Context, workspaceID string) (int, error)
+
 	// Update updates a membership.
 	Update(ctx context.Context, member *entity.WorkspaceMember) error
 

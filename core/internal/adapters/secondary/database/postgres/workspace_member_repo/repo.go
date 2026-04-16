@@ -181,6 +181,16 @@ func (r *Repository) FindActiveByUserAndWorkspace(ctx context.Context, userID, w
 	return &member, nil
 }
 
+// CountActiveByWorkspace counts direct active memberships in a workspace.
+func (r *Repository) CountActiveByWorkspace(ctx context.Context, workspaceID string) (int, error) {
+	var count int
+	if err := r.pool.QueryRow(ctx, queryCountActiveByWorkspace, workspaceID).Scan(&count); err != nil {
+		return 0, fmt.Errorf("counting active memberships: %w", err)
+	}
+
+	return count, nil
+}
+
 // Update updates a membership.
 func (r *Repository) Update(ctx context.Context, member *entity.WorkspaceMember) error {
 	_, err := r.pool.Exec(ctx, queryUpdate,
