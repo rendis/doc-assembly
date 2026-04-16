@@ -150,7 +150,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 		userAccessHistoryRepo,
 	)
 	systemRoleService := accesssvc.NewSystemRoleService(systemRoleRepo, userRepo)
-	tenantMemberService := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
+	tenantMemberService := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo, tenantRepo)
 	folderService := catalogsvc.NewFolderService(folderRepo)
 	tagService := catalogsvc.NewTagService(tagRepo)
 	workspaceMemberService := organizationsvc.NewWorkspaceMemberService(
@@ -158,6 +158,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 		userRepo,
 		systemRoleRepo,
 		workspaceRepo,
+		tenantRepo,
 		tenantMemberRepo,
 	)
 	userAccessHistoryService := accesssvc.NewUserAccessHistoryService(userAccessHistoryRepo)

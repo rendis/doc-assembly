@@ -19,6 +19,7 @@ func NewWorkspaceMemberService(
 	userRepo port.UserRepository,
 	systemRoleRepo port.SystemRoleRepository,
 	workspaceRepo port.WorkspaceRepository,
+	tenantRepo port.TenantRepository,
 	tenantMemberRepo port.TenantMemberRepository,
 ) organizationuc.WorkspaceMemberUseCase {
 	return &WorkspaceMemberService{
@@ -26,6 +27,7 @@ func NewWorkspaceMemberService(
 		userRepo:         userRepo,
 		systemRoleRepo:   systemRoleRepo,
 		workspaceRepo:    workspaceRepo,
+		tenantRepo:       tenantRepo,
 		tenantMemberRepo: tenantMemberRepo,
 	}
 }
@@ -36,6 +38,7 @@ type WorkspaceMemberService struct {
 	userRepo         port.UserRepository
 	systemRoleRepo   port.SystemRoleRepository
 	workspaceRepo    port.WorkspaceRepository
+	tenantRepo       port.TenantRepository
 	tenantMemberRepo port.TenantMemberRepository
 }
 
@@ -201,9 +204,18 @@ func (s *WorkspaceMemberService) RemoveMember(ctx context.Context, cmd organizat
 		return entity.ErrMemberNotFound
 	}
 
+	workspace, err := s.workspaceRepo.FindByID(ctx, cmd.WorkspaceID)
+	if err != nil {
+		return fmt.Errorf("finding workspace: %w", err)
+	}
+
+	if err := s.ensureGlobalSystemWorkspaceCanRemoveMember(ctx, workspace, member); err != nil {
+		return err
+	}
+
 	// Cannot remove owner
 	if member.Role == entity.WorkspaceRoleOwner {
-		canRemoveOwner, err := s.canRemoveOwnerMembership(ctx, cmd.WorkspaceID, cmd.RemovedBy)
+		canRemoveOwner, err := s.canRemoveOwnerMembership(ctx, workspace, cmd.RemovedBy)
 		if err != nil {
 			return err
 		}
@@ -225,7 +237,42 @@ func (s *WorkspaceMemberService) RemoveMember(ctx context.Context, cmd organizat
 	return nil
 }
 
-func (s *WorkspaceMemberService) canRemoveOwnerMembership(ctx context.Context, workspaceID, removedBy string) (bool, error) {
+func (s *WorkspaceMemberService) ensureGlobalSystemWorkspaceCanRemoveMember(
+	ctx context.Context,
+	workspace *entity.Workspace,
+	member *entity.WorkspaceMember,
+) error {
+	if member.MembershipStatus != entity.MembershipStatusActive {
+		return nil
+	}
+	if !workspace.IsSystem() {
+		return nil
+	}
+
+	isGlobalSystem, err := s.isGlobalSystemWorkspace(ctx, workspace)
+	if err != nil {
+		return err
+	}
+	if !isGlobalSystem {
+		return nil
+	}
+
+	activeMembers, err := s.memberRepo.CountActiveByWorkspace(ctx, workspace.ID)
+	if err != nil {
+		return fmt.Errorf("counting workspace members: %w", err)
+	}
+	if activeMembers <= 1 {
+		return entity.ErrCannotRemoveLastSystemMember
+	}
+
+	return nil
+}
+
+func (s *WorkspaceMemberService) canRemoveOwnerMembership(
+	ctx context.Context,
+	workspace *entity.Workspace,
+	removedBy string,
+) (bool, error) {
 	systemRole, err := s.systemRoleRepo.FindByUserID(ctx, removedBy)
 	if err != nil && !errors.Is(err, entity.ErrSystemRoleNotFound) {
 		return false, fmt.Errorf("finding remover system role: %w", err)
@@ -234,10 +281,6 @@ func (s *WorkspaceMemberService) canRemoveOwnerMembership(ctx context.Context, w
 		return true, nil
 	}
 
-	workspace, err := s.workspaceRepo.FindByID(ctx, workspaceID)
-	if err != nil {
-		return false, fmt.Errorf("finding workspace: %w", err)
-	}
 	if workspace.TenantID == nil {
 		return false, nil
 	}
@@ -251,4 +294,17 @@ func (s *WorkspaceMemberService) canRemoveOwnerMembership(ctx context.Context, w
 	}
 
 	return tenantMember.Role == entity.TenantRoleOwner, nil
+}
+
+func (s *WorkspaceMemberService) isGlobalSystemWorkspace(ctx context.Context, workspace *entity.Workspace) (bool, error) {
+	if !workspace.IsSystem() || workspace.TenantID == nil || *workspace.TenantID == "" {
+		return false, nil
+	}
+
+	tenant, err := s.tenantRepo.FindByID(ctx, *workspace.TenantID)
+	if err != nil {
+		return false, fmt.Errorf("finding tenant: %w", err)
+	}
+
+	return tenant.IsSystem, nil
 }

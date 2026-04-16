@@ -36,6 +36,11 @@ const (
 		FROM identity.workspace_members
 		WHERE user_id = $1 AND workspace_id = $2 AND membership_status = 'ACTIVE'`
 
+	queryCountActiveByWorkspace = `
+		SELECT COUNT(*)
+		FROM identity.workspace_members
+		WHERE workspace_id = $1 AND membership_status = 'ACTIVE'`
+
 	queryUpdate = `
 		UPDATE identity.workspace_members
 		SET role = $2, membership_status = $3

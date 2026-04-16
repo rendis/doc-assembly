@@ -76,7 +76,7 @@ func TestTenantController_GetTenant(t *testing.T) {
 			WithTenantID(tenantID).
 			GET("/api/v1/tenant")
 
-		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 
 	t.Run("bad request without X-Tenant-ID header", func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestTenantController_GetTenant(t *testing.T) {
 			WithTenantID("00000000-0000-0000-0000-000000000000").
 			GET("/api/v1/tenant")
 
-		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 }
 
@@ -757,7 +757,7 @@ func TestTenantController_RemoveTenantMember(t *testing.T) {
 	// Create owner
 	owner := testhelper.CreateTestUser(t, pool, "owner-remove@test.com", "Owner User", nil)
 	defer testhelper.CleanupUser(t, pool, owner.ID)
-	ownerMemberID := testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
 
 	t.Run("success remove admin", func(t *testing.T) {
 		// Create admin to remove
@@ -774,10 +774,20 @@ func TestTenantController_RemoveTenantMember(t *testing.T) {
 	})
 
 	t.Run("cannot remove last owner", func(t *testing.T) {
+		var systemTenantID string
+		err := pool.QueryRow(context.Background(),
+			`SELECT id FROM tenancy.tenants WHERE is_system = TRUE LIMIT 1`,
+		).Scan(&systemTenantID)
+		require.NoError(t, err)
+
+		systemOwner := testhelper.CreateTestUser(t, pool, "system-owner-remove@test.com", "System Owner", nil)
+		defer testhelper.CleanupUser(t, pool, systemOwner.ID)
+		systemOwnerMemberID := testhelper.CreateTestTenantMember(t, pool, systemTenantID, systemOwner.ID, entity.TenantRoleOwner, nil)
+
 		resp, _ := client.
-			WithAuth(owner.BearerHeader).
-			WithTenantID(tenantID).
-			DELETE("/api/v1/tenant/members/" + ownerMemberID)
+			WithAuth(systemOwner.BearerHeader).
+			WithTenantID(systemTenantID).
+			DELETE("/api/v1/tenant/members/" + systemOwnerMemberID)
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -808,6 +818,22 @@ func TestTenantController_RemoveTenantMember(t *testing.T) {
 			DELETE("/api/v1/tenant/members/00000000-0000-0000-0000-000000000000")
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	})
+
+	t.Run("allows removing last owner in non-system tenant", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Allow Last Owner Tenant", "ALLO01")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		onlyOwner := testhelper.CreateTestUser(t, pool, "only-owner-remove@test.com", "Only Owner", nil)
+		defer testhelper.CleanupUser(t, pool, onlyOwner.ID)
+		memberID := testhelper.CreateTestTenantMember(t, pool, tenantID, onlyOwner.ID, entity.TenantRoleOwner, nil)
+
+		resp, _ := client.
+			WithAuth(onlyOwner.BearerHeader).
+			WithTenantID(tenantID).
+			DELETE("/api/v1/tenant/members/" + memberID)
+
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 	})
 }
 
@@ -855,30 +881,53 @@ func TestTenantController_UpdateTenant_WithSettings(t *testing.T) {
 	})
 }
 
-// TestTenantController_UpdateMemberRole_LastOwner tests demoting the last owner fails.
+// TestTenantController_UpdateMemberRole_LastOwner tests demoting the last owner
+// only fails for the global system tenant.
 func TestTenantController_UpdateMemberRole_LastOwner(t *testing.T) {
 	pool := testhelper.GetTestPool(t)
 	ts := testhelper.NewTestServer(t, pool)
 	client := testhelper.NewHTTPClient(t, ts.URL())
 
-	tenantID := testhelper.CreateTestTenant(t, pool, "Last Owner Tenant", "LOWN01")
-	defer testhelper.CleanupTenant(t, pool, tenantID)
+	t.Run("blocks demoting the last owner in system tenant", func(t *testing.T) {
+		var systemTenantID string
+		err := pool.QueryRow(context.Background(),
+			`SELECT id FROM tenancy.tenants WHERE is_system = TRUE LIMIT 1`,
+		).Scan(&systemTenantID)
+		require.NoError(t, err)
 
-	// Create single owner
-	owner := testhelper.CreateTestUser(t, pool, "only-owner@test.com", "Only Owner", nil)
-	defer testhelper.CleanupUser(t, pool, owner.ID)
-	ownerMemberID := testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
+		owner := testhelper.CreateTestUser(t, pool, "system-only-owner@test.com", "System Only Owner", nil)
+		defer testhelper.CleanupUser(t, pool, owner.ID)
+		ownerMemberID := testhelper.CreateTestTenantMember(t, pool, systemTenantID, owner.ID, entity.TenantRoleOwner, nil)
 
-	// Try to demote last owner to admin
-	req := dto.UpdateTenantMemberRoleRequest{
-		Role: "TENANT_ADMIN",
-	}
+		req := dto.UpdateTenantMemberRoleRequest{
+			Role: "TENANT_ADMIN",
+		}
 
-	resp, _ := client.
-		WithAuth(owner.BearerHeader).
-		WithTenantID(tenantID).
-		PUT("/api/v1/tenant/members/"+ownerMemberID, req)
+		resp, _ := client.
+			WithAuth(owner.BearerHeader).
+			WithTenantID(systemTenantID).
+			PUT("/api/v1/tenant/members/"+ownerMemberID, req)
 
-	// Should fail because this is the last owner
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("allows demoting the last owner in non-system tenant", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Demote Last Owner Tenant", "DLOW01")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		owner := testhelper.CreateTestUser(t, pool, "tenant-only-owner@test.com", "Tenant Only Owner", nil)
+		defer testhelper.CleanupUser(t, pool, owner.ID)
+		ownerMemberID := testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
+
+		req := dto.UpdateTenantMemberRoleRequest{
+			Role: "TENANT_ADMIN",
+		}
+
+		resp, _ := client.
+			WithAuth(owner.BearerHeader).
+			WithTenantID(tenantID).
+			PUT("/api/v1/tenant/members/"+ownerMemberID, req)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
 }

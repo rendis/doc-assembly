@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/dto"
+	tenantrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tenant_repo"
 	workspacerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/testing/testhelper"
@@ -604,6 +605,94 @@ func TestWorkspaceController_RemoveMember(t *testing.T) {
 			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", ownerMemberID))
 
 		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	})
+
+	t.Run("global system blocks removing last direct member", func(t *testing.T) {
+		systemTenant, err := tenantrepo.New(pool).FindSystemTenant(context.Background())
+		require.NoError(t, err)
+
+		globalSystemWorkspace, err := workspacerepo.New(pool).FindSystemByTenant(context.Background(), &systemTenant.ID)
+		require.NoError(t, err)
+
+		superAdminRole := entity.SystemRoleSuperAdmin
+		superAdmin := testhelper.CreateTestUser(t, pool, "superadmin-global-rm@test.com", "Super Admin", &superAdminRole)
+		defer testhelper.CleanupUser(t, pool, superAdmin.ID)
+
+		platformAdminRole := entity.SystemRolePlatformAdmin
+		lastDirectMember := testhelper.CreateTestUser(t, pool, "platformadmin-last@test.com", "Platform Admin Last", &platformAdminRole)
+		defer testhelper.CleanupUser(t, pool, lastDirectMember.ID)
+
+		var memberID string
+		err = pool.QueryRow(context.Background(), `
+			SELECT id
+			FROM identity.workspace_members
+			WHERE workspace_id = $1 AND user_id = $2
+		`, globalSystemWorkspace.ID, lastDirectMember.ID).Scan(&memberID)
+		require.NoError(t, err)
+
+		resp, body := client.
+			WithAuth(superAdmin.BearerHeader).
+			WithWorkspaceID(globalSystemWorkspace.ID).
+			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", memberID))
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Contains(t, string(body), entity.ErrCannotRemoveLastSystemMember.Error())
+	})
+
+	t.Run("global system allows removing member when another direct member remains", func(t *testing.T) {
+		systemTenant, err := tenantrepo.New(pool).FindSystemTenant(context.Background())
+		require.NoError(t, err)
+
+		globalSystemWorkspace, err := workspacerepo.New(pool).FindSystemByTenant(context.Background(), &systemTenant.ID)
+		require.NoError(t, err)
+
+		superAdminRole := entity.SystemRoleSuperAdmin
+		superAdmin := testhelper.CreateTestUser(t, pool, "superadmin-global-rm2@test.com", "Super Admin", &superAdminRole)
+		defer testhelper.CleanupUser(t, pool, superAdmin.ID)
+
+		platformAdminRole := entity.SystemRolePlatformAdmin
+		memberOne := testhelper.CreateTestUser(t, pool, "platformadmin-one@test.com", "Platform Admin One", &platformAdminRole)
+		defer testhelper.CleanupUser(t, pool, memberOne.ID)
+		memberTwo := testhelper.CreateTestUser(t, pool, "platformadmin-two@test.com", "Platform Admin Two", &platformAdminRole)
+		defer testhelper.CleanupUser(t, pool, memberTwo.ID)
+
+		var memberID string
+		err = pool.QueryRow(context.Background(), `
+			SELECT id
+			FROM identity.workspace_members
+			WHERE workspace_id = $1 AND user_id = $2
+		`, globalSystemWorkspace.ID, memberOne.ID).Scan(&memberID)
+		require.NoError(t, err)
+
+		resp, _ := client.
+			WithAuth(superAdmin.BearerHeader).
+			WithWorkspaceID(globalSystemWorkspace.ID).
+			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", memberID))
+
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	})
+
+	t.Run("tenant admin cannot remove last direct member from tenant system workspace without inherited access", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Remove Owner Tenant 5", "RMST05")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		systemWorkspace, err := workspacerepo.New(pool).FindSystemByTenant(context.Background(), &tenantID)
+		require.NoError(t, err)
+
+		lastDirectMember := testhelper.CreateTestUser(t, pool, "system-last-direct@test.com", "System Last Direct", nil)
+		defer testhelper.CleanupUser(t, pool, lastDirectMember.ID)
+		memberID := testhelper.CreateTestWorkspaceMember(t, pool, systemWorkspace.ID, lastDirectMember.ID, entity.WorkspaceRoleViewer, nil)
+
+		tenantAdmin := testhelper.CreateTestUser(t, pool, "tenant-admin-rm@test.com", "Tenant Admin", nil)
+		defer testhelper.CleanupUser(t, pool, tenantAdmin.ID)
+		testhelper.CreateTestTenantMember(t, pool, tenantID, tenantAdmin.ID, entity.TenantRoleAdmin, nil)
+
+		resp, _ := client.
+			WithAuth(tenantAdmin.BearerHeader).
+			WithWorkspaceID(systemWorkspace.ID).
+			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", memberID))
+
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 	})
 }
 

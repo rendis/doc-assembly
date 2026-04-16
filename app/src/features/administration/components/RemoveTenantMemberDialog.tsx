@@ -12,6 +12,9 @@ import { useTranslation } from 'react-i18next'
 import { useRemoveTenantMember } from '../hooks/useTenantMembers'
 import { useToast } from '@/components/ui/use-toast'
 import type { TenantMember } from '@/types/api'
+import { useAuthStore } from '@/stores/auth-store'
+import { useAppContextStore } from '@/stores/app-context-store'
+import { useNavigate } from '@tanstack/react-router'
 
 interface RemoveTenantMemberDialogProps {
   open: boolean
@@ -28,6 +31,9 @@ export function RemoveTenantMemberDialog({
 }: RemoveTenantMemberDialogProps): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const navigate = useNavigate()
+  const { userProfile } = useAuthStore()
+  const { clearContext } = useAppContextStore()
 
   const removeMutation = useRemoveTenantMember()
   const isLoading = removeMutation.isPending
@@ -41,6 +47,11 @@ export function RemoveTenantMemberDialog({
         title: t('administration.members.remove.success', 'Member removed'),
       })
       onOpenChange(false)
+
+      if (member.user?.email && userProfile?.email === member.user.email) {
+        clearContext()
+        await navigate({ to: '/select-tenant' })
+      }
     } catch (error) {
       toast({
         variant: 'destructive',

@@ -84,6 +84,7 @@ var badRequestErrors = []error{
 	entity.ErrCannotArchiveSystem,
 	entity.ErrInvalidParentFolder,
 	entity.ErrCannotRemoveOwner,
+	entity.ErrCannotRemoveLastSystemMember,
 	entity.ErrInvalidRole,
 	entity.ErrInvalidTenantCode,
 	entity.ErrInvalidWorkspaceType,
