@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ type MeController struct {
 	tenantUC            organizationuc.TenantUseCase
 	tenantMemberRepo    port.TenantMemberRepository
 	workspaceMemberRepo port.WorkspaceMemberRepository
+	workspaceRepo       port.WorkspaceRepository
 	accessHistoryUC     accessuc.UserAccessHistoryUseCase
 }
 
@@ -28,12 +30,14 @@ func NewMeController(
 	tenantUC organizationuc.TenantUseCase,
 	tenantMemberRepo port.TenantMemberRepository,
 	workspaceMemberRepo port.WorkspaceMemberRepository,
+	workspaceRepo port.WorkspaceRepository,
 	accessHistoryUC accessuc.UserAccessHistoryUseCase,
 ) *MeController {
 	return &MeController{
 		tenantUC:            tenantUC,
 		tenantMemberRepo:    tenantMemberRepo,
 		workspaceMemberRepo: workspaceMemberRepo,
+		workspaceRepo:       workspaceRepo,
 		accessHistoryUC:     accessHistoryUC,
 	}
 }
@@ -87,7 +91,7 @@ func (c *MeController) ListMyTenants(ctx *gin.Context) {
 }
 
 // GetMyRoles returns the roles of the current user.
-// Optionally includes tenant and workspace roles if X-Tenant-ID and X-Workspace-ID headers are provided.
+// Optionally includes tenant role and effective workspace role if X-Tenant-ID / X-Workspace-ID headers are provided.
 // @Summary Get my roles
 // @Description Returns the current user's roles. Always includes system role if assigned.
 // @Description Optionally includes tenant role if X-Tenant-ID header is provided.
@@ -133,13 +137,41 @@ func (c *MeController) GetMyRoles(ctx *gin.Context) {
 
 	// Check for workspace role if X-Workspace-ID header is provided
 	if workspaceID, ok := middleware.GetWorkspaceIDFromHeader(ctx); ok {
-		member, err := c.workspaceMemberRepo.FindActiveByUserAndWorkspace(ctx.Request.Context(), userID, workspaceID)
-		if err == nil && member != nil {
+		if systemRole, ok := middleware.GetSystemRole(ctx); ok && systemRole.HasPermission(entity.SystemRoleSuperAdmin) {
 			roles = append(roles, dto.RoleEntry{
 				Type:       "WORKSPACE",
-				Role:       string(member.Role),
+				Role:       string(entity.WorkspaceRoleOwner),
 				ResourceID: &workspaceID,
 			})
+		} else if workspace, err := c.workspaceRepo.FindByID(ctx.Request.Context(), workspaceID); err == nil {
+			if workspace.TenantID != nil {
+				tenantMember, err := c.tenantMemberRepo.FindActiveByUserAndTenant(ctx.Request.Context(), userID, *workspace.TenantID)
+				if err == nil && tenantMember != nil && tenantMember.Role.HasPermission(entity.TenantRoleOwner) {
+					roles = append(roles, dto.RoleEntry{
+						Type:       "WORKSPACE",
+						Role:       string(entity.WorkspaceRoleOwner),
+						ResourceID: &workspaceID,
+					})
+				} else if err == nil || errors.Is(err, entity.ErrTenantMemberNotFound) {
+					member, err := c.workspaceMemberRepo.FindActiveByUserAndWorkspace(ctx.Request.Context(), userID, workspaceID)
+					if err == nil && member != nil {
+						roles = append(roles, dto.RoleEntry{
+							Type:       "WORKSPACE",
+							Role:       string(member.Role),
+							ResourceID: &workspaceID,
+						})
+					}
+				}
+			} else {
+				member, err := c.workspaceMemberRepo.FindActiveByUserAndWorkspace(ctx.Request.Context(), userID, workspaceID)
+				if err == nil && member != nil {
+					roles = append(roles, dto.RoleEntry{
+						Type:       "WORKSPACE",
+						Role:       string(member.Role),
+						ResourceID: &workspaceID,
+					})
+				}
+			}
 		}
 	}
 

@@ -21,7 +21,8 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 
 - `SUPERADMIN` obtiene acceso `OWNER` a cualquier workspace automáticamente
 - `SUPERADMIN` obtiene acceso `TENANT_OWNER` a cualquier tenant automáticamente
-- `TENANT_OWNER` obtiene acceso `ADMIN` a workspaces dentro de su tenant
+- `TENANT_OWNER` obtiene acceso `OWNER` a workspaces dentro de su tenant
+- `TENANT_ADMIN` NO hereda acceso automático a workspaces del tenant
 
 ---
 
@@ -120,6 +121,14 @@ Lista workspaces del tenant actual con paginación y búsqueda opcional.
 - **Sin parámetro `q`**: Ordenados por historial de acceso (más recientes), luego por nombre
 - **Con parámetro `q`**: Ordenados por similitud (pg_trgm), búsqueda fuzzy por nombre
 - Incluye metadata de paginación
+- Parámetro opcional `accessibleOnly=true`:
+  - limita el resultado a workspaces realmente accesibles por el usuario actual
+  - útil para selectores de workspace donde la paginación debe reflejar solo entradas navegables
+- Incluye `role` efectivo del usuario actual para cada workspace:
+  - `SUPERADMIN` => `OWNER`
+  - `TENANT_OWNER` => `OWNER`
+  - membresía directa => rol persistido
+  - `TENANT_ADMIN` sin membresía directa => sin `role`
 
 **Ejemplo de respuesta:**
 ```json
@@ -129,8 +138,10 @@ Lista workspaces del tenant actual con paginación y búsqueda opcional.
       "id": "uuid-workspace-1",
       "tenantId": "uuid-tenant",
       "name": "Marketing Team",
+      "code": "MKT_TEAM",
       "type": "CLIENT",
       "status": "ACTIVE",
+      "role": "OWNER",
       "createdAt": "2024-01-15T10:00:00Z"
     }
   ],

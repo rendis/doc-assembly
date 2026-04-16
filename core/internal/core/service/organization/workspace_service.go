@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -18,12 +19,16 @@ func NewWorkspaceService(
 	workspaceRepo port.WorkspaceRepository,
 	tenantRepo port.TenantRepository,
 	memberRepo port.WorkspaceMemberRepository,
+	tenantMemberRepo port.TenantMemberRepository,
+	systemRoleRepo port.SystemRoleRepository,
 	accessHistoryRepo port.UserAccessHistoryRepository,
 ) organizationuc.WorkspaceUseCase {
 	return &WorkspaceService{
 		workspaceRepo:     workspaceRepo,
 		tenantRepo:        tenantRepo,
 		memberRepo:        memberRepo,
+		tenantMemberRepo:  tenantMemberRepo,
+		systemRoleRepo:    systemRoleRepo,
 		accessHistoryRepo: accessHistoryRepo,
 	}
 }
@@ -33,6 +38,8 @@ type WorkspaceService struct {
 	workspaceRepo     port.WorkspaceRepository
 	tenantRepo        port.TenantRepository
 	memberRepo        port.WorkspaceMemberRepository
+	tenantMemberRepo  port.TenantMemberRepository
+	systemRoleRepo    port.SystemRoleRepository
 	accessHistoryRepo port.UserAccessHistoryRepository
 }
 
@@ -75,17 +82,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, cmd organization
 		return nil, fmt.Errorf("creating workspace: %w", err)
 	}
 	workspace.ID = id
-
-	// Add creator as owner using NewActiveMember
-	member := entity.NewActiveMember(workspace.ID, cmd.CreatedBy, entity.WorkspaceRoleOwner)
-	member.ID = uuid.NewString()
-	if _, err := s.memberRepo.Create(ctx, member); err != nil {
-		slog.WarnContext(ctx, "failed to add creator as workspace owner",
-			slog.String("workspace_id", workspace.ID),
-			slog.String("user_id", cmd.CreatedBy),
-			slog.Any("error", err),
-		)
-	}
+	workspace.CurrentRole = entity.WorkspaceRoleOwner
 
 	slog.InfoContext(ctx, "workspace created",
 		slog.String("workspace_id", workspace.ID),
@@ -123,12 +120,97 @@ func (s *WorkspaceService) ListWorkspacesPaginated(ctx context.Context, tenantID
 		return nil, 0, fmt.Errorf("listing workspaces paginated: %w", err)
 	}
 
+	if err := s.enrichWorkspacesWithEffectiveRole(ctx, tenantID, userID, workspaces); err != nil {
+		return nil, 0, fmt.Errorf("resolving effective workspace roles: %w", err)
+	}
+
 	// Enrich with access history
 	if err := s.enrichWorkspacesWithAccessHistory(ctx, userID, workspaces); err != nil {
 		slog.WarnContext(ctx, "failed to enrich workspaces with access history", slog.String("error", err.Error()))
 	}
 
 	return workspaces, total, nil
+}
+
+func (s *WorkspaceService) enrichWorkspacesWithEffectiveRole(ctx context.Context, tenantID, userID string, workspaces []*entity.Workspace) error {
+	if len(workspaces) == 0 {
+		return nil
+	}
+
+	isSuperAdmin, err := s.isUserSuperAdmin(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if isSuperAdmin {
+		for _, workspace := range workspaces {
+			workspace.CurrentRole = entity.WorkspaceRoleOwner
+		}
+		return nil
+	}
+
+	isTenantOwner, err := s.isUserTenantOwner(ctx, tenantID, userID)
+	if err != nil {
+		return err
+	}
+	if isTenantOwner {
+		for _, workspace := range workspaces {
+			workspace.CurrentRole = entity.WorkspaceRoleOwner
+		}
+		return nil
+	}
+
+	directRoles, err := s.loadActiveWorkspaceRoles(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	for _, workspace := range workspaces {
+		if role, ok := directRoles[workspace.ID]; ok {
+			workspace.CurrentRole = role
+			continue
+		}
+		workspace.CurrentRole = ""
+	}
+	return nil
+}
+
+func (s *WorkspaceService) isUserSuperAdmin(ctx context.Context, userID string) (bool, error) {
+	systemRole, err := s.systemRoleRepo.FindByUserID(ctx, userID)
+	if err == nil {
+		return systemRole.Role.HasPermission(entity.SystemRoleSuperAdmin), nil
+	}
+	if errors.Is(err, entity.ErrSystemRoleNotFound) {
+		return false, nil
+	}
+	return false, fmt.Errorf("finding system role: %w", err)
+}
+
+func (s *WorkspaceService) isUserTenantOwner(ctx context.Context, tenantID, userID string) (bool, error) {
+	tenantMember, err := s.tenantMemberRepo.FindActiveByUserAndTenant(ctx, userID, tenantID)
+	if err == nil {
+		return tenantMember.Role.HasPermission(entity.TenantRoleOwner), nil
+	}
+	if errors.Is(err, entity.ErrTenantMemberNotFound) {
+		return false, nil
+	}
+	return false, fmt.Errorf("finding tenant membership: %w", err)
+}
+
+func (s *WorkspaceService) loadActiveWorkspaceRoles(ctx context.Context, userID string) (map[string]entity.WorkspaceRole, error) {
+	memberships, err := s.memberRepo.FindByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("listing user workspace memberships: %w", err)
+	}
+
+	directRoles := make(map[string]entity.WorkspaceRole, len(memberships))
+	for _, membership := range memberships {
+		if membership.MembershipStatus != entity.MembershipStatusActive {
+			continue
+		}
+		directRoles[membership.WorkspaceID] = membership.Role
+	}
+
+	return directRoles, nil
 }
 
 // UpdateWorkspace updates a workspace's details.

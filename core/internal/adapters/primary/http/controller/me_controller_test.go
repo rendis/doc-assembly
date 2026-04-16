@@ -223,3 +223,105 @@ func TestMeController_ListMyTenants(t *testing.T) {
 		assert.Empty(t, paginatedResp.Data)
 	})
 }
+
+func TestMeController_GetMyRoles(t *testing.T) {
+	pool := testhelper.GetTestPool(t)
+	ts := testhelper.NewTestServer(t, pool)
+	client := testhelper.NewHTTPClient(t, ts.URL())
+
+	tenantID := testhelper.CreateTestTenant(t, pool, "Roles Tenant", "RLET01")
+	defer testhelper.CleanupTenant(t, pool, tenantID)
+
+	workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Roles Workspace", entity.WorkspaceTypeClient)
+	defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+	superAdminRole := entity.SystemRoleSuperAdmin
+	superAdmin := testhelper.CreateTestUser(t, pool, "roles-superadmin@test.com", "Super Admin", &superAdminRole)
+	defer testhelper.CleanupUser(t, pool, superAdmin.ID)
+
+	tenantOwner := testhelper.CreateTestUser(t, pool, "roles-tenant-owner@test.com", "Tenant Owner", nil)
+	defer testhelper.CleanupUser(t, pool, tenantOwner.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, tenantOwner.ID, entity.TenantRoleOwner, nil)
+
+	tenantAdmin := testhelper.CreateTestUser(t, pool, "roles-tenant-admin@test.com", "Tenant Admin", nil)
+	defer testhelper.CleanupUser(t, pool, tenantAdmin.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, tenantAdmin.ID, entity.TenantRoleAdmin, nil)
+
+	workspaceAdmin := testhelper.CreateTestUser(t, pool, "roles-workspace-admin@test.com", "Workspace Admin", nil)
+	defer testhelper.CleanupUser(t, pool, workspaceAdmin.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, workspaceAdmin.ID, entity.WorkspaceRoleAdmin, nil)
+
+	t.Run("superadmin receives effective workspace owner role", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(superAdmin.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/me/roles")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var roles dto.MyRolesResponse
+		err := json.Unmarshal(body, &roles)
+		require.NoError(t, err)
+
+		require.Len(t, roles.Roles, 2)
+		assert.Equal(t, "SYSTEM", roles.Roles[0].Type)
+		assert.Equal(t, "SUPERADMIN", roles.Roles[0].Role)
+		assert.Equal(t, "WORKSPACE", roles.Roles[1].Type)
+		assert.Equal(t, "OWNER", roles.Roles[1].Role)
+	})
+
+	t.Run("tenant owner receives effective workspace owner role", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(tenantOwner.BearerHeader).
+			WithTenantID(tenantID).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/me/roles")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var roles dto.MyRolesResponse
+		err := json.Unmarshal(body, &roles)
+		require.NoError(t, err)
+
+		require.Len(t, roles.Roles, 2)
+		assert.Equal(t, "TENANT", roles.Roles[0].Type)
+		assert.Equal(t, "TENANT_OWNER", roles.Roles[0].Role)
+		assert.Equal(t, "WORKSPACE", roles.Roles[1].Type)
+		assert.Equal(t, "OWNER", roles.Roles[1].Role)
+	})
+
+	t.Run("tenant admin does not receive inherited workspace role", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(tenantAdmin.BearerHeader).
+			WithTenantID(tenantID).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/me/roles")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var roles dto.MyRolesResponse
+		err := json.Unmarshal(body, &roles)
+		require.NoError(t, err)
+
+		require.Len(t, roles.Roles, 1)
+		assert.Equal(t, "TENANT", roles.Roles[0].Type)
+		assert.Equal(t, "TENANT_ADMIN", roles.Roles[0].Role)
+	})
+
+	t.Run("direct workspace member keeps direct role", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(workspaceAdmin.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/me/roles")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var roles dto.MyRolesResponse
+		err := json.Unmarshal(body, &roles)
+		require.NoError(t, err)
+
+		require.Len(t, roles.Roles, 1)
+		assert.Equal(t, "WORKSPACE", roles.Roles[0].Type)
+		assert.Equal(t, "ADMIN", roles.Roles[0].Role)
+	})
+}

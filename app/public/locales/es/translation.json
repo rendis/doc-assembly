@@ -1523,11 +1523,32 @@
     },
     "users": {
       "description": "Gestiona los usuarios del sistema y sus roles.",
+      "readOnlyWarning": "Tienes acceso de solo lectura. Solo SUPERADMIN puede modificar roles del sistema.",
+      "searchPlaceholder": "Buscar usuarios...",
+      "loadError": "No se pudieron cargar los usuarios del sistema",
+      "noResults": "Ningún usuario coincide con la búsqueda",
+      "empty": "No se encontraron usuarios del sistema",
+      "roleUpdated": "Rol actualizado",
       "columns": {
         "name": "Nombre",
         "email": "Correo",
         "role": "Rol",
         "status": "Estado"
+      },
+      "actions": {
+        "makePlatformAdmin": "Convertir en platform admin",
+        "makeSuperAdmin": "Convertir en superadmin",
+        "remove": "Quitar acceso"
+      },
+      "guards": {
+        "lastSuperAdmin": "Debe existir al menos un SUPERADMIN en el sistema.",
+        "lastSuperAdminSelf": "No puedes quitarte el último rol SUPERADMIN del sistema."
+      },
+      "remove": {
+        "title": "Quitar rol del sistema",
+        "confirm": "¿Seguro que quieres quitar el acceso de sistema a \"{{name}}\"?",
+        "description": "Este usuario perderá inmediatamente el acceso de administración a nivel plataforma.",
+        "success": "Rol del sistema eliminado"
       }
     },
     "audit": {
@@ -1540,6 +1561,9 @@
       }
     },
     "members": {
+      "guards": {
+        "lastOwner": "Debe existir al menos un propietario del tenant."
+      },
       "roles": {
         "admin": "Administrador",
         "adminDesc": "Crear y gestionar workspaces dentro de este tenant.",

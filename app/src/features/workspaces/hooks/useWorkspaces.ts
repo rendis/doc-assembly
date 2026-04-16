@@ -17,11 +17,12 @@ export function useWorkspaces(
   page = 1,
   perPage = 20,
   query?: string,
-  status?: string
+  status?: string,
+  accessibleOnly?: boolean
 ) {
   return useQuery({
-    queryKey: ['workspaces', tenantId, page, perPage, query, status],
-    queryFn: () => getWorkspaces(page, perPage, query, status),
+    queryKey: ['workspaces', tenantId, page, perPage, query, status, accessibleOnly],
+    queryFn: () => getWorkspaces(page, perPage, query, status, accessibleOnly),
     enabled: !!tenantId,
     staleTime: 0,
     gcTime: 0,

@@ -141,12 +141,19 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 
 	// Create services - Identity & Tenancy
 	tenantService := organizationsvc.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
-	workspaceService := organizationsvc.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo, userAccessHistoryRepo)
+	workspaceService := organizationsvc.NewWorkspaceService(
+		workspaceRepo,
+		tenantRepo,
+		workspaceMemberRepo,
+		tenantMemberRepo,
+		systemRoleRepo,
+		userAccessHistoryRepo,
+	)
 	systemRoleService := accesssvc.NewSystemRoleService(systemRoleRepo, userRepo)
 	tenantMemberService := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
 	folderService := catalogsvc.NewFolderService(folderRepo)
 	tagService := catalogsvc.NewTagService(tagRepo)
-	workspaceMemberService := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
+	workspaceMemberService := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo, systemRoleRepo)
 	userAccessHistoryService := accesssvc.NewUserAccessHistoryService(userAccessHistoryRepo)
 	workspaceInjectableService := injectablesvc.NewWorkspaceInjectableService(workspaceInjectableRepo)
 	systemInjectableService := injectablesvc.NewSystemInjectableService(systemInjectableRepo, nil)
@@ -268,7 +275,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 
 	// Create controllers - Admin, Me, Tenant, Workspace
 	adminController := controller.NewAdminController(tenantService, systemRoleService, systemInjectableService)
-	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo, userAccessHistoryService)
+	meController := controller.NewMeController(tenantService, tenantMemberRepo, workspaceMemberRepo, workspaceRepo, userAccessHistoryService)
 	tenantController := controller.NewTenantController(tenantService, workspaceService, tenantMemberService)
 	workspaceController := controller.NewWorkspaceController(
 		workspaceService,

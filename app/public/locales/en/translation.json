@@ -1523,11 +1523,32 @@
     },
     "users": {
       "description": "Manage system users and their roles.",
+      "readOnlyWarning": "You have read-only access. Only SUPERADMIN can modify system roles.",
+      "searchPlaceholder": "Search users...",
+      "loadError": "Failed to load system users",
+      "noResults": "No users match your search",
+      "empty": "No system users found",
+      "roleUpdated": "Role updated",
       "columns": {
         "name": "Name",
         "email": "Email",
         "role": "Role",
         "status": "Status"
+      },
+      "actions": {
+        "makePlatformAdmin": "Make Platform Admin",
+        "makeSuperAdmin": "Make Superadmin",
+        "remove": "Remove access"
+      },
+      "guards": {
+        "lastSuperAdmin": "At least one SUPERADMIN must remain in the system.",
+        "lastSuperAdminSelf": "You cannot remove your own last SUPERADMIN role."
+      },
+      "remove": {
+        "title": "Remove System Role",
+        "confirm": "Are you sure you want to remove system access from \"{{name}}\"?",
+        "description": "This user will immediately lose platform-level administration access.",
+        "success": "System role removed"
       }
     },
     "audit": {
@@ -1540,6 +1561,9 @@
       }
     },
     "members": {
+      "guards": {
+        "lastOwner": "At least one tenant owner must remain."
+      },
       "roles": {
         "admin": "Admin",
         "adminDesc": "Create and manage workspaces within this tenant.",

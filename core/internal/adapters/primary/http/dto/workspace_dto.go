@@ -10,6 +10,7 @@ type WorkspaceResponse struct {
 	Code           string     `json:"code"`
 	Type           string     `json:"type"`
 	Status         string     `json:"status"`
+	Role           string     `json:"role,omitempty"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
 	LastAccessedAt *time.Time `json:"lastAccessedAt,omitempty"`
@@ -67,10 +68,11 @@ func (r *UpdateWorkspaceRequest) Validate() error {
 
 // WorkspaceListRequest represents a request to list workspaces with pagination and optional search.
 type WorkspaceListRequest struct {
-	Page    int    `form:"page,default=1"`
-	PerPage int    `form:"perPage,default=10"`
-	Query   string `form:"q"`      // Optional search filter for name
-	Status  string `form:"status"` // Optional status filter (ACTIVE, SUSPENDED, ARCHIVED)
+	Page           int    `form:"page,default=1"`
+	PerPage        int    `form:"perPage,default=10"`
+	Query          string `form:"q"`              // Optional search filter for name
+	Status         string `form:"status"`         // Optional status filter (ACTIVE, SUSPENDED, ARCHIVED)
+	AccessibleOnly bool   `form:"accessibleOnly"` // Optional access-aware filtering for selectors
 }
 
 // PaginatedWorkspacesResponse represents a paginated list of workspaces.

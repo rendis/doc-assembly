@@ -8,11 +8,12 @@ import (
 
 // WorkspaceFilters defines filters for paginated workspace listing.
 type WorkspaceFilters struct {
-	Limit  int
-	Offset int
-	UserID string // Used for access-based sorting
-	Query  string // Optional search filter for name
-	Status string // Optional status filter (ACTIVE, SUSPENDED, ARCHIVED)
+	Limit          int
+	Offset         int
+	UserID         string // Used for access-based sorting and access-aware filtering
+	Query          string // Optional search filter for name
+	Status         string // Optional status filter (ACTIVE, SUSPENDED, ARCHIVED)
+	AccessibleOnly bool   // When true, only return workspaces the user can actually enter
 }
 
 // WorkspaceRepository defines the interface for workspace data access.

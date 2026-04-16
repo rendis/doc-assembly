@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/use-toast'
+import { getApiErrorMessage } from '@/lib/api-client'
 import { useTenantMembers, useUpdateTenantMemberRole } from '../hooks/useTenantMembers'
 import {
   AlertTriangle,
@@ -84,23 +85,46 @@ export function TenantMembersTab(): React.ReactElement {
     const q = searchQuery.toLowerCase()
     return members.filter(
       (m) =>
-        m.user?.fullName?.toLowerCase().includes(q) ||
-        m.user?.email?.toLowerCase().includes(q)
+        m.user?.fullName?.toLowerCase()?.includes(q) ||
+        m.user?.email?.toLowerCase()?.includes(q)
     )
   }, [data?.data, searchQuery])
 
+  const ownerCount = useMemo(
+    () => (data?.data ?? []).filter((member) => member.role === 'TENANT_OWNER').length,
+    [data?.data]
+  )
+
+  const getOwnerGuardReason = (member: TenantMember): string | null => {
+    if (member.role !== 'TENANT_OWNER' || ownerCount > 1) return null
+    return t(
+      'administration.members.guards.lastOwner',
+      'Debe existir al menos un propietario del tenant.'
+    )
+  }
+
   const handleToggleRole = async (member: TenantMember) => {
+    const disabledReason = getOwnerGuardReason(member)
+    if (disabledReason) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error', 'Error'),
+        description: disabledReason,
+      })
+      return
+    }
+
     const newRole = member.role === 'TENANT_OWNER' ? 'TENANT_ADMIN' : 'TENANT_OWNER'
     try {
       await updateRoleMutation.mutateAsync({ memberId: member.id, role: newRole })
       toast({
         title: t('administration.members.roleUpdated', 'Role updated'),
       })
-    } catch {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: t('common.error', 'Error'),
-        description: t('administration.members.roleError', 'Failed to update role'),
+        description: getApiErrorMessage(error),
       })
     }
   }
@@ -202,52 +226,60 @@ export function TenantMembersTab(): React.ReactElement {
               </tr>
             </thead>
             <tbody>
-              {filteredMembers.map((member) => (
-                <tr
-                  key={member.id}
-                  className="border-b last:border-0 hover:bg-muted/50"
-                >
-                  <td className="p-4">
-                    <span className="font-medium">
-                      {member.user?.fullName || '—'}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap p-4 font-mono text-sm text-muted-foreground">
-                    {member.user?.email}
-                  </td>
-                  <td className="whitespace-nowrap p-4">
-                    <RoleBadge role={member.role} />
-                  </td>
-                  <td className="whitespace-nowrap p-4">
-                    <StatusIndicator status={formatMembershipStatus(member.membershipStatus, member.user?.status)} />
-                  </td>
-                  <td className="p-4">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="rounded-sm p-1 hover:bg-muted">
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleToggleRole(member)}>
-                          <ShieldCheck size={14} className="mr-2" />
-                          {member.role === 'TENANT_OWNER'
-                            ? t('administration.members.actions.makeAdmin', 'Make Admin')
-                            : t('administration.members.actions.makeOwner', 'Make Owner')}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleRemove(member)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 size={14} className="mr-2" />
-                          {t('administration.members.actions.remove', 'Remove')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
+              {filteredMembers.map((member) => {
+                const disabledReason = getOwnerGuardReason(member)
+
+                return (
+                  <tr
+                    key={member.id}
+                    className="border-b last:border-0 hover:bg-muted/50"
+                  >
+                    <td className="p-4">
+                      <span className="font-medium">
+                        {member.user?.fullName || '—'}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap p-4 font-mono text-sm text-muted-foreground">
+                      {member.user?.email}
+                    </td>
+                    <td className="whitespace-nowrap p-4">
+                      <RoleBadge role={member.role} />
+                    </td>
+                    <td className="whitespace-nowrap p-4">
+                      <StatusIndicator status={formatMembershipStatus(member.membershipStatus, member.user?.status)} />
+                    </td>
+                    <td className="p-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="rounded-sm p-1 hover:bg-muted">
+                            <MoreHorizontal size={16} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleToggleRole(member)}
+                            disabled={!!disabledReason || updateRoleMutation.isPending}
+                          >
+                            <ShieldCheck size={14} className="mr-2" />
+                            {member.role === 'TENANT_OWNER'
+                              ? t('administration.members.actions.makeAdmin', 'Make Admin')
+                              : t('administration.members.actions.makeOwner', 'Make Owner')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleRemove(member)}
+                            disabled={!!disabledReason}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 size={14} className="mr-2" />
+                            {t('administration.members.actions.remove', 'Remove')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
@@ -259,6 +291,7 @@ export function TenantMembersTab(): React.ReactElement {
         open={removeOpen}
         onOpenChange={setRemoveOpen}
         member={selectedMember}
+        disabledReason={selectedMember ? getOwnerGuardReason(selectedMember) : null}
       />
     </div>
   )

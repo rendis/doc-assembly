@@ -16,6 +16,7 @@ func WorkspaceToResponse(ws *entity.Workspace) dto.WorkspaceResponse {
 		Code:           ws.Code,
 		Type:           string(ws.Type),
 		Status:         string(ws.Status),
+		Role:           string(ws.CurrentRole),
 		CreatedAt:      ws.CreatedAt,
 		UpdatedAt:      ws.UpdatedAt,
 		LastAccessedAt: ws.LastAccessedAt,
@@ -55,10 +56,11 @@ func UpdateWorkspaceRequestToCommand(id string, req dto.UpdateWorkspaceRequest) 
 func WorkspaceListRequestToFilters(req dto.WorkspaceListRequest) port.WorkspaceFilters {
 	offset := (req.Page - 1) * req.PerPage
 	return port.WorkspaceFilters{
-		Limit:  req.PerPage,
-		Offset: offset,
-		Query:  req.Query,
-		Status: req.Status,
+		Limit:          req.PerPage,
+		Offset:         offset,
+		Query:          req.Query,
+		Status:         req.Status,
+		AccessibleOnly: req.AccessibleOnly,
 	}
 }
 
