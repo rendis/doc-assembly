@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,6 +83,18 @@ function formatMembershipStatus(
   return 'ACTIVE'
 }
 
+function getMemberActionsLabel(
+  member: WorkspaceMember,
+  t: ReturnType<typeof useTranslation>['t']
+): string {
+  const displayName = member.user?.fullName || member.user?.email || member.id
+  return t(
+    'settings.members.actions.openMenu',
+    'Open actions for {{name}}',
+    { name: displayName }
+  )
+}
+
 export function WorkspaceMembersSection(): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -95,6 +108,7 @@ export function WorkspaceMembersSection(): React.ReactElement {
   const [searchQuery, setSearchQuery] = useState('')
   const [inviteOpen, setInviteOpen] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
+  const [openMemberMenuId, setOpenMemberMenuId] = useState<string | null>(null)
   const [selectedMember, setSelectedMember] = useState<WorkspaceMember | null>(
     null
   )
@@ -135,6 +149,7 @@ export function WorkspaceMembersSection(): React.ReactElement {
   }
 
   const handleRemove = (member: WorkspaceMember) => {
+    setOpenMemberMenuId(null)
     setSelectedMember(member)
     setRemoveOpen(true)
   }
@@ -288,11 +303,22 @@ export function WorkspaceMembersSection(): React.ReactElement {
                       </td>
                       {hasAnyAction && (
                         <td className="p-4">
-                          <DropdownMenu>
+                          <DropdownMenu
+                            open={openMemberMenuId === member.id}
+                            onOpenChange={(open) =>
+                              setOpenMemberMenuId(open ? member.id : null)
+                            }
+                          >
                             <DropdownMenuTrigger asChild>
-                              <button className="rounded-sm p-1 hover:bg-muted">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-11 w-11 cursor-pointer p-0"
+                                aria-label={getMemberActionsLabel(member, t)}
+                              >
                                 <MoreHorizontal size={16} />
-                              </button>
+                              </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {canUpdateRole &&
@@ -301,7 +327,7 @@ export function WorkspaceMembersSection(): React.ReactElement {
                                 ).map((role) => (
                                   <DropdownMenuItem
                                     key={role}
-                                    onClick={() =>
+                                    onSelect={() =>
                                       handleChangeRole(member, role)
                                     }
                                   >
@@ -320,7 +346,7 @@ export function WorkspaceMembersSection(): React.ReactElement {
                               )}
                               {canRemove && (
                                 <DropdownMenuItem
-                                  onClick={() => handleRemove(member)}
+                                  onSelect={() => handleRemove(member)}
                                   className="text-destructive focus:text-destructive"
                                 >
                                   <Trash2 size={14} className="mr-2" />

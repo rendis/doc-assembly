@@ -164,9 +164,16 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	}
 
 	// --- Services: Organization ---
-	workspaceSvc := organizationsvc.NewWorkspaceService(workspaceRepo, tenantRepo, workspaceMemberRepo, userAccessHistoryRepo)
+	workspaceSvc := organizationsvc.NewWorkspaceService(
+		workspaceRepo,
+		tenantRepo,
+		workspaceMemberRepo,
+		tenantMemberRepo,
+		systemRoleRepo,
+		userAccessHistoryRepo,
+	)
 	tenantSvc := organizationsvc.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
-	workspaceMemberSvc := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo)
+	workspaceMemberSvc := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo, systemRoleRepo)
 	tenantMemberSvc := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
 
 	// --- Services: Catalog ---
@@ -308,7 +315,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	)
 	templateCtrl := controller.NewContentTemplateController(templateSvc, templateMapper, templateVersionCtrl)
 	adminCtrl := controller.NewAdminController(tenantSvc, systemRoleSvc, systemInjectableSvc)
-	meCtrl := controller.NewMeController(tenantSvc, tenantMemberRepo, workspaceMemberRepo, userAccessHistorySvc)
+	meCtrl := controller.NewMeController(tenantSvc, tenantMemberRepo, workspaceMemberRepo, workspaceRepo, userAccessHistorySvc)
 	tenantCtrl := controller.NewTenantController(tenantSvc, workspaceSvc, tenantMemberSvc)
 	documentTypeCtrl := controller.NewDocumentTypeController(documentTypeSvc, templateSvc, templateMapper)
 	processCtrl := controller.NewProcessController(processSvc, processMapper)

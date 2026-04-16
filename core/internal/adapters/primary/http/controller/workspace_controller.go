@@ -107,12 +107,14 @@ func (c *WorkspaceController) RegisterRoutes(rg *gin.RouterGroup, middlewareProv
 // @Router /api/v1/workspace [get]
 func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
 	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	workspaceRole, _ := middleware.GetWorkspaceRole(ctx)
 
 	workspace, err := c.workspaceUC.GetWorkspace(ctx.Request.Context(), workspaceID)
 	if err != nil {
 		HandleError(ctx, err)
 		return
 	}
+	workspace.CurrentRole = workspaceRole
 
 	ctx.JSON(http.StatusOK, mapper.WorkspaceToResponse(workspace))
 }
@@ -130,6 +132,7 @@ func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
 // @Router /api/v1/workspace [put]
 func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
 	workspaceID, _ := middleware.GetWorkspaceID(ctx)
+	workspaceRole, _ := middleware.GetWorkspaceRole(ctx)
 
 	var req dto.UpdateWorkspaceRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -148,6 +151,7 @@ func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
 		HandleError(ctx, err)
 		return
 	}
+	workspace.CurrentRole = workspaceRole
 
 	ctx.JSON(http.StatusOK, mapper.WorkspaceToResponse(workspace))
 }
@@ -308,7 +312,7 @@ func (c *WorkspaceController) UpdateMemberRole(ctx *gin.Context) {
 // @Router /api/v1/workspace/members/{memberId} [delete]
 func (c *WorkspaceController) RemoveMember(ctx *gin.Context) {
 	workspaceID, _ := middleware.GetWorkspaceID(ctx)
-	userID, _ := middleware.GetUserID(ctx)
+	userID, _ := middleware.GetInternalUserID(ctx)
 	memberID := ctx.Param("memberId")
 
 	cmd := mapper.RemoveMemberToCommand(memberID, workspaceID, userID)

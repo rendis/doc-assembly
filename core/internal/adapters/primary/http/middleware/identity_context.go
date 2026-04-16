@@ -228,7 +228,7 @@ func activateInvitedUser(
 // The workspace ID must come from the X-Workspace-ID header.
 // This middleware should only be applied to routes that require workspace context.
 // Users with system roles (SUPERADMIN) get automatic access as OWNER.
-// Users with tenant roles (TENANT_OWNER) get automatic access as ADMIN for workspaces in their tenant.
+// Users with tenant roles (TENANT_OWNER) get automatic access as OWNER for workspaces in their tenant.
 func WorkspaceContext(
 	workspaceRepo port.WorkspaceRepository,
 	workspaceMemberRepo port.WorkspaceMemberRepository,
@@ -316,7 +316,7 @@ func checkTenantOwnerAccess(
 	}
 
 	c.Set(workspaceIDKey, workspaceID)
-	c.Set(workspaceRoleKey, entity.WorkspaceRoleAdmin)
+	c.Set(workspaceRoleKey, entity.WorkspaceRoleOwner)
 	slog.DebugContext(c.Request.Context(), "tenant owner workspace access granted",
 		slog.String("user_id", internalUserID),
 		slog.String("workspace_id", workspaceID),

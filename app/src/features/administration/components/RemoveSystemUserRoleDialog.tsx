@@ -6,39 +6,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/use-toast'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useRemoveTenantMember } from '../hooks/useTenantMembers'
-import { useToast } from '@/components/ui/use-toast'
-import type { TenantMember } from '@/types/api'
+import type { SystemUser } from '@/types/api'
+import { useRevokeSystemUserRole } from '../hooks/useSystemUsers'
 
-interface RemoveTenantMemberDialogProps {
+interface RemoveSystemUserRoleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  member: TenantMember | null
+  systemUser: SystemUser | null
   disabledReason?: string | null
 }
 
-export function RemoveTenantMemberDialog({
+export function RemoveSystemUserRoleDialog({
   open,
   onOpenChange,
-  member,
+  systemUser,
   disabledReason,
-}: RemoveTenantMemberDialogProps): React.ReactElement {
+}: RemoveSystemUserRoleDialogProps): React.ReactElement {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  const removeMutation = useRemoveTenantMember()
-  const isLoading = removeMutation.isPending
+  const revokeMutation = useRevokeSystemUserRole()
+  const isLoading = revokeMutation.isPending
 
   const handleRemove = async () => {
-    if (!member || disabledReason) return
+    if (!systemUser || disabledReason) return
 
     try {
-      await removeMutation.mutateAsync(member.id)
+      await revokeMutation.mutateAsync(systemUser.userId)
       toast({
-        title: t('administration.members.remove.success', 'Member removed'),
+        title: t('administration.users.remove.success', 'System role removed'),
       })
       onOpenChange(false)
     } catch (error) {
@@ -50,9 +50,9 @@ export function RemoveTenantMemberDialog({
     }
   }
 
-  if (!member) return <></>
+  if (!systemUser) return <></>
 
-  const displayName = member.user?.fullName || member.user?.email || member.id
+  const displayName = systemUser.user?.fullName || systemUser.user?.email || systemUser.userId
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,12 +60,12 @@ export function RemoveTenantMemberDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest">
             <AlertTriangle size={18} className="text-destructive" />
-            {t('administration.members.remove.title', 'Remove Member')}
+            {t('administration.users.remove.title', 'Remove System Role')}
           </DialogTitle>
           <DialogDescription>
             {t(
-              'administration.members.remove.confirm',
-              'Are you sure you want to remove "{{name}}"?',
+              'administration.users.remove.confirm',
+              'Are you sure you want to remove system access from "{{name}}"?',
               { name: displayName }
             )}
           </DialogDescription>
@@ -76,22 +76,14 @@ export function RemoveTenantMemberDialog({
             <div className="rounded-sm border border-warning-border bg-warning-muted p-3">
               <p className="text-sm text-warning-foreground">{disabledReason}</p>
             </div>
-          ) : member.role === 'TENANT_OWNER' ? (
-            <div className="rounded-sm border border-warning-border bg-warning-muted p-3">
-              <p className="text-sm text-warning-foreground">
-                {t(
-                  'administration.members.remove.ownerWarning',
-                  'This member is a tenant owner. Removing them may affect tenant administration.'
-                )}
-              </p>
-            </div>
-          ) : null}
-          <p className="text-sm text-muted-foreground">
-            {t(
-              'administration.members.remove.description',
-              'This user will lose access to all workspaces within this tenant.'
-            )}
-          </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'administration.users.remove.description',
+                'This user will immediately lose platform-level administration access.'
+              )}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

@@ -17,17 +17,20 @@ import (
 func NewWorkspaceMemberService(
 	memberRepo port.WorkspaceMemberRepository,
 	userRepo port.UserRepository,
+	systemRoleRepo port.SystemRoleRepository,
 ) organizationuc.WorkspaceMemberUseCase {
 	return &WorkspaceMemberService{
-		memberRepo: memberRepo,
-		userRepo:   userRepo,
+		memberRepo:     memberRepo,
+		userRepo:       userRepo,
+		systemRoleRepo: systemRoleRepo,
 	}
 }
 
 // WorkspaceMemberService implements workspace member business logic.
 type WorkspaceMemberService struct {
-	memberRepo port.WorkspaceMemberRepository
-	userRepo   port.UserRepository
+	memberRepo     port.WorkspaceMemberRepository
+	userRepo       port.UserRepository
+	systemRoleRepo port.SystemRoleRepository
 }
 
 // ListMembers lists all members of a workspace.
@@ -194,7 +197,13 @@ func (s *WorkspaceMemberService) RemoveMember(ctx context.Context, cmd organizat
 
 	// Cannot remove owner
 	if member.Role == entity.WorkspaceRoleOwner {
-		return entity.ErrCannotRemoveOwner
+		systemRole, err := s.systemRoleRepo.FindByUserID(ctx, cmd.RemovedBy)
+		if err != nil && !errors.Is(err, entity.ErrSystemRoleNotFound) {
+			return fmt.Errorf("finding remover system role: %w", err)
+		}
+		if err != nil || !systemRole.Role.HasPermission(entity.SystemRoleSuperAdmin) {
+			return entity.ErrCannotRemoveOwner
+		}
 	}
 
 	if err := s.memberRepo.Delete(ctx, cmd.MemberID); err != nil {

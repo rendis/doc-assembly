@@ -19,6 +19,7 @@ type Workspace struct {
 	CreatedAt      time.Time       `json:"createdAt"`
 	UpdatedAt      *time.Time      `json:"updatedAt,omitempty"`
 	LastAccessedAt *time.Time      `json:"-"` // Access metadata, not persisted
+	CurrentRole    WorkspaceRole   `json:"-"` // Effective role for current user, not persisted
 }
 
 // NewWorkspace creates a new workspace with default status ACTIVE.

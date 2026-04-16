@@ -23,6 +23,7 @@ export function AdministrationPage(): React.ReactElement {
 
   const { hasPermission } = usePermission()
   const canManageApiKeys = hasPermission(Permission.SYSTEM_API_KEYS_MANAGE)
+  const canViewSystemUsers = hasPermission(Permission.SYSTEM_USERS_VIEW)
 
   return (
     <div className="animate-page-enter flex-1 overflow-y-auto bg-background">
@@ -44,9 +45,11 @@ export function AdministrationPage(): React.ReactElement {
               <TabsTrigger value="tenants" className={TAB_TRIGGER_CLASS}>
                 {t('administration.tabs.tenants', 'Tenants')}
               </TabsTrigger>
-              <TabsTrigger value="users" className={TAB_TRIGGER_CLASS}>
-                {t('administration.tabs.users', 'Users')}
-              </TabsTrigger>
+              {canViewSystemUsers && (
+                <TabsTrigger value="users" className={TAB_TRIGGER_CLASS}>
+                  {t('administration.tabs.users', 'Users')}
+                </TabsTrigger>
+              )}
               <TabsTrigger value="injectables" className={TAB_TRIGGER_CLASS}>
                 {t('administration.tabs.injectables', 'Injectables')}
               </TabsTrigger>
@@ -61,9 +64,11 @@ export function AdministrationPage(): React.ReactElement {
               <TenantsTab />
             </TabsContent>
 
-            <TabsContent value="users">
-              <UsersTab />
-            </TabsContent>
+            {canViewSystemUsers && (
+              <TabsContent value="users">
+                <UsersTab />
+              </TabsContent>
+            )}
 
             <TabsContent value="injectables">
               <InjectablesTab />

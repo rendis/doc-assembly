@@ -8,13 +8,14 @@ export interface Workspace {
   code: string
   type: WorkspaceType
   status: WorkspaceStatus
+  role?: string
   createdAt: string
   updatedAt?: string
+  lastAccessedAt?: string | null
 }
 
 export interface WorkspaceWithRole extends Workspace {
   role: string
-  lastAccessedAt?: string | null
 }
 
 export interface CreateWorkspaceRequest {

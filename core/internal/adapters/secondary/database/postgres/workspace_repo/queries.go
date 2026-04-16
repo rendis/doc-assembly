@@ -40,6 +40,30 @@ const (
 		WHERE w.tenant_id = $1 AND w.is_sandbox = FALSE
 		  AND ($3 = '' OR w.name ILIKE '%' || $3 || '%')
 		  AND ($6 = '' OR w.status = $6::workspace_status)
+		  AND (
+			NOT $7
+			OR EXISTS (
+				SELECT 1
+				FROM identity.system_roles sr
+				WHERE sr.user_id = $2
+				  AND sr.role = 'SUPERADMIN'
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM identity.tenant_members tm
+				WHERE tm.tenant_id = $1
+				  AND tm.user_id = $2
+				  AND tm.role = 'TENANT_OWNER'
+				  AND tm.membership_status = 'ACTIVE'
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM identity.workspace_members wm
+				WHERE wm.workspace_id = w.id
+				  AND wm.user_id = $2
+				  AND wm.membership_status = 'ACTIVE'
+			)
+		  )
 		ORDER BY
 			(w.type = 'SYSTEM') DESC,
 			CASE WHEN $3 != '' THEN similarity(w.name, $3) ELSE 0 END DESC,
@@ -51,7 +75,31 @@ const (
 		SELECT COUNT(*) FROM tenancy.workspaces
 		WHERE tenant_id = $1 AND is_sandbox = FALSE
 		  AND ($2 = '' OR name ILIKE '%' || $2 || '%')
-		  AND ($3 = '' OR status = $3::workspace_status)`
+		  AND ($3 = '' OR status = $3::workspace_status)
+		  AND (
+			NOT $5
+			OR EXISTS (
+				SELECT 1
+				FROM identity.system_roles sr
+				WHERE sr.user_id = $4
+				  AND sr.role = 'SUPERADMIN'
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM identity.tenant_members tm
+				WHERE tm.tenant_id = $1
+				  AND tm.user_id = $4
+				  AND tm.role = 'TENANT_OWNER'
+				  AND tm.membership_status = 'ACTIVE'
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM identity.workspace_members wm
+				WHERE wm.workspace_id = tenancy.workspaces.id
+				  AND wm.user_id = $4
+				  AND wm.membership_status = 'ACTIVE'
+			)
+		  )`
 
 	queryFindByUser = `
 		SELECT w.id, w.tenant_id, w.name, w.code, w.type, w.status,

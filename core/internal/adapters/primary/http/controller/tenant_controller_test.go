@@ -3,6 +3,7 @@
 package controller_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -186,6 +187,18 @@ func TestTenantController_ListTenantWorkspaces(t *testing.T) {
 	defer testhelper.CleanupUser(t, pool, owner.ID)
 	testhelper.CreateTestTenantMember(t, pool, tenantID, owner.ID, entity.TenantRoleOwner, nil)
 
+	admin := testhelper.CreateTestUser(t, pool, "admin-ws@test.com", "Admin User", nil)
+	defer testhelper.CleanupUser(t, pool, admin.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, admin.ID, entity.TenantRoleAdmin, nil)
+
+	adminWithWorkspace := testhelper.CreateTestUser(t, pool, "admin-member-ws@test.com", "Admin Member User", nil)
+	defer testhelper.CleanupUser(t, pool, adminWithWorkspace.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, adminWithWorkspace.ID, entity.TenantRoleAdmin, nil)
+
+	superAdminRole := entity.SystemRoleSuperAdmin
+	superAdmin := testhelper.CreateTestUser(t, pool, "superadmin-ws@test.com", "Super Admin", &superAdminRole)
+	defer testhelper.CleanupUser(t, pool, superAdmin.ID)
+
 	// Create workspaces
 	ws1ID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace One", entity.WorkspaceTypeClient)
 	defer testhelper.CleanupWorkspace(t, pool, ws1ID)
@@ -193,7 +206,12 @@ func TestTenantController_ListTenantWorkspaces(t *testing.T) {
 	ws2ID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace Two", entity.WorkspaceTypeClient)
 	defer testhelper.CleanupWorkspace(t, pool, ws2ID)
 
-	t.Run("success with multiple workspaces", func(t *testing.T) {
+	memberUser := testhelper.CreateTestUser(t, pool, "member-ws@test.com", "Workspace Member", nil)
+	defer testhelper.CleanupUser(t, pool, memberUser.ID)
+	testhelper.CreateTestWorkspaceMember(t, pool, ws1ID, memberUser.ID, entity.WorkspaceRoleEditor, nil)
+	testhelper.CreateTestWorkspaceMember(t, pool, ws1ID, adminWithWorkspace.ID, entity.WorkspaceRoleEditor, nil)
+
+	t.Run("tenant owner receives inherited OWNER role for all workspaces", func(t *testing.T) {
 		resp, body := client.
 			WithAuth(owner.BearerHeader).
 			WithTenantID(tenantID).
@@ -201,44 +219,85 @@ func TestTenantController_ListTenantWorkspaces(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var listResp dto.ListResponse[dto.WorkspaceResponse]
+		var listResp dto.PaginatedWorkspacesResponse
 		err := json.Unmarshal(body, &listResp)
 		require.NoError(t, err)
 
-		assert.Equal(t, 2, listResp.Count)
-		assert.Len(t, listResp.Data, 2)
+		assert.GreaterOrEqual(t, len(listResp.Data), 2)
+		found := map[string]bool{}
+		for _, workspace := range listResp.Data {
+			assert.Equal(t, "OWNER", workspace.Role)
+			found[workspace.ID] = true
+		}
+		assert.True(t, found[ws1ID])
+		assert.True(t, found[ws2ID])
 	})
 
-	t.Run("success with empty list", func(t *testing.T) {
-		// Create a tenant with no workspaces
-		emptyTenantID := testhelper.CreateTestTenant(t, pool, "Empty Tenant", "EMPT01")
-		defer testhelper.CleanupTenant(t, pool, emptyTenantID)
-
-		emptyOwner := testhelper.CreateTestUser(t, pool, "owner-empty@test.com", "Empty Owner", nil)
-		defer testhelper.CleanupUser(t, pool, emptyOwner.ID)
-		testhelper.CreateTestTenantMember(t, pool, emptyTenantID, emptyOwner.ID, entity.TenantRoleOwner, nil)
-
+	t.Run("tenant admin can list workspaces but does not inherit workspace role", func(t *testing.T) {
 		resp, body := client.
-			WithAuth(emptyOwner.BearerHeader).
-			WithTenantID(emptyTenantID).
+			WithAuth(admin.BearerHeader).
+			WithTenantID(tenantID).
 			GET("/api/v1/tenant/workspaces")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var listResp dto.ListResponse[dto.WorkspaceResponse]
+		var listResp dto.PaginatedWorkspacesResponse
 		err := json.Unmarshal(body, &listResp)
 		require.NoError(t, err)
 
-		assert.Equal(t, 0, listResp.Count)
-		assert.Empty(t, listResp.Data)
+		assert.GreaterOrEqual(t, len(listResp.Data), 2)
+		found := map[string]bool{}
+		for _, workspace := range listResp.Data {
+			assert.Empty(t, workspace.Role)
+			found[workspace.ID] = true
+		}
+		assert.True(t, found[ws1ID])
+		assert.True(t, found[ws2ID])
 	})
 
-	t.Run("forbidden for non-member", func(t *testing.T) {
-		nonMember := testhelper.CreateTestUser(t, pool, "nonmember-ws@test.com", "Non Member", nil)
-		defer testhelper.CleanupUser(t, pool, nonMember.ID)
+	t.Run("accessibleOnly keeps pagination aligned with directly accessible workspaces", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(adminWithWorkspace.BearerHeader).
+			WithTenantID(tenantID).
+			GET("/api/v1/tenant/workspaces?accessibleOnly=true")
 
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var listResp dto.PaginatedWorkspacesResponse
+		err := json.Unmarshal(body, &listResp)
+		require.NoError(t, err)
+
+		require.Len(t, listResp.Data, 1)
+		assert.Equal(t, int64(1), listResp.Pagination.Total)
+		assert.Equal(t, ws1ID, listResp.Data[0].ID)
+		assert.Equal(t, "EDITOR", listResp.Data[0].Role)
+	})
+
+	t.Run("superadmin receives inherited OWNER role for all workspaces", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(superAdmin.BearerHeader).
+			WithTenantID(tenantID).
+			GET("/api/v1/tenant/workspaces")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var listResp dto.PaginatedWorkspacesResponse
+		err := json.Unmarshal(body, &listResp)
+		require.NoError(t, err)
+
+		assert.GreaterOrEqual(t, len(listResp.Data), 2)
+		found := map[string]bool{}
+		for _, workspace := range listResp.Data {
+			assert.Equal(t, "OWNER", workspace.Role)
+			found[workspace.ID] = true
+		}
+		assert.True(t, found[ws1ID])
+		assert.True(t, found[ws2ID])
+	})
+
+	t.Run("direct workspace member outside tenant admin routes remains forbidden", func(t *testing.T) {
 		resp, _ := client.
-			WithAuth(nonMember.BearerHeader).
+			WithAuth(memberUser.BearerHeader).
 			WithTenantID(tenantID).
 			GET("/api/v1/tenant/workspaces")
 
@@ -276,6 +335,7 @@ func TestTenantController_CreateWorkspace(t *testing.T) {
 	t.Run("success with TENANT_OWNER", func(t *testing.T) {
 		req := dto.CreateWorkspaceRequest{
 			Name: "New Workspace",
+			Code: "NEW_WORKSPACE",
 			Type: "CLIENT",
 		}
 
@@ -292,7 +352,18 @@ func TestTenantController_CreateWorkspace(t *testing.T) {
 
 		assert.NotEmpty(t, ws.ID)
 		assert.Equal(t, "New Workspace", ws.Name)
+		assert.Equal(t, "NEW_WORKSPACE", ws.Code)
 		assert.Equal(t, "CLIENT", ws.Type)
+		assert.Equal(t, "OWNER", ws.Role)
+
+		var membershipCount int
+		err = pool.QueryRow(context.Background(), `
+			SELECT COUNT(*)
+			FROM identity.workspace_members
+			WHERE workspace_id = $1 AND user_id = $2
+		`, ws.ID, owner.ID).Scan(&membershipCount)
+		require.NoError(t, err)
+		assert.Zero(t, membershipCount)
 
 		defer testhelper.CleanupWorkspace(t, pool, ws.ID)
 	})
@@ -300,6 +371,7 @@ func TestTenantController_CreateWorkspace(t *testing.T) {
 	t.Run("forbidden with TENANT_ADMIN", func(t *testing.T) {
 		req := dto.CreateWorkspaceRequest{
 			Name: "Forbidden Workspace",
+			Code: "FORBIDDEN_WS",
 			Type: "CLIENT",
 		}
 
@@ -314,6 +386,7 @@ func TestTenantController_CreateWorkspace(t *testing.T) {
 	t.Run("validation empty name", func(t *testing.T) {
 		req := dto.CreateWorkspaceRequest{
 			Name: "",
+			Code: "EMPTY_NAME",
 			Type: "CLIENT",
 		}
 
@@ -328,6 +401,7 @@ func TestTenantController_CreateWorkspace(t *testing.T) {
 	t.Run("validation invalid type", func(t *testing.T) {
 		req := dto.CreateWorkspaceRequest{
 			Name: "Invalid Type WS",
+			Code: "INVALID_TYPE",
 			Type: "INVALID",
 		}
 

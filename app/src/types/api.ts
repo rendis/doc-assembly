@@ -282,6 +282,17 @@ export interface TenantMember {
   createdAt: string
 }
 
+export type SystemUserRole = 'SUPERADMIN' | 'PLATFORM_ADMIN'
+
+export interface SystemUser {
+  id: string
+  userId: string
+  role: SystemUserRole
+  grantedBy?: string
+  createdAt: string
+  user: MemberUser
+}
+
 // ============================================
 // Request Types
 // ============================================

@@ -37,6 +37,18 @@ func TestWorkspaceController_GetWorkspace(t *testing.T) {
 	defer testhelper.CleanupUser(t, pool, owner.ID)
 	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, owner.ID, entity.WorkspaceRoleOwner, nil)
 
+	tenantOwner := testhelper.CreateTestUser(t, pool, "tenant-owner-ws@test.com", "Tenant Owner", nil)
+	defer testhelper.CleanupUser(t, pool, tenantOwner.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, tenantOwner.ID, entity.TenantRoleOwner, nil)
+
+	tenantAdmin := testhelper.CreateTestUser(t, pool, "tenant-admin-ws@test.com", "Tenant Admin", nil)
+	defer testhelper.CleanupUser(t, pool, tenantAdmin.ID)
+	testhelper.CreateTestTenantMember(t, pool, tenantID, tenantAdmin.ID, entity.TenantRoleAdmin, nil)
+
+	superAdminRole := entity.SystemRoleSuperAdmin
+	superAdmin := testhelper.CreateTestUser(t, pool, "superadmin-get-ws@test.com", "Super Admin", &superAdminRole)
+	defer testhelper.CleanupUser(t, pool, superAdmin.ID)
+
 	viewer := testhelper.CreateTestUser(t, pool, "viewer-ws@test.com", "Viewer User", nil)
 	defer testhelper.CleanupUser(t, pool, viewer.ID)
 	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, viewer.ID, entity.WorkspaceRoleViewer, nil)
@@ -55,6 +67,7 @@ func TestWorkspaceController_GetWorkspace(t *testing.T) {
 
 		assert.Equal(t, workspaceID, wsResp.ID)
 		assert.Equal(t, "Test Workspace", wsResp.Name)
+		assert.Equal(t, "VIEWER", wsResp.Role)
 	})
 
 	t.Run("success with OWNER", func(t *testing.T) {
@@ -70,6 +83,48 @@ func TestWorkspaceController_GetWorkspace(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, workspaceID, wsResp.ID)
+		assert.Equal(t, "OWNER", wsResp.Role)
+	})
+
+	t.Run("tenant owner inherits OWNER workspace access without membership", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(tenantOwner.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/workspace")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var wsResp dto.WorkspaceResponse
+		err := json.Unmarshal(body, &wsResp)
+		require.NoError(t, err)
+
+		assert.Equal(t, workspaceID, wsResp.ID)
+		assert.Equal(t, "OWNER", wsResp.Role)
+	})
+
+	t.Run("superadmin inherits OWNER workspace access without membership", func(t *testing.T) {
+		resp, body := client.
+			WithAuth(superAdmin.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/workspace")
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var wsResp dto.WorkspaceResponse
+		err := json.Unmarshal(body, &wsResp)
+		require.NoError(t, err)
+
+		assert.Equal(t, workspaceID, wsResp.ID)
+		assert.Equal(t, "OWNER", wsResp.Role)
+	})
+
+	t.Run("tenant admin does not inherit workspace access", func(t *testing.T) {
+		resp, _ := client.
+			WithAuth(tenantAdmin.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			GET("/api/v1/workspace")
+
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 	})
 
 	t.Run("forbidden without membership", func(t *testing.T) {
@@ -501,6 +556,29 @@ func TestWorkspaceController_RemoveMember(t *testing.T) {
 			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", ownerMemberID))
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("superadmin can remove legacy OWNER member", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Remove Owner Tenant 2", "RMST03")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		workspaceID := testhelper.CreateTestWorkspace(t, pool, &tenantID, "Workspace", entity.WorkspaceTypeClient)
+		defer testhelper.CleanupWorkspace(t, pool, workspaceID)
+
+		owner := testhelper.CreateTestUser(t, pool, "owner-rm3@test.com", "Owner User", nil)
+		defer testhelper.CleanupUser(t, pool, owner.ID)
+		ownerMemberID := testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, owner.ID, entity.WorkspaceRoleOwner, nil)
+
+		superAdminRole := entity.SystemRoleSuperAdmin
+		superAdmin := testhelper.CreateTestUser(t, pool, "superadmin-rm@test.com", "Super Admin", &superAdminRole)
+		defer testhelper.CleanupUser(t, pool, superAdmin.ID)
+
+		resp, _ := client.
+			WithAuth(superAdmin.BearerHeader).
+			WithWorkspaceID(workspaceID).
+			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", ownerMemberID))
+
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 	})
 }
 

@@ -112,7 +112,8 @@ function SelectTenantPage() {
     workspacePage,
     ITEMS_PER_PAGE,
     selectedTenant ? effectiveQuery : undefined,
-    'ACTIVE'
+    'ACTIVE',
+    true
   )
 
   // Pagination metadata

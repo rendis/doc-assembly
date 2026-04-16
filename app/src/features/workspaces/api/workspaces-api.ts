@@ -14,11 +14,20 @@ export async function getWorkspaces(
   page = 1,
   perPage = 20,
   query?: string,
-  status?: string
+  status?: string,
+  accessibleOnly?: boolean
 ): Promise<PaginatedResponse<WorkspaceWithRole>> {
   const response = await apiClient.get<PaginatedResponse<WorkspaceWithRole>>(
     '/tenant/workspaces',
-    { params: { page, perPage, ...(query && { q: query }), ...(status && { status }) } }
+    {
+      params: {
+        page,
+        perPage,
+        ...(query && { q: query }),
+        ...(status && { status }),
+        ...(accessibleOnly && { accessibleOnly: true }),
+      },
+    }
   )
   return response.data
 }
@@ -28,8 +37,8 @@ export async function getWorkspaces(
  */
 export async function createWorkspace(
   data: CreateWorkspaceRequest
-): Promise<Workspace> {
-  const response = await apiClient.post<Workspace>('/tenant/workspaces', data)
+): Promise<WorkspaceWithRole> {
+  const response = await apiClient.post<WorkspaceWithRole>('/tenant/workspaces', data)
   return response.data
 }
 
@@ -43,8 +52,8 @@ export async function deleteWorkspace(workspaceId: string): Promise<void> {
 /**
  * Get current workspace (from context)
  */
-export async function fetchCurrentWorkspace(): Promise<Workspace> {
-  const response = await apiClient.get<Workspace>('/workspace')
+export async function fetchCurrentWorkspace(): Promise<WorkspaceWithRole> {
+  const response = await apiClient.get<WorkspaceWithRole>('/workspace')
   return response.data
 }
 
@@ -53,8 +62,8 @@ export async function fetchCurrentWorkspace(): Promise<Workspace> {
  */
 export async function updateCurrentWorkspace(
   data: UpdateWorkspaceRequest
-): Promise<Workspace> {
-  const response = await apiClient.put<Workspace>('/workspace', data)
+): Promise<WorkspaceWithRole> {
+  const response = await apiClient.put<WorkspaceWithRole>('/workspace', data)
   return response.data
 }
 

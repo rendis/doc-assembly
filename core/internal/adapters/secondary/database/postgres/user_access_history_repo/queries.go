@@ -57,13 +57,23 @@ const (
 		DO UPDATE SET accessed_at = CURRENT_TIMESTAMP
 		RETURNING id`
 
-	// queryRecordWorkspaceAccessIfAllowed inserts only if user has workspace membership OR system role
+	// queryRecordWorkspaceAccessIfAllowed inserts only if user has workspace membership,
+	// inherited tenant owner access, or system role.
 	queryRecordWorkspaceAccessIfAllowed = `
 		INSERT INTO identity.user_access_history (user_id, entity_type, entity_id, accessed_at)
 		SELECT $1, 'WORKSPACE', $2, CURRENT_TIMESTAMP
 		WHERE EXISTS (
 			SELECT 1 FROM identity.workspace_members
 			WHERE user_id = $1 AND workspace_id = $2 AND membership_status = 'ACTIVE'
+		) OR EXISTS (
+			SELECT 1
+			FROM tenancy.workspaces w
+			INNER JOIN identity.tenant_members tm
+				ON tm.tenant_id = w.tenant_id
+			WHERE w.id = $2
+			  AND tm.user_id = $1
+			  AND tm.role = 'TENANT_OWNER'
+			  AND tm.membership_status = 'ACTIVE'
 		) OR EXISTS (
 			SELECT 1 FROM identity.system_roles WHERE user_id = $1
 		)
