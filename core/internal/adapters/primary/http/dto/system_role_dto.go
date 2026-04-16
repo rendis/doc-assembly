@@ -33,8 +33,27 @@ type AssignSystemRoleRequest struct {
 	Role string `json:"role" binding:"required,oneof=SUPERADMIN PLATFORM_ADMIN"`
 }
 
+// AddSystemRoleRequest represents a request to add a system member by email.
+type AddSystemRoleRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	FullName string `json:"fullName"`
+	Role     string `json:"role" binding:"required,oneof=SUPERADMIN PLATFORM_ADMIN"`
+}
+
 // Validate validates the AssignSystemRoleRequest.
 func (r *AssignSystemRoleRequest) Validate() error {
+	validRoles := map[string]bool{
+		"SUPERADMIN":     true,
+		"PLATFORM_ADMIN": true,
+	}
+	if !validRoles[r.Role] {
+		return ErrInvalidSystemRole
+	}
+	return nil
+}
+
+// Validate validates the AddSystemRoleRequest.
+func (r *AddSystemRoleRequest) Validate() error {
 	validRoles := map[string]bool{
 		"SUPERADMIN":     true,
 		"PLATFORM_ADMIN": true,

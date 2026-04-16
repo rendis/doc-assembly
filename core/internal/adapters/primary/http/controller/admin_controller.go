@@ -54,6 +54,7 @@ func (c *AdminController) RegisterRoutes(rg *gin.RouterGroup) {
 
 		// System roles management (SUPERADMIN only)
 		system.GET("/users", middleware.RequireSuperAdmin(), c.ListSystemUsers)
+		system.POST("/users", middleware.RequireSuperAdmin(), c.AddSystemRole)
 		system.POST("/users/:userId/role", middleware.RequireSuperAdmin(), c.AssignSystemRole)
 		system.DELETE("/users/:userId/role", middleware.RequireSuperAdmin(), c.RevokeSystemRole)
 
@@ -329,6 +330,47 @@ func (c *AdminController) ListSystemUsers(ctx *gin.Context) {
 
 	responses := mapper.SystemRolesWithUserToResponses(users)
 	ctx.JSON(http.StatusOK, dto.NewListResponse(responses))
+}
+
+// AddSystemRole finds or creates a user by email and assigns a system role.
+// Requires SUPERADMIN role.
+// @Summary Add system member
+// @Tags System - Users
+// @Accept json
+// @Produce json
+// @Param request body dto.AddSystemRoleRequest true "System member data"
+// @Success 200 {object} dto.SystemRoleResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Router /api/v1/system/users [post]
+// @Security BearerAuth
+func (c *AdminController) AddSystemRole(ctx *gin.Context) {
+	grantedBy, ok := middleware.GetInternalUserID(ctx)
+	if !ok {
+		respondError(ctx, http.StatusUnauthorized, entity.ErrUnauthorized)
+		return
+	}
+
+	var req dto.AddSystemRoleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		respondError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	cmd := mapper.AddSystemRoleRequestToCommand(req, grantedBy)
+	assignment, err := c.systemRoleUC.AddRole(ctx.Request.Context(), cmd)
+	if err != nil {
+		HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mapper.SystemRoleToResponse(assignment))
 }
 
 // AssignSystemRole assigns a system role to a user.

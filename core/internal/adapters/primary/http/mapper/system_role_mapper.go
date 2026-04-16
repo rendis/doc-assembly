@@ -62,6 +62,16 @@ func AssignSystemRoleRequestToCommand(userID string, req dto.AssignSystemRoleReq
 	}
 }
 
+// AddSystemRoleRequestToCommand converts a request to an add command.
+func AddSystemRoleRequestToCommand(req dto.AddSystemRoleRequest, grantedBy string) accessuc.AddSystemRoleCommand {
+	return accessuc.AddSystemRoleCommand{
+		Email:     req.Email,
+		FullName:  req.FullName,
+		Role:      entity.SystemRole(req.Role),
+		GrantedBy: grantedBy,
+	}
+}
+
 // RevokeSystemRoleToCommand creates a revoke command.
 func RevokeSystemRoleToCommand(userID, revokedBy string) accessuc.RevokeSystemRoleCommand {
 	return accessuc.RevokeSystemRoleCommand{

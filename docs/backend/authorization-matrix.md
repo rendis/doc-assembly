@@ -41,6 +41,7 @@ El sistema tiene **3 niveles de roles** jerárquicos:
 | DELETE | `/system/tenants/{tenantId}` | Elimina un tenant y todos sus datos | ✅ | ❌ |
 | GET | `/system/tenants/{tenantId}/workspaces?page=1&perPage=10&q={query}` | Lista workspaces de un tenant con paginación y búsqueda opcional | ✅ | ✅ |
 | GET | `/system/users` | Lista usuarios con roles de sistema asignados | ✅ | ❌ |
+| POST | `/system/users` | Crea o promueve un usuario por email y le asigna un rol de sistema | ✅ | ❌ |
 | POST | `/system/users/{userId}/role` | Asigna un rol de sistema a un usuario | ✅ | ❌ |
 | DELETE | `/system/users/{userId}/role` | Revoca el rol de sistema de un usuario | ✅ | ❌ |
 

@@ -3,6 +3,7 @@
 package controller_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/rendis/doc-assembly/core/internal/adapters/primary/http/dto"
+	workspacerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/workspace_repo"
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/testing/testhelper"
 )
@@ -576,6 +578,29 @@ func TestWorkspaceController_RemoveMember(t *testing.T) {
 		resp, _ := client.
 			WithAuth(superAdmin.BearerHeader).
 			WithWorkspaceID(workspaceID).
+			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", ownerMemberID))
+
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	})
+
+	t.Run("tenant owner can remove legacy OWNER member in tenant system workspace", func(t *testing.T) {
+		tenantID := testhelper.CreateTestTenant(t, pool, "Remove Owner Tenant 4", "RMST04")
+		defer testhelper.CleanupTenant(t, pool, tenantID)
+
+		systemWorkspace, err := workspacerepo.New(pool).FindSystemByTenant(context.Background(), &tenantID)
+		require.NoError(t, err)
+
+		owner := testhelper.CreateTestUser(t, pool, "owner-rm4@test.com", "Owner User", nil)
+		defer testhelper.CleanupUser(t, pool, owner.ID)
+		ownerMemberID := testhelper.CreateTestWorkspaceMember(t, pool, systemWorkspace.ID, owner.ID, entity.WorkspaceRoleOwner, nil)
+
+		tenantOwner := testhelper.CreateTestUser(t, pool, "tenant-owner-rm@test.com", "Tenant Owner", nil)
+		defer testhelper.CleanupUser(t, pool, tenantOwner.ID)
+		testhelper.CreateTestTenantMember(t, pool, tenantID, tenantOwner.ID, entity.TenantRoleOwner, nil)
+
+		resp, _ := client.
+			WithAuth(tenantOwner.BearerHeader).
+			WithWorkspaceID(systemWorkspace.ID).
 			DELETE(fmt.Sprintf("/api/v1/workspace/members/%s", ownerMemberID))
 
 		assert.Equal(t, http.StatusNoContent, resp.StatusCode)

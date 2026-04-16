@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  addSystemUser,
   listSystemUsers,
   revokeSystemUserRole,
   updateSystemUserRole,
@@ -21,6 +22,18 @@ export function useUpdateSystemUserRole() {
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: SystemUserRole }) =>
       updateSystemUserRole(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['system-users'] })
+    },
+  })
+}
+
+export function useAddSystemUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: { email: string; fullName?: string; role: SystemUserRole }) =>
+      addSystemUser(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-users'] })
     },

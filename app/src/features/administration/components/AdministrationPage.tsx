@@ -47,7 +47,7 @@ export function AdministrationPage(): React.ReactElement {
               </TabsTrigger>
               {canViewSystemUsers && (
                 <TabsTrigger value="users" className={TAB_TRIGGER_CLASS}>
-                  {t('administration.tabs.users', 'Users')}
+                  {t('administration.tabs.members', 'Members')}
                 </TabsTrigger>
               )}
               <TabsTrigger value="injectables" className={TAB_TRIGGER_CLASS}>

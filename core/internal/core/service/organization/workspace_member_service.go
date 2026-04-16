@@ -18,19 +18,25 @@ func NewWorkspaceMemberService(
 	memberRepo port.WorkspaceMemberRepository,
 	userRepo port.UserRepository,
 	systemRoleRepo port.SystemRoleRepository,
+	workspaceRepo port.WorkspaceRepository,
+	tenantMemberRepo port.TenantMemberRepository,
 ) organizationuc.WorkspaceMemberUseCase {
 	return &WorkspaceMemberService{
-		memberRepo:     memberRepo,
-		userRepo:       userRepo,
-		systemRoleRepo: systemRoleRepo,
+		memberRepo:       memberRepo,
+		userRepo:         userRepo,
+		systemRoleRepo:   systemRoleRepo,
+		workspaceRepo:    workspaceRepo,
+		tenantMemberRepo: tenantMemberRepo,
 	}
 }
 
 // WorkspaceMemberService implements workspace member business logic.
 type WorkspaceMemberService struct {
-	memberRepo     port.WorkspaceMemberRepository
-	userRepo       port.UserRepository
-	systemRoleRepo port.SystemRoleRepository
+	memberRepo       port.WorkspaceMemberRepository
+	userRepo         port.UserRepository
+	systemRoleRepo   port.SystemRoleRepository
+	workspaceRepo    port.WorkspaceRepository
+	tenantMemberRepo port.TenantMemberRepository
 }
 
 // ListMembers lists all members of a workspace.
@@ -197,11 +203,11 @@ func (s *WorkspaceMemberService) RemoveMember(ctx context.Context, cmd organizat
 
 	// Cannot remove owner
 	if member.Role == entity.WorkspaceRoleOwner {
-		systemRole, err := s.systemRoleRepo.FindByUserID(ctx, cmd.RemovedBy)
-		if err != nil && !errors.Is(err, entity.ErrSystemRoleNotFound) {
-			return fmt.Errorf("finding remover system role: %w", err)
+		canRemoveOwner, err := s.canRemoveOwnerMembership(ctx, cmd.WorkspaceID, cmd.RemovedBy)
+		if err != nil {
+			return err
 		}
-		if err != nil || !systemRole.Role.HasPermission(entity.SystemRoleSuperAdmin) {
+		if !canRemoveOwner {
 			return entity.ErrCannotRemoveOwner
 		}
 	}
@@ -217,4 +223,32 @@ func (s *WorkspaceMemberService) RemoveMember(ctx context.Context, cmd organizat
 	)
 
 	return nil
+}
+
+func (s *WorkspaceMemberService) canRemoveOwnerMembership(ctx context.Context, workspaceID, removedBy string) (bool, error) {
+	systemRole, err := s.systemRoleRepo.FindByUserID(ctx, removedBy)
+	if err != nil && !errors.Is(err, entity.ErrSystemRoleNotFound) {
+		return false, fmt.Errorf("finding remover system role: %w", err)
+	}
+	if err == nil && systemRole.Role.HasPermission(entity.SystemRoleSuperAdmin) {
+		return true, nil
+	}
+
+	workspace, err := s.workspaceRepo.FindByID(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("finding workspace: %w", err)
+	}
+	if workspace.TenantID == nil {
+		return false, nil
+	}
+
+	tenantMember, err := s.tenantMemberRepo.FindActiveByUserAndTenant(ctx, removedBy, *workspace.TenantID)
+	if err != nil {
+		if errors.Is(err, entity.ErrTenantMemberNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("finding remover tenant membership: %w", err)
+	}
+
+	return tenantMember.Role == entity.TenantRoleOwner, nil
 }

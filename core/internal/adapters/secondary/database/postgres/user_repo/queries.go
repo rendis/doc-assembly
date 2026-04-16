@@ -15,7 +15,9 @@ const (
 	queryFindByEmail = `
 		SELECT id, external_identity_id, email, full_name, status, created_at
 		FROM identity.users
-		WHERE email = $1`
+		WHERE LOWER(email) = LOWER($1)
+		ORDER BY created_at ASC
+		LIMIT 1`
 
 	queryFindByExternalID = `
 		SELECT id, external_identity_id, email, full_name, status, created_at
