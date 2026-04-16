@@ -2,11 +2,14 @@ package access
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 	"github.com/rendis/doc-assembly/core/internal/core/port"
@@ -29,6 +32,8 @@ type SystemRoleService struct {
 	systemRoleRepo port.SystemRoleRepository
 	userRepo       port.UserRepository
 }
+
+const usersEmailUniqueConstraint = "users_email_key"
 
 // ListUsersWithSystemRoles lists all users that have system roles.
 func (s *SystemRoleService) ListUsersWithSystemRoles(ctx context.Context) ([]*entity.SystemRoleWithUser, error) {
@@ -103,6 +108,56 @@ func (s *SystemRoleService) AssignRole(ctx context.Context, cmd accessuc.AssignS
 	return assignment, nil
 }
 
+// AddRole finds or creates a user and assigns a system role.
+func (s *SystemRoleService) AddRole(ctx context.Context, cmd accessuc.AddSystemRoleCommand) (*entity.SystemRoleAssignment, error) {
+	normalizedEmail := normalizeEmail(cmd.Email)
+	fullName := strings.TrimSpace(cmd.FullName)
+	createdUser := false
+
+	user, err := s.userRepo.FindByEmail(ctx, normalizedEmail)
+	if err != nil {
+		if !errors.Is(err, entity.ErrUserNotFound) {
+			return nil, fmt.Errorf("finding user by email: %w", err)
+		}
+
+		user = entity.NewUser(normalizedEmail, fullName)
+		user.ID = uuid.NewString()
+		if err := user.Validate(); err != nil {
+			return nil, fmt.Errorf("validating user: %w", err)
+		}
+		if _, err := s.userRepo.Create(ctx, user); err != nil {
+			if !isUsersEmailUniqueViolation(err) {
+				return nil, fmt.Errorf("creating shadow user: %w", err)
+			}
+
+			user, err = s.userRepo.FindByEmail(ctx, normalizedEmail)
+			if err != nil {
+				return nil, fmt.Errorf("reloading user after duplicate email: %w", err)
+			}
+		} else {
+			createdUser = true
+		}
+
+		if createdUser {
+			slog.InfoContext(ctx, "shadow user created for system role",
+				slog.String("user_id", user.ID),
+				slog.String("email", user.Email),
+			)
+		}
+	} else if fullName != "" && user.FullName == "" {
+		user.FullName = fullName
+		if err := s.userRepo.Update(ctx, user); err != nil {
+			return nil, fmt.Errorf("updating user full name: %w", err)
+		}
+	}
+
+	return s.AssignRole(ctx, accessuc.AssignSystemRoleCommand{
+		UserID:    user.ID,
+		Role:      cmd.Role,
+		GrantedBy: cmd.GrantedBy,
+	})
+}
+
 // RevokeRole revokes a user's system role.
 func (s *SystemRoleService) RevokeRole(ctx context.Context, cmd accessuc.RevokeSystemRoleCommand) error {
 	if err := s.systemRoleRepo.Delete(ctx, cmd.UserID); err != nil {
@@ -120,4 +175,17 @@ func (s *SystemRoleService) RevokeRole(ctx context.Context, cmd accessuc.RevokeS
 // GetUserSystemRole gets a user's system role.
 func (s *SystemRoleService) GetUserSystemRole(ctx context.Context, userID string) (*entity.SystemRoleAssignment, error) {
 	return s.systemRoleRepo.FindByUserID(ctx, userID)
+}
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func isUsersEmailUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+
+	return pgErr.Code == "23505" && pgErr.ConstraintName == usersEmailUniqueConstraint
 }

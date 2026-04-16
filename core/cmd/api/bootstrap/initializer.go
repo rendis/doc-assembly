@@ -173,7 +173,13 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		userAccessHistoryRepo,
 	)
 	tenantSvc := organizationsvc.NewTenantService(tenantRepo, workspaceRepo, tenantMemberRepo, systemRoleRepo, userAccessHistoryRepo)
-	workspaceMemberSvc := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo, systemRoleRepo)
+	workspaceMemberSvc := organizationsvc.NewWorkspaceMemberService(
+		workspaceMemberRepo,
+		userRepo,
+		systemRoleRepo,
+		workspaceRepo,
+		tenantMemberRepo,
+	)
 	tenantMemberSvc := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
 
 	// --- Services: Catalog ---

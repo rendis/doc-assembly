@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils'
 import {
   AlertTriangle,
   MoreHorizontal,
+  Plus,
   Search,
   ShieldCheck,
   Trash2,
@@ -22,6 +24,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SystemUser } from '@/types/api'
+import { AddSystemUserDialog } from './AddSystemUserDialog'
 import { RemoveSystemUserRoleDialog } from './RemoveSystemUserRoleDialog'
 import { useSystemUsers, useUpdateSystemUserRole } from '../hooks/useSystemUsers'
 
@@ -71,13 +74,14 @@ export function UsersTab(): React.ReactElement {
   const canManageUsers = hasPermission(Permission.SYSTEM_USERS_MANAGE)
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null)
 
   const { data, isLoading, error } = useSystemUsers()
   const updateRoleMutation = useUpdateSystemUserRole()
 
-  const systemUsers = data?.data ?? []
+  const systemUsers = useMemo(() => data?.data ?? [], [data?.data])
   const superAdminCount = systemUsers.filter((user) => user.role === 'SUPERADMIN').length
 
   const filteredUsers = useMemo(() => {
@@ -140,7 +144,7 @@ export function UsersTab(): React.ReactElement {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
-          {t('administration.users.description', 'Manage system users and their roles.')}
+          {t('administration.users.description', 'Manage system members and their roles.')}
         </p>
         {!canManageUsers && (
           <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -153,18 +157,27 @@ export function UsersTab(): React.ReactElement {
         )}
       </div>
 
-      <div className="group relative w-full md:max-w-xs">
-        <Search
-          className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-foreground"
-          size={18}
-        />
-        <input
-          type="text"
-          placeholder={t('administration.users.searchPlaceholder', 'Search users...')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-7 pr-4 text-sm font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
-        />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="group relative w-full md:max-w-xs">
+          <Search
+            className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-foreground"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder={t('administration.users.searchPlaceholder', 'Search members...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-none border-0 border-b border-border bg-transparent py-2 pl-7 pr-4 text-sm font-light text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus-visible:border-foreground focus-visible:ring-0"
+          />
+        </div>
+
+        {canManageUsers && (
+          <Button type="button" onClick={() => setAddOpen(true)} className="gap-2">
+            <Plus size={14} />
+            {t('administration.users.form.add', 'Add Member')}
+          </Button>
+        )}
       </div>
 
       <div className="rounded-sm border">
@@ -195,8 +208,8 @@ export function UsersTab(): React.ReactElement {
             <Users size={32} className="mb-3 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">
               {searchQuery
-                ? t('administration.users.noResults', 'No users match your search')
-                : t('administration.users.empty', 'No system users found')}
+                ? t('administration.users.noResults', 'No members match your search')
+                : t('administration.users.empty', 'No system members found')}
             </p>
           </div>
         )}
@@ -277,6 +290,7 @@ export function UsersTab(): React.ReactElement {
         )}
       </div>
 
+      <AddSystemUserDialog open={addOpen} onOpenChange={setAddOpen} />
       <RemoveSystemUserRoleDialog
         open={removeOpen}
         onOpenChange={setRemoveOpen}

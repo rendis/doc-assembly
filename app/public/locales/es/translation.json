@@ -1235,7 +1235,8 @@
       "apiKeys": "API Keys",
       "documentTypes": "Tipos de Documento",
       "processes": "Procesos",
-      "workspaces": "Workspaces"
+      "workspaces": "Workspaces",
+      "members": "Miembros"
     },
     "apiKeys": {
       "description": "Gestiona las API keys de automatización para acceso machine-to-machine.",
@@ -1522,12 +1523,12 @@
       }
     },
     "users": {
-      "description": "Gestiona los usuarios del sistema y sus roles.",
+      "description": "Gestiona los miembros del sistema y sus roles.",
       "readOnlyWarning": "Tienes acceso de solo lectura. Solo SUPERADMIN puede modificar roles del sistema.",
-      "searchPlaceholder": "Buscar usuarios...",
+      "searchPlaceholder": "Buscar miembros...",
       "loadError": "No se pudieron cargar los usuarios del sistema",
-      "noResults": "Ningún usuario coincide con la búsqueda",
-      "empty": "No se encontraron usuarios del sistema",
+      "noResults": "Ningún miembro coincide con la búsqueda",
+      "empty": "No se encontraron miembros del sistema",
       "roleUpdated": "Rol actualizado",
       "columns": {
         "name": "Nombre",
@@ -1549,6 +1550,25 @@
         "confirm": "¿Seguro que quieres quitar el acceso de sistema a \"{{name}}\"?",
         "description": "Este usuario perderá inmediatamente el acceso de administración a nivel plataforma.",
         "success": "Rol del sistema eliminado"
+      },
+      "form": {
+        "title": "Agregar miembro",
+        "description": "Crea o promueve un usuario con acceso global al sistema.",
+        "email": "Correo",
+        "emailRequired": "El correo es obligatorio",
+        "emailInvalid": "Ingresa un correo válido",
+        "fullName": "Nombre completo",
+        "fullNamePlaceholder": "Juan Pérez",
+        "role": "Rol",
+        "add": "Agregar miembro",
+        "addSuccess": "Miembro agregado",
+        "addError": "No se pudo agregar el miembro",
+        "roles": {
+          "platformAdmin": "Platform admin",
+          "platformAdminDesc": "Acceso operativo a la plataforma sin autoridad total de superadmin.",
+          "superAdmin": "Superadmin",
+          "superAdminDesc": "Administración global completa del sistema, tenants y workspaces."
+        }
       }
     },
     "audit": {

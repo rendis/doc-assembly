@@ -13,6 +13,14 @@ type AssignSystemRoleCommand struct {
 	GrantedBy string
 }
 
+// AddSystemRoleCommand represents the command to add a system role by email.
+type AddSystemRoleCommand struct {
+	Email     string
+	FullName  string
+	Role      entity.SystemRole
+	GrantedBy string
+}
+
 // RevokeSystemRoleCommand represents the command to revoke a system role.
 type RevokeSystemRoleCommand struct {
 	UserID    string
@@ -26,6 +34,9 @@ type SystemRoleUseCase interface {
 
 	// AssignRole assigns a system role to a user.
 	AssignRole(ctx context.Context, cmd AssignSystemRoleCommand) (*entity.SystemRoleAssignment, error)
+
+	// AddRole finds or creates a user by email and assigns a system role.
+	AddRole(ctx context.Context, cmd AddSystemRoleCommand) (*entity.SystemRoleAssignment, error)
 
 	// RevokeRole revokes a user's system role.
 	RevokeRole(ctx context.Context, cmd RevokeSystemRoleCommand) error

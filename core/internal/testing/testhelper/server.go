@@ -153,7 +153,13 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	tenantMemberService := organizationsvc.NewTenantMemberService(tenantMemberRepo, userRepo)
 	folderService := catalogsvc.NewFolderService(folderRepo)
 	tagService := catalogsvc.NewTagService(tagRepo)
-	workspaceMemberService := organizationsvc.NewWorkspaceMemberService(workspaceMemberRepo, userRepo, systemRoleRepo)
+	workspaceMemberService := organizationsvc.NewWorkspaceMemberService(
+		workspaceMemberRepo,
+		userRepo,
+		systemRoleRepo,
+		workspaceRepo,
+		tenantMemberRepo,
+	)
 	userAccessHistoryService := accesssvc.NewUserAccessHistoryService(userAccessHistoryRepo)
 	workspaceInjectableService := injectablesvc.NewWorkspaceInjectableService(workspaceInjectableRepo)
 	systemInjectableService := injectablesvc.NewSystemInjectableService(systemInjectableRepo, nil)

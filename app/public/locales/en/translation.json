@@ -1235,7 +1235,8 @@
       "apiKeys": "API Keys",
       "documentTypes": "Document Types",
       "processes": "Processes",
-      "workspaces": "Workspaces"
+      "workspaces": "Workspaces",
+      "members": "Members"
     },
     "apiKeys": {
       "description": "Manage automation API keys for machine-to-machine access.",
@@ -1522,12 +1523,12 @@
       }
     },
     "users": {
-      "description": "Manage system users and their roles.",
+      "description": "Manage system members and their roles.",
       "readOnlyWarning": "You have read-only access. Only SUPERADMIN can modify system roles.",
-      "searchPlaceholder": "Search users...",
+      "searchPlaceholder": "Search members...",
       "loadError": "Failed to load system users",
-      "noResults": "No users match your search",
-      "empty": "No system users found",
+      "noResults": "No members match your search",
+      "empty": "No system members found",
       "roleUpdated": "Role updated",
       "columns": {
         "name": "Name",
@@ -1549,6 +1550,25 @@
         "confirm": "Are you sure you want to remove system access from \"{{name}}\"?",
         "description": "This user will immediately lose platform-level administration access.",
         "success": "System role removed"
+      },
+      "form": {
+        "title": "Add Member",
+        "description": "Create or promote a user with global system access.",
+        "email": "Email",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email",
+        "fullName": "Full Name",
+        "fullNamePlaceholder": "John Doe",
+        "role": "Role",
+        "add": "Add Member",
+        "addSuccess": "Member added",
+        "addError": "Failed to add member",
+        "roles": {
+          "platformAdmin": "Platform Admin",
+          "platformAdminDesc": "Operational platform access without full superadmin authority.",
+          "superAdmin": "Superadmin",
+          "superAdminDesc": "Full global administration across system, tenants, and workspaces."
+        }
       }
     },
     "audit": {

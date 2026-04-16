@@ -3,6 +3,7 @@
 package controller_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -416,6 +417,71 @@ func TestAdminController_SystemRoles(t *testing.T) {
 	})
 
 	t.Run("Assign", func(t *testing.T) {
+		t.Run("success via email creates invited shadow user", func(t *testing.T) {
+			req := dto.AddSystemRoleRequest{
+				Email:    "new-system-member@test.com",
+				FullName: "New System Member",
+				Role:     "PLATFORM_ADMIN",
+			}
+
+			resp, body := client.WithAuth(superAdmin.BearerHeader).
+				POST("/api/v1/system/users", req)
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var roleResp dto.SystemRoleResponse
+			err := json.Unmarshal(body, &roleResp)
+			require.NoError(t, err)
+			assert.Equal(t, "PLATFORM_ADMIN", roleResp.Role)
+
+			row := pool.QueryRow(context.Background(), `
+				SELECT email, full_name, status
+				FROM identity.users
+				WHERE id = $1
+			`, roleResp.UserID)
+
+			var email, fullName, status string
+			err = row.Scan(&email, &fullName, &status)
+			require.NoError(t, err)
+			assert.Equal(t, req.Email, email)
+			assert.Equal(t, req.FullName, fullName)
+			assert.Equal(t, "INVITED", status)
+
+			defer testhelper.CleanupUser(t, pool, roleResp.UserID)
+		})
+
+		t.Run("matches existing user case-insensitively", func(t *testing.T) {
+			existingUser := testhelper.CreateTestUser(t, pool,
+				"existing-case@test.com", "Existing Case", nil)
+			defer testhelper.CleanupUser(t, pool, existingUser.ID)
+
+			req := dto.AddSystemRoleRequest{
+				Email: "Existing-Case@Test.com",
+				Role:  "PLATFORM_ADMIN",
+			}
+
+			resp, body := client.WithAuth(superAdmin.BearerHeader).
+				POST("/api/v1/system/users", req)
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var roleResp dto.SystemRoleResponse
+			err := json.Unmarshal(body, &roleResp)
+			require.NoError(t, err)
+			assert.Equal(t, existingUser.ID, roleResp.UserID)
+
+			row := pool.QueryRow(context.Background(), `
+				SELECT COUNT(*)
+				FROM identity.users
+				WHERE LOWER(email) = LOWER($1)
+			`, req.Email)
+
+			var count int
+			err = row.Scan(&count)
+			require.NoError(t, err)
+			assert.Equal(t, 1, count)
+		})
+
 		t.Run("success SUPERADMIN role", func(t *testing.T) {
 			targetUser := testhelper.CreateTestUser(t, pool,
 				"target-super@test.com", "Target Super", nil)
@@ -496,6 +562,18 @@ func TestAdminController_SystemRoles(t *testing.T) {
 
 			resp, _ := client.WithAuth(platformAdmin.BearerHeader).
 				POST("/api/v1/system/users/"+targetUser.ID+"/role", req)
+
+			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		})
+
+		t.Run("add forbidden PLATFORM_ADMIN", func(t *testing.T) {
+			req := dto.AddSystemRoleRequest{
+				Email: "forbidden-system-member@test.com",
+				Role:  "PLATFORM_ADMIN",
+			}
+
+			resp, _ := client.WithAuth(platformAdmin.BearerHeader).
+				POST("/api/v1/system/users", req)
 
 			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 		})

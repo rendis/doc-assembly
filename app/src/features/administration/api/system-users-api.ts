@@ -11,6 +11,14 @@ export async function listSystemUsers(): Promise<ListResponse<SystemUser>> {
   return response.data
 }
 
+export async function addSystemUser(input: {
+  email: string
+  fullName?: string
+  role: SystemUserRole
+}): Promise<void> {
+  await apiClient.post('/system/users', input)
+}
+
 export async function updateSystemUserRole(
   userId: string,
   role: SystemUserRole
