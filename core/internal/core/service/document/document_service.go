@@ -669,11 +669,17 @@ func (s *DocumentService) uploadPendingProviderDocument(ctx context.Context, doc
 	}
 
 	title := documentTitle(doc)
+	signatureFields, err := s.buildPendingProviderSignatureFields(ctx, doc, recipients)
+	if err != nil {
+		s.markDocError(ctx, doc)
+		return fmt.Errorf("building signature fields for document %s: %w", doc.ID, err)
+	}
 
 	result, err := s.signingProvider.UploadDocument(ctx, &port.UploadDocumentRequest{
-		PDF:        pdfData,
-		Title:      title,
-		Recipients: buildSigningRecipients(recipients),
+		PDF:             pdfData,
+		Title:           title,
+		Recipients:      buildSigningRecipients(recipients),
+		SignatureFields: signatureFields,
 	})
 	if err != nil {
 		s.markDocError(ctx, doc)
@@ -701,6 +707,56 @@ func (s *DocumentService) uploadPendingProviderDocument(ctx context.Context, doc
 func (s *DocumentService) markDocError(ctx context.Context, doc *entity.Document) {
 	_ = doc.MarkAsError()
 	_ = s.documentRepo.Update(ctx, doc)
+}
+
+// buildPendingProviderSignatureFields recreates signature field positions for a
+// stored PENDING_PROVIDER PDF before retrying the provider upload.
+func (s *DocumentService) buildPendingProviderSignatureFields(
+	ctx context.Context,
+	doc *entity.Document,
+	recipients []*entity.DocumentRecipient,
+) ([]port.SignatureFieldPosition, error) {
+	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("loading template version: %w", err)
+	}
+
+	portableDoc, err := parsePortableDocument(version.ContentStructure)
+	if err != nil {
+		return nil, fmt.Errorf("parsing document content: %w", err)
+	}
+	if portableDoc == nil {
+		return buildDefaultSignatureFieldPositions(recipients), nil
+	}
+
+	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("loading signer roles: %w", err)
+	}
+
+	signerRoleValues := buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles)
+
+	var injectables map[string]any
+	if doc.InjectedValuesSnapshot != nil {
+		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectables)
+	}
+
+	renderResult, err := s.pdfRenderer.RenderPreview(ctx, &port.RenderPreviewRequest{
+		Document:         portableDoc,
+		Injectables:      injectables,
+		SignerRoleValues: signerRoleValues,
+		FieldResponses:   loadFieldResponseMap(ctx, s.fieldResponseRepo, doc.ID),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("rendering PDF for signature fields: %w", err)
+	}
+
+	fields := mapSignatureFieldPositions(renderResult.SignatureFields, signerRoles, portableDoc.SignerRoles)
+	if len(fields) == 0 {
+		return buildDefaultSignatureFieldPositions(recipients), nil
+	}
+
+	return fields, nil
 }
 
 // buildSigningRecipients converts entity recipients to signing provider DTOs.
