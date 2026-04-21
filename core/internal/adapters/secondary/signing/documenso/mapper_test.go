@@ -2,6 +2,7 @@ package documenso
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -57,6 +58,26 @@ func TestMapRecipientStatus(t *testing.T) {
 			assert.Equal(t, tt.expect, MapRecipientStatus(tt.input))
 		})
 	}
+}
+
+func TestProcessRecipientsTreatsSignedAtAsSigned(t *testing.T) {
+	signedAt := time.Date(2026, time.April, 21, 23, 6, 42, 0, time.UTC).Format(time.RFC3339)
+
+	results, allSigned, anyDeclined := processRecipients([]recipientResponse{
+		{
+			ID:       123,
+			Status:   "PENDING",
+			SignedAt: signedAt,
+		},
+	})
+
+	assert.False(t, anyDeclined)
+	assert.True(t, allSigned)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "123", results[0].ProviderRecipientID)
+	assert.Equal(t, entity.RecipientStatusSigned, results[0].Status)
+	assert.NotNil(t, results[0].SignedAt)
+	assert.Equal(t, "PENDING", results[0].ProviderStatus)
 }
 
 func TestMapWebhookEvent(t *testing.T) {
