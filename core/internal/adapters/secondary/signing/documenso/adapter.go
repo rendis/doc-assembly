@@ -462,6 +462,9 @@ func processRecipients(recipients []recipientResponse) ([]port.RecipientStatusRe
 				signedAt = &t
 			}
 		}
+		if signedAt != nil {
+			recipientStatus = entity.RecipientStatusSigned
+		}
 
 		results[i] = port.RecipientStatusResult{
 			ProviderRecipientID: strconv.Itoa(r.ID),
