@@ -1605,6 +1605,30 @@ func TestRenderSignatureBlock_SubtitleAlignment(t *testing.T) {
 	}
 }
 
+func TestRenderSignatureBlock_PlacesAnchorOnSignatureLineOutOfFlow(t *testing.T) {
+	c := newTestConverter(nil, nil)
+	roleID := "role_signer"
+	attrs := portabledoc.SignatureAttrs{
+		Count:     1,
+		Layout:    portabledoc.LayoutSingleCenter,
+		LineWidth: "md",
+		Signatures: []portabledoc.SignatureItem{{
+			ID:     "sig_1",
+			RoleID: &roleID,
+			Label:  "Signer",
+		}},
+	}
+
+	got := c.renderSignatureBlock(attrs)
+
+	if !strings.Contains(got, `#place(top + center, dy: 20.0pt)[#text(size: 0.1pt, fill: white)[\_\_sig\_sig\_1\_\_]]`) {
+		t.Fatalf("expected out-of-flow anchor placed at the signature line, got:\n%s", got)
+	}
+	if strings.Contains(got, "    #text(size: 0.1pt, fill: white)[\\_\\_sig\\_sig\\_1\\_\\_]\n    #block") {
+		t.Fatalf("anchor must not be a flow text row before the line block, got:\n%s", got)
+	}
+}
+
 func TestCapSignatureLineWidth(t *testing.T) {
 	c := newTestConverter(nil, nil)
 	// A4: contentWidthPx=642.5 → contentWidthPt=481.875 → 3-col max=(481.875-22)/3≈153.3pt
