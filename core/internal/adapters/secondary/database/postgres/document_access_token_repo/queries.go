@@ -3,18 +3,18 @@ package documentaccesstokenrepo
 const (
 	queryCreate = `
 		INSERT INTO execution.document_access_tokens (
-			document_id, recipient_id, token, token_type, expires_at, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6)
+			document_id, recipient_id, attempt_id, token, token_type, expires_at, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	queryFindByAccessValue = ` -- nolint:gosec // not a credential, SQL query param
-		SELECT id, document_id, recipient_id, token, token_type, expires_at, used_at, created_at
+		SELECT id, document_id, recipient_id, attempt_id, token, token_type, expires_at, used_at, created_at
 		FROM execution.document_access_tokens
 		WHERE token = $1
 	`
 
 	queryFindActiveByRecipientAndType = `
-		SELECT id, document_id, recipient_id, token, token_type, expires_at, used_at, created_at
+		SELECT id, document_id, recipient_id, attempt_id, token, token_type, expires_at, used_at, created_at
 		FROM execution.document_access_tokens
 		WHERE recipient_id = $1
 		  AND token_type = $2
@@ -25,7 +25,7 @@ const (
 	`
 
 	queryFindActiveByDocumentRecipientAndType = `
-		SELECT id, document_id, recipient_id, token, token_type, expires_at, used_at, created_at
+		SELECT id, document_id, recipient_id, attempt_id, token, token_type, expires_at, used_at, created_at
 		FROM execution.document_access_tokens
 		WHERE document_id = $1
 		  AND recipient_id = $2

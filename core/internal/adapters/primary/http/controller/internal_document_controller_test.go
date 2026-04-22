@@ -434,7 +434,7 @@ func TestInternalDocumentController_EnvironmentHeaderValidation(t *testing.T) {
 		env := setupInternalCreateEnv(t, nil, true)
 		env.createPublishedTemplate(t, env.workspaceID, env.documentTypeID)
 
-		resp, body, _ := env.postCreateWithEnv(t, "staging", env.documentTypeCode, "ext-invalid-env", "tx-invalid-env", nil, nil, map[string]any{"k": "v"})
+		resp, body, _ := env.postCreateWithEnv(t, "invalid-env", env.documentTypeCode, "ext-invalid-env", "tx-invalid-env", nil, nil, map[string]any{"k": "v"})
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode, string(body))
 
 		var errResp dto.InternalErrorResponse

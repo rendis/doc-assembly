@@ -28,6 +28,8 @@ var notFoundErrors = []error{
 	entity.ErrTenantMemberNotFound,
 	entity.ErrSystemRoleNotFound,
 	entity.ErrDocumentTypeNotFound,
+	entity.ErrDocumentNotFound,
+	entity.ErrSigningAttemptNotFound,
 	entity.ErrProcessNotFound,
 	entity.ErrAPIKeyNotFound,
 	entity.ErrInternalTemplateResolutionNotFound,
@@ -164,6 +166,7 @@ func HandleError(ctx *gin.Context, err error) {
 	}
 
 	statusCode := mapErrorToStatusCode(err)
+	//nolint:staticcheck
 	switch {
 	case statusCode == http.StatusInternalServerError:
 		slog.ErrorContext(ctx.Request.Context(), "unhandled error", slog.Any("error", err))

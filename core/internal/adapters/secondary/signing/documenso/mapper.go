@@ -6,7 +6,6 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 )
 
-// DocumensoEnvelopeStatus represents the status values from Documenso API.
 type DocumensoEnvelopeStatus string
 
 const (
@@ -20,7 +19,6 @@ const (
 	EnvelopeStatusCancelled DocumensoEnvelopeStatus = "CANCELLED"
 )
 
-// DocumensoRecipientStatus represents the recipient status values from Documenso API.
 type DocumensoRecipientStatus string
 
 const (
@@ -32,31 +30,23 @@ const (
 	RecipientStatusRejected  DocumensoRecipientStatus = "REJECTED"
 )
 
-// MapEnvelopeStatus maps Documenso envelope status to internal DocumentStatus.
-func MapEnvelopeStatus(status string) entity.DocumentStatus {
+func MapEnvelopeStatus(status string) entity.SigningAttemptStatus {
 	switch DocumensoEnvelopeStatus(strings.ToUpper(status)) {
-	case EnvelopeStatusCreated:
-		return entity.DocumentStatusDraft
-	case EnvelopeStatusPending, EnvelopeStatusSent:
-		return entity.DocumentStatusPending
+	case EnvelopeStatusCreated, EnvelopeStatusPending, EnvelopeStatusSent:
+		return entity.SigningAttemptStatusSigningReady
 	case EnvelopeStatusOpened:
-		return entity.DocumentStatusInProgress
-	case EnvelopeStatusSigned:
-		// SIGNED at envelope level means all signers completed
-		return entity.DocumentStatusCompleted
-	case EnvelopeStatusCompleted:
-		return entity.DocumentStatusCompleted
+		return entity.SigningAttemptStatusSigning
+	case EnvelopeStatusSigned, EnvelopeStatusCompleted:
+		return entity.SigningAttemptStatusCompleted
 	case EnvelopeStatusRejected:
-		return entity.DocumentStatusDeclined
+		return entity.SigningAttemptStatusDeclined
 	case EnvelopeStatusCancelled:
-		return entity.DocumentStatusVoided
+		return entity.SigningAttemptStatusCancelled
 	default:
-		// Unknown status, treat as error
-		return entity.DocumentStatusError
+		return entity.SigningAttemptStatusRequiresReview
 	}
 }
 
-// MapRecipientStatus maps Documenso recipient status to internal RecipientStatus.
 func MapRecipientStatus(status string) entity.RecipientStatus {
 	switch DocumensoRecipientStatus(strings.ToUpper(status)) {
 	case RecipientStatusPending:
@@ -70,82 +60,65 @@ func MapRecipientStatus(status string) entity.RecipientStatus {
 	case RecipientStatusRejected:
 		return entity.RecipientStatusDeclined
 	default:
-		// Unknown status, default to pending
 		return entity.RecipientStatusPending
 	}
 }
 
-// WebhookEventMapping maps Documenso webhook event types to document/recipient status.
 type WebhookEventMapping struct {
-	DocumentStatus  *entity.DocumentStatus
+	DocumentStatus  *entity.SigningAttemptStatus
 	RecipientStatus *entity.RecipientStatus
 }
 
-// MapWebhookEvent maps a Documenso webhook event type to status updates.
-// Handles both formats: "document.signed" (dot) and "DOCUMENT_SIGNED" (underscore).
 func MapWebhookEvent(eventType string) WebhookEventMapping {
 	mapping := WebhookEventMapping{}
-
 	normalized := strings.ToLower(eventType)
 	normalized = strings.ReplaceAll(normalized, "_", ".")
 
 	switch normalized {
 	case "document.created":
-		status := entity.DocumentStatusDraft
+		status := entity.SigningAttemptStatusSigningReady
 		mapping.DocumentStatus = &status
-
 	case "document.sent":
-		docStatus := entity.DocumentStatusPending
+		status := entity.SigningAttemptStatusSigningReady
 		recipientStatus := entity.RecipientStatusSent
-		mapping.DocumentStatus = &docStatus
+		mapping.DocumentStatus = &status
 		mapping.RecipientStatus = &recipientStatus
-
 	case "document.opened":
-		docStatus := entity.DocumentStatusInProgress
+		status := entity.SigningAttemptStatusSigning
 		recipientStatus := entity.RecipientStatusDelivered
-		mapping.DocumentStatus = &docStatus
+		mapping.DocumentStatus = &status
 		mapping.RecipientStatus = &recipientStatus
-
 	case "document.signed":
-		// Individual signer signed - recipient status changes, document may or may not be complete
 		recipientStatus := entity.RecipientStatusSigned
 		mapping.RecipientStatus = &recipientStatus
-		// Document status depends on whether all signers completed
-		// This will be determined by the service layer
-
 	case "document.completed":
-		docStatus := entity.DocumentStatusCompleted
-		mapping.DocumentStatus = &docStatus
-
+		status := entity.SigningAttemptStatusCompleted
+		mapping.DocumentStatus = &status
 	case "document.rejected":
-		docStatus := entity.DocumentStatusDeclined
+		status := entity.SigningAttemptStatusDeclined
 		recipientStatus := entity.RecipientStatusDeclined
-		mapping.DocumentStatus = &docStatus
+		mapping.DocumentStatus = &status
 		mapping.RecipientStatus = &recipientStatus
-
 	case "document.cancelled":
-		docStatus := entity.DocumentStatusVoided
-		mapping.DocumentStatus = &docStatus
+		status := entity.SigningAttemptStatusCancelled
+		mapping.DocumentStatus = &status
 	}
-
 	return mapping
 }
 
-// InternalToDocumensoStatus maps internal DocumentStatus to Documenso envelope status.
-// This is used when querying or filtering by status.
-func InternalToDocumensoStatus(status entity.DocumentStatus) DocumensoEnvelopeStatus {
+func InternalToDocumensoStatus(status entity.SigningAttemptStatus) DocumensoEnvelopeStatus {
 	switch status {
-	case entity.DocumentStatusDraft:
+	case entity.SigningAttemptStatusCreated:
 		return EnvelopeStatusCreated
-	case entity.DocumentStatusPending:
+	case entity.SigningAttemptStatusSigningReady:
 		return EnvelopeStatusSent
-	case entity.DocumentStatusInProgress:
+	case entity.SigningAttemptStatusSigning:
 		return EnvelopeStatusOpened
-	case entity.DocumentStatusCompleted:
+	case entity.SigningAttemptStatusCompleted:
 		return EnvelopeStatusCompleted
-	case entity.DocumentStatusDeclined:
+	case entity.SigningAttemptStatusDeclined:
 		return EnvelopeStatusRejected
-	case entity.DocumentStatusVoided:
+	case entity.SigningAttemptStatusCancelled:
 		return EnvelopeStatusCancelled
 	default:
 		return ""

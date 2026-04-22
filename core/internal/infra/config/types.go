@@ -1,3 +1,4 @@
+//nolint:gosec
 package config
 
 import (
@@ -82,7 +83,7 @@ type DatabaseConfig struct {
 	Host               string `mapstructure:"host"`
 	Port               int    `mapstructure:"port"`
 	User               string `mapstructure:"user"`
-	Password           string `mapstructure:"password"`
+	Password           string `mapstructure:"password"` //nolint:gosec
 	Name               string `mapstructure:"name"`
 	SSLMode            string `mapstructure:"ssl_mode"`
 	MaxPoolSize        int    `mapstructure:"max_pool_size"`
@@ -168,7 +169,7 @@ type InternalAPIConfig struct {
 // SigningConfig holds signing provider configuration.
 type SigningConfig struct {
 	Provider       string `mapstructure:"provider"` // documenso
-	APIKey         string `mapstructure:"api_key"`
+	APIKey         string `mapstructure:"api_key"`  //nolint:gosec
 	BaseURL        string `mapstructure:"base_url"`
 	SigningBaseURL string `mapstructure:"signing_base_url"` // Base URL for signing links (without /api/v2)
 	WebhookSecret  string `mapstructure:"webhook_secret"`
@@ -270,7 +271,7 @@ type NotificationConfig struct {
 	Host     string `mapstructure:"host"`     // SMTP host
 	Port     int    `mapstructure:"port"`     // SMTP port
 	Username string `mapstructure:"username"` // SMTP username
-	Password string `mapstructure:"password"` // SMTP password
+	Password string `mapstructure:"password"` // SMTP password //nolint:gosec
 }
 
 // PublicAccessConfig holds configuration for public document access (email-verification gate).
@@ -282,8 +283,13 @@ type PublicAccessConfig struct {
 
 // WorkerConfig holds River job queue worker configuration.
 type WorkerConfig struct {
-	Enabled    bool `mapstructure:"enabled"`
-	MaxWorkers int  `mapstructure:"max_workers"`
+	Enabled           bool     `mapstructure:"enabled"`
+	MaxWorkers        int      `mapstructure:"max_workers"`
+	FailpointsEnabled bool     `mapstructure:"failpoints_enabled"`
+	Failpoints        []string `mapstructure:"failpoints"`
+
+	// RuntimeEnvironment is set by bootstrap from Config.Environment and is not loaded directly.
+	RuntimeEnvironment string `mapstructure:"-"`
 }
 
 // MaxWorkersOrDefault returns MaxWorkers if set, otherwise defaults to 10.

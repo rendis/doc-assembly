@@ -13,20 +13,20 @@ func TestMapEnvelopeStatus(t *testing.T) {
 	tests := []struct {
 		name   string
 		input  string
-		expect entity.DocumentStatus
+		expect entity.SigningAttemptStatus
 	}{
-		{"CREATED -> DRAFT", "CREATED", entity.DocumentStatusDraft},
-		{"PENDING -> PENDING", "PENDING", entity.DocumentStatusPending},
-		{"SENT -> PENDING", "SENT", entity.DocumentStatusPending},
-		{"OPENED -> IN_PROGRESS", "OPENED", entity.DocumentStatusInProgress},
-		{"SIGNED -> COMPLETED", "SIGNED", entity.DocumentStatusCompleted},
-		{"COMPLETED -> COMPLETED", "COMPLETED", entity.DocumentStatusCompleted},
-		{"REJECTED -> DECLINED", "REJECTED", entity.DocumentStatusDeclined},
-		{"CANCELLED -> VOIDED", "CANCELLED", entity.DocumentStatusVoided},
-		{"unknown -> ERROR", "UNKNOWN_STATUS", entity.DocumentStatusError},
-		{"empty -> ERROR", "", entity.DocumentStatusError},
-		{"lowercase created -> DRAFT", "created", entity.DocumentStatusDraft},
-		{"mixed case Sent -> PENDING", "Sent", entity.DocumentStatusPending},
+		{"CREATED -> DRAFT", "CREATED", entity.SigningAttemptStatusSigningReady},
+		{"PENDING -> PENDING", "PENDING", entity.SigningAttemptStatusSigningReady},
+		{"SENT -> PENDING", "SENT", entity.SigningAttemptStatusSigningReady},
+		{"OPENED -> IN_PROGRESS", "OPENED", entity.SigningAttemptStatusSigning},
+		{"SIGNED -> COMPLETED", "SIGNED", entity.SigningAttemptStatusCompleted},
+		{"COMPLETED -> COMPLETED", "COMPLETED", entity.SigningAttemptStatusCompleted},
+		{"REJECTED -> DECLINED", "REJECTED", entity.SigningAttemptStatusDeclined},
+		{"CANCELLED -> VOIDED", "CANCELLED", entity.SigningAttemptStatusCancelled},
+		{"unknown -> ERROR", "UNKNOWN_STATUS", entity.SigningAttemptStatusRequiresReview},
+		{"empty -> ERROR", "", entity.SigningAttemptStatusRequiresReview},
+		{"lowercase created -> DRAFT", "created", entity.SigningAttemptStatusSigningReady},
+		{"mixed case Sent -> PENDING", "Sent", entity.SigningAttemptStatusSigningReady},
 	}
 
 	for _, tt := range tests {
@@ -84,24 +84,24 @@ func TestMapWebhookEvent(t *testing.T) {
 	tests := []struct {
 		name            string
 		eventType       string
-		wantDocStatus   *entity.DocumentStatus
+		wantDocStatus   *entity.SigningAttemptStatus
 		wantRecipStatus *entity.RecipientStatus
 	}{
 		{
 			name:          "document.created",
 			eventType:     "document.created",
-			wantDocStatus: docStatusPtr(entity.DocumentStatusDraft),
+			wantDocStatus: docStatusPtr(entity.SigningAttemptStatusSigningReady),
 		},
 		{
 			name:            "document.sent",
 			eventType:       "document.sent",
-			wantDocStatus:   docStatusPtr(entity.DocumentStatusPending),
+			wantDocStatus:   docStatusPtr(entity.SigningAttemptStatusSigningReady),
 			wantRecipStatus: recipStatusPtr(entity.RecipientStatusSent),
 		},
 		{
 			name:            "document.opened",
 			eventType:       "document.opened",
-			wantDocStatus:   docStatusPtr(entity.DocumentStatusInProgress),
+			wantDocStatus:   docStatusPtr(entity.SigningAttemptStatusSigning),
 			wantRecipStatus: recipStatusPtr(entity.RecipientStatusDelivered),
 		},
 		{
@@ -113,34 +113,34 @@ func TestMapWebhookEvent(t *testing.T) {
 		{
 			name:          "document.completed",
 			eventType:     "document.completed",
-			wantDocStatus: docStatusPtr(entity.DocumentStatusCompleted),
+			wantDocStatus: docStatusPtr(entity.SigningAttemptStatusCompleted),
 		},
 		{
 			name:            "document.rejected",
 			eventType:       "document.rejected",
-			wantDocStatus:   docStatusPtr(entity.DocumentStatusDeclined),
+			wantDocStatus:   docStatusPtr(entity.SigningAttemptStatusDeclined),
 			wantRecipStatus: recipStatusPtr(entity.RecipientStatusDeclined),
 		},
 		{
 			name:          "document.cancelled",
 			eventType:     "document.cancelled",
-			wantDocStatus: docStatusPtr(entity.DocumentStatusVoided),
+			wantDocStatus: docStatusPtr(entity.SigningAttemptStatusCancelled),
 		},
 		{
 			name:          "DOCUMENT_CREATED (underscore format)",
 			eventType:     "DOCUMENT_CREATED",
-			wantDocStatus: docStatusPtr(entity.DocumentStatusDraft),
+			wantDocStatus: docStatusPtr(entity.SigningAttemptStatusSigningReady),
 		},
 		{
 			name:            "DOCUMENT_SENT (underscore format)",
 			eventType:       "DOCUMENT_SENT",
-			wantDocStatus:   docStatusPtr(entity.DocumentStatusPending),
+			wantDocStatus:   docStatusPtr(entity.SigningAttemptStatusSigningReady),
 			wantRecipStatus: recipStatusPtr(entity.RecipientStatusSent),
 		},
 		{
 			name:            "DOCUMENT_OPENED (underscore format)",
 			eventType:       "DOCUMENT_OPENED",
-			wantDocStatus:   docStatusPtr(entity.DocumentStatusInProgress),
+			wantDocStatus:   docStatusPtr(entity.SigningAttemptStatusSigning),
 			wantRecipStatus: recipStatusPtr(entity.RecipientStatusDelivered),
 		},
 		{
@@ -152,7 +152,7 @@ func TestMapWebhookEvent(t *testing.T) {
 		{
 			name:          "DOCUMENT_COMPLETED (underscore format)",
 			eventType:     "DOCUMENT_COMPLETED",
-			wantDocStatus: docStatusPtr(entity.DocumentStatusCompleted),
+			wantDocStatus: docStatusPtr(entity.SigningAttemptStatusCompleted),
 		},
 		{
 			name:      "unknown event returns empty mapping",
@@ -184,16 +184,16 @@ func TestMapWebhookEvent(t *testing.T) {
 func TestInternalToDocumensoStatus(t *testing.T) {
 	tests := []struct {
 		name   string
-		input  entity.DocumentStatus
+		input  entity.SigningAttemptStatus
 		expect DocumensoEnvelopeStatus
 	}{
-		{"DRAFT -> CREATED", entity.DocumentStatusDraft, EnvelopeStatusCreated},
-		{"PENDING -> SENT", entity.DocumentStatusPending, EnvelopeStatusSent},
-		{"IN_PROGRESS -> OPENED", entity.DocumentStatusInProgress, EnvelopeStatusOpened},
-		{"COMPLETED -> COMPLETED", entity.DocumentStatusCompleted, EnvelopeStatusCompleted},
-		{"DECLINED -> REJECTED", entity.DocumentStatusDeclined, EnvelopeStatusRejected},
-		{"VOIDED -> CANCELLED", entity.DocumentStatusVoided, EnvelopeStatusCancelled},
-		{"ERROR -> empty", entity.DocumentStatusError, DocumensoEnvelopeStatus("")},
+		{"CREATED -> CREATED", entity.SigningAttemptStatusCreated, EnvelopeStatusCreated},
+		{"PENDING -> SENT", entity.SigningAttemptStatusSigningReady, EnvelopeStatusSent},
+		{"IN_PROGRESS -> OPENED", entity.SigningAttemptStatusSigning, EnvelopeStatusOpened},
+		{"COMPLETED -> COMPLETED", entity.SigningAttemptStatusCompleted, EnvelopeStatusCompleted},
+		{"DECLINED -> REJECTED", entity.SigningAttemptStatusDeclined, EnvelopeStatusRejected},
+		{"VOIDED -> CANCELLED", entity.SigningAttemptStatusCancelled, EnvelopeStatusCancelled},
+		{"FAILED_PERMANENT -> empty", entity.SigningAttemptStatusFailedPermanent, DocumensoEnvelopeStatus("")},
 	}
 
 	for _, tt := range tests {
@@ -203,7 +203,7 @@ func TestInternalToDocumensoStatus(t *testing.T) {
 	}
 }
 
-func docStatusPtr(s entity.DocumentStatus) *entity.DocumentStatus {
+func docStatusPtr(s entity.SigningAttemptStatus) *entity.SigningAttemptStatus {
 	return &s
 }
 

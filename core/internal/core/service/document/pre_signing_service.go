@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,8 @@ type PreSigningService struct {
 	fieldResponseRepo port.DocumentFieldResponseRepository
 	documentRepo      port.DocumentRepository
 	recipientRepo     port.DocumentRecipientRepository
+	attemptRepo       port.SigningAttemptRepository
+	signingUOW        port.SigningExecutionUnitOfWork
 	versionRepo       port.TemplateVersionRepository
 	signerRoleRepo    port.TemplateVersionSignerRoleRepository
 	pdfRenderer       port.PDFRenderer
@@ -38,6 +41,8 @@ func NewPreSigningService(
 	fieldResponseRepo port.DocumentFieldResponseRepository,
 	documentRepo port.DocumentRepository,
 	recipientRepo port.DocumentRecipientRepository,
+	attemptRepo port.SigningAttemptRepository,
+	signingUOW port.SigningExecutionUnitOfWork,
 	versionRepo port.TemplateVersionRepository,
 	signerRoleRepo port.TemplateVersionSignerRoleRepository,
 	pdfRenderer port.PDFRenderer,
@@ -52,6 +57,8 @@ func NewPreSigningService(
 		fieldResponseRepo: fieldResponseRepo,
 		documentRepo:      documentRepo,
 		recipientRepo:     recipientRepo,
+		attemptRepo:       attemptRepo,
+		signingUOW:        signingUOW,
 		versionRepo:       versionRepo,
 		signerRoleRepo:    signerRoleRepo,
 		pdfRenderer:       pdfRenderer,
@@ -64,6 +71,9 @@ func NewPreSigningService(
 }
 
 // GetPublicSigningPage returns the current signing page state based on document status and token type.
+// GetPublicSigningPage returns the current signing page state based on document status and active attempt.
+//
+//nolint:gocognit,gocyclo // Token/document/attempt resolution is intentionally explicit.
 func (s *PreSigningService) GetPublicSigningPage(ctx context.Context, token string) (*documentuc.PublicSigningResponse, error) {
 	accessToken, wasUsed, err := s.validateTokenAllowUsed(ctx, token)
 	if err != nil {
@@ -74,73 +84,43 @@ func (s *PreSigningService) GetPublicSigningPage(ctx context.Context, token stri
 	if err != nil {
 		return nil, fmt.Errorf("finding document: %w", err)
 	}
-
 	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
 	if err != nil {
 		return nil, fmt.Errorf("finding recipient: %w", err)
 	}
-
-	if doc.Status == entity.DocumentStatusError && !doc.HasSignerInfo() {
-		if err := s.recoverPreProviderError(ctx, doc); err != nil {
-			return nil, fmt.Errorf("document is not in a valid state for signing")
-		}
-		doc, err = s.documentRepo.FindByID(ctx, accessToken.DocumentID)
-		if err != nil {
-			return nil, fmt.Errorf("reloading document after recovery: %w", err)
-		}
-	}
-
 	title := documentTitle(doc)
 
-	// Terminal states — always accessible, even with used tokens.
+	if accessToken.AttemptID != nil && *accessToken.AttemptID != "" {
+		return s.buildAttemptSigningResponse(ctx, doc, recipient, accessToken, *accessToken.AttemptID, title)
+	}
+	if doc.ActiveAttemptID != nil && *doc.ActiveAttemptID != "" {
+		return s.buildAttemptSigningResponse(ctx, doc, recipient, accessToken, *doc.ActiveAttemptID, title)
+	}
 	if doc.IsCompleted() {
-		resp := &documentuc.PublicSigningResponse{
-			Step:          documentuc.StepCompleted,
-			DocumentTitle: title,
-			RecipientName: recipient.Name,
-		}
+		resp := &documentuc.PublicSigningResponse{Step: documentuc.StepCompleted, DocumentTitle: title, RecipientName: recipient.Name}
 		s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
 		return resp, nil
 	}
 	if doc.IsDeclined() {
-		resp := &documentuc.PublicSigningResponse{
-			Step:          documentuc.StepDeclined,
-			DocumentTitle: title,
-			RecipientName: recipient.Name,
-		}
+		resp := &documentuc.PublicSigningResponse{Step: documentuc.StepDeclined, DocumentTitle: title, RecipientName: recipient.Name}
 		s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
 		return resp, nil
 	}
-
-	// Non-terminal states require an unused token.
 	if wasUsed {
 		return nil, fmt.Errorf("access token has already been used")
 	}
-
-	// Path B: AWAITING_INPUT + PRE_SIGNING token.
 	if doc.IsAwaitingInput() && accessToken.IsPreSigning() {
-		// If field responses already saved → show PDF preview; otherwise show form.
 		if s.hasFieldResponses(ctx, doc.ID) {
 			return s.buildPreviewPDFResponse(doc, recipient, title, accessToken.Token)
 		}
 		return s.buildPreviewFormResponse(ctx, doc, recipient, title, accessToken.Token)
 	}
-
-	// Path A: AWAITING_INPUT + SIGNING token → show PDF preview.
 	if doc.IsAwaitingInput() && accessToken.IsSigning() {
 		return s.buildPreviewPDFResponse(doc, recipient, title, accessToken.Token)
 	}
-
-	// Doc already sent to provider → show signing iframe.
-	if doc.IsPending() || doc.IsInProgress() {
-		return s.buildSigningResponse(ctx, doc, recipient, accessToken, title)
-	}
-
-	// Doc is being rendered/uploaded by another goroutine → tell the signer to retry.
-	if doc.IsPendingProvider() {
+	if doc.Status == entity.DocumentStatusPreparingSignature {
 		return s.buildProcessingResponse(doc, recipient, accessToken.Token), nil
 	}
-
 	return nil, fmt.Errorf("document is not in a valid state for signing")
 }
 
@@ -197,137 +177,47 @@ func (s *PreSigningService) ProceedToSigning(ctx context.Context, token string) 
 	if err != nil {
 		return nil, err
 	}
-
 	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
 	if err != nil {
 		return nil, fmt.Errorf("finding document: %w", err)
 	}
-
 	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
 	if err != nil {
 		return nil, fmt.Errorf("finding recipient: %w", err)
 	}
+	title := documentTitle(doc)
 
-	if doc.Status == entity.DocumentStatusError && !doc.HasSignerInfo() {
-		if err := s.recoverPreProviderError(ctx, doc); err != nil {
+	if accessToken.AttemptID != nil && *accessToken.AttemptID != "" {
+		return s.buildAttemptSigningResponse(ctx, doc, recipient, accessToken, *accessToken.AttemptID, title)
+	}
+
+	attemptID := ""
+	if doc.ActiveAttemptID != nil && *doc.ActiveAttemptID != "" {
+		attemptID = *doc.ActiveAttemptID
+	} else {
+		if !doc.IsAwaitingInput() && doc.Status != entity.DocumentStatusPreparingSignature {
 			return nil, fmt.Errorf("document is not pending signing")
 		}
-		doc, err = s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+		recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
 		if err != nil {
-			return nil, fmt.Errorf("reloading document after recovery: %w", err)
+			return nil, fmt.Errorf("loading recipients: %w", err)
 		}
-	}
-
-	// If document is still AWAITING_INPUT, atomically claim and render + upload.
-	// Only one concurrent caller wins the CAS; losers reload and fall through.
-	if doc.IsAwaitingInput() {
-		var claimErr error
-		doc, recipient, claimErr = s.claimAndRender(ctx, doc, accessToken)
-		if claimErr != nil {
-			return nil, claimErr
-		}
-	}
-
-	// Document is being rendered/uploaded by another goroutine — tell the signer to retry.
-	if doc.IsPendingProvider() && !doc.HasSignerInfo() {
-		return s.buildProcessingResponse(doc, recipient, accessToken.Token), nil
-	}
-
-	if !doc.IsPending() && !doc.IsInProgress() && !doc.IsPendingProvider() {
-		return nil, fmt.Errorf("document is not pending signing")
-	}
-
-	// Check signing order.
-	if waitResp := s.checkSigningOrder(ctx, doc, recipient, accessToken.Token); waitResp != nil {
-		return waitResp, nil
-	}
-
-	title := documentTitle(doc)
-	return s.buildSigningResponse(ctx, doc, recipient, accessToken, title)
-}
-
-// claimAndRender atomically claims the document for rendering via CAS, then renders and
-// uploads to the signing provider. If another goroutine already claimed it, reloads the
-// current document state. Returns the refreshed document and recipient.
-func (s *PreSigningService) claimAndRender(
-	ctx context.Context,
-	doc *entity.Document,
-	accessToken *entity.DocumentAccessToken,
-) (*entity.Document, *entity.DocumentRecipient, error) {
-	claimedDoc, claimed, err := s.documentRepo.ClaimForSigning(ctx, doc.ID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("claiming document for signing: %w", err)
-	}
-
-	if !claimed {
-		// Another goroutine claimed it. Reload current state.
-		reloaded, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
+		signerOrders, err := s.signerOrderMap(ctx, doc.TemplateVersionID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("reloading document after concurrent claim: %w", err)
+			return nil, err
 		}
-		recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
+		attempt, err := s.signingUOW.CreateAttemptAndEnqueueRender(ctx, doc.ID, recipients, signerOrders)
 		if err != nil {
-			return nil, nil, fmt.Errorf("reloading recipient after concurrent claim: %w", err)
+			return nil, fmt.Errorf("creating signing attempt: %w", err)
 		}
-		return reloaded, recipient, nil
+		attemptID = attempt.ID
 	}
-
-	doc = claimedDoc
-
-	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("finding template version: %w", err)
+	if err := s.attemptRepo.BindTokenToAttempt(ctx, accessToken.ID, attemptID); err != nil {
+		return nil, err
 	}
-	portableDoc, err := parsePortableDocument(version.ContentStructure)
-	if err != nil {
-		return nil, nil, fmt.Errorf("parsing document content: %w", err)
-	}
-	fieldResponses := loadFieldResponseMap(ctx, s.fieldResponseRepo, doc.ID)
-
-	if err := s.renderAndSendToProvider(ctx, doc, version, portableDoc, fieldResponses); err != nil {
-		return nil, nil, err
-	}
-
-	// Refresh entities after upload since provider identifiers are persisted.
-	doc, err = s.documentRepo.FindByID(ctx, accessToken.DocumentID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("refreshing document after provider upload: %w", err)
-	}
-	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("refreshing recipient after provider upload: %w", err)
-	}
-
-	slog.InfoContext(ctx, "document rendered and sent to provider via ProceedToSigning",
-		slog.String("document_id", doc.ID),
-		slog.String("recipient_id", recipient.ID),
-	)
-
-	return doc, recipient, nil
-}
-
-func (s *PreSigningService) recoverPreProviderError(ctx context.Context, doc *entity.Document) error {
-	if doc == nil || doc.Status != entity.DocumentStatusError || doc.HasSignerInfo() {
-		return entity.ErrInvalidDocumentState
-	}
-
-	target, clearStalePDFPath := resolvePreProviderRecoveryTarget(ctx, s.storageAdapter, s.storageEnabled, doc)
-	if clearStalePDFPath {
-		doc.PDFStoragePath = nil
-	}
-
-	if target == entity.DocumentStatusPendingProvider {
-		if err := doc.RecoverToPendingProvider(); err != nil {
-			return err
-		}
-	} else {
-		if err := doc.RecoverToAwaitingInput(); err != nil {
-			return err
-		}
-	}
-
-	doc.ResetRetry()
-	return s.documentRepo.Update(ctx, doc)
+	accessToken.AttemptID = &attemptID
+	doc, _ = s.documentRepo.FindByID(ctx, doc.ID)
+	return s.buildAttemptSigningResponse(ctx, doc, recipient, accessToken, attemptID, title)
 }
 
 // CompleteEmbeddedSigning marks the token as used after embedded signing is completed.
@@ -351,23 +241,29 @@ func (s *PreSigningService) CompleteEmbeddedSigning(ctx context.Context, token s
 
 // RefreshEmbeddedURL refreshes an expired embedded signing URL.
 func (s *PreSigningService) RefreshEmbeddedURL(ctx context.Context, token string) (*documentuc.PublicSigningResponse, error) {
-	accessToken, err := s.validateToken(ctx, token)
+	accessToken, _, err := s.validateTokenAllowUsed(ctx, token)
 	if err != nil {
 		return nil, err
 	}
-
 	doc, err := s.documentRepo.FindByID(ctx, accessToken.DocumentID)
 	if err != nil {
 		return nil, fmt.Errorf("finding document: %w", err)
 	}
-
 	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
 	if err != nil {
 		return nil, fmt.Errorf("finding recipient: %w", err)
 	}
-
 	title := documentTitle(doc)
-	return s.buildSigningResponse(ctx, doc, recipient, accessToken, title)
+	attemptID := ""
+	if accessToken.AttemptID != nil {
+		attemptID = *accessToken.AttemptID
+	} else if doc.ActiveAttemptID != nil {
+		attemptID = *doc.ActiveAttemptID
+	}
+	if attemptID == "" {
+		return s.buildProcessingResponse(doc, recipient, accessToken.Token), nil
+	}
+	return s.buildAttemptSigningResponse(ctx, doc, recipient, accessToken, attemptID, title)
 }
 
 // InvalidateTokens invalidates all active tokens for a document in AWAITING_INPUT status.
@@ -454,7 +350,7 @@ func (s *PreSigningService) RenderPreviewPDF(ctx context.Context, token string) 
 // DownloadCompletedPDF returns the signed PDF for completed documents when the
 // token recipient is authorized.
 //
-//nolint:gocognit,nestif // Explicit guard flow preserves security/state checks.
+//nolint:funlen,gocognit,gocyclo,nestif // Explicit guard flow preserves security/state checks.
 func (s *PreSigningService) DownloadCompletedPDF(ctx context.Context, token string) ([]byte, string, error) {
 	accessToken, _, err := s.validateTokenAllowUsed(ctx, token)
 	if err != nil {
@@ -470,56 +366,120 @@ func (s *PreSigningService) DownloadCompletedPDF(ctx context.Context, token stri
 		return nil, "", fmt.Errorf("document is not completed")
 	}
 
-	recipient, err := s.recipientRepo.FindByID(ctx, accessToken.RecipientID)
-	if err != nil {
-		return nil, "", fmt.Errorf("finding recipient: %w", err)
+	attemptID := ""
+	if accessToken.AttemptID != nil {
+		attemptID = *accessToken.AttemptID
+	}
+	if attemptID == "" && doc.ActiveAttemptID != nil {
+		attemptID = *doc.ActiveAttemptID
+	}
+	if attemptID == "" {
+		return nil, "", fmt.Errorf("completed PDF is not available")
 	}
 
-	if !recipient.IsSigned() {
+	recipients, err := s.attemptRepo.FindRecipientsByAttemptID(ctx, attemptID)
+	if err != nil {
+		return nil, "", fmt.Errorf("finding attempt recipients: %w", err)
+	}
+	authorized := false
+	for _, r := range recipients {
+		if r.DocumentRecipientID != nil && *r.DocumentRecipientID == accessToken.RecipientID && r.Status == entity.RecipientStatusSigned {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
 		return nil, "", fmt.Errorf("completed PDF is not available for this recipient")
 	}
 
 	if !s.storageEnabled {
-		if !doc.HasSignerInfo() {
-			return nil, "", fmt.Errorf("completed PDF is not available")
-		}
-		pdfData, err := s.signingProvider.DownloadSignedPDF(ctx, &port.DownloadSignedPDFRequest{ProviderDocumentID: *doc.SignerDocumentID})
-		if err != nil {
-			return nil, "", fmt.Errorf("downloading completed PDF: %w", err)
-		}
-		return pdfData, signedDocumentFilename(doc), nil
+		return nil, "", fmt.Errorf("completed PDF storage is disabled")
 	}
 
-	if !hasStoredPDFPath(doc) {
-		if !doc.HasSignerInfo() {
-			return nil, "", fmt.Errorf("completed PDF is not available")
-		}
-
-		pdfData, err := s.signingProvider.DownloadSignedPDF(ctx, &port.DownloadSignedPDFRequest{ProviderDocumentID: *doc.SignerDocumentID})
+	storageKey := completedPDFStorageKey(doc.CompletedPDFURL)
+	var completedAttempt *entity.SigningAttempt
+	if storageKey == "" {
+		attempt, err := s.attemptRepo.FindByID(ctx, attemptID)
 		if err != nil {
-			return nil, "", fmt.Errorf("downloading completed PDF: %w", err)
+			return nil, "", fmt.Errorf("finding active completed attempt: %w", err)
 		}
-
-		storageKey := fmt.Sprintf("documents/%s/%s/signed.pdf", doc.WorkspaceID, doc.ID)
-		if err := s.storageAdapter.Upload(ctx, &port.StorageUploadRequest{Key: storageKey, Data: pdfData, ContentType: "application/pdf"}); err != nil {
-			return nil, "", fmt.Errorf("storing completed PDF: %w", err)
+		completedAttempt = attempt
+		storageKey = completedPDFStorageKey(stringValueFromJSON(attempt.ProviderUploadPayload, "completedPdfUrl"))
+	}
+	if storageKey == "" {
+		if completedAttempt == nil {
+			attempt, err := s.attemptRepo.FindByID(ctx, attemptID)
+			if err != nil {
+				return nil, "", fmt.Errorf("finding active completed attempt: %w", err)
+			}
+			completedAttempt = attempt
 		}
-
-		doc.SetPDFPath(storageKey)
-		if err := s.documentRepo.Update(ctx, doc); err != nil {
-			slog.WarnContext(ctx, "failed to persist completed PDF storage path",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
+		result, err := s.downloadCompletedPDFFromProvider(ctx, completedAttempt)
+		if err != nil {
+			return nil, "", err
 		}
+		return result.PDF, providerCompletedPDFFilename(result.Filename, doc), nil
 	}
 
-	pdfData, err := s.storageAdapter.Download(ctx, &port.StorageRequest{Key: *doc.PDFStoragePath})
+	pdfData, err := s.storageAdapter.Download(ctx, &port.StorageRequest{Key: storageKey})
 	if err != nil {
 		return nil, "", fmt.Errorf("downloading completed PDF: %w", err)
 	}
 
 	return pdfData, signedDocumentFilename(doc), nil
+}
+
+func (s *PreSigningService) downloadCompletedPDFFromProvider(ctx context.Context, attempt *entity.SigningAttempt) (*port.DownloadCompletedPDFResult, error) {
+	if s.signingProvider == nil || !s.signingProvider.ProviderCapabilities().CanDownloadCompletedPDF {
+		return nil, fmt.Errorf("completed PDF is not available")
+	}
+	if attempt.ProviderDocumentID == nil || strings.TrimSpace(*attempt.ProviderDocumentID) == "" {
+		return nil, fmt.Errorf("completed PDF is not available")
+	}
+	result, err := s.signingProvider.DownloadCompletedPDF(ctx, &port.DownloadCompletedPDFRequest{
+		ProviderDocumentID: *attempt.ProviderDocumentID,
+		Environment:        entity.EnvironmentProd,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("downloading completed PDF from provider: %w", err)
+	}
+	if len(result.PDF) == 0 {
+		return nil, fmt.Errorf("completed PDF is not available")
+	}
+	return result, nil
+}
+
+func providerCompletedPDFFilename(providerFilename string, doc *entity.Document) string {
+	if strings.TrimSpace(providerFilename) != "" {
+		return providerFilename
+	}
+	return signedDocumentFilename(doc)
+}
+
+func completedPDFStorageKey(ref *string) string {
+	if ref == nil {
+		return ""
+	}
+	value := strings.TrimSpace(*ref)
+	if value == "" || strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		return ""
+	}
+	return value
+}
+
+func stringValueFromJSON(raw json.RawMessage, key string) *string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var values map[string]any
+	if err := json.Unmarshal(raw, &values); err != nil {
+		return nil
+	}
+	value, ok := values[key].(string)
+	if !ok || strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return &value
 }
 
 // hasFieldResponses checks whether field responses have been saved for a document.
@@ -617,94 +577,113 @@ func (s *PreSigningService) buildPreviewPDFResponse(
 	return resp, nil
 }
 
-// buildSigningResponse builds a signing response with the embedded signing URL.
-func (s *PreSigningService) buildSigningResponse(
+//nolint:funlen,gocyclo
+func (s *PreSigningService) buildAttemptSigningResponse(
 	ctx context.Context,
 	doc *entity.Document,
 	recipient *entity.DocumentRecipient,
 	accessToken *entity.DocumentAccessToken,
+	attemptID string,
 	title string,
 ) (*documentuc.PublicSigningResponse, error) {
-	if recipient.SignerRecipientID == nil || doc.SignerDocumentID == nil {
-		return nil, fmt.Errorf("document is not registered with a signing provider")
+	attempt, err := s.attemptRepo.FindByID(ctx, attemptID)
+	if err != nil {
+		return nil, err
+	}
+	if attempt.DocumentID != doc.ID {
+		return nil, entity.ErrInvalidDocumentState
+	}
+	if doc.ActiveAttemptID == nil || *doc.ActiveAttemptID != attempt.ID {
+		return s.buildDocumentUpdatedResponse(doc, recipient, accessToken.Token), nil
 	}
 
-	callbackURL := s.buildCallbackURL(accessToken.Token)
+	switch attempt.Status {
+	case entity.SigningAttemptStatusCreated, entity.SigningAttemptStatusRendering, entity.SigningAttemptStatusPDFReady,
+		entity.SigningAttemptStatusReadyToSubmit, entity.SigningAttemptStatusSubmittingProvider,
+		entity.SigningAttemptStatusProviderRetryWaiting, entity.SigningAttemptStatusSubmissionUnknown, entity.SigningAttemptStatusReconcilingProvider:
+		return s.buildProcessingResponse(doc, recipient, accessToken.Token), nil
+	case entity.SigningAttemptStatusSuperseded, entity.SigningAttemptStatusInvalidated, entity.SigningAttemptStatusCancelled:
+		return s.buildDocumentUpdatedResponse(doc, recipient, accessToken.Token), nil
+	case entity.SigningAttemptStatusFailedPermanent, entity.SigningAttemptStatusRequiresReview:
+		return s.buildUnavailableResponse(doc, recipient, accessToken.Token), nil
+	case entity.SigningAttemptStatusCompleted:
+		resp := &documentuc.PublicSigningResponse{Step: documentuc.StepCompleted, DocumentTitle: title, RecipientName: recipient.Name}
+		s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
+		return resp, nil
+	case entity.SigningAttemptStatusDeclined:
+		resp := &documentuc.PublicSigningResponse{Step: documentuc.StepDeclined, DocumentTitle: title, RecipientName: recipient.Name}
+		s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
+		return resp, nil
+	}
 
-	embeddedResult, err := s.signingProvider.GetEmbeddedSigningURL(ctx, &port.GetEmbeddedSigningURLRequest{
-		ProviderDocumentID:  *doc.SignerDocumentID,
-		ProviderRecipientID: *recipient.SignerRecipientID,
-		CallbackURL:         callbackURL,
+	attemptRecipient, err := s.attemptRepo.FindRecipientByAttemptAndDocumentRecipient(ctx, attempt.ID, recipient.ID)
+	if err != nil {
+		return nil, err
+	}
+	if waitResp := s.checkAttemptSigningOrder(ctx, doc, recipient, attemptRecipient, accessToken.Token); waitResp != nil {
+		return waitResp, nil
+	}
+	if attempt.ProviderDocumentID == nil || attemptRecipient.ProviderRecipientID == nil {
+		return s.buildProcessingResponse(doc, recipient, accessToken.Token), nil
+	}
+	embeddedResult, err := s.signingProvider.GetAttemptRecipientEmbeddedURL(ctx, &port.GetAttemptRecipientEmbeddedURLRequest{
+		ProviderDocumentID:  *attempt.ProviderDocumentID,
+		ProviderRecipientID: *attemptRecipient.ProviderRecipientID,
+		CallbackURL:         s.buildCallbackURL(accessToken.Token),
 	})
 	if err != nil {
-		// Fallback: if embedding not supported, return direct URL.
-		if recipient.SigningURL != nil {
-			resp := &documentuc.PublicSigningResponse{
-				Step:          documentuc.StepSigning,
-				DocumentTitle: title,
-				RecipientName: recipient.Name,
-				FallbackURL:   *recipient.SigningURL,
-			}
+		if attemptRecipient.SigningURL != nil {
+			resp := &documentuc.PublicSigningResponse{Step: documentuc.StepSigning, DocumentTitle: title, RecipientName: recipient.Name, FallbackURL: *attemptRecipient.SigningURL}
 			s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
 			return resp, nil
 		}
 		return nil, fmt.Errorf("getting embedded signing URL: %w", err)
 	}
-
-	resp := &documentuc.PublicSigningResponse{
-		Step:               documentuc.StepSigning,
-		DocumentTitle:      title,
-		RecipientName:      recipient.Name,
-		EmbeddedSigningURL: embeddedResult.EmbeddedURL,
-	}
+	resp := &documentuc.PublicSigningResponse{Step: documentuc.StepSigning, DocumentTitle: title, RecipientName: recipient.Name, EmbeddedSigningURL: embeddedResult.EmbeddedURL}
 	s.applyAccessFlags(resp, doc, recipient, accessToken.Token)
 	return resp, nil
 }
 
-// checkSigningOrder checks if previous signers have completed. Returns a waiting response or nil.
-func (s *PreSigningService) checkSigningOrder(
-	ctx context.Context,
-	doc *entity.Document,
-	recipient *entity.DocumentRecipient,
-	token string,
-) *documentuc.PublicSigningResponse {
-	recipientsWithRoles, err := s.recipientRepo.FindByDocumentIDWithRoles(ctx, doc.ID)
+func (s *PreSigningService) buildDocumentUpdatedResponse(doc *entity.Document, recipient *entity.DocumentRecipient, token string) *documentuc.PublicSigningResponse {
+	resp := &documentuc.PublicSigningResponse{Step: documentuc.StepDocumentUpdated, DocumentTitle: documentTitle(doc), RecipientName: recipient.Name}
+	s.applyAccessFlags(resp, doc, recipient, token)
+	return resp
+}
+
+func (s *PreSigningService) buildUnavailableResponse(doc *entity.Document, recipient *entity.DocumentRecipient, token string) *documentuc.PublicSigningResponse {
+	resp := &documentuc.PublicSigningResponse{Step: documentuc.StepUnavailable, DocumentTitle: documentTitle(doc), RecipientName: recipient.Name}
+	s.applyAccessFlags(resp, doc, recipient, token)
+	return resp
+}
+
+func (s *PreSigningService) checkAttemptSigningOrder(ctx context.Context, doc *entity.Document, recipient *entity.DocumentRecipient, attemptRecipient *entity.SigningAttemptRecipient, token string) *documentuc.PublicSigningResponse {
+	if attemptRecipient.SignerOrder <= 1 {
+		return nil
+	}
+	recipients, err := s.attemptRepo.FindRecipientsByAttemptID(ctx, attemptRecipient.AttemptID)
 	if err != nil {
 		return nil
 	}
-
-	// Find this recipient's order.
-	var myOrder int
-	for _, r := range recipientsWithRoles {
-		if r.ID == recipient.ID {
-			myOrder = r.SignerOrder
-			break
-		}
-	}
-
-	// Order 0 or 1 means first signer — no need to wait.
-	if myOrder <= 1 {
-		return nil
-	}
-
-	for _, r := range recipientsWithRoles {
-		if r.SignerOrder < myOrder && !r.IsSigned() {
-			title := documentTitle(doc)
-			resp := &documentuc.PublicSigningResponse{
-				Step:               documentuc.StepWaiting,
-				DocumentTitle:      title,
-				RecipientName:      recipient.Name,
-				WaitingForPrevious: true,
-				SigningPosition:    myOrder,
-				TotalSigners:       len(recipientsWithRoles),
-			}
+	for _, r := range recipients {
+		if r.SignerOrder < attemptRecipient.SignerOrder && r.Status != entity.RecipientStatusSigned {
+			resp := &documentuc.PublicSigningResponse{Step: documentuc.StepWaiting, DocumentTitle: documentTitle(doc), RecipientName: recipient.Name, WaitingForPrevious: true, SigningPosition: attemptRecipient.SignerOrder, TotalSigners: len(recipients)}
 			s.applyAccessFlags(resp, doc, recipient, token)
-			resp.CanSign = false
 			return resp
 		}
 	}
-
 	return nil
+}
+
+func (s *PreSigningService) signerOrderMap(ctx context.Context, templateVersionID string) (map[string]int, error) {
+	roles, err := s.signerRoleRepo.FindByVersionID(ctx, templateVersionID)
+	if err != nil {
+		return nil, fmt.Errorf("loading signer roles: %w", err)
+	}
+	orders := make(map[string]int, len(roles))
+	for _, role := range roles {
+		orders[role.ID] = role.SignerOrder
+	}
+	return orders, nil
 }
 
 func (s *PreSigningService) applyAccessFlags(
@@ -891,6 +870,7 @@ func resolvePreviewNodes(
 	return out
 }
 
+//nolint:gocognit
 func resolvePreviewInjector(
 	attrs map[string]any,
 	injectables map[string]any,
@@ -1170,156 +1150,6 @@ func (s *PreSigningService) saveFieldResponses(
 	}
 
 	return nil
-}
-
-// renderAndSendToProvider renders the PDF with field responses and sends to the signing provider.
-func (s *PreSigningService) renderAndSendToProvider(
-	ctx context.Context,
-	doc *entity.Document,
-	version *entity.TemplateVersion,
-	portableDoc *portabledoc.Document,
-	fieldResponses map[string]json.RawMessage,
-) error {
-	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
-	if err != nil {
-		return fmt.Errorf("loading recipients: %w", err)
-	}
-
-	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
-	if err != nil {
-		return fmt.Errorf("loading signer roles: %w", err)
-	}
-
-	signerRoleValues := buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles)
-
-	var injectables map[string]any
-	if doc.InjectedValuesSnapshot != nil {
-		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectables)
-	}
-
-	renderResult, err := s.pdfRenderer.RenderPreview(ctx, &port.RenderPreviewRequest{
-		Document:         portableDoc,
-		Injectables:      injectables,
-		SignerRoleValues: signerRoleValues,
-		FieldResponses:   fieldResponses,
-	})
-	if err != nil {
-		return fmt.Errorf("rendering PDF: %w", err)
-	}
-
-	storagePath := fmt.Sprintf("documents/%s/%s/pre-signed.pdf", doc.WorkspaceID, doc.ID)
-	if s.storageEnabled {
-		if err := s.storageAdapter.Upload(ctx, &port.StorageUploadRequest{Key: storagePath, Data: renderResult.PDF, ContentType: "application/pdf"}); err != nil {
-			return fmt.Errorf("storing PDF: %w", err)
-		}
-		doc.SetPDFPath(storagePath)
-
-		// Status is already PENDING_PROVIDER (set by ClaimForSigning CAS).
-		// Persist the PDF storage path as a durable checkpoint for the background worker.
-		if err := s.documentRepo.Update(ctx, doc); err != nil {
-			return fmt.Errorf("persisting PDF storage path: %w", err)
-		}
-	}
-
-	return s.uploadToProvider(ctx, doc, recipients, signerRoles, portableDoc, renderResult)
-}
-
-// uploadToProvider uploads the rendered PDF to the signing provider and finalizes the document.
-func (s *PreSigningService) uploadToProvider(
-	ctx context.Context,
-	doc *entity.Document,
-	recipients []*entity.DocumentRecipient,
-	signerRoles []*entity.TemplateVersionSignerRole,
-	portableDoc *portabledoc.Document,
-	renderResult *port.RenderPreviewResult,
-) error {
-	title := documentTitle(doc)
-
-	sigFields := mapSignatureFieldPositions(renderResult.SignatureFields, signerRoles, portableDoc.SignerRoles)
-	if len(sigFields) == 0 {
-		sigFields = buildDefaultSignatureFieldPositions(recipients)
-	}
-
-	uploadResult, err := s.signingProvider.UploadDocument(ctx, &port.UploadDocumentRequest{
-		PDF:             renderResult.PDF,
-		Title:           title,
-		Recipients:      buildSigningRecipients(recipients),
-		ExternalRef:     doc.ID,
-		SignatureFields: sigFields,
-	})
-	if err != nil {
-		_ = doc.MarkAsError()
-		_ = s.documentRepo.Update(ctx, doc)
-		return fmt.Errorf("uploading to signing provider: %w", err)
-	}
-
-	doc.SetSignerInfo(uploadResult.ProviderName, uploadResult.ProviderDocumentID)
-	if err := doc.MarkAsPending(); err != nil {
-		return fmt.Errorf("marking document as pending: %w", err)
-	}
-	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		return fmt.Errorf("updating document: %w", err)
-	}
-
-	s.updateRecipientsFromResult(ctx, recipients, uploadResult.Recipients)
-
-	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventDocumentSent, entity.ActorSystem, "",
-		string(entity.DocumentStatusAwaitingInput), string(entity.DocumentStatusPending), nil)
-
-	return nil
-}
-
-// buildDefaultSignatureFieldPositions generates fallback signature field positions when
-// the renderer doesn't extract explicit positions. Each recipient gets a field on page 1.
-func buildDefaultSignatureFieldPositions(recipients []*entity.DocumentRecipient) []port.SignatureFieldPosition {
-	fields := make([]port.SignatureFieldPosition, 0, len(recipients))
-	for i, r := range recipients {
-		fields = append(fields, port.SignatureFieldPosition{
-			RoleID:    r.TemplateVersionRoleID,
-			Page:      1,
-			PositionX: 10,
-			PositionY: float64(70 + i*12),
-			Width:     30,
-			Height:    5,
-		})
-	}
-	return fields
-}
-
-// updateRecipientsFromResult updates recipients with provider IDs and signing URLs.
-func (s *PreSigningService) updateRecipientsFromResult(
-	ctx context.Context,
-	recipients []*entity.DocumentRecipient,
-	results []port.RecipientResult,
-) {
-	byRoleID := make(map[string]port.RecipientResult, len(results))
-	for _, r := range results {
-		byRoleID[r.RoleID] = r
-	}
-
-	for _, recipient := range recipients {
-		pr, ok := byRoleID[recipient.TemplateVersionRoleID]
-		if !ok {
-			continue
-		}
-
-		recipient.SetSignerRecipientID(pr.ProviderRecipientID)
-		recipient.SetSigningURL(pr.SigningURL)
-
-		if err := recipient.MarkAsSent(); err != nil {
-			slog.WarnContext(ctx, "failed to mark recipient as sent",
-				slog.String("recipient_id", recipient.ID),
-				slog.String("error", err.Error()),
-			)
-		}
-
-		if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-			slog.WarnContext(ctx, "failed to update recipient",
-				slog.String("recipient_id", recipient.ID),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
 }
 
 // Verify PreSigningService implements PreSigningUseCase.

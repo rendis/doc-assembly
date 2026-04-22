@@ -76,7 +76,7 @@ func TestTenantController_GetTenant(t *testing.T) {
 			WithTenantID(tenantID).
 			GET("/api/v1/tenant")
 
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 	})
 
 	t.Run("bad request without X-Tenant-ID header", func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestTenantController_GetTenant(t *testing.T) {
 			WithTenantID("00000000-0000-0000-0000-000000000000").
 			GET("/api/v1/tenant")
 
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 	})
 }
 

@@ -30,8 +30,6 @@ func (r *Repository) Create(ctx context.Context, recipient *entity.DocumentRecip
 		recipient.TemplateVersionRoleID,
 		recipient.Name,
 		recipient.Email,
-		recipient.SignerRecipientID,
-		recipient.SigningURL,
 		recipient.Status,
 		recipient.SignedAt,
 		recipient.CreatedAt,
@@ -56,8 +54,6 @@ func (r *Repository) CreateBatch(ctx context.Context, recipients []*entity.Docum
 			recipient.TemplateVersionRoleID,
 			recipient.Name,
 			recipient.Email,
-			recipient.SignerRecipientID,
-			recipient.SigningURL,
 			recipient.Status,
 			recipient.SignedAt,
 			recipient.CreatedAt,
@@ -87,8 +83,6 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*entity.DocumentR
 		&recipient.TemplateVersionRoleID,
 		&recipient.Name,
 		&recipient.Email,
-		&recipient.SignerRecipientID,
-		&recipient.SigningURL,
 		&recipient.Status,
 		&recipient.SignedAt,
 		&recipient.CreatedAt,
@@ -121,8 +115,6 @@ func (r *Repository) FindByDocumentID(ctx context.Context, documentID string) ([
 			&recipient.TemplateVersionRoleID,
 			&recipient.Name,
 			&recipient.Email,
-			&recipient.SignerRecipientID,
-			&recipient.SigningURL,
 			&recipient.Status,
 			&recipient.SignedAt,
 			&recipient.CreatedAt,
@@ -157,8 +149,6 @@ func (r *Repository) FindByDocumentIDWithRoles(ctx context.Context, documentID s
 			&recipient.TemplateVersionRoleID,
 			&recipient.Name,
 			&recipient.Email,
-			&recipient.SignerRecipientID,
-			&recipient.SigningURL,
 			&recipient.Status,
 			&recipient.SignedAt,
 			&recipient.CreatedAt,
@@ -187,8 +177,6 @@ func (r *Repository) FindBySignerRecipientID(ctx context.Context, signerRecipien
 		&recipient.TemplateVersionRoleID,
 		&recipient.Name,
 		&recipient.Email,
-		&recipient.SignerRecipientID,
-		&recipient.SigningURL,
 		&recipient.Status,
 		&recipient.SignedAt,
 		&recipient.CreatedAt,
@@ -213,8 +201,6 @@ func (r *Repository) FindByDocumentAndEmail(ctx context.Context, documentID, ema
 		&recipient.TemplateVersionRoleID,
 		&recipient.Name,
 		&recipient.Email,
-		&recipient.SignerRecipientID,
-		&recipient.SigningURL,
 		&recipient.Status,
 		&recipient.SignedAt,
 		&recipient.CreatedAt,
@@ -239,8 +225,6 @@ func (r *Repository) FindByDocumentAndRole(ctx context.Context, documentID, role
 		&recipient.TemplateVersionRoleID,
 		&recipient.Name,
 		&recipient.Email,
-		&recipient.SignerRecipientID,
-		&recipient.SigningURL,
 		&recipient.Status,
 		&recipient.SignedAt,
 		&recipient.CreatedAt,
@@ -262,8 +246,6 @@ func (r *Repository) Update(ctx context.Context, recipient *entity.DocumentRecip
 		recipient.ID,
 		recipient.Name,
 		recipient.Email,
-		recipient.SignerRecipientID,
-		recipient.SigningURL,
 		recipient.Status,
 		recipient.SignedAt,
 		recipient.UpdatedAt,
@@ -295,15 +277,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status entity.
 
 // UpdateSignerInfo updates the signer provider recipient ID.
 func (r *Repository) UpdateSignerInfo(ctx context.Context, id, signerRecipientID string) error {
-	result, err := r.pool.Exec(ctx, queryUpdateSignerInfo, id, signerRecipientID)
-	if err != nil {
-		return fmt.Errorf("updating document recipient signer info: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return entity.ErrDocumentRecipientNotFound
-	}
-
+	// Provider recipient IDs are attempt-owned in execution.signing_attempt_recipients.
 	return nil
 }
 

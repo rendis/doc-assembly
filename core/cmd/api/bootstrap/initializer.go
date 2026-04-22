@@ -27,6 +27,7 @@ import (
 	galleryassetrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/gallery_asset_repo"
 	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
 	processrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/process_repo"
+	signingattemptrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/signing_attempt_repo"
 	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	systemrolerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tag_repo"
@@ -146,6 +147,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	documentEventRepo := documenteventrepo.New(pool)
 	documentFieldResponseRepo := documentfieldresponserepo.New(pool)
 	documentAccessTokenRepo := documentaccesstokenrepo.New(pool)
+	signingAttemptRepo := signingattemptrepo.New(pool)
 
 	// --- Repositories: Automation ---
 	automationAPIKeyRepo := automationapikeyrepo.New(pool)
@@ -248,24 +250,36 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	eventEmitter := documentsvc.NewEventEmitter(documentEventRepo)
 	publicURL := cfg.Server.PublicURL
 	notificationSvc := documentsvc.NewNotificationService(notificationProvider, documentRecipientRepo, documentRepo, documentAccessTokenRepo, publicURL)
+
+	// --- River Job Queue (mandatory for signing attempts; workers optional by config) ---
+	workerCfg := cfg.Worker
+	workerCfg.RuntimeEnvironment = cfg.Environment
+	riverSvc, err := riverqueue.New(ctx, pool, workerCfg, riverqueue.Dependencies{
+		DocumentRepo:      documentRepo,
+		RecipientRepo:     documentRecipientRepo,
+		AttemptRepo:       signingAttemptRepo,
+		VersionRepo:       templateVersionRepo,
+		SignerRoleRepo:    templateVersionSignerRoleRepo,
+		FieldResponseRepo: documentFieldResponseRepo,
+		PDFRenderer:       pdfRenderer,
+		SigningProvider:   signingProvider,
+		StorageAdapter:    storageAdapter,
+		StorageEnabled:    cfg.Storage.Enabled,
+		CompletionHandler: e.documentCompletedHandler,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("river: %w", err)
+	}
+	signingUOW := riverSvc.SigningExecutionUOW()
+
 	documentSvcConcrete := documentsvc.NewDocumentService(
-		documentRepo, documentRecipientRepo, templateRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		documentRepo, documentRecipientRepo, signingAttemptRepo, signingUOW, templateRepo, templateVersionRepo, templateVersionSignerRoleRepo,
 		pdfRenderer, signingProvider, storageAdapter,
 		eventEmitter, notificationSvc,
 		cfg.Scheduler.ExpirationDays,
 		documentAccessTokenRepo, documentFieldResponseRepo,
 		cfg.Storage.Enabled,
 	)
-
-	// --- River Job Queue (optional) ---
-	var riverSvc *riverqueue.RiverService
-	if e.documentCompletedHandler != nil {
-		riverSvc, err = riverqueue.New(ctx, pool, cfg.Worker, e.documentCompletedHandler, documentRepoConcrete)
-		if err != nil {
-			return nil, fmt.Errorf("river: %w", err)
-		}
-		documentSvcConcrete.SetCompletionNotifier(riverSvc.Notifier())
-	}
 
 	var documentSvc documentuc.DocumentUseCase = documentSvcConcrete
 	injectableResolver := injectablesvc.NewInjectableResolverService(injReg)
@@ -285,7 +299,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 	)
 	preSigningSvc := documentsvc.NewPreSigningService(
 		documentAccessTokenRepo, documentFieldResponseRepo,
-		documentRepo, documentRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		documentRepo, documentRecipientRepo, signingAttemptRepo, signingUOW, templateVersionRepo, templateVersionSignerRoleRepo,
 		pdfRenderer, signingProvider, storageAdapter, cfg.Storage.Enabled, eventEmitter, publicURL,
 	)
 	signingSessionSvc := documentsvc.NewSigningSessionService(
@@ -625,17 +639,11 @@ func (e *Engine) resolveFrontendFS() fs.FS {
 
 // registerSchedulerJobs registers background polling jobs.
 func registerSchedulerJobs(s *scheduler.Scheduler, cfg *config.SchedulerConfig, docUC documentuc.DocumentUseCase) {
-	s.RegisterJob("poll-pending-documents", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
-		return docUC.ProcessPendingDocuments(ctx, cfg.PollingBatchSize)
-	})
+	// Signing provider upload, retry, polling and reconciliation are intentionally
+	// not registered here. The clean-slate signing model uses attempt-scoped River
+	// jobs as the only durable engine for signing side effects.
 	s.RegisterJob("expire-documents", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
 		return docUC.ExpireDocuments(ctx, cfg.PollingBatchSize)
-	})
-	s.RegisterJob("retry-error-documents", cfg.RetryIntervalDuration(), func(ctx context.Context) error {
-		return docUC.RetryErrorDocuments(ctx, cfg.RetryMaxRetries, cfg.RetryBatchSize)
-	})
-	s.RegisterJob("upload-pending-signing", cfg.PollingIntervalDuration(), func(ctx context.Context) error {
-		return docUC.ProcessPendingProviderDocuments(ctx, cfg.PollingBatchSize)
 	})
 }
 

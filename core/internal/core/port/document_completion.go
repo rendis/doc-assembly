@@ -9,12 +9,6 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
 )
 
-// DocumentCompletionNotifier persists the document and enqueues a completion
-// job atomically within the same database transaction.
-type DocumentCompletionNotifier interface {
-	PersistAndNotify(ctx context.Context, doc *entity.Document) error
-}
-
 // DocumentCompletedHandler is the user-provided callback invoked when a
 // document reaches COMPLETED status. Returning an error causes River to
 // retry the job automatically.

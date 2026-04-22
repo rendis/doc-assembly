@@ -1110,7 +1110,7 @@ func TestWorkspaceController_CreateTag(t *testing.T) {
 		err := json.Unmarshal(body, &tagResp)
 		require.NoError(t, err)
 
-		assert.Equal(t, "New Tag", tagResp.Name)
+		assert.Equal(t, "new_tag", tagResp.Name)
 		assert.Equal(t, "#3B82F6", tagResp.Color)
 		defer testhelper.CleanupTag(t, pool, tagResp.ID)
 	})
@@ -1240,7 +1240,7 @@ func TestWorkspaceController_UpdateTag(t *testing.T) {
 		err := json.Unmarshal(body, &tagResp)
 		require.NoError(t, err)
 
-		assert.Equal(t, "Updated", tagResp.Name)
+		assert.Equal(t, "updated", tagResp.Name)
 		assert.Equal(t, "#00FF00", tagResp.Color)
 	})
 }
@@ -1638,7 +1638,7 @@ func TestWorkspaceController_CreateTag_Duplicate(t *testing.T) {
 	testhelper.CreateTestWorkspaceMember(t, pool, workspaceID, editor.ID, entity.WorkspaceRoleEditor, nil)
 
 	// Create first tag
-	existingTag := testhelper.CreateTestTag(t, pool, workspaceID, "Duplicate Tag", "#FF0000")
+	existingTag := testhelper.CreateTestTag(t, pool, workspaceID, "duplicate_tag", "#FF0000")
 	defer testhelper.CleanupTag(t, pool, existingTag)
 
 	// Try to create tag with same name

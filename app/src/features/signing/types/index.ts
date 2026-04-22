@@ -2,13 +2,13 @@
 export const SigningDocumentStatus = {
   DRAFT: 'DRAFT',
   AWAITING_INPUT: 'AWAITING_INPUT',
-  PENDING_PROVIDER: 'PENDING_PROVIDER',
-  PENDING: 'PENDING',
-  IN_PROGRESS: 'IN_PROGRESS',
+  PREPARING_SIGNATURE: 'PREPARING_SIGNATURE',
+  READY_TO_SIGN: 'READY_TO_SIGN',
+  SIGNING: 'SIGNING',
   COMPLETED: 'COMPLETED',
   DECLINED: 'DECLINED',
-  VOIDED: 'VOIDED',
-  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED',
+  INVALIDATED: 'INVALIDATED',
   ERROR: 'ERROR',
 } as const
 export type SigningDocumentStatus = (typeof SigningDocumentStatus)[keyof typeof SigningDocumentStatus]

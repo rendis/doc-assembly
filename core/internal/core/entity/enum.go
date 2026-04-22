@@ -392,38 +392,38 @@ func (o OperationType) String() string {
 	return string(o)
 }
 
-// DocumentStatus represents the signing workflow status of a document.
+// DocumentStatus represents the business projection of the active signing attempt.
 type DocumentStatus string
 
 const (
-	// DocumentStatusDraft - document created, not yet sent for signing.
+	// DocumentStatusDraft - document exists but is not ready for signing.
 	DocumentStatusDraft DocumentStatus = "DRAFT"
-	// DocumentStatusAwaitingInput - document has interactive fields awaiting recipient input before signing.
+	// DocumentStatusAwaitingInput - document requires signer/user input before PDF generation.
 	DocumentStatusAwaitingInput DocumentStatus = "AWAITING_INPUT"
-	// DocumentStatusPendingProvider - PDF ready, waiting for worker to upload to provider.
-	DocumentStatusPendingProvider DocumentStatus = "PENDING_PROVIDER"
-	// DocumentStatusPending - document sent to signing provider, awaiting action.
-	DocumentStatusPending DocumentStatus = "PENDING"
-	// DocumentStatusInProgress - at least one recipient has interacted with the document.
-	DocumentStatusInProgress DocumentStatus = "IN_PROGRESS"
-	// DocumentStatusCompleted - all recipients have completed signing.
+	// DocumentStatusPreparingSignature - active attempt is rendering, submitting, retrying, or reconciling.
+	DocumentStatusPreparingSignature DocumentStatus = "PREPARING_SIGNATURE"
+	// DocumentStatusReadyToSign - active attempt has provider signing references available.
+	DocumentStatusReadyToSign DocumentStatus = "READY_TO_SIGN"
+	// DocumentStatusSigning - active attempt is in provider signing progress.
+	DocumentStatusSigning DocumentStatus = "SIGNING"
+	// DocumentStatusCompleted - active attempt completed successfully.
 	DocumentStatusCompleted DocumentStatus = "COMPLETED"
-	// DocumentStatusDeclined - a recipient has rejected/declined signing.
+	// DocumentStatusDeclined - active attempt was declined.
 	DocumentStatusDeclined DocumentStatus = "DECLINED"
-	// DocumentStatusVoided - document was cancelled by the user.
-	DocumentStatusVoided DocumentStatus = "VOIDED"
-	// DocumentStatusExpired - document signing period has expired.
-	DocumentStatusExpired DocumentStatus = "EXPIRED"
-	// DocumentStatusError - an error occurred with the signing provider.
+	// DocumentStatusCancelled - logical document was cancelled by an authorized actor.
+	DocumentStatusCancelled DocumentStatus = "CANCELLED"
+	// DocumentStatusInvalidated - logical document is no longer valid as a business object.
+	DocumentStatusInvalidated DocumentStatus = "INVALIDATED"
+	// DocumentStatusError - active attempt reached a permanent/manual-review failure.
 	DocumentStatusError DocumentStatus = "ERROR"
 )
 
 // IsValid checks if the document status is valid.
 func (d DocumentStatus) IsValid() bool {
 	switch d {
-	case DocumentStatusDraft, DocumentStatusAwaitingInput, DocumentStatusPendingProvider,
-		DocumentStatusPending, DocumentStatusInProgress, DocumentStatusCompleted,
-		DocumentStatusDeclined, DocumentStatusVoided, DocumentStatusExpired, DocumentStatusError:
+	case DocumentStatusDraft, DocumentStatusAwaitingInput, DocumentStatusPreparingSignature,
+		DocumentStatusReadyToSign, DocumentStatusSigning, DocumentStatusCompleted,
+		DocumentStatusDeclined, DocumentStatusCancelled, DocumentStatusInvalidated, DocumentStatusError:
 		return true
 	}
 	return false
@@ -434,50 +434,54 @@ func (d DocumentStatus) String() string {
 	return string(d)
 }
 
-// IsTerminal returns true if the status represents a final state.
+// IsTerminal returns true if the status represents a final business state.
 func (d DocumentStatus) IsTerminal() bool {
 	switch d {
-	case DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusVoided, DocumentStatusExpired:
+	case DocumentStatusCompleted, DocumentStatusDeclined, DocumentStatusCancelled, DocumentStatusInvalidated:
 		return true
 	}
 	return false
 }
 
-// validStatusTransitions defines allowed document status transitions.
+// validStatusTransitions defines allowed document projection transitions.
 var validStatusTransitions = map[DocumentStatus]map[DocumentStatus]bool{
 	DocumentStatusDraft: {
-		DocumentStatusAwaitingInput:   true, // Document has interactive fields requiring recipient input
-		DocumentStatusPendingProvider: true, // Worker flow: PDF saved, waiting for upload
-		DocumentStatusPending:         true, // Direct flow: immediate provider upload
-		DocumentStatusError:           true,
+		DocumentStatusAwaitingInput:      true,
+		DocumentStatusPreparingSignature: true,
+		DocumentStatusError:              true,
 	},
 	DocumentStatusAwaitingInput: {
-		DocumentStatusPendingProvider: true, // All interactive fields filled, proceed to signing
-		DocumentStatusVoided:          true, // Cancelled by user while awaiting input
+		DocumentStatusPreparingSignature: true,
+		DocumentStatusCancelled:          true,
+		DocumentStatusInvalidated:        true,
 	},
-	DocumentStatusPendingProvider: {
-		DocumentStatusPending: true, // Worker completed upload to provider
-		DocumentStatusError:   true, // Error during upload
+	DocumentStatusPreparingSignature: {
+		DocumentStatusReadyToSign: true,
+		DocumentStatusSigning:     true,
+		DocumentStatusCompleted:   true,
+		DocumentStatusDeclined:    true,
+		DocumentStatusCancelled:   true,
+		DocumentStatusInvalidated: true,
+		DocumentStatusError:       true,
 	},
-	DocumentStatusPending: {
-		DocumentStatusInProgress: true,
-		DocumentStatusCompleted:  true,
-		DocumentStatusDeclined:   true,
-		DocumentStatusVoided:     true,
-		DocumentStatusExpired:    true,
-		DocumentStatusError:      true,
+	DocumentStatusReadyToSign: {
+		DocumentStatusSigning:     true,
+		DocumentStatusCompleted:   true,
+		DocumentStatusDeclined:    true,
+		DocumentStatusCancelled:   true,
+		DocumentStatusInvalidated: true,
+		DocumentStatusError:       true,
 	},
-	DocumentStatusInProgress: {
-		DocumentStatusCompleted: true,
-		DocumentStatusDeclined:  true,
-		DocumentStatusVoided:    true,
-		DocumentStatusExpired:   true,
-		DocumentStatusError:     true,
+	DocumentStatusSigning: {
+		DocumentStatusCompleted:   true,
+		DocumentStatusDeclined:    true,
+		DocumentStatusCancelled:   true,
+		DocumentStatusInvalidated: true,
+		DocumentStatusError:       true,
 	},
-	// Terminal states: Completed, Declined, Voided, Expired - no transitions allowed
 	DocumentStatusError: {
-		DocumentStatusDraft:   true, // Can retry from error
-		DocumentStatusPending: true, // Direct retry: re-upload to provider
+		DocumentStatusPreparingSignature: true,
+		DocumentStatusInvalidated:        true,
 	},
 }
 

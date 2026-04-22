@@ -123,19 +123,23 @@
     "subtitle": "Workspace Overview",
     "lastSynced": "Last Synced",
     "totalGenerated": "Total Generated",
-    "signedThisMonth": "Signed (30 Days)",
     "inProgress": "In Progress",
     "recentActivity": "Recent Activity",
     "quickDraft": "Quick Draft",
     "newDocument": "New Document",
-    "integrations": "Integrations",
     "stats": {
       "generated": "Total Generated",
-      "signed": "Signed (30 Days)",
+      "completed": "Completed",
       "inProgress": "In Progress"
     },
     "activity": {
-      "title": "Recent Activity"
+      "title": "Recent Activity",
+      "viewAll": "View Full History",
+      "empty": "No documents yet",
+      "untitled": "Untitled",
+      "colDocument": "Document Name",
+      "colStatus": "Status",
+      "colModified": "Modified"
     }
   },
   "templates": {
@@ -164,7 +168,21 @@
       "draft": "Draft",
       "any": "Any"
     },
-    "versions": "Versions",
+    "versions": {
+      "actions": {
+        "copyId": "Copy Version ID",
+        "promote": "Promote to Production",
+        "delete": "Delete",
+        "publishNow": "Publish Now",
+        "schedule": "Schedule",
+        "archive": "Archive",
+        "clone": "Clone version",
+        "cancelSchedule": "Cancel Schedule"
+      },
+      "renamed": "Version renamed",
+      "renameFailed": "Failed to rename version",
+      "idCopied": "Version ID copied to clipboard"
+    },
     "version": "version",
     "versionsLabel": "versions",
     "lastModified": "Last Modified",
@@ -233,7 +251,11 @@
       "documentType": "Document Type",
       "noDocumentType": "No type assigned",
       "selectDocumentType": "Select type",
-      "noDocumentTypesAvailable": "No document types available"
+      "noDocumentTypesAvailable": "No document types available",
+      "process": "Process",
+      "noProcess": "No process assigned",
+      "selectProcess": "Select process",
+      "noProcessesAvailable": "No processes available"
     },
     "documentType": {
       "conflictTitle": "Document type in use",
@@ -281,21 +303,6 @@
       "title": "Cancel Scheduled Publication",
       "message": "Are you sure you want to cancel the scheduled publication of version {{version}}?",
       "confirm": "Cancel Schedule"
-    },
-    "versions": {
-      "actions": {
-        "copyId": "Copy Version ID",
-        "promote": "Promote to Production",
-        "delete": "Delete",
-        "publishNow": "Publish Now",
-        "schedule": "Schedule",
-        "archive": "Archive",
-        "clone": "Clone version",
-        "cancelSchedule": "Cancel Schedule"
-      },
-      "renamed": "Version renamed",
-      "renameFailed": "Failed to rename version",
-      "idCopied": "Version ID copied to clipboard"
     },
     "promoteDialog": {
       "title": "Promote to Production",
@@ -484,6 +491,8 @@
       "insertImage": "Insert image",
       "signatureBlock": "Signature block",
       "conditionalBlock": "Conditional block",
+      "addHeader": "Add document header",
+      "removeHeader": "Remove document header",
       "exportDocument": "Export document (JSON)",
       "importDocument": "Import document (JSON)",
       "history": "History",
@@ -493,7 +502,13 @@
       "blockElements": "Blocks",
       "actions": "Actions",
       "exportDocumentShort": "Export document",
-      "importDocumentShort": "Import document"
+      "importDocumentShort": "Import document",
+      "lineSpacing": "Line spacing",
+      "lineSpacingTight": "Very compact",
+      "lineSpacingCompact": "Compact",
+      "lineSpacingNormal": "Normal",
+      "lineSpacingRelaxed": "Relaxed",
+      "lineSpacingLoose": "Very relaxed"
     },
     "preparation": {
       "title": "Preparing document"
@@ -691,6 +706,7 @@
       "noVariables": "This document has no variables. Generate preview with default values?",
       "generateTestData": "Generate Test Data",
       "generateRandom": "Generate random value",
+      "fillAllRandom": "Fill All Random",
       "resetToEmulated": "Reset to automatic value",
       "auto": "Auto",
       "errors": {
@@ -758,6 +774,16 @@
       },
       "activeCount": "{{count}} active",
       "notConfigured": "Not configured"
+    },
+    "documentHeader": {
+      "addLogo": "Click to add logo",
+      "editLogo": "Edit header logo",
+      "textPlaceholder": "Add header text...",
+      "surfaceLabel": "Document header",
+      "surfaceHint": "Click to edit the header or add a logo",
+      "layoutImageLeft": "Image left, text right",
+      "layoutImageCenter": "Image centered",
+      "layoutImageRight": "Text left, image right"
     },
     "signature": {
       "title": "Signature",
@@ -898,7 +924,7 @@
       },
       "modal": {
         "title": "Insert image",
-        "description": "Add an image from URL or gallery",
+        "description": "Add an image from URL, variable, or gallery",
         "gallery": "Gallery",
         "cancel": "Cancel",
         "insert": "Insert image",
@@ -910,7 +936,10 @@
         "loading": "Loading image...",
         "enterUrl": "Enter a URL to see preview",
         "preview": "Preview",
-        "cropImage": "Crop image"
+        "cropImage": "Crop image",
+        "sourceLabel": "Image source",
+        "sourceUrl": "Direct URL",
+        "sourceVariable": "IMAGE variable"
       },
       "gallery": {
         "title": "Image gallery",
@@ -956,6 +985,8 @@
       "tableDesc": "Insert a table",
       "variable": "Variable",
       "variableDesc": "Insert variable",
+      "interactiveField": "Interactive Field",
+      "interactiveFieldDesc": "Add checkbox, radio, or text field",
       "noCommandsFound": "No commands found",
       "groups": {
         "basic": "Basic",
@@ -976,6 +1007,52 @@
     "injectable": {
       "errors": {
         "roleDeleted": "The associated role was deleted"
+      }
+    },
+    "interactiveField": {
+      "title": "Interactive Field",
+      "types": {
+        "checkbox": "Checkbox",
+        "radio": "Radio",
+        "text": "Text"
+      },
+      "noOptions": "No options defined",
+      "untitledOption": "Untitled option",
+      "textPlaceholder": "Text input...",
+      "noLabel": "No label",
+      "noRole": "No role assigned",
+      "deletedRole": "Deleted role",
+      "required": "Required",
+      "configure": "Configure field",
+      "config": {
+        "title": "Interactive Field",
+        "description": "Configure the interactive field for signers",
+        "fieldType": "Field Type",
+        "role": "Assigned Role",
+        "selectRole": "Select a role...",
+        "noRole": "No role",
+        "label": "Label / Question",
+        "labelPlaceholder": "e.g. Do you agree with the terms?",
+        "required": "This field is required",
+        "options": "Options",
+        "noOptionsYet": "No options yet. Add at least one.",
+        "optionPlaceholder": "Option {{number}}",
+        "addOption": "Add option",
+        "textSettings": "Text Field Settings",
+        "placeholder": "Placeholder",
+        "placeholderHint": "Text shown when field is empty",
+        "maxLength": "Max length",
+        "maxLengthHint": "0 = unlimited",
+        "typeDescriptions": {
+          "checkbox": "Multiple selections allowed. Each option shows a square checkbox (☑).",
+          "radio": "Single selection only. Each option shows a round button (●).",
+          "text": "Free text input. The signer types their answer."
+        },
+        "optionsLayout": "Options Layout",
+        "layouts": {
+          "vertical": "Vertical",
+          "inline": "Inline"
+        }
       }
     },
     "import": {
@@ -1034,6 +1111,65 @@
         "disableWarning": "Returning to production mode. Your sandbox changes will remain available if you re-enter sandbox mode.",
         "enableConfirm": "Enter Sandbox",
         "disableConfirm": "Exit Sandbox"
+      }
+    },
+    "members": {
+      "title": "Members",
+      "description": "Manage members and their roles for this workspace.",
+      "searchPlaceholder": "Search members...",
+      "inviteMember": "Invite Member",
+      "loadError": "Failed to load members",
+      "noResults": "No members match your search",
+      "empty": "No members found",
+      "roleUpdated": "Role updated",
+      "roleError": "Failed to update role",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status"
+      },
+      "roles": {
+        "owner": "Owner",
+        "ownerDesc": "Full access including archive, member management and role changes.",
+        "admin": "Admin",
+        "adminDesc": "Full access except archive workspace and manage member roles.",
+        "editor": "Editor",
+        "editorDesc": "Create and edit templates, versions and injectables. Cannot manage members.",
+        "operator": "Operator",
+        "operatorDesc": "Create and manage documents. Cannot create or edit templates.",
+        "viewer": "Viewer",
+        "viewerDesc": "View templates, documents and members. Read-only access."
+      },
+      "actions": {
+        "makeOwner": "Make Owner",
+        "makeAdmin": "Make Admin",
+        "makeEditor": "Make Editor",
+        "makeOperator": "Make Operator",
+        "makeViewer": "Make Viewer",
+        "remove": "Remove"
+      },
+      "invite": {
+        "title": "Invite Member",
+        "description": "Invite a user to this workspace.",
+        "email": "Email",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email",
+        "fullName": "Full Name",
+        "fullNamePlaceholder": "John Doe",
+        "role": "Role",
+        "submit": "Invite Member",
+        "success": "Member invited",
+        "memberExists": "This user is already a member",
+        "error": "Failed to invite member"
+      },
+      "remove": {
+        "title": "Remove Member",
+        "confirm": "Are you sure you want to remove \"{{name}}\"?",
+        "ownerWarning": "This member is a workspace owner. Removing them may affect workspace administration.",
+        "description": "This user will lose access to this workspace.",
+        "success": "Member removed",
+        "error": "Failed to remove member"
       }
     }
   },
@@ -1096,9 +1232,82 @@
       "tenants": "Tenants",
       "users": "Users",
       "injectables": "Injectables",
-      "audit": "Audit",
+      "apiKeys": "API Keys",
       "documentTypes": "Document Types",
-      "workspaces": "Workspaces"
+      "processes": "Processes",
+      "workspaces": "Workspaces",
+      "members": "Members"
+    },
+    "apiKeys": {
+      "description": "Manage automation API keys for machine-to-machine access.",
+      "newKey": "New API Key",
+      "loadError": "Failed to load API keys",
+      "empty": "No API keys found",
+      "revokeSuccess": "API key revoked",
+      "revokeError": "Failed to revoke API key",
+      "updateSuccess": "API key updated",
+      "updateError": "Failed to update API key",
+      "createSuccess": "API key created",
+      "createError": "Failed to create API key",
+      "confirmRevoke": "Revoke this API key? This cannot be undone.",
+      "keyType": "Type",
+      "automation": "Automation",
+      "internal": "Internal",
+      "globalAccess": "Global",
+      "columns": {
+        "prefix": "Prefix",
+        "name": "Name",
+        "type": "Type",
+        "tenants": "Allowed Tenants",
+        "status": "Status",
+        "lastUsed": "Last Used",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "revoked": "Revoked"
+      },
+      "tenants": {
+        "global": "Global",
+        "restricted": "{{count}} tenant(s)"
+      },
+      "never": "Never",
+      "rawKey": {
+        "title": "Save your API Key",
+        "warning": "This key will only be shown once. Copy it now and store it somewhere safe — you will not be able to retrieve it again.",
+        "keyLabel": "Your new API key",
+        "copyButton": "Copy",
+        "copied": "Copied!",
+        "confirmLabel": "I have copied the key and stored it safely",
+        "closeButton": "Close"
+      },
+      "form": {
+        "createTitle": "Create API Key",
+        "editTitle": "Edit API Key",
+        "createDescription": "Create a new automation API key for machine-to-machine access.",
+        "editDescription": "Update the name or tenant restrictions for this key.",
+        "name": "Key Name",
+        "namePlaceholder": "e.g. CI/CD Pipeline",
+        "nameRequired": "Name is required",
+        "allowedTenants": "Allowed Tenants",
+        "allowedTenantsHint": "Leave empty for global access (all tenants).",
+        "allowedTenantsPlaceholder": "Select tenants..."
+      },
+      "audit": {
+        "title": "Audit Log",
+        "empty": "No activity recorded yet for this key.",
+        "loadError": "Failed to load audit log",
+        "columns": {
+          "date": "Date",
+          "method": "Method",
+          "path": "Path",
+          "action": "Action",
+          "resource": "Resource",
+          "status": "Status"
+        }
+      },
+      "revoke": "Revoke"
     },
     "documentTypes": {
       "description": "Manage document types and their configurations.",
@@ -1148,6 +1357,59 @@
         "selectReplacement": "Select replacement type...",
         "success": "Document type deleted",
         "error": "Failed to delete document type"
+      }
+    },
+    "processes": {
+      "description": "Manage processes and their configurations.",
+      "searchPlaceholder": "Search processes...",
+      "loadError": "Failed to load processes",
+      "noResults": "No processes match your search",
+      "empty": "No processes found",
+      "create": "Create Process",
+      "global": "Global",
+      "readOnly": "Read-only",
+      "columns": {
+        "code": "Code",
+        "processType": "Process Type",
+        "name": "Name",
+        "templates": "Templates",
+        "actions": "Actions"
+      },
+      "form": {
+        "createTitle": "Create Process",
+        "editTitle": "Edit Process",
+        "createDescription": "Add a new process to organize templates.",
+        "editDescription": "Update the process details.",
+        "code": "Code",
+        "codePlaceholder": "PROCESS_CODE",
+        "codeHint": "Only uppercase letters, numbers, and underscores. Max 255 characters.",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be 255 characters or less",
+        "codeInvalid": "Code must contain only letters, numbers, and underscores",
+        "codeExists": "A process with this code already exists",
+        "processType": "Process Type",
+        "processTypeHint": "Determines how the process identifier is interpreted. Cannot be changed after creation.",
+        "name": "Name",
+        "namePlaceholder": "Process name",
+        "nameRequired": "Spanish name is required",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description",
+        "createSuccess": "Process created",
+        "updateSuccess": "Process updated",
+        "saveError": "Failed to save process"
+      },
+      "delete": {
+        "title": "Delete Process",
+        "confirm": "Are you sure you want to delete \"{{name}}\"?",
+        "hasTemplates": "This process is used by {{count}} template(s)",
+        "hasTemplatesDescription": "This process is being used. Choose how to proceed.",
+        "forceOption": "Reset templates to DEFAULT process",
+        "forceHint": "Templates will be reassigned to the default process",
+        "replaceOption": "Replace with another process",
+        "noOtherProcesses": "No other processes available",
+        "selectReplacement": "Select replacement process...",
+        "success": "Process deleted",
+        "error": "Failed to delete process"
       }
     },
     "tenants": {
@@ -1261,12 +1523,52 @@
       }
     },
     "users": {
-      "description": "Manage system users and their roles.",
+      "description": "Manage system members and their roles.",
+      "readOnlyWarning": "You have read-only access. Only SUPERADMIN can modify system roles.",
+      "searchPlaceholder": "Search members...",
+      "loadError": "Failed to load system users",
+      "noResults": "No members match your search",
+      "empty": "No system members found",
+      "roleUpdated": "Role updated",
       "columns": {
         "name": "Name",
         "email": "Email",
         "role": "Role",
         "status": "Status"
+      },
+      "actions": {
+        "makePlatformAdmin": "Make Platform Admin",
+        "makeSuperAdmin": "Make Superadmin",
+        "remove": "Remove access"
+      },
+      "guards": {
+        "lastSuperAdmin": "At least one SUPERADMIN must remain in the system.",
+        "lastSuperAdminSelf": "You cannot remove your own last SUPERADMIN role."
+      },
+      "remove": {
+        "title": "Remove System Role",
+        "confirm": "Are you sure you want to remove system access from \"{{name}}\"?",
+        "description": "This user will immediately lose platform-level administration access.",
+        "success": "System role removed"
+      },
+      "form": {
+        "title": "Add Member",
+        "description": "Create or promote a user with global system access.",
+        "email": "Email",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email",
+        "fullName": "Full Name",
+        "fullNamePlaceholder": "John Doe",
+        "role": "Role",
+        "add": "Add Member",
+        "addSuccess": "Member added",
+        "addError": "Failed to add member",
+        "roles": {
+          "platformAdmin": "Platform Admin",
+          "platformAdminDesc": "Operational platform access without full superadmin authority.",
+          "superAdmin": "Superadmin",
+          "superAdminDesc": "Full global administration across system, tenants, and workspaces."
+        }
       }
     },
     "audit": {
@@ -1276,6 +1578,17 @@
         "user": "User",
         "details": "Details",
         "timestamp": "Timestamp"
+      }
+    },
+    "members": {
+      "guards": {
+        "lastOwner": "At least one tenant owner must remain."
+      },
+      "roles": {
+        "admin": "Admin",
+        "adminDesc": "Create and manage workspaces within this tenant.",
+        "owner": "Owner",
+        "ownerDesc": "Full tenant administration including settings and workspace management."
       }
     }
   },
@@ -1305,7 +1618,7 @@
     "publicDesc": "Global",
     "tenant": "Tenant",
     "tenantDesc": "Organization",
-    "workspace": "Workspace",
+    "workspace": "workspace",
     "workspaceDesc": "Specific",
     "tenantId": "Tenant ID",
     "workspaceId": "Workspace ID",
@@ -1338,7 +1651,6 @@
     "filterPlaceholder": "Filter by name...",
     "noRule": "No rule",
     "workspaces": "workspaces",
-    "workspace": "workspace",
     "noMatchingAssignments": "No assignments match your search",
     "inheritedFromGlobal": "Inherited from global",
     "selectOrganization": "Select Organization",
@@ -1412,7 +1724,17 @@
         "downloadPdf": "Download PDF",
         "copySigningUrl": "Copy Signing URL",
         "remind": "Send Reminder"
-      }
+      },
+      "publicDocLink": "Public Document Link",
+      "copyLink": "Copy Link",
+      "copied": "Copied",
+      "linkCopied": "Link copied to clipboard",
+      "copyError": "Failed to copy link",
+      "invalidateTokens": "Invalidate Tokens",
+      "invalidateWarning": "This will invalidate all active access tokens. Recipients will need to request a new link via email.",
+      "tokensInvalidated": "Tokens invalidated successfully",
+      "invalidateError": "Failed to invalidate tokens",
+      "fieldResponses": "Field Responses"
     },
     "cancel": {
       "title": "Cancel Document",
@@ -1430,21 +1752,26 @@
       "noPublishedVersions": "No published versions available",
       "recipientName": "Recipient Name",
       "recipientEmail": "Recipient Email",
-      "send": "Send for Signing"
+      "send": "Send for Signing",
+      "awaitingInputTitle": "Waiting for Signer Input",
+      "awaitingInputMessage": "Document created. Waiting for signer to complete interactive fields.",
+      "preSigningUrl": "Pre-Signing URL",
+      "goToDocument": "Go to Document"
     },
     "status": {
       "DRAFT": "Draft",
-      "PENDING_PROVIDER": "Processing",
-      "PENDING": "Pending",
-      "IN_PROGRESS": "In Progress",
+      "AWAITING_INPUT": "Awaiting Input",
+      "PREPARING_SIGNATURE": "Processing",
+      "READY_TO_SIGN": "Ready to Sign",
+      "SIGNING": "Signing",
       "COMPLETED": "Completed",
       "DECLINED": "Declined",
-      "VOIDED": "Voided",
-      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled",
+      "INVALIDATED": "Invalidated",
       "ERROR": "Error"
     },
     "recipientStatus": {
-      "PENDING": "Pending",
+      "READY_TO_SIGN": "Ready to Sign",
       "SENT": "Sent",
       "DELIVERED": "Delivered",
       "SIGNED": "Signed",
@@ -1455,6 +1782,100 @@
       "cancelSelected": "Cancel Selected",
       "refreshSelected": "Refresh Selected",
       "cancelConfirm": "Are you sure you want to cancel {{count}} documents?"
+    }
+  },
+  "publicSigning": {
+    "loading": "Loading document...",
+    "from": "From",
+    "to": "To",
+    "interactiveField": "Interactive Field",
+    "signatureBlock": "Signature",
+    "noLabel": "No label",
+    "required": "Required",
+    "otherSigner": "Other signer",
+    "noOptions": "No options defined",
+    "untitledOption": "Untitled option",
+    "textPlaceholder": "Type your answer here...",
+    "fieldRequired": "This field is required",
+    "agreement": "I have read and reviewed the document above and confirm that my responses are accurate.",
+    "submit": "Generate and Sign Contract",
+    "submitting": "Generating contract...",
+    "validationSummary": "Please complete {{count}} required field(s) before submitting.",
+    "errors": {
+      "invalidToken": "This link is not valid. Please check that you have the correct URL.",
+      "invalidTokenTitle": "Invalid Link",
+      "expired": "This link has expired. Please request a new link from the sender.",
+      "expiredTitle": "Link Expired",
+      "alreadyUsed": "This form has already been completed. No further action is needed.",
+      "alreadyUsedTitle": "Already Completed",
+      "serverError": "Something went wrong. Please try again later.",
+      "errorTitle": "Error",
+      "submitFailed": "Failed to submit your responses. Please try again.",
+      "iframeLoadFailed": "Failed to load the signing interface. Please refresh the page or try again later."
+    },
+    "loadingSigning": "Loading signing interface...",
+    "completed": {
+      "title": "Signing Complete",
+      "message": "\"{{title}}\" has been signed successfully. You may close this page.",
+      "download": "Download Signed PDF"
+    },
+    "declined": {
+      "title": "Signing Declined",
+      "message": "You have declined to sign \"{{title}}\". If this was a mistake, please contact the sender."
+    },
+    "waiting": {
+      "title": "Waiting for Previous Signers",
+      "message": "You are signer {{position}} of {{total}}. The document will be ready for your signature once previous signers have completed.",
+      "autoRefresh": "This page will refresh automatically."
+    },
+    "preview": {
+      "readyToSign": "This document is ready for {{name}} to sign.",
+      "proceedToSigning": "Proceed to Signing",
+      "pdfLoading": "Loading document preview...",
+      "pdfError": "Failed to load document preview",
+      "pageOf": "Page {{current}} of {{total}}"
+    },
+    "proceeding": {
+      "title": "Preparing document for signing...",
+      "warning": "Please do not close or refresh this page"
+    },
+    "success": {
+      "title": "Contract Generated",
+      "message": "Your responses have been recorded and the contract has been generated. You will be redirected to sign the document.",
+      "goToSigning": "Go to Signing"
+    },
+    "access": {
+      "documentTitle": "Document Access",
+      "title": "Verify Your Email",
+      "description": "Enter your email address to receive a secure signing link.",
+      "completedDescription": "Enter your email to receive secure access to view status and download the signed document.",
+      "expiredTitle": "Link Expired",
+      "expiredDescription": "This access link expired. Enter your email to receive a new secure link.",
+      "expiredNotice": "This link expired. Request a new secure link using your email.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "sendLink": "Send Signing Link",
+      "sending": "Sending...",
+      "checkEmail": "Check Your Email",
+      "checkEmailDescription": "If your email is associated with this document, you will receive a signing link shortly. Please check your inbox (and spam folder).",
+      "requestAgain": "Request Again",
+      "requestAgainIn": "Request again in {{seconds}}s",
+      "notFound": "Document Not Found",
+      "notFoundDescription": "This document does not exist or is no longer available.",
+      "unavailable": "Document Unavailable",
+      "unavailableDescription": "This document is no longer available for signing."
+    },
+    "processing": {
+      "title": "Preparing document",
+      "message": "Your signing session is being prepared. This page will update automatically."
+    },
+    "documentUpdated": {
+      "title": "Document updated",
+      "message": "This signing link belongs to a previous document version. Request a fresh link to continue."
+    },
+    "unavailable": {
+      "title": "Signing unavailable",
+      "message": "This document cannot be signed right now. Please contact support."
     }
   }
 }

@@ -9,18 +9,18 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     className:
       'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   },
-  PENDING_PROVIDER: {
+  PREPARING_SIGNATURE: {
     label: 'Processing',
     className:
       'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
   },
-  PENDING: {
-    label: 'Pending',
+  READY_TO_SIGN: {
+    label: 'Ready to Sign',
     className:
       'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
   },
-  IN_PROGRESS: {
-    label: 'In Progress',
+  SIGNING: {
+    label: 'Signing',
     className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   },
   COMPLETED: {
@@ -32,12 +32,12 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     label: 'Declined',
     className: 'bg-red-500/10 text-red-600 dark:text-red-400',
   },
-  VOIDED: {
-    label: 'Voided',
+  CANCELLED: {
+    label: 'Cancelled',
     className: 'bg-muted text-muted-foreground',
   },
-  EXPIRED: {
-    label: 'Expired',
+  INVALIDATED: {
+    label: 'Invalidated',
     className:
       'bg-orange-500/10 text-orange-600 dark:text-orange-400',
   },

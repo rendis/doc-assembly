@@ -10,7 +10,7 @@ import (
 // Config contains the configuration for the Documenso signing provider.
 type Config struct {
 	// APIKey is the Documenso API key for authentication.
-	APIKey string
+	APIKey string //nolint:gosec
 
 	// BaseURL is the base URL for the Documenso API.
 	// Defaults to "https://app.documenso.com/api/v2" if not set.

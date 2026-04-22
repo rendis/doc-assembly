@@ -1761,17 +1761,17 @@
     "status": {
       "DRAFT": "Draft",
       "AWAITING_INPUT": "Awaiting Input",
-      "PENDING_PROVIDER": "Processing",
-      "PENDING": "Pending",
-      "IN_PROGRESS": "In Progress",
+      "PREPARING_SIGNATURE": "Processing",
+      "READY_TO_SIGN": "Ready to Sign",
+      "SIGNING": "Signing",
       "COMPLETED": "Completed",
       "DECLINED": "Declined",
-      "VOIDED": "Voided",
-      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled",
+      "INVALIDATED": "Invalidated",
       "ERROR": "Error"
     },
     "recipientStatus": {
-      "PENDING": "Pending",
+      "READY_TO_SIGN": "Ready to Sign",
       "SENT": "Sent",
       "DELIVERED": "Delivered",
       "SIGNED": "Signed",
@@ -1864,6 +1864,18 @@
       "notFoundDescription": "This document does not exist or is no longer available.",
       "unavailable": "Document Unavailable",
       "unavailableDescription": "This document is no longer available for signing."
+    },
+    "processing": {
+      "title": "Preparing document",
+      "message": "Your signing session is being prepared. This page will update automatically."
+    },
+    "documentUpdated": {
+      "title": "Document updated",
+      "message": "This signing link belongs to a previous document version. Request a fresh link to continue."
+    },
+    "unavailable": {
+      "title": "Signing unavailable",
+      "message": "This document cannot be signed right now. Please contact support."
     }
   }
 }

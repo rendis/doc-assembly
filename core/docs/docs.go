@@ -5401,6 +5401,60 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System - Users"
+                ],
+                "summary": "Add system member",
+                "parameters": [
+                    {
+                        "description": "System member data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddSystemRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.SystemRoleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/users/{userId}/role": {
@@ -9462,6 +9516,28 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddSystemRoleRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "role"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "SUPERADMIN",
+                        "PLATFORM_ADMIN"
+                    ]
+                }
+            }
+        },
         "github_com_rendis_doc-assembly_core_internal_adapters_primary_http_dto.AddTagsRequest": {
             "type": "object",
             "required": [
@@ -12545,6 +12621,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "role": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },
@@ -12602,31 +12681,34 @@ const docTemplate = `{
             "enum": [
                 "DRAFT",
                 "AWAITING_INPUT",
-                "PENDING_PROVIDER",
-                "PENDING",
-                "IN_PROGRESS",
+                "PREPARING_SIGNATURE",
+                "READY_TO_SIGN",
+                "SIGNING",
                 "COMPLETED",
                 "DECLINED",
-                "VOIDED",
-                "EXPIRED",
+                "CANCELLED",
+                "INVALIDATED",
                 "ERROR"
             ],
             "x-enum-varnames": [
                 "DocumentStatusDraft",
                 "DocumentStatusAwaitingInput",
-                "DocumentStatusPendingProvider",
-                "DocumentStatusPending",
-                "DocumentStatusInProgress",
+                "DocumentStatusPreparingSignature",
+                "DocumentStatusReadyToSign",
+                "DocumentStatusSigning",
                 "DocumentStatusCompleted",
                 "DocumentStatusDeclined",
-                "DocumentStatusVoided",
-                "DocumentStatusExpired",
+                "DocumentStatusCancelled",
+                "DocumentStatusInvalidated",
                 "DocumentStatusError"
             ]
         },
         "github_com_rendis_doc-assembly_core_internal_core_entity.DocumentWithRecipients": {
             "type": "object",
             "properties": {
+                "activeAttemptId": {
+                    "type": "string"
+                },
                 "clientExternalReferenceId": {
                     "type": "string"
                 },
@@ -12654,23 +12736,14 @@ const docTemplate = `{
                 "isActive": {
                     "type": "boolean"
                 },
-                "lastRetryAt": {
-                    "type": "string"
-                },
                 "metadata": {
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
                 },
-                "nextRetryAt": {
-                    "type": "string"
-                },
                 "operationType": {
                     "$ref": "#/definitions/github_com_rendis_doc-assembly_core_internal_core_entity.OperationType"
-                },
-                "pdfStoragePath": {
-                    "type": "string"
                 },
                 "recipients": {
                     "type": "array",
@@ -12679,15 +12752,6 @@ const docTemplate = `{
                     }
                 },
                 "relatedDocumentId": {
-                    "type": "string"
-                },
-                "retryCount": {
-                    "type": "integer"
-                },
-                "signerDocumentId": {
-                    "type": "string"
-                },
-                "signerProvider": {
                     "type": "string"
                 },
                 "status": {

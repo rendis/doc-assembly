@@ -132,7 +132,7 @@ func (s *DocumentAccessService) validateAccessRequest(
 
 	// Public access is allowed for non-terminal docs and COMPLETED docs.
 	// DECLINED/VOIDED/EXPIRED remain unavailable.
-	if doc.IsDeclined() || doc.Status == entity.DocumentStatusVoided || doc.IsExpired() || doc.Status == entity.DocumentStatusExpired {
+	if doc.IsDeclined() || doc.Status == entity.DocumentStatusCancelled || doc.IsExpired() || doc.Status == entity.DocumentStatusInvalidated {
 		slog.InfoContext(ctx, "access request for terminal document",
 			slog.String("document_id", documentID), slog.String("status", string(doc.Status)))
 		return nil, nil, false
@@ -239,7 +239,7 @@ func mapPublicStatus(doc *entity.Document) string {
 	switch {
 	case doc.IsCompleted():
 		return "completed"
-	case doc.IsExpired() || doc.Status == entity.DocumentStatusExpired:
+	case doc.IsExpired() || doc.Status == entity.DocumentStatusInvalidated:
 		return "expired"
 	case doc.IsTerminal():
 		return "expired" // declined/voided shown as expired to public

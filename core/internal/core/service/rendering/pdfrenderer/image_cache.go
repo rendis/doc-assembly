@@ -246,6 +246,8 @@ func getPlaceholderPNG() []byte {
 }
 
 // downloadImage fetches an image URL, validates the content, and returns the bytes with correct extension.
+//
+//nolint:nestif
 func downloadImage(ctx context.Context, url string, httpClient *http.Client) ([]byte, string, error) {
 	// Handle data URLs (e.g. "data:image/png;base64,iVBORw0KGg...")
 	if strings.HasPrefix(url, "data:") {
@@ -273,7 +275,7 @@ func downloadImage(ctx context.Context, url string, httpClient *http.Client) ([]
 		return nil, "", fmt.Errorf("creating request: %w", err)
 	}
 
-	resp, err := httpClient.Do(req)
+	resp, err := httpClient.Do(req) //nolint:gosec // Template images may reference tenant-managed HTTP URLs; caller controls allowed document content.
 	if err != nil {
 		return nil, "", fmt.Errorf("downloading %s: %w", url, err)
 	}
@@ -345,6 +347,7 @@ func toNRGBAWithAlphaInfo(src image.Image) (*image.NRGBA, bool, bool) {
 	return dst, hasAlpha, hasFullyTransparent
 }
 
+//nolint:funlen,gocognit
 func alphaBleedTransparentPixels(img *image.NRGBA) {
 	bounds := img.Bounds()
 	width := bounds.Dx()

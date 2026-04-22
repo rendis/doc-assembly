@@ -97,16 +97,23 @@ type SigningSessionAuthClaims = port.SigningSessionAuthClaims
 
 // SigningProvider types
 type (
-	UploadDocumentRequest  = port.UploadDocumentRequest
-	UploadDocumentResult   = port.UploadDocumentResult
-	SigningRecipient       = port.SigningRecipient
-	SignatureFieldPosition = port.SignatureFieldPosition
-	RecipientResult        = port.RecipientResult
-	GetSigningURLRequest   = port.GetSigningURLRequest
-	GetSigningURLResult    = port.GetSigningURLResult
-	DocumentStatusResult   = port.DocumentStatusResult
-	RecipientStatusResult  = port.RecipientStatusResult
-	WebhookEvent           = port.WebhookEvent
+	SubmitAttemptDocumentRequest          = port.SubmitAttemptDocumentRequest
+	SubmitAttemptDocumentResult           = port.SubmitAttemptDocumentResult
+	FindProviderDocumentRequest           = port.FindProviderDocumentRequest
+	ProviderDocumentResult                = port.ProviderDocumentResult
+	GetProviderDocumentStatusRequest      = port.GetProviderDocumentStatusRequest
+	ProviderDocumentStatusResult          = port.ProviderDocumentStatusResult
+	GetAttemptRecipientEmbeddedURLRequest = port.GetAttemptRecipientEmbeddedURLRequest
+	GetAttemptRecipientEmbeddedURLResult  = port.GetAttemptRecipientEmbeddedURLResult
+	CleanupProviderDocumentRequest        = port.CleanupProviderDocumentRequest
+	CleanupProviderDocumentResult         = port.CleanupProviderDocumentResult
+	ProviderCapabilities                  = port.ProviderCapabilities
+	ProviderError                         = port.ProviderError
+	SigningRecipient                      = port.SigningRecipient
+	SignatureFieldPosition                = port.SignatureFieldPosition
+	RecipientResult                       = port.RecipientResult
+	RecipientStatusResult                 = port.RecipientStatusResult
+	WebhookEvent                          = port.WebhookEvent
 )
 
 // NotificationProvider types
@@ -136,13 +143,7 @@ var (
 )
 
 // SigningProvider request types
-type (
-	GetDocumentStatusRequest     = port.GetDocumentStatusRequest
-	CancelDocumentRequest        = port.CancelDocumentRequest
-	DownloadSignedPDFRequest     = port.DownloadSignedPDFRequest
-	GetEmbeddedSigningURLRequest = port.GetEmbeddedSigningURLRequest
-	ParseWebhookRequest          = port.ParseWebhookRequest
-)
+type ParseWebhookRequest = port.ParseWebhookRequest
 
 // StorageAdapter request types
 type (

@@ -18,6 +18,7 @@ type DocumentAccessToken struct {
 	ID          string     `json:"id"`
 	DocumentID  string     `json:"documentId"`
 	RecipientID string     `json:"recipientId"`
+	AttemptID   *string    `json:"attemptId,omitempty"`
 	Token       string     `json:"token"`
 	TokenType   string     `json:"tokenType"`
 	ExpiresAt   time.Time  `json:"expiresAt"`

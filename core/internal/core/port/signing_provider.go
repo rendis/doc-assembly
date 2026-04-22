@@ -3,6 +3,7 @@ package port
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rendis/doc-assembly/core/internal/core/entity"
@@ -11,227 +12,192 @@ import (
 // ErrEmbeddingNotSupported is returned when a provider does not support embedded signing URLs.
 var ErrEmbeddingNotSupported = errors.New("provider does not support embedded signing")
 
-// SigningProvider defines the interface for external document signing services.
-// Implementations handle the specifics of each provider (Documenso, DocuSign, PandaDoc, etc.)
-// while exposing a unified interface to the application.
+// SigningProvider defines attempt-aware operations for external signing services.
 type SigningProvider interface {
-	// UploadDocument uploads a PDF document to the signing provider and creates
-	// a signing envelope/request. Returns the provider's document ID and recipient IDs.
-	UploadDocument(ctx context.Context, req *UploadDocumentRequest) (*UploadDocumentResult, error)
-
-	// GetSigningURL returns the URL where a specific recipient can sign the document.
-	GetSigningURL(ctx context.Context, req *GetSigningURLRequest) (*GetSigningURLResult, error)
-
-	// GetEmbeddedSigningURL returns a URL suitable for embedding in an iframe.
-	// The CallbackURL in the request is our signing-callback bridge endpoint.
-	// Providers that support redirect (DocuSign, PandaDoc) should incorporate it;
-	// providers that don't (Documenso) may ignore it and rely on webhook + polling.
-	// Returns ErrEmbeddingNotSupported if the provider cannot provide an embeddable URL.
-	GetEmbeddedSigningURL(ctx context.Context, req *GetEmbeddedSigningURLRequest) (*GetEmbeddedSigningURLResult, error)
-
-	// GetDocumentStatus retrieves the current status of a document from the provider.
-	GetDocumentStatus(ctx context.Context, req *GetDocumentStatusRequest) (*DocumentStatusResult, error)
-
-	// CancelDocument cancels/voids a document that is pending signatures.
-	CancelDocument(ctx context.Context, req *CancelDocumentRequest) error
-
-	// DownloadSignedPDF downloads the completed/signed PDF from the provider.
-	DownloadSignedPDF(ctx context.Context, req *DownloadSignedPDFRequest) ([]byte, error)
-
-	// ProviderName returns the name of this signing provider (e.g., "documenso", "docusign").
+	SubmitAttemptDocument(ctx context.Context, req *SubmitAttemptDocumentRequest) (*SubmitAttemptDocumentResult, error)
+	FindProviderDocumentByCorrelationKey(ctx context.Context, req *FindProviderDocumentRequest) (*ProviderDocumentResult, error)
+	GetProviderDocumentStatus(ctx context.Context, req *GetProviderDocumentStatusRequest) (*ProviderDocumentStatusResult, error)
+	GetAttemptRecipientEmbeddedURL(ctx context.Context, req *GetAttemptRecipientEmbeddedURLRequest) (*GetAttemptRecipientEmbeddedURLResult, error)
+	DownloadCompletedPDF(ctx context.Context, req *DownloadCompletedPDFRequest) (*DownloadCompletedPDFResult, error)
+	CleanupProviderDocument(ctx context.Context, req *CleanupProviderDocumentRequest) (*CleanupProviderDocumentResult, error)
+	ProviderCapabilities() ProviderCapabilities
 	ProviderName() string
 }
 
-// UploadDocumentRequest contains the data needed to upload a document for signing.
-type UploadDocumentRequest struct {
-	// PDF is the raw PDF bytes of the document to be signed.
-	PDF []byte
+// ProviderCapabilities advertises provider behavior that affects safe retry/reconciliation.
+type ProviderCapabilities struct {
+	CanFindByCorrelationKey bool
+	CanCancel               bool
+	CanVoid                 bool
+	CanDelete               bool
+	CanEmbedSigning         bool
+	CanDownloadCompletedPDF bool
+	WebhookIncludesIDs      bool
+}
 
-	// Title is the display name for the document in the signing provider.
-	Title string
+// ProviderError is a typed provider-boundary error.
+type ProviderError struct {
+	Class              entity.ProviderErrorClass
+	Phase              entity.ProviderSubmitPhase
+	ProviderName       string
+	ProviderDocumentID *string
+	Retryable          bool
+	SafeToResubmit     bool
+	Message            string
+	Cause              error
+}
 
-	// Recipients is the list of people who need to sign the document.
-	Recipients []SigningRecipient
+func (e *ProviderError) Error() string {
+	if e == nil {
+		return "provider error"
+	}
+	if e.Cause != nil {
+		return fmt.Sprintf("%s %s: %s: %v", e.ProviderName, e.Phase, e.Message, e.Cause)
+	}
+	return fmt.Sprintf("%s %s: %s", e.ProviderName, e.Phase, e.Message)
+}
 
-	// ExternalRef is an optional external reference ID (e.g., CRM ID) for tracking.
-	ExternalRef string
+func (e *ProviderError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Cause
+}
 
-	// WebhookURL is the URL where the provider should send status updates.
-	// Leave empty to use the default configured webhook URL.
-	WebhookURL string
-
-	// Metadata contains optional key-value pairs to attach to the document.
-	Metadata map[string]string
-
-	// SignatureFields contains position information for signature fields.
+// SubmitAttemptDocumentRequest contains all persisted attempt data needed for provider submission.
+type SubmitAttemptDocumentRequest struct {
+	AttemptID       string
+	DocumentID      string
+	CorrelationKey  string
+	PDF             []byte
+	PDFChecksum     string
+	Title           string
+	Recipients      []SigningRecipient
+	WebhookURL      string
+	Metadata        map[string]string
 	SignatureFields []SignatureFieldPosition
+	Environment     entity.Environment
+}
 
-	// Environment indicates dev or prod.
-	Environment entity.Environment
+// SubmitAttemptDocumentResult contains provider IDs and signing references for an attempt.
+type SubmitAttemptDocumentResult struct {
+	ProviderDocumentID string
+	ProviderName       string
+	CorrelationKey     string
+	Recipients         []RecipientResult
+	InitialStatus      entity.SigningAttemptStatus
+}
+
+// FindProviderDocumentRequest finds existing provider state for an attempt correlation key.
+type FindProviderDocumentRequest struct {
+	ProviderName   string
+	CorrelationKey string
+	Environment    entity.Environment
+}
+
+// ProviderDocumentResult describes a provider document discovered during reconciliation.
+type ProviderDocumentResult struct {
+	Found              bool
+	Usable             bool
+	ProviderDocumentID string
+	ProviderName       string
+	CorrelationKey     string
+	Recipients         []RecipientResult
+	Status             entity.SigningAttemptStatus
+	RawStatus          string
+	Reason             string
+}
+
+// GetProviderDocumentStatusRequest retrieves current provider state for an attempt.
+type GetProviderDocumentStatusRequest struct {
+	ProviderDocumentID string
+	Environment        entity.Environment
+}
+
+// ProviderDocumentStatusResult contains current provider status and recipients.
+type ProviderDocumentStatusResult struct {
+	Status              entity.SigningAttemptStatus
+	Recipients          []RecipientStatusResult
+	CompletedPDFURL     *string
+	ProviderStatus      string
+	ProviderDocumentID  string
+	ProviderCorrelation *string
+}
+
+// GetAttemptRecipientEmbeddedURLRequest gets the current embedded URL for one attempt recipient.
+type GetAttemptRecipientEmbeddedURLRequest struct {
+	ProviderDocumentID  string
+	ProviderRecipientID string
+	CallbackURL         string
+	Environment         entity.Environment
+}
+
+// GetAttemptRecipientEmbeddedURLResult contains the embedded URL and CSP data.
+type GetAttemptRecipientEmbeddedURLResult struct {
+	EmbeddedURL    string
+	FrameSrcDomain string
+	ExpiresAt      *time.Time
+}
+
+// DownloadCompletedPDFRequest downloads the completed/signed PDF from the provider.
+type DownloadCompletedPDFRequest struct {
+	ProviderDocumentID string
+	Environment        entity.Environment
+}
+
+// DownloadCompletedPDFResult contains the completed/signed PDF bytes.
+type DownloadCompletedPDFResult struct {
+	PDF         []byte
+	Filename    string
+	ContentType string
+}
+
+// CleanupProviderDocumentRequest asks the provider to cancel/void/delete a historical attempt.
+type CleanupProviderDocumentRequest struct {
+	ProviderDocumentID string
+	Environment        entity.Environment
+}
+
+// CleanupProviderDocumentResult records best-effort cleanup outcome.
+type CleanupProviderDocumentResult struct {
+	Action string
+	Status string
+	Reason string
 }
 
 // SignatureFieldPosition contains the position and size of a signature field.
 type SignatureFieldPosition struct {
-	// RoleID is the internal role ID that maps this field to a recipient.
-	RoleID string
-
-	// Page is the 1-indexed page number where the field should appear.
-	Page int
-
-	// PositionX is the X position as a percentage (0-100) from left edge.
+	RoleID    string
+	Page      int
 	PositionX float64
-
-	// PositionY is the Y position as a percentage (0-100) from top edge.
 	PositionY float64
-
-	// Width is the field width as a percentage (0-100) of page width.
-	Width float64
-
-	// Height is the field height as a percentage (0-100) of page height.
-	Height float64
+	Width     float64
+	Height    float64
 }
 
 // SigningRecipient represents a person who needs to sign the document.
 type SigningRecipient struct {
-	// Email is the recipient's email address.
-	Email string
-
-	// Name is the recipient's display name.
-	Name string
-
-	// RoleID is the internal role ID (template_version_role_id) for this recipient.
-	RoleID string
-
-	// SignerOrder determines the signing sequence (1-based). Lower numbers sign first.
+	Email       string
+	Name        string
+	RoleID      string
 	SignerOrder int
 }
 
-// UploadDocumentResult contains the result of uploading a document.
-type UploadDocumentResult struct {
-	// ProviderDocumentID is the unique ID assigned by the signing provider.
-	ProviderDocumentID string
-
-	// ProviderName is the name of the signing provider (e.g., "documenso").
-	ProviderName string
-
-	// Recipients contains the provider-assigned IDs for each recipient.
-	Recipients []RecipientResult
-
-	// Status is the initial status of the document.
-	Status entity.DocumentStatus
-}
-
-// RecipientResult contains the provider's response for a single recipient.
+// RecipientResult contains provider references for one recipient.
 type RecipientResult struct {
-	// RoleID is the internal role ID that was provided in the request.
-	RoleID string
-
-	// ProviderRecipientID is the unique ID assigned by the signing provider.
-	ProviderRecipientID string
-
-	// SigningURL is the URL where this recipient can sign the document.
-	SigningURL string
-
-	// Status is the initial status of this recipient.
-	Status entity.RecipientStatus
+	RoleID               string
+	ProviderRecipientID  string
+	ProviderSigningToken string
+	SigningURL           string
+	Status               entity.RecipientStatus
 }
 
-// GetSigningURLRequest contains the data needed to get a signing URL.
-type GetSigningURLRequest struct {
-	// ProviderDocumentID is the document ID from the signing provider.
-	ProviderDocumentID string
-
-	// ProviderRecipientID is the recipient ID from the signing provider.
-	ProviderRecipientID string
-
-	// Environment indicates dev or prod.
-	Environment entity.Environment
-}
-
-// GetSigningURLResult contains the signing URL for a recipient.
-type GetSigningURLResult struct {
-	// SigningURL is the URL where the recipient can sign.
-	SigningURL string
-
-	// ExpiresAt is when the signing URL expires (optional, provider-dependent).
-	ExpiresAt *time.Time
-}
-
-// GetEmbeddedSigningURLRequest contains the data needed to get an embeddable signing URL.
-type GetEmbeddedSigningURLRequest struct {
-	// ProviderDocumentID is the document ID from the signing provider.
-	ProviderDocumentID string
-
-	// ProviderRecipientID is the recipient ID from the signing provider.
-	ProviderRecipientID string
-
-	// CallbackURL is our signing-callback bridge endpoint.
-	// Providers that support redirect should append it as returnUrl/redirect.
-	// Format: {publicURL}/public/sign/{token}/signing-callback
-	CallbackURL string
-
-	// Environment indicates dev or prod.
-	Environment entity.Environment
-}
-
-// GetEmbeddedSigningURLResult contains the embedded signing URL and CSP info.
-type GetEmbeddedSigningURLResult struct {
-	// EmbeddedURL is the URL to load in an iframe for embedded signing.
-	EmbeddedURL string
-
-	// FrameSrcDomain is the domain to allow in CSP frame-src directive.
-	FrameSrcDomain string
-
-	// ExpiresAt is when the embedded URL expires (optional, provider-dependent).
-	ExpiresAt *time.Time
-}
-
-// DocumentStatusResult contains the current status of a document.
-type DocumentStatusResult struct {
-	// Status is the overall document status.
-	Status entity.DocumentStatus
-
-	// Recipients contains the current status of each recipient.
-	Recipients []RecipientStatusResult
-
-	// CompletedPDFURL is the URL to download the signed document (available when completed).
-	CompletedPDFURL *string
-
-	// ProviderStatus is the raw status string from the provider (for debugging).
-	ProviderStatus string
-}
-
-// RecipientStatusResult contains the current status of a recipient.
+// RecipientStatusResult contains current provider state for one recipient.
 type RecipientStatusResult struct {
-	// ProviderRecipientID is the recipient ID from the signing provider.
 	ProviderRecipientID string
-
-	// Status is the current recipient status.
-	Status entity.RecipientStatus
-
-	// SignedAt is when the recipient signed (nil if not yet signed).
-	SignedAt *time.Time
-
-	// ProviderStatus is the raw status string from the provider (for debugging).
-	ProviderStatus string
-}
-
-// GetDocumentStatusRequest contains the data needed to get a document status.
-type GetDocumentStatusRequest struct {
-	ProviderDocumentID string
-	Environment        entity.Environment
-}
-
-// CancelDocumentRequest contains the data needed to cancel a document.
-type CancelDocumentRequest struct {
-	ProviderDocumentID string
-	Environment        entity.Environment
-}
-
-// DownloadSignedPDFRequest contains the data needed to download a signed PDF.
-type DownloadSignedPDFRequest struct {
-	ProviderDocumentID string
-	Environment        entity.Environment
+	Status              entity.RecipientStatus
+	SignedAt            *time.Time
+	ProviderStatus      string
 }
 
 // ParseWebhookRequest contains the data needed to parse a webhook event.
@@ -243,31 +209,18 @@ type ParseWebhookRequest struct {
 
 // WebhookEvent represents an incoming webhook event from a signing provider.
 type WebhookEvent struct {
-	// EventType is the type of event (e.g., "document.signed", "document.completed").
-	EventType string
-
-	// ProviderDocumentID is the document ID from the provider.
-	ProviderDocumentID string
-
-	// ProviderRecipientID is the recipient ID (if the event is recipient-specific).
-	ProviderRecipientID string
-
-	// DocumentStatus is the new document status (if applicable).
-	DocumentStatus *entity.DocumentStatus
-
-	// RecipientStatus is the new recipient status (if applicable).
-	RecipientStatus *entity.RecipientStatus
-
-	// Timestamp is when the event occurred.
-	Timestamp time.Time
-
-	// RawPayload is the original webhook payload for debugging.
-	RawPayload []byte
+	EventType              string
+	ProviderName           string
+	ProviderDocumentID     string
+	ProviderCorrelationKey string
+	ProviderRecipientID    string
+	DocumentStatus         *entity.SigningAttemptStatus
+	RecipientStatus        *entity.RecipientStatus
+	Timestamp              time.Time
+	RawPayload             []byte
 }
 
 // WebhookHandler defines the interface for processing webhook events.
 type WebhookHandler interface {
-	// ParseWebhook parses and validates an incoming webhook request.
-	// Returns the parsed event or an error if the signature is invalid.
 	ParseWebhook(ctx context.Context, req *ParseWebhookRequest) (*WebhookEvent, error)
 }

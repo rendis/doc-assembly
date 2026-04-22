@@ -48,11 +48,9 @@ func scanDocument(row pgx.Row) (*entity.Document, error) {
 		&doc.TransactionalID,
 		&doc.OperationType,
 		&doc.RelatedDocumentID,
-		&doc.SignerDocumentID,
-		&doc.SignerProvider,
+		&doc.ActiveAttemptID,
 		&doc.Status,
 		&doc.InjectedValuesSnapshot,
-		&doc.PDFStoragePath,
 		&doc.CompletedPDFURL,
 		&doc.IsActive,
 		&doc.SupersededAt,
@@ -60,9 +58,6 @@ func scanDocument(row pgx.Row) (*entity.Document, error) {
 		&doc.SupersedeReason,
 		&doc.ExpiresAt,
 		&doc.Metadata,
-		&doc.RetryCount,
-		&doc.LastRetryAt,
-		&doc.NextRetryAt,
 		&doc.CreatedAt,
 		&doc.UpdatedAt,
 	)
@@ -84,11 +79,9 @@ func scanDocumentRows(rows pgx.Rows) ([]*entity.Document, error) {
 			&doc.TransactionalID,
 			&doc.OperationType,
 			&doc.RelatedDocumentID,
-			&doc.SignerDocumentID,
-			&doc.SignerProvider,
+			&doc.ActiveAttemptID,
 			&doc.Status,
 			&doc.InjectedValuesSnapshot,
-			&doc.PDFStoragePath,
 			&doc.CompletedPDFURL,
 			&doc.IsActive,
 			&doc.SupersededAt,
@@ -96,9 +89,6 @@ func scanDocumentRows(rows pgx.Rows) ([]*entity.Document, error) {
 			&doc.SupersedeReason,
 			&doc.ExpiresAt,
 			&doc.Metadata,
-			&doc.RetryCount,
-			&doc.LastRetryAt,
-			&doc.NextRetryAt,
 			&doc.CreatedAt,
 			&doc.UpdatedAt,
 		); err != nil {
@@ -121,11 +111,9 @@ func (r *Repository) Create(ctx context.Context, document *entity.Document) (str
 		document.TransactionalID,
 		document.OperationType,
 		document.RelatedDocumentID,
-		document.SignerDocumentID,
-		document.SignerProvider,
+		document.ActiveAttemptID,
 		document.Status,
 		document.InjectedValuesSnapshot,
-		document.PDFStoragePath,
 		document.CompletedPDFURL,
 		document.IsActive,
 		document.SupersededAt,
@@ -169,7 +157,7 @@ func (r *Repository) FindByIDWithRecipients(ctx context.Context, id string) (*en
 	// Get recipients
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, document_id, template_version_role_id, name, email,
-			   signer_recipient_id, signing_url, status, signed_at, created_at, updated_at
+			   status, signed_at, created_at, updated_at
 		FROM execution.document_recipients
 		WHERE document_id = $1
 		ORDER BY created_at ASC
@@ -187,8 +175,6 @@ func (r *Repository) FindByIDWithRecipients(ctx context.Context, id string) (*en
 			&recipient.TemplateVersionRoleID,
 			&recipient.Name,
 			&recipient.Email,
-			&recipient.SignerRecipientID,
-			&recipient.SigningURL,
 			&recipient.Status,
 			&recipient.SignedAt,
 			&recipient.CreatedAt,
@@ -216,12 +202,6 @@ func buildDocumentFilters(filters port.DocumentFilters, startArgPos int) (string
 	if filters.Status != nil {
 		query += fmt.Sprintf(" AND status = $%d", argPos)
 		args = append(args, *filters.Status)
-		argPos++
-	}
-
-	if filters.SignerProvider != nil {
-		query += fmt.Sprintf(" AND signer_provider = $%d", argPos)
-		args = append(args, *filters.SignerProvider)
 		argPos++
 	}
 
@@ -297,19 +277,6 @@ func (r *Repository) FindByWorkspace(ctx context.Context, workspaceID string, fi
 	return documents, nil
 }
 
-// FindBySignerDocumentID finds a document by the external signing provider's document ID.
-func (r *Repository) FindBySignerDocumentID(ctx context.Context, signerDocumentID string) (*entity.Document, error) {
-	doc, err := scanDocument(r.pool.QueryRow(ctx, queryFindBySignerDocumentID, signerDocumentID))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, entity.ErrDocumentNotFound
-		}
-		return nil, fmt.Errorf("finding document by signer document ID %s: %w", signerDocumentID, err)
-	}
-
-	return doc, nil
-}
-
 // FindByClientExternalRef finds documents by the client's external reference ID.
 func (r *Repository) FindByClientExternalRef(ctx context.Context, workspaceID, clientExternalRef string) ([]*entity.Document, error) {
 	rows, err := r.pool.Query(ctx, queryFindByClientExternalRef, workspaceID, clientExternalRef)
@@ -360,54 +327,6 @@ func (r *Repository) FindByTemplateVersion(ctx context.Context, templateVersionI
 	return documents, nil
 }
 
-// FindPendingProviderForUpload finds PENDING_PROVIDER documents waiting for provider upload.
-func (r *Repository) FindPendingProviderForUpload(ctx context.Context, limit int) ([]*entity.Document, error) {
-	rows, err := r.pool.Query(ctx, queryFindPendingProviderForUpload, limit)
-	if err != nil {
-		return nil, fmt.Errorf("querying PENDING_PROVIDER documents: %w", err)
-	}
-	defer rows.Close()
-
-	documents, err := scanDocumentRows(rows)
-	if err != nil {
-		return nil, fmt.Errorf("scanning PENDING_PROVIDER documents: %w", err)
-	}
-
-	return documents, nil
-}
-
-// FindPendingForPolling finds documents that need status polling (PENDING or IN_PROGRESS).
-func (r *Repository) FindPendingForPolling(ctx context.Context, limit int) ([]*entity.Document, error) {
-	rows, err := r.pool.Query(ctx, queryFindPendingForPolling, limit)
-	if err != nil {
-		return nil, fmt.Errorf("querying pending documents for polling: %w", err)
-	}
-	defer rows.Close()
-
-	documents, err := scanDocumentRows(rows)
-	if err != nil {
-		return nil, fmt.Errorf("scanning pending documents: %w", err)
-	}
-
-	return documents, nil
-}
-
-// FindErrorsForRetry finds ERROR documents eligible for retry.
-func (r *Repository) FindErrorsForRetry(ctx context.Context, maxRetries, limit int) ([]*entity.Document, error) {
-	rows, err := r.pool.Query(ctx, queryFindErrorsForRetry, maxRetries, limit)
-	if err != nil {
-		return nil, fmt.Errorf("querying error documents for retry: %w", err)
-	}
-	defer rows.Close()
-
-	documents, err := scanDocumentRows(rows)
-	if err != nil {
-		return nil, fmt.Errorf("scanning error documents for retry: %w", err)
-	}
-
-	return documents, nil
-}
-
 // Update updates a document using the connection pool.
 func (r *Repository) Update(ctx context.Context, document *entity.Document) error {
 	return r.updateWith(ctx, r.pool, document)
@@ -428,11 +347,9 @@ func (r *Repository) updateWith(ctx context.Context, db DBTX, document *entity.D
 		document.TransactionalID,
 		document.OperationType,
 		document.RelatedDocumentID,
-		document.SignerDocumentID,
-		document.SignerProvider,
+		document.ActiveAttemptID,
 		document.Status,
 		document.InjectedValuesSnapshot,
-		document.PDFStoragePath,
 		document.CompletedPDFURL,
 		document.IsActive,
 		document.SupersededAt,
@@ -440,9 +357,6 @@ func (r *Repository) updateWith(ctx context.Context, db DBTX, document *entity.D
 		document.SupersedeReason,
 		document.ExpiresAt,
 		document.Metadata,
-		document.RetryCount,
-		document.LastRetryAt,
-		document.NextRetryAt,
 		document.UpdatedAt,
 	)
 	if err != nil {
@@ -468,18 +382,6 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status entity.
 	}
 
 	return nil
-}
-
-// ClaimForSigning atomically transitions AWAITING_INPUT → PENDING_PROVIDER.
-func (r *Repository) ClaimForSigning(ctx context.Context, id string) (*entity.Document, bool, error) {
-	doc, err := scanDocument(r.pool.QueryRow(ctx, queryClaimForSigning, id))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, false, nil
-		}
-		return nil, false, fmt.Errorf("claiming document for signing: %w", err)
-	}
-	return doc, true, nil
 }
 
 // Delete deletes a document and all its recipients (cascade).

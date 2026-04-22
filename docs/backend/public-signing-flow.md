@@ -34,16 +34,16 @@ Create Document
     -> Recipient visits public URL
       -> Enters email -> Receives token link via email
         -> Accesses /public/sign/{token}
-          -> Path A: PDF preview -> Sign (no interactive fields)
-          -> Path B: Fill form -> PDF preview -> Sign (interactive fields)
+          -> Path A: PDF preview -> Proceed -> processing -> Sign
+          -> Path B: Fill form -> PDF preview -> Proceed -> processing -> Sign
 ```
 
 There are two signing paths based on whether the document template has interactive fields:
 
 | Path | Token Type | Interactive Fields | Flow |
 |------|-----------|-------------------|------|
-| **A** | `SIGNING` | No | Preview PDF -> Proceed to signing provider |
-| **B** | `PRE_SIGNING` | Yes | Fill form -> Preview PDF -> Proceed to signing provider |
+| **A** | `SIGNING` | No | Preview PDF -> create/reuse active attempt -> River prepares provider signing |
+| **B** | `PRE_SIGNING` | Yes | Fill form -> Preview PDF -> create/reuse active attempt -> River prepares provider signing |
 
 ---
 
@@ -76,9 +76,10 @@ flowchart TB
         C4 -->|Yes| C3
         C5 --> C6[Submit form]
         C6 --> C3
-        C3 --> C7[Proceed to signing]
-        C7 --> C8[Embedded signing iframe]
-        C8 --> C9[Complete]
+        C3 --> C7[Proceed creates/reuses attempt]
+        C7 --> C8[processing: River render/submit]
+        C8 --> C9[Embedded signing iframe]
+        C9 --> C10[Complete]
     end
 
     A2 -->|Email with /public/doc/:id| B1
@@ -104,12 +105,19 @@ PublicDocAccessCtrl  ------------> DocumentAccessService ----------> DocumentRep
 PublicSigningCtrl  ----------------> PreSigningService -------------> DocumentRepository
   GET  /public/sign/:token             GetPublicSigningPage           DocumentAccessTokenRepo
   POST /public/sign/:token             SubmitPreSigningForm           FieldResponseRepo
-  POST /public/sign/:token/request-access RequestAccessByToken        DocumentAccessTokenRepo
-  POST /public/sign/:token/proceed     ProceedToSigning               SigningProvider
+  POST /public/sign/:token/request-access DocumentAccessService       DocumentAccessTokenRepo
+  POST /public/sign/:token/proceed     ProceedToSigning               SigningExecutionUnitOfWork
   GET  /public/sign/:token/pdf         RenderPreviewPDF               PDFRenderer
-  GET  /public/sign/:token/download    DownloadCompletedPDF           StorageAdapter
-  POST /public/sign/:token/complete    CompleteEmbeddedSigning
-  GET  /public/sign/:token/refresh     RefreshEmbeddedURL
+  GET  /public/sign/:token/download    DownloadCompletedPDF           SigningProvider/StorageAdapter
+  POST /public/sign/:token/complete    CompleteEmbeddedSigning        River dispatch already handles document completion
+  GET  /public/sign/:token/refresh     RefreshEmbeddedURL             SigningProvider
+
+River attempt workers -------------> SigningAttemptExecutor --------> PDFRenderer
+  render_attempt_pdf                   Render immutable attempt PDF    StorageAdapter
+  submit_attempt_to_provider           Submit provider document        SigningProvider
+  reconcile_provider_submission        Resolve ambiguous submission    SigningProvider
+  cleanup_provider_attempt             Best-effort provider cleanup    SigningProvider
+  dispatch_attempt_completion          SDK completion event            DocumentCompletedHandler
 
 DocumentCtrl (authenticated) -----> PreSigningService
   POST /api/v1/documents/:id/         InvalidateTokens
@@ -224,12 +232,13 @@ sequenceDiagram
     Auth-->>API: {email, subject, provider}
     API->>Svc: CreateOrGetSession(documentId, principal)
     Svc->>Svc: Resolve recipient by email/subject
-    Svc->>Svc: Get-or-create reusable token (no email send)
+    Svc->>Svc: If PRE_SIGNING responses missing, return form/preview only
+    Svc->>Svc: If signing can start, create/reuse active attempt through River UoW
     Svc->>Public: GetPublicSigningPage(token)
     Public-->>Svc: {step, canSign, canDownload, downloadUrl}
-    Svc-->>API: {sessionUrl: /public/sign/{token}, ...}
+    Svc-->>API: {sessionUrl: /public/sign/{token}, step, ...}
     API-->>Front: 200 response
-    Front->>Front: Load sessionUrl in iframe
+    Front->>Front: Load sessionUrl in iframe or show processing/current state
 ```
 
 The returned `sessionUrl` always points to `/public/sign/{token}`. That page remains the single UX for sign, view, waiting, and download states.
@@ -263,11 +272,13 @@ sequenceDiagram
     Signer->>Frontend: Click "Proceed to Sign"
     Frontend->>API: POST /public/sign/{token}/proceed
     API->>Svc: ProceedToSigning(token)
-    Svc->>Svc: renderAndSendToProvider()
-    Svc->>Provider: UploadDocument(PDF)
-    Provider-->>Svc: providerDocumentID, signingURL
-    Svc->>Svc: Mark document PENDING
-    Svc->>Provider: GetEmbeddedSigningURL()
+    Svc->>Svc: Create/reuse active SigningAttempt
+    Svc->>Svc: Enqueue render_attempt_pdf in same DB transaction
+    Svc-->>Frontend: {step: "processing"}
+
+    Note over Svc,Provider: River renders PDF, submits attempt to provider, persists signing refs
+    Frontend->>API: Poll GET /public/sign/{token}
+    Svc->>Provider: GetAttemptRecipientEmbeddedURL(attempt recipient)
     Svc-->>Frontend: {step: "signing", embeddedSigningUrl: "..."}
 
     Frontend->>Frontend: Load signing iframe
@@ -307,7 +318,10 @@ sequenceDiagram
     Note over Signer,Provider: From here, same as Path A
     Signer->>Frontend: Click "Proceed to Sign"
     Frontend->>API: POST /public/sign/{token}/proceed
-    Svc->>Provider: Upload PDF + proceed to signing
+    Svc->>Svc: Create/reuse active SigningAttempt + enqueue River render
+    Svc-->>Frontend: {step: "processing"}
+    Note over Svc,Provider: River renders stored PDF snapshot and submits attempt to provider
+    Frontend->>API: Poll GET /public/sign/{token}
     Svc-->>Frontend: {step: "signing", embeddedSigningUrl: "..."}
     Signer->>Provider: Sign in iframe
 ```
@@ -319,19 +333,26 @@ stateDiagram-v2
     [*] --> preview: Token valid
     preview --> form: PRE_SIGNING + no responses
     form --> preview: Submit form responses
-    preview --> signing: Proceed to signing
-    signing --> completed: Signing finished
-    signing --> declined: Signer declined
+    preview --> processing: Proceed creates/reuses active attempt
+    processing --> signing: River reaches SIGNING_READY
+    processing --> unavailable: River reaches FAILED_PERMANENT/REQUIRES_REVIEW
+    signing --> completed: Provider completion webhook
+    signing --> declined: Provider decline webhook
 
     [*] --> waiting: Earlier signers pending
-    waiting --> preview: Previous signers done
+    waiting --> signing: Previous signers done
 
     [*] --> completed: Token used + doc completed
     [*] --> declined: Token used + doc declined
+    [*] --> document_updated: Token attempt was superseded/invalidated
+    [*] --> unavailable: Active attempt cannot safely continue
     [*] --> error: Invalid/expired token
 
     error --> preview: POST /public/sign/:token/request-access (new link by email)
 ```
+
+
+Public responses intentionally expose user-safe steps only: `processing` while River is preparing the active attempt, `document_updated` when a token is tied to a superseded/invalidated attempt, and `unavailable` when the active attempt failed permanently or requires manual review. Internal attempt statuses are not shown to signers.
 
 **Key files:**
 - `core/internal/core/service/document/pre_signing_service.go` — all signing methods
@@ -384,7 +405,7 @@ After invalidation, the recipient can still access `/public/doc/{documentID}` an
 | `GET` | `/public/sign/{token}` | Get signing page state |
 | `POST` | `/public/sign/{token}` | Submit pre-signing form (Path B) |
 | `POST` | `/public/sign/{token}/request-access` | Request a new link from expired token entrypoint |
-| `POST` | `/public/sign/{token}/proceed` | Render PDF + upload to provider |
+| `POST` | `/public/sign/{token}/proceed` | Create/reuse active attempt and enqueue River render/submit work |
 | `GET` | `/public/sign/{token}/pdf` | Render PDF preview (on-demand) |
 | `GET` | `/public/sign/{token}/download` | Download completed/signed PDF (authorized recipient only) |
 | `POST` | `/public/sign/{token}/complete` | Mark token as used after signing |

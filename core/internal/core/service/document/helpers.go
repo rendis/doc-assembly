@@ -54,107 +54,12 @@ func buildSignerRoleValues(
 	return values
 }
 
-// buildAnchorToRoleIDMap builds a map from anchor string to DB role ID.
-func buildAnchorToRoleIDMap(signerRoles []*entity.TemplateVersionSignerRole) map[string]string {
-	m := make(map[string]string, len(signerRoles))
-	for _, role := range signerRoles {
-		if role.AnchorString != "" {
-			m[role.AnchorString] = role.ID
-		}
-	}
-	return m
-}
-
-// mapSignatureFieldPositions converts PDF renderer signature fields to signing provider positions.
-// It resolves portable doc role IDs to DB role IDs via anchor string matching.
-// Pass portableDocRoles=nil when fields already carry the anchor string directly.
-func mapSignatureFieldPositions(
-	fields []port.SignatureField,
-	dbSignerRoles []*entity.TemplateVersionSignerRole,
-	portableDocRoles []portabledoc.SignerRole,
-) []port.SignatureFieldPosition {
-	if len(fields) == 0 {
-		return nil
-	}
-
-	anchorToDBRoleID := buildAnchorToRoleIDMap(dbSignerRoles)
-
-	var portableIDToAnchor map[string]string
-	if len(portableDocRoles) > 0 {
-		portableIDToAnchor = make(map[string]string, len(portableDocRoles))
-		for _, role := range portableDocRoles {
-			portableIDToAnchor[role.ID] = portabledoc.GenerateAnchorString(role.Label)
-		}
-	}
-
-	positions := make([]port.SignatureFieldPosition, 0, len(fields))
-	for _, f := range fields {
-		anchor := f.AnchorString
-		if portableIDToAnchor != nil {
-			if a := portableIDToAnchor[f.RoleID]; a != "" {
-				anchor = a
-			}
-		}
-
-		dbRoleID := anchorToDBRoleID[anchor]
-		if dbRoleID == "" {
-			continue
-		}
-
-		posX, posY := convertFieldToProviderPosition(f)
-		positions = append(positions, port.SignatureFieldPosition{
-			RoleID:    dbRoleID,
-			Page:      f.Page,
-			PositionX: posX,
-			PositionY: posY,
-			Width:     f.Width,
-			Height:    f.Height,
-		})
-	}
-
-	return positions
-}
-
 // documentTitle returns the document title, falling back to the document ID.
 func documentTitle(doc *entity.Document) string {
 	if doc.Title != nil {
 		return *doc.Title
 	}
 	return doc.ID
-}
-
-func hasStoredPDFPath(doc *entity.Document) bool {
-	return doc != nil && doc.PDFStoragePath != nil && *doc.PDFStoragePath != ""
-}
-
-func resolvePreProviderRecoveryTarget(
-	ctx context.Context,
-	storageAdapter port.StorageAdapter,
-	storageEnabled bool,
-	doc *entity.Document,
-) (entity.DocumentStatus, bool) {
-	if !storageEnabled {
-		return entity.DocumentStatusAwaitingInput, false
-	}
-
-	if !hasStoredPDFPath(doc) {
-		return entity.DocumentStatusAwaitingInput, false
-	}
-
-	if storageAdapter == nil {
-		return entity.DocumentStatusAwaitingInput, true
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	exists, err := storageAdapter.Exists(ctx, &port.StorageRequest{Key: *doc.PDFStoragePath})
-	if err != nil || !exists {
-		return entity.DocumentStatusAwaitingInput, true
-	}
-
-	return entity.DocumentStatusPendingProvider, false
 }
 
 func signedDocumentFilename(doc *entity.Document) string {

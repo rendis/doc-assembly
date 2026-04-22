@@ -132,16 +132,16 @@ type DocumentStatus = entity.DocumentStatus
 
 // Document status constants.
 const (
-	DocumentStatusDraft           = entity.DocumentStatusDraft
-	DocumentStatusAwaitingInput   = entity.DocumentStatusAwaitingInput
-	DocumentStatusPendingProvider = entity.DocumentStatusPendingProvider
-	DocumentStatusPending         = entity.DocumentStatusPending
-	DocumentStatusInProgress      = entity.DocumentStatusInProgress
-	DocumentStatusCompleted       = entity.DocumentStatusCompleted
-	DocumentStatusDeclined        = entity.DocumentStatusDeclined
-	DocumentStatusVoided          = entity.DocumentStatusVoided
-	DocumentStatusExpired         = entity.DocumentStatusExpired
-	DocumentStatusError           = entity.DocumentStatusError
+	DocumentStatusDraft              = entity.DocumentStatusDraft
+	DocumentStatusAwaitingInput      = entity.DocumentStatusAwaitingInput
+	DocumentStatusPreparingSignature = entity.DocumentStatusPreparingSignature
+	DocumentStatusReadyToSign        = entity.DocumentStatusReadyToSign
+	DocumentStatusSigning            = entity.DocumentStatusSigning
+	DocumentStatusCompleted          = entity.DocumentStatusCompleted
+	DocumentStatusDeclined           = entity.DocumentStatusDeclined
+	DocumentStatusCancelled          = entity.DocumentStatusCancelled
+	DocumentStatusInvalidated        = entity.DocumentStatusInvalidated
+	DocumentStatusError              = entity.DocumentStatusError
 )
 
 // --- Recipient Status Enum ---

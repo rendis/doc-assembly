@@ -248,21 +248,42 @@ Configure the webhook in Documenso to point to `http://host.docker.internal:8080
 
 ## Background Workers (River)
 
-When all recipients sign a document, the system needs to notify SDK consumers asynchronously. This is powered by [River](https://riverqueue.com), a PostgreSQL-native job queue that runs inside the same Go process — no external broker (Redis, RabbitMQ) needed.
+Signing execution is attempt-scoped and durable. `execution.documents` is the business projection, while `execution.signing_attempts` is the technical source of truth for render, provider submission, retry/reconciliation, cleanup, refresh, and completion dispatch. River runs inside the API process and stores jobs in PostgreSQL; no external broker is required.
 
-### Why River?
+### Attempt-scoped jobs
 
-The critical requirement is **transactional atomicity**: the document status update (`COMPLETED`) and the job enqueue happen in a **single PostgreSQL transaction**. This guarantees no "completed document without job" or "job without completed document" — even on crashes.
+`ProceedToSigning` creates or reuses the active signing attempt and enqueues River work transactionally. Provider upload does **not** happen inline in the public/authenticated request path.
 
 ```plaintext
-Signing Provider webhook
-  -> DocumentService: all recipients signed
-    -> BEGIN transaction
-      -> UPDATE document SET status = 'COMPLETED'
-      -> INSERT INTO river_job (document_completed args)
-    -> COMMIT
-  -> River Worker (async): polls job, builds event, invokes SDK handler
+/public/sign/{token}/proceed
+  -> create/reuse active SigningAttempt
+  -> INSERT river_job(render_attempt_pdf) in same PostgreSQL transaction
+  -> frontend receives step=processing and polls
+
+River render_attempt_pdf
+  -> render immutable pre-signed PDF
+  -> persist PDF path/checksum + enqueue submit_attempt_to_provider in one transaction
+
+River submit_attempt_to_provider
+  -> submit PDF snapshot to provider using correlation key {document_id}:{attempt_id}
+  -> persist provider IDs + READY_TO_SIGN projection
+
+Provider webhook
+  -> resolve active attempt
+  -> update attempt + document projection
+  -> enqueue dispatch_attempt_completion in the same transaction
 ```
+
+### Key properties
+
+| Property | Behavior |
+|----------|----------|
+| **Source of truth** | `SigningAttempt` owns technical signing state; `Document` exposes only the current business projection via `active_attempt_id`. |
+| **Atomic enqueue** | Attempt state transitions and next River job enqueue happen in one PostgreSQL transaction. |
+| **Idempotency** | Jobs are unique by `attempt_id + phase`; stale jobs no-op when they no longer match the document active attempt. |
+| **Recovery** | Transient provider failures retry the same attempt; ambiguous provider results reconcile by correlation key or move to review. |
+| **Regeneration** | A new attempt supersedes the old one; historical attempts and late webhooks cannot mutate the active document projection. |
+| **Completion dispatch** | Completion events are still delivered through River, but the dispatch job is attempt-aware and checks `document.active_attempt_id`. |
 
 ### SDK Usage
 
@@ -274,29 +295,22 @@ handler := func(ctx context.Context, ev sdk.DocumentCompletedEvent) error {
     for _, r := range ev.Recipients {
         log.Printf("  %s (%s) signed at %v", r.Name, r.RoleName, r.SignedAt)
     }
-    return nil // return error to retry
+    return nil // return error to retry completion dispatch
 }
 ```
-
-### Key Properties
-
-| Property | Behavior |
-|----------|----------|
-| **Atomicity** | Status update + job enqueue in single transaction |
-| **Deduplication** | Same document produces at most 1 job per hour (`ByArgs` + `ByPeriod`) |
-| **Retries** | Handler errors and panics trigger exponential backoff retries |
-| **Fallback** | Without `SetCompletionNotifier`, plain `repo.Update()` — no jobs enqueued |
-| **Insert-only mode** | `worker.enabled: false` inserts jobs but never processes them |
 
 ### Configuration
 
 ```yaml
 worker:
-  enabled: false        # DOC_ENGINE_WORKER_ENABLED
-  max_workers: 10       # DOC_ENGINE_WORKER_MAX_WORKERS
+  enabled: false              # DOC_ENGINE_WORKER_ENABLED
+  max_workers: 10             # DOC_ENGINE_WORKER_MAX_WORKERS
+  runtime_environment: local  # DOC_ENGINE_WORKER_RUNTIME_ENVIRONMENT
+  failpoints_enabled: false   # DOC_ENGINE_WORKER_FAILPOINTS_ENABLED (dev/test only)
+  failpoints: []              # DOC_ENGINE_WORKER_FAILPOINTS
 ```
 
-For architecture diagrams, SDK type reference, and integration test details, see **[Worker Queue Guide](docs/backend/worker-queue-guide.md)**.
+For architecture diagrams, attempt job details, failpoints, and integration test coverage, see **[Worker Queue Guide](docs/backend/worker-queue-guide.md)**.
 
 ## Database
 
@@ -308,7 +322,7 @@ PostgreSQL 16 with five schemas:
 | `identity`  | Users, access history                          |
 | `organizer` | Folders, tags                                  |
 | `content`   | Templates, versions, injectables, signer roles |
-| `execution` | Documents, recipients, events                  |
+| `execution` | Documents, recipients, signing attempts, events |
 
 Migrations are managed with Liquibase:
 
@@ -357,7 +371,7 @@ The container exposes port `8080`.
 | Internal API Document Creation Flow | [`docs/internal-api-document-creation-flow.md`](docs/internal-api-document-creation-flow.md) |
 | Public Signing Flow (Flow Detail)   | [`docs/public-signing-flow-detail.md`](docs/public-signing-flow-detail.md)                   |
 | Extensibility Guide                 | [`docs/backend/extensibility-guide.md`](docs/backend/extensibility-guide.md)                 |
-| Worker Queue Guide (River)          | [`docs/backend/worker-queue-guide.md`](docs/backend/worker-queue-guide.md)                   |
+| Signing Attempts + River Guide      | [`docs/backend/worker-queue-guide.md`](docs/backend/worker-queue-guide.md)                   |
 | Frontend Architecture               | [`docs/frontend/architecture.md`](docs/frontend/architecture.md)                             |
 | Design System                       | [`docs/frontend/design-system.md`](docs/frontend/design-system.md)                           |
 | Database Schema                     | [`db/DATABASE.md`](db/DATABASE.md)                                                           |

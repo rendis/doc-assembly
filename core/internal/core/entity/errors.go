@@ -249,6 +249,7 @@ var (
 // Signing Provider errors.
 var (
 	ErrSigningProviderNotConfigured = errors.New("signing provider not configured")
+	ErrSigningAttemptNotFound       = errors.New("signing attempt not found")
 	ErrSigningProviderError         = errors.New("signing provider error")
 	ErrSigningUploadFailed          = errors.New("failed to upload document to signing provider")
 	ErrSigningURLFailed             = errors.New("failed to get signing URL")

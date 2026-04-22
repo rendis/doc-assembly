@@ -17,11 +17,9 @@ type Document struct {
 	TransactionalID           *string         `json:"transactionalId,omitempty"`
 	OperationType             OperationType   `json:"operationType"`
 	RelatedDocumentID         *string         `json:"relatedDocumentId,omitempty"`
-	SignerDocumentID          *string         `json:"signerDocumentId,omitempty"`
-	SignerProvider            *string         `json:"signerProvider,omitempty"`
+	ActiveAttemptID           *string         `json:"activeAttemptId,omitempty"`
 	Status                    DocumentStatus  `json:"status"`
 	InjectedValuesSnapshot    json.RawMessage `json:"injectedValuesSnapshot,omitempty"`
-	PDFStoragePath            *string         `json:"pdfStoragePath,omitempty"`
 	CompletedPDFURL           *string         `json:"completedPdfUrl,omitempty"`
 	IsActive                  bool            `json:"isActive"`
 	SupersededAt              *time.Time      `json:"supersededAt,omitempty"`
@@ -29,9 +27,6 @@ type Document struct {
 	SupersedeReason           *string         `json:"supersedeReason,omitempty"`
 	ExpiresAt                 *time.Time      `json:"expiresAt,omitempty"`
 	Metadata                  json.RawMessage `json:"metadata,omitempty"`
-	RetryCount                int             `json:"retryCount"`
-	LastRetryAt               *time.Time      `json:"lastRetryAt,omitempty"`
-	NextRetryAt               *time.Time      `json:"nextRetryAt,omitempty"`
 	CreatedAt                 time.Time       `json:"createdAt"`
 	UpdatedAt                 *time.Time      `json:"updatedAt,omitempty"`
 }
@@ -78,25 +73,6 @@ func (d *Document) SetRelatedDocumentID(docID string) {
 	d.touch()
 }
 
-// SetSignerInfo sets the signing provider information.
-func (d *Document) SetSignerInfo(provider, documentID string) {
-	d.SignerProvider = &provider
-	d.SignerDocumentID = &documentID
-	d.touch()
-}
-
-// SetSignerDocumentID sets the signer document ID.
-func (d *Document) SetSignerDocumentID(docID string) {
-	d.SignerDocumentID = &docID
-	d.touch()
-}
-
-// SetSignerProvider sets the signer provider name.
-func (d *Document) SetSignerProvider(provider string) {
-	d.SignerProvider = &provider
-	d.touch()
-}
-
 // SetInjectedValues sets the snapshot of injected values.
 func (d *Document) SetInjectedValues(values json.RawMessage) {
 	d.InjectedValuesSnapshot = values
@@ -112,12 +88,6 @@ func (d *Document) SetInjectedValuesSnapshot(values map[string]any) error {
 	d.InjectedValuesSnapshot = data
 	d.touch()
 	return nil
-}
-
-// SetPDFPath sets the PDF storage path.
-func (d *Document) SetPDFPath(path string) {
-	d.PDFStoragePath = &path
-	d.touch()
 }
 
 // SetCompletedPDFURL sets the URL of the fully signed PDF.
@@ -164,41 +134,29 @@ func (d *Document) IsAwaitingInput() bool {
 	return d.Status == DocumentStatusAwaitingInput
 }
 
-// MarkAsPendingProvider transitions the document to PENDING_PROVIDER status.
-// This means the PDF is saved and waiting for the worker to upload to the signing provider.
-func (d *Document) MarkAsPendingProvider() error {
-	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusAwaitingInput {
-		return ErrInvalidDocumentStatusTransition
-	}
-	d.Status = DocumentStatusPendingProvider
-	d.touch()
-	return nil
-}
-
-// MarkAsPending transitions the document to PENDING status (sent to provider).
-// Allowed from DRAFT, PENDING_PROVIDER, or ERROR (for retry after failed upload).
+// MarkAsPending transitions the document projection to READY_TO_SIGN.
 func (d *Document) MarkAsPending() error {
-	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusPendingProvider && d.Status != DocumentStatusError {
+	if d.Status != DocumentStatusDraft && d.Status != DocumentStatusPreparingSignature && d.Status != DocumentStatusError {
 		return ErrInvalidDocumentStatusTransition
 	}
-	d.Status = DocumentStatusPending
+	d.Status = DocumentStatusReadyToSign
 	d.touch()
 	return nil
 }
 
-// MarkAsInProgress transitions the document to IN_PROGRESS status (at least one recipient interacted).
+// MarkAsInProgress transitions the document to SIGNING status (at least one recipient interacted).
 func (d *Document) MarkAsInProgress() error {
-	if d.Status != DocumentStatusPending && d.Status != DocumentStatusInProgress {
+	if d.Status != DocumentStatusReadyToSign && d.Status != DocumentStatusSigning {
 		return ErrInvalidDocumentStatusTransition
 	}
-	d.Status = DocumentStatusInProgress
+	d.Status = DocumentStatusSigning
 	d.touch()
 	return nil
 }
 
 // MarkAsCompleted transitions the document to COMPLETED status (all recipients signed).
 func (d *Document) MarkAsCompleted() error {
-	if d.Status != DocumentStatusPending && d.Status != DocumentStatusInProgress {
+	if d.Status != DocumentStatusReadyToSign && d.Status != DocumentStatusSigning {
 		return ErrInvalidDocumentStatusTransition
 	}
 	d.Status = DocumentStatusCompleted
@@ -208,7 +166,7 @@ func (d *Document) MarkAsCompleted() error {
 
 // MarkAsDeclined transitions the document to DECLINED status (a recipient rejected).
 func (d *Document) MarkAsDeclined() error {
-	if d.Status != DocumentStatusPending && d.Status != DocumentStatusInProgress {
+	if d.Status != DocumentStatusReadyToSign && d.Status != DocumentStatusSigning {
 		return ErrInvalidDocumentStatusTransition
 	}
 	d.Status = DocumentStatusDeclined
@@ -216,22 +174,22 @@ func (d *Document) MarkAsDeclined() error {
 	return nil
 }
 
-// MarkAsVoided transitions the document to VOIDED status (cancelled by user).
+// MarkAsVoided transitions the document to CANCELLED status (cancelled by user).
 func (d *Document) MarkAsVoided() error {
-	if d.Status == DocumentStatusCompleted || d.Status == DocumentStatusVoided {
+	if d.Status == DocumentStatusCompleted || d.Status == DocumentStatusCancelled {
 		return ErrInvalidDocumentStatusTransition
 	}
-	d.Status = DocumentStatusVoided
+	d.Status = DocumentStatusCancelled
 	d.touch()
 	return nil
 }
 
-// MarkAsExpired transitions the document to EXPIRED status.
+// MarkAsExpired transitions the document to INVALIDATED status.
 func (d *Document) MarkAsExpired() error {
-	if d.Status != DocumentStatusPending && d.Status != DocumentStatusInProgress {
+	if d.Status != DocumentStatusReadyToSign && d.Status != DocumentStatusSigning {
 		return ErrInvalidDocumentStatusTransition
 	}
-	d.Status = DocumentStatusExpired
+	d.Status = DocumentStatusInvalidated
 	d.touch()
 	return nil
 }
@@ -253,16 +211,6 @@ func (d *Document) RecoverToAwaitingInput() error {
 	return nil
 }
 
-// RecoverToPendingProvider transitions an ERROR document back to PENDING_PROVIDER.
-func (d *Document) RecoverToPendingProvider() error {
-	if d.Status != DocumentStatusError {
-		return ErrInvalidDocumentStatusTransition
-	}
-	d.Status = DocumentStatusPendingProvider
-	d.touch()
-	return nil
-}
-
 // UpdateStatus updates the document status from provider status.
 func (d *Document) UpdateStatus(newStatus DocumentStatus) error {
 	if !newStatus.IsValid() {
@@ -278,19 +226,14 @@ func (d *Document) IsDraft() bool {
 	return d.Status == DocumentStatusDraft
 }
 
-// IsPendingProvider returns true if the document is waiting for worker upload.
-func (d *Document) IsPendingProvider() bool {
-	return d.Status == DocumentStatusPendingProvider
-}
-
 // IsPending returns true if the document is pending signature.
 func (d *Document) IsPending() bool {
-	return d.Status == DocumentStatusPending
+	return d.Status == DocumentStatusReadyToSign
 }
 
 // IsInProgress returns true if signing is in progress.
 func (d *Document) IsInProgress() bool {
-	return d.Status == DocumentStatusInProgress
+	return d.Status == DocumentStatusSigning
 }
 
 // IsCompleted returns true if all signatures are complete.
@@ -305,25 +248,20 @@ func (d *Document) IsDeclined() bool {
 
 // IsVoided returns true if the document was cancelled.
 func (d *Document) IsVoided() bool {
-	return d.Status == DocumentStatusVoided
+	return d.Status == DocumentStatusCancelled
 }
 
 // IsTerminal returns true if the document is in a terminal state (no more transitions possible).
 func (d *Document) IsTerminal() bool {
 	return d.Status == DocumentStatusCompleted ||
 		d.Status == DocumentStatusDeclined ||
-		d.Status == DocumentStatusVoided ||
-		d.Status == DocumentStatusExpired
+		d.Status == DocumentStatusCancelled ||
+		d.Status == DocumentStatusInvalidated
 }
 
 // CanBeSentForSigning returns true if the document can be sent to a signing provider.
 func (d *Document) CanBeSentForSigning() bool {
 	return d.Status == DocumentStatusDraft
-}
-
-// HasSignerInfo returns true if the document has been registered with a signing provider.
-func (d *Document) HasSignerInfo() bool {
-	return d.SignerDocumentID != nil && d.SignerProvider != nil
 }
 
 // Validate checks if the document data is valid.
@@ -344,38 +282,6 @@ func (d *Document) Validate() error {
 		return ErrFieldTooLong
 	}
 	return nil
-}
-
-// ScheduleRetry increments the retry counter and calculates the next retry time
-// using exponential backoff: 60s * 2^retryCount, capped at 1 hour.
-// Returns false if maxRetries has been reached (no retry scheduled).
-func (d *Document) ScheduleRetry(maxRetries int) bool {
-	if d.RetryCount >= maxRetries {
-		return false
-	}
-
-	now := time.Now().UTC()
-	d.RetryCount++
-	d.LastRetryAt = &now
-
-	backoff := 60 * time.Second * (1 << d.RetryCount)
-	const maxBackoff = time.Hour
-	if backoff > maxBackoff {
-		backoff = maxBackoff
-	}
-
-	nextRetry := now.Add(backoff)
-	d.NextRetryAt = &nextRetry
-	d.touch()
-	return true
-}
-
-// ResetRetry clears all retry tracking fields after a successful recovery.
-func (d *Document) ResetRetry() {
-	d.RetryCount = 0
-	d.LastRetryAt = nil
-	d.NextRetryAt = nil
-	d.touch()
 }
 
 // touch updates the UpdatedAt timestamp.

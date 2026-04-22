@@ -37,7 +37,18 @@ const (
 		SET status = $2, updated_at = $3
 		WHERE id = $1 AND is_system = FALSE`
 
-	queryDelete = `DELETE FROM tenancy.tenants WHERE id = $1`
+	queryDelete = `
+		WITH deleted_workspace_members AS (
+			DELETE FROM identity.workspace_members
+			WHERE workspace_id IN (SELECT id FROM tenancy.workspaces WHERE tenant_id = $1)
+		), deleted_tenant_members AS (
+			DELETE FROM identity.tenant_members
+			WHERE tenant_id = $1
+		), deleted_workspaces AS (
+			DELETE FROM tenancy.workspaces
+			WHERE tenant_id = $1
+		)
+		DELETE FROM tenancy.tenants WHERE id = $1`
 
 	queryExistsByCode = `
 		SELECT EXISTS(SELECT 1 FROM tenancy.tenants WHERE code = $1)`

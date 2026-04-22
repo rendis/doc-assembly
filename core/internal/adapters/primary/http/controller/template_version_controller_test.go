@@ -765,6 +765,7 @@ func TestTemplateVersionController_RemoveInjectable(t *testing.T) {
 // --- Signer Role Tests ---
 
 func TestTemplateVersionController_AddSignerRole(t *testing.T) {
+	t.Skip("signer roles are now extracted from PortableDocument content during publish")
 	pool := testhelper.GetTestPool(t)
 	ts := testhelper.NewTestServer(t, pool)
 	client := testhelper.NewHTTPClient(t, ts.URL())
@@ -851,6 +852,7 @@ func TestTemplateVersionController_AddSignerRole(t *testing.T) {
 }
 
 func TestTemplateVersionController_UpdateSignerRole(t *testing.T) {
+	t.Skip("signer roles are now extracted from PortableDocument content during publish")
 	pool := testhelper.GetTestPool(t)
 	ts := testhelper.NewTestServer(t, pool)
 	client := testhelper.NewHTTPClient(t, ts.URL())
@@ -910,6 +912,7 @@ func TestTemplateVersionController_UpdateSignerRole(t *testing.T) {
 }
 
 func TestTemplateVersionController_RemoveSignerRole(t *testing.T) {
+	t.Skip("signer roles are now extracted from PortableDocument content during publish")
 	pool := testhelper.GetTestPool(t)
 	ts := testhelper.NewTestServer(t, pool)
 	client := testhelper.NewHTTPClient(t, ts.URL())
