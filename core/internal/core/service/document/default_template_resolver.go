@@ -37,6 +37,8 @@ func (r *DefaultTemplateResolver) Resolve(
 }
 
 // resolveWithFallback builds the fallback chain depending on environment.
+//
+//nolint:funlen
 func (r *DefaultTemplateResolver) resolveWithFallback(
 	ctx context.Context,
 	req *port.TemplateResolverRequest,

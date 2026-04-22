@@ -81,6 +81,7 @@ func Load() (*Config, error) {
 	applyAuthPanelEnvOverrides(cfg.Auth.Panel)
 	applySigningSessionAuthEnvOverrides(&cfg.SigningSessionAuth)
 	applyBootstrapEnvOverrides(&cfg.Bootstrap)
+	applyWorkerEnvOverrides(&cfg.Worker)
 
 	// Run OIDC discovery to populate issuer/jwks_url from discovery endpoints.
 	// Non-fatal: dev mode (no OIDC) and manual config still work.
@@ -126,6 +127,12 @@ func setDefaults(v *viper.Viper) {
 
 	// Internal API defaults
 	v.SetDefault("internal_api.enabled", true)
+
+	// Worker defaults
+	v.SetDefault("worker.enabled", false)
+	v.SetDefault("worker.max_workers", 10)
+	v.SetDefault("worker.failpoints_enabled", false)
+	v.SetDefault("worker.failpoints", []string{})
 
 	// Signing session auth defaults
 	// NOTE: mode intentionally has no default and must be provided explicitly.
@@ -242,6 +249,31 @@ func applyAuthPanelEnvOverrides(panel *OIDCProvider) {
 func applyBootstrapEnvOverrides(cfg *BootstrapConfig) {
 	if v := os.Getenv("DOC_ENGINE_BOOTSTRAP_ENABLED"); v == "false" {
 		cfg.Enabled = false
+	}
+}
+
+// applyWorkerEnvOverrides reads DOC_ENGINE_WORKER_* env vars into WorkerConfig.
+func applyWorkerEnvOverrides(cfg *WorkerConfig) {
+	if cfg == nil {
+		return
+	}
+	if v := strings.TrimSpace(os.Getenv("DOC_ENGINE_WORKER_ENABLED")); v != "" {
+		if parsed, err := strconv.ParseBool(v); err == nil {
+			cfg.Enabled = parsed
+		}
+	}
+	if v := strings.TrimSpace(os.Getenv("DOC_ENGINE_WORKER_MAX_WORKERS")); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			cfg.MaxWorkers = parsed
+		}
+	}
+	if v := strings.TrimSpace(os.Getenv("DOC_ENGINE_WORKER_FAILPOINTS_ENABLED")); v != "" {
+		if parsed, err := strconv.ParseBool(v); err == nil {
+			cfg.FailpointsEnabled = parsed
+		}
+	}
+	if v := strings.TrimSpace(os.Getenv("DOC_ENGINE_WORKER_FAILPOINTS")); v != "" {
+		cfg.Failpoints = parseCSVList(v)
 	}
 }
 

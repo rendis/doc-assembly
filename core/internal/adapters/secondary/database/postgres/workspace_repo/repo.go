@@ -128,6 +128,31 @@ func (r *Repository) FindByCode(ctx context.Context, tenantID, code string) (*en
 	return &ws, nil
 }
 
+// FindByCodeIncludingSandbox finds a workspace by tenant and business code, including sandbox workspaces.
+func (r *Repository) FindByCodeIncludingSandbox(ctx context.Context, tenantID, code string) (*entity.Workspace, error) {
+	var ws entity.Workspace
+	err := r.pool.QueryRow(ctx, queryFindByCodeIncludingSandbox, tenantID, code).Scan(
+		&ws.ID,
+		&ws.TenantID,
+		&ws.Name,
+		&ws.Code,
+		&ws.Type,
+		&ws.Status,
+		&ws.IsSandbox,
+		&ws.SandboxOfID,
+		&ws.CreatedAt,
+		&ws.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrWorkspaceNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying workspace by code including sandbox: %w", err)
+	}
+
+	return &ws, nil
+}
+
 // FindSandboxByParentID finds the sandbox workspace for a given parent workspace ID.
 func (r *Repository) FindSandboxByParentID(ctx context.Context, parentID string) (*entity.Workspace, error) {
 	var ws entity.Workspace

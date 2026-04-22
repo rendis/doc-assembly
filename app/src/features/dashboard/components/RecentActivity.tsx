@@ -9,12 +9,12 @@ import type { SigningDocumentStatus } from '@/features/signing/types'
 const statusIcons: Record<string, typeof ArrowUpRight> = {
   COMPLETED: ArrowUpRight,
   DRAFT: Edit3,
-  PENDING: Mail,
-  PENDING_PROVIDER: Clock,
-  IN_PROGRESS: Mail,
+  READY_TO_SIGN: Mail,
+  PREPARING_SIGNATURE: Clock,
+  SIGNING: Mail,
   DECLINED: XCircle,
-  VOIDED: Ban,
-  EXPIRED: AlertTriangle,
+  CANCELLED: Ban,
+  INVALIDATED: AlertTriangle,
   ERROR: AlertTriangle,
 }
 
@@ -34,7 +34,7 @@ function formatRelativeDate(dateStr: string): string {
 }
 
 function isActionRequired(status: SigningDocumentStatus): boolean {
-  return status === 'PENDING' || status === 'IN_PROGRESS'
+  return status === 'READY_TO_SIGN' || status === 'SIGNING'
 }
 
 export function RecentActivity() {

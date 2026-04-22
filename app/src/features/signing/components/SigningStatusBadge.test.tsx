@@ -6,13 +6,13 @@ import { SigningDocumentStatus } from '../types'
 describe('SigningStatusBadge', () => {
   const statusLabelMap: Record<string, string> = {
     DRAFT: 'Draft',
-    PENDING_PROVIDER: 'Processing',
-    PENDING: 'Pending',
-    IN_PROGRESS: 'In Progress',
+    PREPARING_SIGNATURE: 'Processing',
+    READY_TO_SIGN: 'Ready to Sign',
+    SIGNING: 'Signing',
     COMPLETED: 'Completed',
     DECLINED: 'Declined',
-    VOIDED: 'Voided',
-    EXPIRED: 'Expired',
+    CANCELLED: 'Cancelled',
+    INVALIDATED: 'Invalidated',
     ERROR: 'Error',
   }
 

@@ -71,12 +71,12 @@ describe('SigningListToolbar', () => {
     await userEvent.click(statusButton)
 
     expect(screen.getByText('Draft')).toBeDefined()
-    expect(screen.getByText('Pending')).toBeDefined()
-    expect(screen.getByText('In Progress')).toBeDefined()
+    expect(screen.getByText('Ready to Sign')).toBeDefined()
+    expect(screen.getByText('Signing')).toBeDefined()
     expect(screen.getByText('Completed')).toBeDefined()
     expect(screen.getByText('Declined')).toBeDefined()
-    expect(screen.getByText('Voided')).toBeDefined()
-    expect(screen.getByText('Expired')).toBeDefined()
+    expect(screen.getByText('Cancelled')).toBeDefined()
+    expect(screen.getByText('Invalidated')).toBeDefined()
     expect(screen.getByText('Error')).toBeDefined()
   })
 

@@ -197,7 +197,9 @@ For a complete list of API endpoints, authentication requirements, roles, and re
 
 Documents use a shared public URL with email verification. Recipients enter their email to receive a token-based signing link. The flow supports two paths: direct signing (no interactive fields) and form-first signing (with interactive fields).
 
-For detailed documentation including sequence diagrams, security measures, and configuration, see **[docs/backend/public-signing-flow.md](../docs/backend/public-signing-flow.md)**.
+Signing execution is River-orchestrated and attempt-scoped: public/authenticated requests create or reuse the active `SigningAttempt`, then River renders the immutable PDF, submits it to the provider, retries/reconciles failures, and dispatches completion. `execution.documents` remains the business projection via `active_attempt_id`; provider IDs, PDF paths, retry state, and technical events live on `execution.signing_attempts` and related tables.
+
+For detailed documentation including sequence diagrams, security measures, and configuration, see **[docs/backend/public-signing-flow.md](../docs/backend/public-signing-flow.md)** and **[docs/backend/worker-queue-guide.md](../docs/backend/worker-queue-guide.md)**.
 
 ## Sandbox & Promotion
 

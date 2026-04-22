@@ -173,39 +173,65 @@ func TestMyRepo_Operation(t *testing.T) {
 
 ### Background Workers (River)
 
-Document completion events are processed via [River](https://riverqueue.com), a PostgreSQL-native job queue that runs inside the same Go process. No external broker needed.
+Signing execution is attempt-scoped and River is the only durable execution engine for asynchronous signing work. `execution.documents` is a business projection; `execution.signing_attempts` is the technical source of truth for render, provider submission, retry/reconciliation, cleanup, refresh, and completion dispatch.
 
-**Transactional guarantee:** The document status update (`COMPLETED`) and job enqueue happen in a **single PostgreSQL transaction** via `PersistAndNotify`. This prevents orphaned states on crashes.
+**Transactional guarantee:** attempt state transitions and the next River job enqueue happen in a single PostgreSQL transaction via `SigningExecutionUnitOfWork` + `river.InsertTx`. This prevents orphaned states on crashes.
+
+**Attempt jobs:**
+
+```text
+render_attempt_pdf(attempt_id)
+submit_attempt_to_provider(attempt_id)
+reconcile_provider_submission(attempt_id)
+refresh_attempt_provider_status(attempt_id)
+cleanup_provider_attempt(attempt_id)
+dispatch_attempt_completion(attempt_id)
+```
 
 **Flow:**
-```
-Webhook → DocumentService.persistDocUpdate()
-  → completionNotifier != nil && doc.IsCompleted()
-    → Notifier.PersistAndNotify(ctx, doc)
-      → BEGIN TX → UPDATE doc status → INSERT river_job → COMMIT
-  → else: plain documentRepo.Update(ctx, doc)
+
+```text
+Public/auth signing request
+  → create/reuse active SigningAttempt
+  → enqueue render_attempt_pdf in same DB transaction
+  → frontend receives processing/signing/current terminal state
+
+River render/submit/reconcile/refresh/cleanup
+  → mutate attempt state
+  → recompute document projection only if active_attempt_id matches
+  → enqueue next phase transactionally
+
+Provider webhook
+  → lookup attempt by provider/correlation key
+  → historical attempts record event only
+  → active completed attempt enqueues dispatch_attempt_completion
 ```
 
-**Deduplication:** `ByArgs` + `ByPeriod(1h)` — same document_id produces at most 1 job per hour.
-**Error handling:** Handler errors → exponential backoff retries. Panics → recovered, treated as error.
+**Deduplication:** River uniqueness is scoped by `attempt_id + phase` (`ByArgs` + 24h). A regeneration creates a new attempt, so old jobs cannot deduplicate or mutate the new active attempt.
+
+**Error handling:** worker errors retry through River. Provider errors are classified as transient, permanent, ambiguous, or stale conflict; ambiguous submissions move to reconciliation or review according to provider capabilities.
 
 **SDK handler example:**
+
 ```go
 handler := func(ctx context.Context, ev sdk.DocumentCompletedEvent) error {
     log.Printf("Doc %s completed: %d recipients", ev.DocumentID, len(ev.Recipients))
-    return nil // return error to retry
+    return nil // return error to retry dispatch_attempt_completion
 }
 ```
 
 **Key files:**
 
-- `internal/infra/riverqueue/` — River client, notifier, worker, job args
-  - `client.go` — `RiverService` lifecycle (New, Start, Stop, Notifier)
-  - `notifier.go` — `PersistAndNotify` transactional enqueue
-  - `worker.go` — `DocumentCompletedWorker` builds event from DB, calls handler
-  - `args.go` — `DocumentCompletedArgs` with Kind() and dedup InsertOpts()
-- `internal/core/port/document_completion.go` — `DocumentCompletionNotifier`, `DocumentCompletedHandler`
-- `sdk/worker.go` — Re-exported types for SDK consumers
+- `internal/infra/riverqueue/` — River client, attempt workers, executor, failpoints, UoW.
+  - `client.go` — `RiverService` lifecycle and worker registration.
+  - `args.go` — attempt-scoped River args and job kinds.
+  - `uow.go` — transactional attempt mutations + `river.InsertTx`.
+  - `attempt_workers.go` / `executor.go` — render, submit, reconcile, refresh, cleanup, completion dispatch.
+  - `failpoints.go` — non-production failure injection.
+- `internal/core/port/signing_execution_uow.go` — transactional signing execution port.
+- `internal/core/port/signing_attempt_repository.go` — attempt persistence port.
+- `internal/core/port/document_completion.go` — SDK completion event/handler types.
+- `sdk/types.go` — re-exported SDK types.
 
 **Integration tests:**
 
@@ -213,7 +239,7 @@ handler := func(ctx context.Context, ev sdk.DocumentCompletedEvent) error {
 go test -C core -tags=integration -run TestRiver -v -count=1 ./internal/infra/riverqueue/
 ```
 
-9 tests cover: happy path, transactional atomicity, panic/error recovery, handler error retry, dedup, nil notifier fallback, concurrent webhook race, double completion idempotency, orphaned job.
+Coverage includes atomic attempt creation/enqueue, concurrent active-attempt idempotency, supersede cleanup enqueue, active-attempt same-document constraint, provider uniqueness, stale completion no-op, failpoints, retry/reconciliation, and completion dispatch.
 
 **Documentation:** [`docs/backend/worker-queue-guide.md`](docs/backend/worker-queue-guide.md)
 
@@ -228,6 +254,8 @@ Key variables:
 - `DOC_ENGINE_AUTH_ISSUER` — JWT issuer validation
 - `DOC_ENGINE_WORKER_ENABLED` — Enable River job queue workers (default: `false`)
 - `DOC_ENGINE_WORKER_MAX_WORKERS` — Max concurrent worker goroutines (default: `10`)
+- `DOC_ENGINE_WORKER_RUNTIME_ENVIRONMENT` — Runtime guard used to disable failpoints in production
+- `DOC_ENGINE_WORKER_FAILPOINTS_ENABLED` / `DOC_ENGINE_WORKER_FAILPOINTS` — Non-production signing attempt failure injection
 
 ### Logging Guidelines
 
@@ -280,7 +308,9 @@ Custom injectors, mappers, and initialization logic.
 
 - Anti-enumeration: `RequestAccess` returns nil (200) for invalid emails, missing docs, rate limits
 - Token types: `SIGNING` (no interactive fields) vs `PRE_SIGNING` (has interactive fields)
-- Tokens: 128-char hex, single-use (`used_at`), expiring (configurable TTL)
+- Tokens: 128-char hex, single-use (`used_at`), expiring (configurable TTL); attempt-bound tokens never return stale signing URLs
+- `ProceedToSigning` creates/reuses active `SigningAttempt` and enqueues River; it must not upload to provider inline
+- Public steps include `processing`, `document_updated`, and `unavailable`; do not expose raw attempt statuses in the UI
 - Rate limiting: per document+recipient pair, configurable in `settings/app.yaml` → `public_access`
 - `buildSigningURL()` fallback: active token → `/public/doc/{docID}`
 

@@ -74,6 +74,8 @@ func NewSigningSessionService(
 
 // CreateOrGetSession returns a reusable tokenized signing session URL and
 // summarized flow state for an authenticated principal.
+//
+//nolint:funlen,gocognit,gocyclo,nestif
 func (s *SigningSessionService) CreateOrGetSession(
 	ctx context.Context,
 	documentID string,
@@ -97,20 +99,7 @@ func (s *SigningSessionService) CreateOrGetSession(
 		return nil, err
 	}
 
-	if doc.Status == entity.DocumentStatusError && !doc.HasSignerInfo() {
-		if err := s.recoverPreProviderError(ctx, doc); err != nil {
-			return nil, entity.ErrInvalidDocumentState
-		}
-		doc, err = s.documentRepo.FindByID(ctx, documentID)
-		if err != nil {
-			if errors.Is(err, entity.ErrDocumentNotFound) || errors.Is(err, entity.ErrRecordNotFound) {
-				return nil, entity.ErrForbidden
-			}
-			return nil, err
-		}
-	}
-
-	if doc.Status == entity.DocumentStatusVoided || doc.Status == entity.DocumentStatusExpired || doc.IsExpired() {
+	if doc.Status == entity.DocumentStatusCancelled || doc.Status == entity.DocumentStatusInvalidated || doc.IsExpired() {
 		return nil, entity.ErrInvalidDocumentState
 	}
 
@@ -135,6 +124,12 @@ func (s *SigningSessionService) CreateOrGetSession(
 	publicPage, err := s.preSigningUC.GetPublicSigningPage(ctx, tokenStr)
 	if err != nil {
 		return nil, normalizeSigningSessionError(err)
+	}
+	if tokenType == entity.TokenTypeSigning && publicPage.Step == documentuc.StepPreview {
+		publicPage, err = s.preSigningUC.ProceedToSigning(ctx, tokenStr)
+		if err != nil {
+			return nil, normalizeSigningSessionError(err)
+		}
 	}
 
 	slog.InfoContext(ctx, "signing session resolved",
@@ -273,28 +268,4 @@ func normalizeSigningSessionError(err error) error {
 	}
 
 	return err
-}
-
-func (s *SigningSessionService) recoverPreProviderError(ctx context.Context, doc *entity.Document) error {
-	if doc == nil || doc.Status != entity.DocumentStatusError || doc.HasSignerInfo() {
-		return entity.ErrInvalidDocumentState
-	}
-
-	target, clearStalePDFPath := resolvePreProviderRecoveryTarget(ctx, s.storageAdapter, s.storageEnabled, doc)
-	if clearStalePDFPath {
-		doc.PDFStoragePath = nil
-	}
-
-	if target == entity.DocumentStatusPendingProvider {
-		if err := doc.RecoverToPendingProvider(); err != nil {
-			return err
-		}
-	} else {
-		if err := doc.RecoverToAwaitingInput(); err != nil {
-			return err
-		}
-	}
-
-	doc.ResetRetry()
-	return s.documentRepo.Update(ctx, doc)
 }

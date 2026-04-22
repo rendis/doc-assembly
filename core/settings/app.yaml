@@ -133,6 +133,8 @@ public_access:
 worker:
   enabled: false              # DOC_ENGINE_WORKER_ENABLED - Enable River job queue workers
   max_workers: 10             # DOC_ENGINE_WORKER_MAX_WORKERS - Max concurrent worker goroutines
+  failpoints_enabled: false    # DOC_ENGINE_WORKER_FAILPOINTS_ENABLED - dev/test only failure injection
+  failpoints: []               # DOC_ENGINE_WORKER_FAILPOINTS - CSV names, ignored in production
 
 # Email notification configuration
 notification:

@@ -1,154 +1,162 @@
 # ProceedToSigning Concurrency Control
 
-## Problem
+## Current Model
 
-When two signers call `ProceedToSigning` simultaneously on the same `AWAITING_INPUT` document, both could read the status, both render the PDF, and both upload to the signing provider — creating **duplicate documents in Documenso**.
+`ProceedToSigning` is now attempt-scoped and River-orchestrated.
 
-Additionally, the background worker `ProcessPendingProviderDocuments` queries `PENDING_PROVIDER` documents and could race with the inline upload.
+The public or authenticated request path does **not** render the final signing PDF and does **not** upload to the provider inline. It creates or observes the document's active `SigningAttempt`, transactionally enqueues River work, and returns `step: "processing"` until the active attempt reaches a user-visible state.
 
-### Race Condition (Before Fix)
+`execution.documents` is only the business projection. Technical signing state lives in:
+
+- `execution.signing_attempts`
+- `execution.signing_attempt_recipients`
+- `execution.signing_attempt_events`
+- `river_job`
+
+There is no `PENDING_PROVIDER` state, no document-level provider retry loop, and no pending-provider scheduler fallback.
+
+## Race Being Prevented
+
+When multiple users or browser tabs call `ProceedToSigning` at the same time for the same document, only one active attempt must be created and only one provider document should be submitted for that attempt.
 
 ```mermaid
 sequenceDiagram
     participant A as Signer A
     participant B as Signer B
     participant API as ProceedToSigning
+    participant UOW as SigningExecutionUnitOfWork
     participant DB as PostgreSQL
-    participant Typst as Typst Renderer
-    participant Documenso as Documenso
+    participant River as River
+    participant Provider as Documenso
 
     A->>API: POST /public/sign/{tokenA}/proceed
     B->>API: POST /public/sign/{tokenB}/proceed
-    API->>DB: SELECT ... WHERE id = $1 (Signer A)
-    API->>DB: SELECT ... WHERE id = $1 (Signer B)
-    Note over DB: Both read status = AWAITING_INPUT
-    API->>Typst: RenderPreview (Signer A)
-    API->>Typst: RenderPreview (Signer B)
-    Typst-->>API: PDF bytes (A)
-    Typst-->>API: PDF bytes (B)
-    API->>Documenso: UploadDocument (A)
-    API->>Documenso: UploadDocument (B)
-    Note over Documenso: Two signing documents created!
-    Documenso-->>API: envelopeID_1
-    Documenso-->>API: envelopeID_2
-    Note over DB: Last write wins, envelopeID_1 orphaned
+
+    API->>UOW: CreateOrReuseActiveAttempt(document)
+    API->>UOW: CreateOrReuseActiveAttempt(document)
+
+    rect rgb(230,245,255)
+        Note over UOW,DB: Row lock + active_attempt_id check
+        UOW->>DB: create attempt + set active_attempt_id
+        UOW->>DB: insert river_job(render_attempt_pdf)
+    end
+
+    UOW-->>API: active attempt id
+    UOW-->>API: same active attempt id
+    API-->>A: step=processing
+    API-->>B: step=processing
+
+    River->>DB: render_attempt_pdf(attempt_id)
+    River->>DB: PDF_READY + enqueue submit_attempt_to_provider
+    River->>Provider: SubmitAttemptDocument(correlation_key={document_id}:{attempt_id})
+    River->>DB: SIGNING_READY + provider refs
+
+    A->>API: poll GET /public/sign/{tokenA}
+    B->>API: poll GET /public/sign/{tokenB}
+    API-->>A: step=signing or waiting
+    API-->>B: step=signing or waiting
 ```
 
-## Solution: CAS Claim + Worker Grace Period
+## Concurrency Guarantees
 
-### 1. CAS (Compare-And-Swap) Claim
+| Guarantee | Mechanism |
+|---|---|
+| Single active attempt per document | Transactional `CreateOrReuseActiveAttempt` under PostgreSQL row-level locking. |
+| No duplicate phase jobs for same attempt | River uniqueness by `attempt_id + phase` (`ByArgs` + 24h). |
+| Regeneration is isolated | New attempt ID means new River job keys; old jobs are stale and must no-op. |
+| Provider idempotency | Provider correlation key is `{document_id}:{attempt_id}` and is unique in DB. |
+| Late webhook safety | Webhook for non-active attempt records event only; document projection is not mutated. |
+| Crash recovery | Last durable attempt state determines which River phase retries or reconciles. |
 
-An atomic `UPDATE ... WHERE status = 'AWAITING_INPUT'` ensures only one caller transitions the document to `PENDING_PROVIDER`. PostgreSQL's row-level locking guarantees mutual exclusion.
-
-```sql
-UPDATE execution.documents
-SET status = 'PENDING_PROVIDER', updated_at = NOW()
-WHERE id = $1 AND status = 'AWAITING_INPUT'
-RETURNING ...
-```
-
-- **Winner** (rows affected = 1): Proceeds with render + upload.
-- **Loser** (rows affected = 0): Receives `step: "processing"` response; frontend polls until ready.
-
-### 2. Worker Grace Period
-
-The background worker `ProcessPendingProviderDocuments` skips documents updated in the last 60 seconds:
-
-```sql
-WHERE status = 'PENDING_PROVIDER'
-  AND updated_at < NOW() - INTERVAL '60 seconds'
-```
-
-This prevents the worker from racing with the winner's inline upload. If the winner crashes, the worker picks up the document after 60 seconds.
-
-### Corrected Flow
+## State Flow
 
 ```mermaid
-sequenceDiagram
-    participant A as Signer A
-    participant B as Signer B
-    participant API as ProceedToSigning
-    participant DB as PostgreSQL
-    participant Typst as Typst Renderer
-    participant Store as Storage
-    participant Documenso as Documenso
-
-    A->>API: POST /proceed
-    B->>API: POST /proceed
-
-    API->>DB: CAS UPDATE (Signer A)
-    Note over DB: status: AWAITING_INPUT -> PENDING_PROVIDER
-    DB-->>API: row returned (claimed!)
-
-    API->>DB: CAS UPDATE (Signer B)
-    Note over DB: status != AWAITING_INPUT, 0 rows
-    DB-->>API: no rows (not claimed)
-
-    Note over API: Signer B reloads doc, sees PENDING_PROVIDER
-    API-->>B: { step: "processing" }
-    Note over B: Frontend polls every 3s
-
-    API->>Typst: RenderPreview (Signer A only)
-    Typst-->>API: PDF bytes
-    API->>Store: Upload PDF
-    API->>DB: UPDATE (persist PDF path)
-    API->>Documenso: UploadDocument
-    Documenso-->>API: envelopeID
-    API->>DB: UPDATE (status=PENDING, signerDocID)
-    API-->>A: { step: "signing", embeddedSigningUrl: "..." }
-
-    Note over B: Next poll: doc is PENDING
-    B->>API: POST /proceed (retry)
-    API-->>B: { step: "signing", embeddedSigningUrl: "..." }
+stateDiagram-v2
+    [*] --> CREATED: create/reuse attempt
+    CREATED --> RENDERING: render_attempt_pdf starts
+    RENDERING --> READY_TO_SUBMIT: PDF stored + checksum persisted
+    READY_TO_SUBMIT --> SUBMITTING_PROVIDER: submit_attempt_to_provider starts
+    SUBMITTING_PROVIDER --> SIGNING_READY: provider accepted + refs persisted
+    SUBMITTING_PROVIDER --> PROVIDER_RETRY_WAITING: transient provider failure
+    PROVIDER_RETRY_WAITING --> SUBMITTING_PROVIDER: River retry
+    SUBMITTING_PROVIDER --> SUBMISSION_UNKNOWN: ambiguous provider result
+    SUBMISSION_UNKNOWN --> SIGNING_READY: reconciliation found provider document
+    SUBMISSION_UNKNOWN --> REQUIRES_REVIEW: reconciliation unsupported/exhausted
+    SIGNING_READY --> SIGNING: recipient signing observed
+    SIGNING_READY --> COMPLETED: provider completion webhook
+    SIGNING --> COMPLETED: provider completion webhook
+    SIGNING_READY --> DECLINED: provider decline webhook
+    SIGNING --> DECLINED: provider decline webhook
+    READY_TO_SUBMIT --> FAILED_PERMANENT: corrupt PDF/permanent error
+    SUBMITTING_PROVIDER --> FAILED_PERMANENT: permanent provider error
+    CREATED --> SUPERSEDED: regeneration
+    RENDERING --> SUPERSEDED: regeneration
+    SIGNING_READY --> SUPERSEDED: regeneration
 ```
 
-### Crash Recovery
+Document projection from the active attempt:
+
+```text
+preparing attempt statuses -> PREPARING_SIGNATURE
+SIGNING_READY              -> READY_TO_SIGN
+SIGNING                    -> SIGNING
+COMPLETED                  -> COMPLETED
+DECLINED                   -> DECLINED
+FAILED_PERMANENT/REVIEW    -> ERROR
+```
+
+Historical attempts (`SUPERSEDED`, `INVALIDATED`, `CANCELLED`) are audit records and do not control the document projection.
+
+## Crash Recovery
 
 ```mermaid
 flowchart TD
-    A[CAS: AWAITING_INPUT -> PENDING_PROVIDER] --> B{Winner crashes?}
+    A[Attempt CREATED + render job committed] --> B{Crash point}
 
-    B -->|No| C[Render PDF]
-    C --> D[Store PDF + Update DB]
-    D --> E[Upload to Documenso]
-    E --> F[Update DB: status=PENDING]
-    F --> G[Return signing URL]
-
-    B -->|After CAS, before PDF| H[Doc: PENDING_PROVIDER, no PDF path]
-    H --> I[Worker picks up after 60s]
-    I --> J[No PDF path -> mark ERROR]
-
-    B -->|After PDF stored| K[Doc: PENDING_PROVIDER + PDF path]
-    K --> L[Worker picks up after 60s]
-    L --> M[Download PDF, upload to Documenso]
-    M --> N[Update DB: status=PENDING]
+    B -->|before worker starts| C[River later runs render_attempt_pdf]
+    B -->|during render before DB commit| D[Attempt remains CREATED/RENDERING; job retries]
+    B -->|after PDF store before DB commit| E[Attempt has no committed PDF path; job retries safely]
+    B -->|after PDF_READY commit| F[submit_attempt_to_provider job exists]
+    B -->|provider accepted before DB metadata commit| G[Attempt SUBMISSION_UNKNOWN]
+    G --> H[reconcile by correlation key or REQUIRES_REVIEW]
+    B -->|after completion transition commit| I[dispatch_attempt_completion job exists]
 ```
 
-## Implementation
+The safe rule is: River resumes from committed PostgreSQL state. Provider side effects are tied back using provider document ID and correlation key.
 
-### Files Modified
+## Public UX Under Concurrency
 
-| File | Change |
+The frontend should not expose internal attempt states. It maps them to stable public steps:
+
+| Public step | When returned |
 |---|---|
-| `core/.../document_repo/queries.go` | `queryClaimForSigning` CAS query; 60s grace period on `queryFindPendingProviderForUpload` |
-| `core/.../port/document_repository.go` | `ClaimForSigning(ctx, id) (*Document, bool, error)` |
-| `core/.../document_repo/repo.go` | `ClaimForSigning` implementation using `scanDocument` + `pgx.ErrNoRows` |
-| `core/.../usecase/document/pre_signing_usecase.go` | `StepProcessing = "processing"` |
-| `core/.../service/document/pre_signing_service.go` | `claimAndRender` helper, `buildProcessingResponse`, `GetPublicSigningPage` PENDING_PROVIDER handling |
-| `app/.../public-signing/types.ts` | `'processing'` added to step union |
-| `app/.../public-signing/components/PublicSigningPage.tsx` | Retry loop in `handleProceed` + page load polling |
+| `processing` | Active attempt is rendering, submitting, retrying, or reconciling. |
+| `signing` | Provider signing reference is ready for this recipient. |
+| `waiting` | Multi-signer ordering blocks this recipient. |
+| `document_updated` | Token points at an old/superseded attempt. |
+| `unavailable` | Active attempt is failed permanently or requires manual review. |
 
-### Status Machine
+## Implementation Files
 
-```
-AWAITING_INPUT ──CAS──> PENDING_PROVIDER ──upload──> PENDING ──> IN_PROGRESS ──> COMPLETED
-                              │                                                    │
-                              └──crash/fail──> ERROR                    DECLINED ──┘
-                                                                        VOIDED
-                                                                        EXPIRED
-```
+| File | Responsibility |
+|---|---|
+| `core/internal/core/service/document/pre_signing_service.go` | Public token flow; creates/reuses active attempts; maps attempts to public steps. |
+| `core/internal/core/service/document/signing_session_service.go` | Authenticated signing session bootstrap; no provider upload outside attempts/River. |
+| `core/internal/core/port/signing_execution_uow.go` | Transactional signing execution operations. |
+| `core/internal/infra/riverqueue/uow.go` | PostgreSQL transactions + `river.InsertTx`. |
+| `core/internal/infra/riverqueue/attempt_workers.go` | River worker registrations for attempt phases. |
+| `core/internal/infra/riverqueue/executor.go` | Render, submit, retry, reconciliation, cleanup, and completion dispatch execution. |
+| `core/internal/adapters/secondary/database/postgres/signing_attempt_repo/` | Attempt persistence and constraints. |
+| `app/src/features/public-signing/components/PublicSigningPage.tsx` | Polling and user-safe public states. |
+| `app/src/features/public-signing/types.ts` | Public step type union. |
 
-### Known Limitations
+## Validation
 
-- If the winner crashes after the Documenso upload but before the final DB update, the background worker may upload again (duplicate in provider). This requires Documenso-side idempotency to fully solve.
-- ERROR documents without `SignerDocumentID` cannot be retried by the retry worker.
+The clean-slate implementation was validated with:
+
+- Unit tests for projection and stale/no-op behavior.
+- PostgreSQL/River integration tests for single active attempt, constraints, transactional enqueue, deduplication, supersede cleanup, and stale completion dispatch.
+- Failpoint-driven live scenarios for render failure, PDF checksum failure, transient/ambiguous provider failures, stale jobs, late webhooks, cleanup failure, and restart-safe recovery.
+- Live Documenso/public-signing E2E for direct `SIGNING` and form-first `PRE_SIGNING` through signed PDF download.
+
+See: `docs/superpowers/evidence/2026-04-22-signing-attempts-river.md`.

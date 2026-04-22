@@ -61,14 +61,6 @@ type DocumentUseCase interface {
 	// HandleWebhookEvent processes an incoming webhook event from the signing provider.
 	HandleWebhookEvent(ctx context.Context, event *port.WebhookEvent) error
 
-	// ProcessPendingDocuments polls the signing provider for documents that need status updates.
-	// This is used as a fallback/reconciliation mechanism alongside webhooks.
-	ProcessPendingDocuments(ctx context.Context, limit int) error
-
-	// ProcessPendingProviderDocuments uploads PENDING_PROVIDER documents to the signing provider.
-	// These are documents whose PDF is ready but upload was deferred or failed on initial attempt.
-	ProcessPendingProviderDocuments(ctx context.Context, limit int) error
-
 	// GetDocumentsByExternalRef finds documents by the client's external reference ID.
 	GetDocumentsByExternalRef(ctx context.Context, workspaceID, externalRef string) ([]*entity.Document, error)
 
@@ -84,11 +76,6 @@ type DocumentUseCase interface {
 
 	// ExpireDocuments finds and expires documents that have passed their expiration time.
 	ExpireDocuments(ctx context.Context, limit int) error
-
-	// RetryErrorDocuments finds ERROR documents eligible for retry and attempts recovery.
-	// Documents with a signer_document_id are polled for status updates.
-	// Pre-provider errors are recovered back to the signing pipeline.
-	RetryErrorDocuments(ctx context.Context, maxRetries, limit int) error
 
 	// CreateDocumentsBatch creates multiple documents in a single batch.
 	// Per-document errors are captured in results rather than failing the entire batch.

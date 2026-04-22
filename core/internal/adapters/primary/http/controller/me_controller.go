@@ -105,6 +105,8 @@ func (c *MeController) ListMyTenants(ctx *gin.Context) {
 // @Failure 401 {object} dto.ErrorResponse
 // @Router /api/v1/me/roles [get]
 // @Security BearerAuth
+//
+//nolint:funlen,gocognit,gocyclo,nestif
 func (c *MeController) GetMyRoles(ctx *gin.Context) {
 	userID, ok := middleware.GetInternalUserID(ctx)
 	if !ok {

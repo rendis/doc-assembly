@@ -1761,17 +1761,17 @@
     "status": {
       "DRAFT": "Borrador",
       "AWAITING_INPUT": "Esperando Respuesta",
-      "PENDING_PROVIDER": "Procesando",
-      "PENDING": "Pendiente",
-      "IN_PROGRESS": "En Progreso",
+      "PREPARING_SIGNATURE": "Procesando",
+      "READY_TO_SIGN": "Listo para firmar",
+      "SIGNING": "Firmando",
       "COMPLETED": "Completado",
       "DECLINED": "Rechazado",
-      "VOIDED": "Anulado",
-      "EXPIRED": "Expirado",
+      "CANCELLED": "Cancelado",
+      "INVALIDATED": "Invalidado",
       "ERROR": "Error"
     },
     "recipientStatus": {
-      "PENDING": "Pendiente",
+      "READY_TO_SIGN": "Listo para firmar",
       "SENT": "Enviado",
       "DELIVERED": "Entregado",
       "SIGNED": "Firmado",
@@ -1864,6 +1864,18 @@
       "notFoundDescription": "Este documento no existe o ya no esta disponible.",
       "unavailable": "Documento No Disponible",
       "unavailableDescription": "Este documento ya no esta disponible para firma."
+    },
+    "processing": {
+      "title": "Preparando documento",
+      "message": "Estamos preparando tu sesión de firma. Esta página se actualizará automáticamente."
+    },
+    "documentUpdated": {
+      "title": "Documento actualizado",
+      "message": "Este enlace pertenece a una versión anterior del documento. Solicita un enlace nuevo para continuar."
+    },
+    "unavailable": {
+      "title": "Firma no disponible",
+      "message": "Este documento no puede firmarse en este momento. Contacta a soporte."
     }
   }
 }

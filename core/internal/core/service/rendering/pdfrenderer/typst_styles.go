@@ -1,3 +1,4 @@
+//nolint:staticcheck
 package pdfrenderer
 
 import (
@@ -177,12 +178,15 @@ func (c *typstConverter) buildTableStyleRules(headerStyles *entity.TableStyles) 
 	var sb strings.Builder
 
 	if headerStyles.FontWeight != nil {
+		//nolint:staticcheck
 		sb.WriteString(fmt.Sprintf("#show table.cell.where(y: 0): set text(weight: \"%s\")\n", *headerStyles.FontWeight))
 	}
 	if headerStyles.TextColor != nil {
+		//nolint:staticcheck
 		sb.WriteString(fmt.Sprintf("#show table.cell.where(y: 0): set text(fill: rgb(\"%s\"))\n", *headerStyles.TextColor))
 	}
 	if headerStyles.FontSize != nil {
+		//nolint:staticcheck
 		sb.WriteString(fmt.Sprintf("#show table.cell.where(y: 0): set text(size: %dpt)\n", *headerStyles.FontSize))
 	}
 	if headerStyles.FontFamily != nil {

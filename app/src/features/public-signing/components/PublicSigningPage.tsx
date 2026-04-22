@@ -84,17 +84,12 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     new Set(),
   )
 
-  // Load signing page state. If the document is being processed (another signer
-  // triggered render), poll until the status advances.
+  // Load signing page state.
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        let data = await getPublicSigningPage(token)
-        while (!cancelled && data.step === 'processing') {
-          await new Promise((resolve) => setTimeout(resolve, 3_000))
-          data = await getPublicSigningPage(token)
-        }
+        const data = await getPublicSigningPage(token)
         if (!cancelled) {
           setPageState({ status: 'loaded', data })
         }
@@ -108,6 +103,28 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
       cancelled = true
     }
   }, [token, t])
+
+  // Poll while River prepares the attempt.
+  useEffect(() => {
+    if (pageState.status !== 'loaded' || pageState.data.step !== 'processing') {
+      return
+    }
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      try {
+        const data = await getPublicSigningPage(token)
+        if (!cancelled) {
+          setPageState({ status: 'loaded', data })
+        }
+      } catch (err) {
+        if (!cancelled) handleLoadError(err, setPageState, t)
+      }
+    }, 3_000)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [pageState, token, t])
 
   // Handle response changes.
   const handleResponseChange = useCallback(
@@ -200,19 +217,13 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
   }, [pageState, agreed, responses, token, validate, t])
 
   // Handle proceed to signing (Path A).
-  // If another signer is already rendering, the backend returns step='processing'.
-  // Retry with backoff until the document is ready.
   const handleProceed = useCallback(async () => {
     if (pageState.status !== 'loaded') return
 
     setPageState({ status: 'proceeding', data: pageState.data })
 
     try {
-      let result = await proceedToSigning(token)
-      while (result.step === 'processing') {
-        await new Promise((resolve) => setTimeout(resolve, 3_000))
-        result = await proceedToSigning(token)
-      }
+      const result = await proceedToSigning(token)
       setPageState({ status: 'loaded', data: result })
     } catch (err) {
       handleSubmitError(err, setPageState, t)
@@ -299,6 +310,18 @@ export function PublicSigningPage({ token }: PublicSigningPageProps) {
     data.documentTitle,
     t('publicSigning.access.documentTitle'),
   )
+
+  if (data.step === 'processing') {
+    return <ProcessingScreen documentTitle={displayDocumentTitle} />
+  }
+
+  if (data.step === 'document_updated') {
+    return <DocumentUpdatedScreen documentTitle={displayDocumentTitle} />
+  }
+
+  if (data.step === 'unavailable') {
+    return <UnavailableScreen documentTitle={displayDocumentTitle} />
+  }
 
   // Step: completed.
   if (data.step === 'completed') {
@@ -537,6 +560,57 @@ function ErrorScreen({ code, message }: { code: string; message: string }) {
         <p className="text-sm text-muted-foreground">{message}</p>
       </div>
     </div>
+  )
+}
+
+function ProcessingScreen({ documentTitle }: { documentTitle: string }) {
+  const { t } = useTranslation()
+  return (
+    <PageShell documentTitle={documentTitle}>
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-6 text-center">
+        <Loader2 size={36} className="mb-4 animate-spin text-primary" />
+        <h1 className="text-xl font-semibold text-foreground">
+          {t('publicSigning.processing.title')}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('publicSigning.processing.message')}
+        </p>
+      </div>
+    </PageShell>
+  )
+}
+
+function DocumentUpdatedScreen({ documentTitle }: { documentTitle: string }) {
+  const { t } = useTranslation()
+  return (
+    <PageShell documentTitle={documentTitle}>
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-6 text-center">
+        <AlertCircle size={40} className="mb-4 text-amber-600" />
+        <h1 className="text-xl font-semibold text-foreground">
+          {t('publicSigning.documentUpdated.title')}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('publicSigning.documentUpdated.message')}
+        </p>
+      </div>
+    </PageShell>
+  )
+}
+
+function UnavailableScreen({ documentTitle }: { documentTitle: string }) {
+  const { t } = useTranslation()
+  return (
+    <PageShell documentTitle={documentTitle}>
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-6 text-center">
+        <XCircle size={40} className="mb-4 text-destructive" />
+        <h1 className="text-xl font-semibold text-foreground">
+          {t('publicSigning.unavailable.title')}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('publicSigning.unavailable.message')}
+        </p>
+      </div>
+    </PageShell>
   )
 }
 

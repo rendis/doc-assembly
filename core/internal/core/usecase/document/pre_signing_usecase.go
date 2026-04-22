@@ -14,12 +14,12 @@ type PreSigningUseCase interface {
 	// The response step depends on the document status and token type.
 	GetPublicSigningPage(ctx context.Context, token string) (*PublicSigningResponse, error)
 
-	// SubmitPreSigningForm submits field responses and triggers the signing flow.
-	// Returns the signing page state with embedded signing URL.
+	// SubmitPreSigningForm submits field responses and returns the updated preview state.
+	// Provider submission happens only after ProceedToSigning creates/reuses an attempt and River processes it.
 	SubmitPreSigningForm(ctx context.Context, token string, responses []FieldResponseInput) (*PublicSigningResponse, error)
 
-	// ProceedToSigning renders, uploads to provider, and returns embedded signing URL.
-	// Accepts both SIGNING (Path A) and PRE_SIGNING (Path B) tokens.
+	// ProceedToSigning creates or reuses the active signing attempt and enqueues River work.
+	// Accepts both SIGNING (Path A) and PRE_SIGNING (Path B) tokens; callers usually receive processing until River prepares signing refs.
 	ProceedToSigning(ctx context.Context, token string) (*PublicSigningResponse, error)
 
 	// RenderPreviewPDF renders the document PDF on-demand for preview (no storage).
@@ -45,10 +45,13 @@ type PreSigningUseCase interface {
 type PublicSigningResponse struct {
 	// Step indicates the current signing flow step.
 	// "preview" = show form (Path B) or PDF preview (Path A)
+	// "processing" = River is preparing/retrying/reconciling the active attempt
 	// "signing" = show embedded signing iframe
 	// "waiting" = waiting for previous signers
 	// "completed" = signing completed
 	// "declined" = document was declined
+	// "document_updated" = token points at a superseded/invalidated attempt
+	// "unavailable" = active attempt failed or requires review
 	Step string `json:"step"`
 
 	// Form contains the pre-signing form data (step=preview, Path B).
@@ -96,12 +99,14 @@ type PublicSigningResponse struct {
 
 // Signing step constants.
 const (
-	StepPreview    = "preview"
-	StepSigning    = "signing"
-	StepWaiting    = "waiting"
-	StepCompleted  = "completed"
-	StepDeclined   = "declined"
-	StepProcessing = "processing"
+	StepPreview         = "preview"
+	StepSigning         = "signing"
+	StepWaiting         = "waiting"
+	StepCompleted       = "completed"
+	StepDeclined        = "declined"
+	StepProcessing      = "processing"
+	StepDocumentUpdated = "document_updated"
+	StepUnavailable     = "unavailable"
 )
 
 // FieldResponseInput represents a single field response from the signer.

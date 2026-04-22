@@ -39,8 +39,8 @@ import { CancelDocumentDialog } from './CancelDocumentDialog'
 const TERMINAL_STATUSES: string[] = [
   SigningDocumentStatus.COMPLETED,
   SigningDocumentStatus.DECLINED,
-  SigningDocumentStatus.VOIDED,
-  SigningDocumentStatus.EXPIRED,
+  SigningDocumentStatus.CANCELLED,
+  SigningDocumentStatus.INVALIDATED,
   SigningDocumentStatus.ERROR,
 ]
 

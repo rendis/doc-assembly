@@ -1,12 +1,12 @@
-// Package riverqueue implements background job processing for document
-// completion events using River, a PostgreSQL-native job queue.
-// See docs/backend/worker-queue-guide.md for architecture and flow diagrams.
+// Package riverqueue implements attempt-scoped background signing jobs using
+// River, a PostgreSQL-native durable queue.
 package riverqueue
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,26 +18,32 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/infra/config"
 )
 
-// RiverService manages the River client lifecycle and exposes the notifier.
+// RiverService manages the River client lifecycle and exposes signing attempt UoW.
 type RiverService struct {
 	client         *river.Client[pgx.Tx]
-	notifier       *Notifier
+	signingUOW     *SigningExecutionUnitOfWork
 	workersEnabled bool
 }
 
-// New creates a RiverService: runs migrations, registers the worker, and
-// builds the River client. When cfg.Enabled is false the client operates in
-// insert-only mode (no queue processing).
-func New(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	cfg config.WorkerConfig,
-	handler port.DocumentCompletedHandler,
-	docUpdater documentUpdater,
-) (*RiverService, error) {
+type Dependencies struct {
+	DocumentRepo      port.DocumentRepository
+	RecipientRepo     port.DocumentRecipientRepository
+	AttemptRepo       port.SigningAttemptRepository
+	VersionRepo       port.TemplateVersionRepository
+	SignerRoleRepo    port.TemplateVersionSignerRoleRepository
+	FieldResponseRepo port.DocumentFieldResponseRepository
+	PDFRenderer       port.PDFRenderer
+	SigningProvider   port.SigningProvider
+	StorageAdapter    port.StorageAdapter
+	StorageEnabled    bool
+	CompletionHandler port.DocumentCompletedHandler
+}
+
+// New creates a RiverService. When cfg.Enabled is false the client operates in
+// insert-only mode: jobs can be transactionally enqueued, but not processed.
+func New(ctx context.Context, pool *pgxpool.Pool, cfg config.WorkerConfig, deps Dependencies) (*RiverService, error) {
 	driver := riverpgxv5.New(pool)
 
-	// Run River schema migrations programmatically.
 	migrator, err := rivermigrate.New(driver, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating river migrator: %w", err)
@@ -46,50 +52,58 @@ func New(
 		return nil, fmt.Errorf("running river migrations: %w", err)
 	}
 
-	// Build River config. When disabled, omit Workers and Queues so the client
-	// operates in insert-only mode (River requires both or neither).
 	riverCfg := &river.Config{}
+	var executor *SigningAttemptExecutor
 	if cfg.Enabled {
 		workers := river.NewWorkers()
-		river.AddWorker(workers, &DocumentCompletedWorker{
-			handler: handler,
-			pool:    pool,
+		executor = NewSigningAttemptExecutor(SigningAttemptExecutorConfig{
+			Pool:              pool,
+			DocumentRepo:      deps.DocumentRepo,
+			RecipientRepo:     deps.RecipientRepo,
+			AttemptRepo:       deps.AttemptRepo,
+			VersionRepo:       deps.VersionRepo,
+			SignerRoleRepo:    deps.SignerRoleRepo,
+			FieldResponseRepo: deps.FieldResponseRepo,
+			PDFRenderer:       deps.PDFRenderer,
+			SigningProvider:   deps.SigningProvider,
+			StorageAdapter:    deps.StorageAdapter,
+			StorageEnabled:    deps.StorageEnabled,
+			CompletionHandler: deps.CompletionHandler,
+			Failpoints:        workerFailpoints(cfg),
 		})
+		river.AddWorker(workers, &RenderAttemptPDFWorker{executor: executor})
+		river.AddWorker(workers, &SubmitAttemptToProviderWorker{executor: executor})
+		river.AddWorker(workers, &ReconcileProviderSubmissionWorker{executor: executor})
+		river.AddWorker(workers, &RefreshAttemptProviderStatusWorker{executor: executor})
+		river.AddWorker(workers, &CleanupProviderAttemptWorker{executor: executor})
+		river.AddWorker(workers, &DispatchAttemptCompletionWorker{executor: executor})
 		riverCfg.Workers = workers
-		riverCfg.Queues = map[string]river.QueueConfig{
-			river.QueueDefault: {MaxWorkers: cfg.MaxWorkersOrDefault()},
-		}
+		riverCfg.Queues = map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: cfg.MaxWorkersOrDefault()}}
 	}
 
 	client, err := river.NewClient(driver, riverCfg)
 	if err != nil {
 		return nil, fmt.Errorf("creating river client: %w", err)
 	}
-
-	notifier := &Notifier{
-		pool:       pool,
-		client:     client,
-		docUpdater: docUpdater,
+	if executor != nil {
+		executor.client = client
 	}
 
-	slog.InfoContext(ctx, "river queue initialized",
-		slog.Bool("workers_enabled", cfg.Enabled),
-		slog.Int("max_workers", cfg.MaxWorkersOrDefault()),
-	)
-
-	return &RiverService{
-		client:         client,
-		notifier:       notifier,
-		workersEnabled: cfg.Enabled,
-	}, nil
+	signingUOW := NewSigningExecutionUnitOfWork(pool, client, deps.AttemptRepo)
+	slog.InfoContext(ctx, "river signing queue initialized", slog.Bool("workers_enabled", cfg.Enabled), slog.Int("max_workers", cfg.MaxWorkersOrDefault()))
+	return &RiverService{client: client, signingUOW: signingUOW, workersEnabled: cfg.Enabled}, nil
 }
 
-// Notifier returns the DocumentCompletionNotifier for use by the document service.
-func (r *RiverService) Notifier() port.DocumentCompletionNotifier {
-	return r.notifier
+func workerFailpoints(cfg config.WorkerConfig) AttemptFailpoints {
+	env := strings.ToLower(strings.TrimSpace(cfg.RuntimeEnvironment))
+	if !cfg.FailpointsEnabled || env == "production" || env == "prod" {
+		return nil
+	}
+	return newAttemptFailpoints(cfg.Failpoints)
 }
 
-// Start begins processing jobs. No-op when workers are disabled (insert-only mode).
+func (r *RiverService) SigningExecutionUOW() port.SigningExecutionUnitOfWork { return r.signingUOW }
+
 func (r *RiverService) Start(ctx context.Context) error {
 	if !r.workersEnabled {
 		return nil
@@ -97,7 +111,6 @@ func (r *RiverService) Start(ctx context.Context) error {
 	return r.client.Start(ctx)
 }
 
-// Stop gracefully shuts down the River client. No-op when workers are disabled.
 func (r *RiverService) Stop(ctx context.Context) error {
 	if !r.workersEnabled {
 		return nil

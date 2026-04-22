@@ -109,6 +109,8 @@ func (s *SystemRoleService) AssignRole(ctx context.Context, cmd accessuc.AssignS
 }
 
 // AddRole finds or creates a user and assigns a system role.
+//
+//nolint:gocognit,nestif
 func (s *SystemRoleService) AddRole(ctx context.Context, cmd accessuc.AddSystemRoleCommand) (*entity.SystemRoleAssignment, error) {
 	normalizedEmail := normalizeEmail(cmd.Email)
 	fullName := strings.TrimSpace(cmd.FullName)

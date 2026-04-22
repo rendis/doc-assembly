@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -20,6 +22,8 @@ import (
 func NewDocumentService(
 	documentRepo port.DocumentRepository,
 	recipientRepo port.DocumentRecipientRepository,
+	attemptRepo port.SigningAttemptRepository,
+	signingUOW port.SigningExecutionUnitOfWork,
 	templateRepo port.TemplateRepository,
 	versionRepo port.TemplateVersionRepository,
 	signerRoleRepo port.TemplateVersionSignerRoleRepository,
@@ -36,6 +40,8 @@ func NewDocumentService(
 	return &DocumentService{
 		documentRepo:      documentRepo,
 		recipientRepo:     recipientRepo,
+		attemptRepo:       attemptRepo,
+		signingUOW:        signingUOW,
 		templateRepo:      templateRepo,
 		versionRepo:       versionRepo,
 		signerRoleRepo:    signerRoleRepo,
@@ -55,6 +61,8 @@ func NewDocumentService(
 type DocumentService struct {
 	documentRepo      port.DocumentRepository
 	recipientRepo     port.DocumentRecipientRepository
+	attemptRepo       port.SigningAttemptRepository
+	signingUOW        port.SigningExecutionUnitOfWork
 	templateRepo      port.TemplateRepository
 	versionRepo       port.TemplateVersionRepository
 	signerRoleRepo    port.TemplateVersionSignerRoleRepository
@@ -67,25 +75,6 @@ type DocumentService struct {
 	accessTokenRepo   port.DocumentAccessTokenRepository
 	fieldResponseRepo port.DocumentFieldResponseRepository
 	storageEnabled    bool
-
-	completionNotifier port.DocumentCompletionNotifier
-}
-
-// SetCompletionNotifier sets the notifier used for transactional document
-// completion processing. When set, completed documents are persisted and
-// enqueued atomically.
-func (s *DocumentService) SetCompletionNotifier(n port.DocumentCompletionNotifier) {
-	s.completionNotifier = n
-}
-
-// persistDocUpdate persists a document update. For completed documents with
-// a configured notifier, it uses PersistAndNotify for transactional atomicity.
-// Otherwise it falls back to the standard repository update.
-func (s *DocumentService) persistDocUpdate(ctx context.Context, doc *entity.Document) error {
-	if doc.IsCompleted() && s.completionNotifier != nil {
-		return s.completionNotifier.PersistAndNotify(ctx, doc)
-	}
-	return s.documentRepo.Update(ctx, doc)
 }
 
 // CreateAndSendDocument creates a document, generates the PDF, and sends it for signing.
@@ -325,126 +314,62 @@ func (s *DocumentService) GetSigningURL(ctx context.Context, documentID, recipie
 	if err != nil {
 		return "", fmt.Errorf("finding document: %w", err)
 	}
-
-	if !doc.HasSignerInfo() {
-		return "", fmt.Errorf("document has not been sent to signing provider")
+	if doc.ActiveAttemptID == nil || *doc.ActiveAttemptID == "" {
+		return "", entity.ErrSigningAttemptNotFound
 	}
-
-	recipient, err := s.recipientRepo.FindByID(ctx, recipientID)
+	attempt, err := s.attemptRepo.FindByID(ctx, *doc.ActiveAttemptID)
 	if err != nil {
-		return "", fmt.Errorf("finding recipient: %w", err)
+		return "", fmt.Errorf("finding active signing attempt: %w", err)
 	}
-
-	if recipient.DocumentID != documentID {
-		return "", fmt.Errorf("recipient does not belong to this document")
+	if attempt.ProviderDocumentID == nil || *attempt.ProviderDocumentID == "" {
+		return "", fmt.Errorf("signing provider document is not ready")
 	}
-
-	if !recipient.HasSignerInfo() {
-		return "", fmt.Errorf("recipient has not been registered with signing provider")
-	}
-
-	result, err := s.signingProvider.GetSigningURL(ctx, &port.GetSigningURLRequest{
-		ProviderDocumentID:  *doc.SignerDocumentID,
-		ProviderRecipientID: *recipient.SignerRecipientID,
-	})
+	attemptRecipients, err := s.attemptRepo.FindRecipientsByAttemptID(ctx, attempt.ID)
 	if err != nil {
-		return "", fmt.Errorf("getting signing URL: %w", err)
+		return "", fmt.Errorf("finding attempt recipients: %w", err)
 	}
-
-	return result.SigningURL, nil
+	for _, r := range attemptRecipients {
+		if r.DocumentRecipientID == nil || *r.DocumentRecipientID != recipientID || r.ProviderRecipientID == nil {
+			continue
+		}
+		result, err := s.signingProvider.GetAttemptRecipientEmbeddedURL(ctx, &port.GetAttemptRecipientEmbeddedURLRequest{
+			ProviderDocumentID:  *attempt.ProviderDocumentID,
+			ProviderRecipientID: *r.ProviderRecipientID,
+			Environment:         entity.EnvironmentProd,
+		})
+		if err != nil {
+			return "", fmt.Errorf("getting attempt signing URL: %w", err)
+		}
+		return result.EmbeddedURL, nil
+	}
+	return "", entity.ErrRecordNotFound
 }
 
-// RefreshDocumentStatus polls the signing provider for the latest status.
+// RefreshDocumentStatus requests an attempt-scoped River refresh and returns the current projection.
 func (s *DocumentService) RefreshDocumentStatus(ctx context.Context, documentID string) (*entity.DocumentWithRecipients, error) {
 	doc, err := s.documentRepo.FindByID(ctx, documentID)
 	if err != nil {
 		return nil, fmt.Errorf("finding document: %w", err)
 	}
-
-	if !doc.HasSignerInfo() {
-		return nil, fmt.Errorf("document has not been sent to signing provider")
-	}
-
-	if doc.IsTerminal() {
+	if doc.ActiveAttemptID == nil || *doc.ActiveAttemptID == "" {
 		return s.documentRepo.FindByIDWithRecipients(ctx, documentID)
 	}
-
-	oldStatus := string(doc.Status)
-
-	statusResult, err := s.signingProvider.GetDocumentStatus(ctx, &port.GetDocumentStatusRequest{ProviderDocumentID: *doc.SignerDocumentID})
+	attempt, err := s.attemptRepo.FindByID(ctx, *doc.ActiveAttemptID)
 	if err != nil {
-		return nil, fmt.Errorf("getting document status: %w", err)
+		return nil, fmt.Errorf("finding active signing attempt: %w", err)
 	}
-
-	if err := s.updateDocumentFromStatus(ctx, doc, statusResult); err != nil {
-		return nil, err
+	if attempt.ProviderDocumentID == nil || attempt.IsTerminal() {
+		return s.documentRepo.FindByIDWithRecipients(ctx, documentID)
 	}
-
-	if err := s.updateRecipientsFromStatus(ctx, documentID, statusResult.Recipients); err != nil {
-		return nil, err
+	if err := s.signingUOW.TransitionAndEnqueue(ctx, attempt, port.SigningJobPhaseRefreshProviderStatus, "ATTEMPT_REFRESH_REQUESTED"); err != nil {
+		return nil, fmt.Errorf("enqueueing attempt refresh: %w", err)
 	}
-
-	s.eventEmitter.EmitDocumentEvent(ctx, documentID, entity.EventStatusRefreshed, entity.ActorSystem, "", oldStatus, string(doc.Status), nil)
-
 	return s.documentRepo.FindByIDWithRecipients(ctx, documentID)
 }
 
-// updateDocumentFromStatus updates the document with status from the signing provider.
-func (s *DocumentService) updateDocumentFromStatus(ctx context.Context, doc *entity.Document, statusResult *port.DocumentStatusResult) error {
-	if err := doc.UpdateStatus(statusResult.Status); err != nil {
-		slog.WarnContext(ctx, "failed to update document status", slog.String("error", err.Error()))
-	}
-
-	if statusResult.CompletedPDFURL != nil {
-		doc.SetCompletedPDFURL(*statusResult.CompletedPDFURL)
-	}
-
-	if err := s.persistDocUpdate(ctx, doc); err != nil {
-		return fmt.Errorf("updating document: %w", err)
-	}
-
-	if doc.IsCompleted() {
-		s.downloadAndStorePDF(ctx, doc)
-	}
-
-	return nil
-}
-
-// updateRecipientsFromStatus updates recipients with their statuses from the signing provider.
-func (s *DocumentService) updateRecipientsFromStatus(ctx context.Context, documentID string, recipientStatuses []port.RecipientStatusResult) error {
-	recipients, err := s.recipientRepo.FindByDocumentID(ctx, documentID)
-	if err != nil {
-		return fmt.Errorf("finding recipients: %w", err)
-	}
-
-	for _, recipientStatus := range recipientStatuses {
-		s.updateSingleRecipientFromStatus(ctx, recipients, recipientStatus)
-	}
-
-	return nil
-}
-
-// updateSingleRecipientFromStatus updates a single recipient's status.
-func (s *DocumentService) updateSingleRecipientFromStatus(ctx context.Context, recipients []*entity.DocumentRecipient, status port.RecipientStatusResult) {
-	for _, recipient := range recipients {
-		if recipient.SignerRecipientID == nil || *recipient.SignerRecipientID != status.ProviderRecipientID {
-			continue
-		}
-
-		if err := recipient.UpdateStatus(status.Status); err != nil {
-			slog.WarnContext(ctx, "failed to update recipient status", slog.String("error", err.Error()))
-		}
-		if status.SignedAt != nil {
-			recipient.SignedAt = status.SignedAt
-		}
-		if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-			slog.WarnContext(ctx, "failed to update recipient", slog.String("error", err.Error()))
-		}
-		break
-	}
-}
-
 // CancelDocument cancels/voids a document that is pending signatures.
+//
+//nolint:nestif
 func (s *DocumentService) CancelDocument(ctx context.Context, documentID string) error {
 	doc, err := s.documentRepo.FindByID(ctx, documentID)
 	if err != nil {
@@ -457,21 +382,24 @@ func (s *DocumentService) CancelDocument(ctx context.Context, documentID string)
 		return fmt.Errorf("cannot cancel document in terminal state: %s", doc.Status)
 	}
 
-	if doc.HasSignerInfo() {
-		if err := s.signingProvider.CancelDocument(ctx, &port.CancelDocumentRequest{ProviderDocumentID: *doc.SignerDocumentID}); err != nil {
-			return fmt.Errorf("canceling document with provider: %w", err)
+	if doc.ActiveAttemptID != nil && *doc.ActiveAttemptID != "" {
+		attempt, err := s.attemptRepo.FindByID(ctx, *doc.ActiveAttemptID)
+		if err != nil {
+			return fmt.Errorf("finding active attempt: %w", err)
+		}
+		if err := s.signingUOW.TerminateActiveAttempt(ctx, attempt, entity.SigningAttemptStatusCancelled, "cancelled by user", "ATTEMPT_CANCELLED"); err != nil {
+			return fmt.Errorf("cancelling active attempt: %w", err)
+		}
+	} else {
+		if err := doc.MarkAsVoided(); err != nil {
+			return fmt.Errorf("marking document as cancelled: %w", err)
+		}
+		if err := s.documentRepo.Update(ctx, doc); err != nil {
+			return fmt.Errorf("updating document: %w", err)
 		}
 	}
 
-	if err := doc.MarkAsVoided(); err != nil {
-		return fmt.Errorf("marking document as voided: %w", err)
-	}
-
-	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		return fmt.Errorf("updating document: %w", err)
-	}
-
-	s.eventEmitter.EmitDocumentEvent(ctx, documentID, entity.EventDocumentCancelled, entity.ActorUser, "", oldStatus, string(entity.DocumentStatusVoided), nil)
+	s.eventEmitter.EmitDocumentEvent(ctx, documentID, entity.EventDocumentCancelled, entity.ActorUser, "", oldStatus, string(entity.DocumentStatusCancelled), nil)
 
 	slog.InfoContext(ctx, "document cancelled", slog.String("document_id", documentID))
 
@@ -479,319 +407,150 @@ func (s *DocumentService) CancelDocument(ctx context.Context, documentID string)
 }
 
 // HandleWebhookEvent processes an incoming webhook event from the signing provider.
+//
+//nolint:gocognit,gocyclo,nestif,funlen
 func (s *DocumentService) HandleWebhookEvent(ctx context.Context, event *port.WebhookEvent) error {
-	doc, err := s.documentRepo.FindBySignerDocumentID(ctx, event.ProviderDocumentID)
+	attempt, err := s.findAttemptForWebhook(ctx, event)
 	if err != nil {
-		// Fallback: if externalId was set to our document UUID, try direct lookup
-		doc, err = s.documentRepo.FindByID(ctx, event.ProviderDocumentID)
-		if err != nil {
-			return fmt.Errorf("finding document by provider ID: %w", err)
-		}
+		return fmt.Errorf("finding signing attempt for webhook: %w", err)
+	}
+	doc, err := s.documentRepo.FindByID(ctx, attempt.DocumentID)
+	if err != nil {
+		return fmt.Errorf("finding webhook document: %w", err)
 	}
 
-	slog.InfoContext(ctx, "processing webhook event",
+	slog.InfoContext(ctx, "processing attempt webhook event",
 		slog.String("event_type", event.EventType),
 		slog.String("document_id", doc.ID),
+		slog.String("attempt_id", attempt.ID),
 		slog.String("provider_document_id", event.ProviderDocumentID),
 	)
 
-	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventWebhookReceived, entity.ActorWebhook, "", "", "", json.RawMessage(event.RawPayload))
+	newStatus := attempt.Status
+	oldStatus := attempt.Status
+	if event.DocumentStatus != nil {
+		newStatus = *event.DocumentStatus
+		attempt.Status = newStatus
+	}
+	if event.ProviderCorrelationKey != "" {
+		attempt.ProviderCorrelationKey = &event.ProviderCorrelationKey
+	}
+	if event.ProviderDocumentID != "" {
+		attempt.ProviderDocumentID = &event.ProviderDocumentID
+	}
+	if event.DocumentStatus != nil && attempt.Status.IsTerminal() {
+		now := time.Now().UTC()
+		attempt.TerminalAt = &now
+	}
+	if event.ProviderRecipientID != "" && event.RecipientStatus != nil {
+		if err := s.updateAttemptRecipientFromWebhook(ctx, attempt.ID, event.ProviderRecipientID, *event.RecipientStatus); err != nil {
+			slog.WarnContext(ctx, "failed to update attempt recipient from webhook", slog.String("error", err.Error()))
+		}
+	}
+	if event.DocumentStatus != nil && *event.DocumentStatus == entity.SigningAttemptStatusCompleted {
+		if err := s.markAttemptRecipientsSigned(ctx, attempt.ID); err != nil {
+			return fmt.Errorf("marking completed attempt recipients signed: %w", err)
+		}
+	}
 
-	oldStatus := string(doc.Status)
+	// Historical attempts are auditable only; they must never mutate the active document projection.
+	if doc.ActiveAttemptID == nil || *doc.ActiveAttemptID != attempt.ID {
+		if err := s.attemptRepo.Update(ctx, attempt); err != nil {
+			return fmt.Errorf("updating historical webhook attempt: %w", err)
+		}
+		_ = s.attemptRepo.InsertEvent(ctx, &entity.SigningAttemptEvent{AttemptID: attempt.ID, DocumentID: attempt.DocumentID, EventType: "ATTEMPT_WEBHOOK_RECEIVED", OldStatus: &oldStatus, NewStatus: &newStatus, ProviderName: &event.ProviderName, ProviderDocumentID: &event.ProviderDocumentID, CorrelationKey: &event.ProviderCorrelationKey, RawPayload: event.RawPayload})
+		return nil
+	}
+	if event.DocumentStatus != nil {
+		if *event.DocumentStatus == entity.SigningAttemptStatusCompleted {
+			if err := s.signingUOW.TransitionAndEnqueue(ctx, attempt, port.SigningJobPhaseDispatchCompletion, "ATTEMPT_COMPLETED"); err != nil {
+				return fmt.Errorf("persisting completed attempt from webhook: %w", err)
+			}
+		} else if err := s.signingUOW.Transition(ctx, attempt, "ATTEMPT_WEBHOOK_STATUS_UPDATED"); err != nil {
+			return fmt.Errorf("persisting active attempt from webhook: %w", err)
+		}
+	} else if err := s.attemptRepo.Update(ctx, attempt); err != nil {
+		return fmt.Errorf("updating active webhook attempt: %w", err)
+	}
+	_ = s.attemptRepo.InsertEvent(ctx, &entity.SigningAttemptEvent{AttemptID: attempt.ID, DocumentID: attempt.DocumentID, EventType: "ATTEMPT_WEBHOOK_RECEIVED", OldStatus: &oldStatus, NewStatus: &newStatus, ProviderName: &event.ProviderName, ProviderDocumentID: &event.ProviderDocumentID, CorrelationKey: &event.ProviderCorrelationKey, RawPayload: event.RawPayload})
+	return nil
+}
 
-	if err := s.processDocumentStatusFromWebhook(ctx, doc, event); err != nil {
+func (s *DocumentService) findAttemptForWebhook(ctx context.Context, event *port.WebhookEvent) (*entity.SigningAttempt, error) {
+	if event.ProviderDocumentID != "" {
+		attempt, err := s.attemptRepo.FindByProviderDocumentID(ctx, event.ProviderName, event.ProviderDocumentID)
+		if err == nil {
+			return attempt, nil
+		}
+		if !errors.Is(err, entity.ErrRecordNotFound) || event.ProviderCorrelationKey == "" {
+			return nil, err
+		}
+	}
+	if event.ProviderCorrelationKey != "" {
+		return s.attemptRepo.FindByProviderCorrelationKey(ctx, event.ProviderName, event.ProviderCorrelationKey)
+	}
+	return nil, entity.ErrRecordNotFound
+}
+
+func (s *DocumentService) updateAttemptRecipientFromWebhook(ctx context.Context, attemptID, providerRecipientID string, status entity.RecipientStatus) error {
+	recipients, err := s.attemptRepo.FindRecipientsByAttemptID(ctx, attemptID)
+	if err != nil {
 		return err
 	}
-
-	if event.DocumentStatus != nil && string(*event.DocumentStatus) != oldStatus {
-		s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, eventTypeFromDocumentStatus(*event.DocumentStatus), entity.ActorWebhook, "", oldStatus, string(*event.DocumentStatus), nil)
-	}
-
-	if event.ProviderRecipientID != "" && event.RecipientStatus != nil {
-		s.processRecipientStatusFromWebhook(ctx, doc, event)
-	}
-
-	return nil
-}
-
-// processDocumentStatusFromWebhook updates document status from webhook event.
-func (s *DocumentService) processDocumentStatusFromWebhook(ctx context.Context, doc *entity.Document, event *port.WebhookEvent) error {
-	if event.DocumentStatus != nil {
-		if err := doc.UpdateStatus(*event.DocumentStatus); err != nil {
-			slog.WarnContext(ctx, "failed to update document status from webhook",
-				slog.String("error", err.Error()),
-				slog.String("current_status", doc.Status.String()),
-				slog.String("new_status", event.DocumentStatus.String()),
-			)
-		}
-	}
-
-	if err := s.persistDocUpdate(ctx, doc); err != nil {
-		return fmt.Errorf("updating document: %w", err)
-	}
-
-	if doc.IsCompleted() {
-		s.downloadAndStorePDF(ctx, doc)
-	}
-
-	return nil
-}
-
-// processRecipientStatusFromWebhook processes recipient-specific webhook events.
-func (s *DocumentService) processRecipientStatusFromWebhook(ctx context.Context, doc *entity.Document, event *port.WebhookEvent) {
-	recipient, err := s.recipientRepo.FindBySignerRecipientID(ctx, event.ProviderRecipientID)
-	if err != nil {
-		slog.WarnContext(ctx, "recipient not found for webhook event",
-			slog.String("provider_recipient_id", event.ProviderRecipientID),
-		)
-		return
-	}
-
-	if err := recipient.UpdateStatus(*event.RecipientStatus); err != nil {
-		slog.WarnContext(ctx, "failed to update recipient status from webhook", slog.String("error", err.Error()))
-	}
-	if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-		slog.WarnContext(ctx, "failed to update recipient", slog.String("error", err.Error()))
-	}
-
-	s.updateDocumentStatusFromRecipient(ctx, doc, *event.RecipientStatus)
-}
-
-// updateDocumentStatusFromRecipient updates document status based on recipient status changes.
-func (s *DocumentService) updateDocumentStatusFromRecipient(ctx context.Context, doc *entity.Document, recipientStatus entity.RecipientStatus) {
-	switch recipientStatus {
-	case entity.RecipientStatusSigned:
-		allSigned, err := s.recipientRepo.AllSigned(ctx, doc.ID)
-		if err != nil {
-			slog.WarnContext(ctx, "failed to check all-signed status",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-			return
-		}
-		if !allSigned {
-			return
-		}
-		if err := doc.MarkAsCompleted(); err != nil {
-			slog.WarnContext(ctx, "failed to mark document as completed",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-			return
-		}
-		if err := s.persistDocUpdate(ctx, doc); err != nil {
-			slog.WarnContext(ctx, "failed to persist completed document",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-			return
-		}
-		s.downloadAndStorePDF(ctx, doc)
-
-	case entity.RecipientStatusDeclined:
-		if err := doc.MarkAsDeclined(); err != nil {
-			slog.WarnContext(ctx, "failed to mark document as declined",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-			return
-		}
-		if err := s.documentRepo.Update(ctx, doc); err != nil {
-			slog.WarnContext(ctx, "failed to persist declined document",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
-}
-
-// ProcessPendingDocuments polls the signing provider for documents that need status updates.
-func (s *DocumentService) ProcessPendingDocuments(ctx context.Context, limit int) error {
-	docs, err := s.documentRepo.FindPendingForPolling(ctx, limit)
-	if err != nil {
-		return fmt.Errorf("finding pending documents: %w", err)
-	}
-
-	for _, doc := range docs {
-		if _, err := s.RefreshDocumentStatus(ctx, doc.ID); err != nil {
-			slog.WarnContext(ctx, "failed to refresh document status",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
-
-	return nil
-}
-
-// ProcessPendingProviderDocuments uploads PENDING_PROVIDER documents to the signing provider.
-func (s *DocumentService) ProcessPendingProviderDocuments(ctx context.Context, limit int) error {
-	docs, err := s.documentRepo.FindPendingProviderForUpload(ctx, limit)
-	if err != nil {
-		return fmt.Errorf("finding PENDING_PROVIDER documents: %w", err)
-	}
-
-	for _, doc := range docs {
-		if err := s.uploadPendingProviderDocument(ctx, doc); err != nil {
-			slog.WarnContext(ctx, "failed to upload PENDING_PROVIDER document",
-				slog.String("document_id", doc.ID),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
-
-	return nil
-}
-
-// uploadPendingProviderDocument uploads a single PENDING_PROVIDER document to the signing provider.
-func (s *DocumentService) uploadPendingProviderDocument(ctx context.Context, doc *entity.Document) error {
-	if doc.PDFStoragePath == nil || *doc.PDFStoragePath == "" {
-		s.markDocError(ctx, doc)
-		if recoverErr := s.recoverPreProviderError(ctx, doc); recoverErr != nil {
-			return fmt.Errorf("document %s has no PDF storage path: %w", doc.ID, recoverErr)
-		}
-		return fmt.Errorf("document %s has no PDF storage path", doc.ID)
-	}
-
-	pdfData, err := s.storageAdapter.Download(ctx, &port.StorageRequest{Key: *doc.PDFStoragePath})
-	if err != nil {
-		s.markDocError(ctx, doc)
-		if recoverErr := s.recoverPreProviderError(ctx, doc); recoverErr != nil {
-			return fmt.Errorf("downloading PDF for document %s: %w (recovery failed: %v)", doc.ID, err, recoverErr)
-		}
-		return fmt.Errorf("downloading PDF for document %s: %w", doc.ID, err)
-	}
-
-	recipients, err := s.recipientRepo.FindByDocumentID(ctx, doc.ID)
-	if err != nil {
-		return fmt.Errorf("loading recipients for document %s: %w", doc.ID, err)
-	}
-
-	title := documentTitle(doc)
-	signatureFields, err := s.buildPendingProviderSignatureFields(ctx, doc, recipients)
-	if err != nil {
-		s.markDocError(ctx, doc)
-		return fmt.Errorf("building signature fields for document %s: %w", doc.ID, err)
-	}
-
-	result, err := s.signingProvider.UploadDocument(ctx, &port.UploadDocumentRequest{
-		PDF:             pdfData,
-		Title:           title,
-		Recipients:      buildSigningRecipients(recipients),
-		SignatureFields: signatureFields,
-	})
-	if err != nil {
-		s.markDocError(ctx, doc)
-		return fmt.Errorf("uploading document %s to signing provider: %w", doc.ID, err)
-	}
-
-	doc.SetSignerInfo(result.ProviderName, result.ProviderDocumentID)
-	if markErr := doc.MarkAsPending(); markErr != nil {
-		return fmt.Errorf("marking document %s as pending: %w", doc.ID, markErr)
-	}
-	if updateErr := s.documentRepo.Update(ctx, doc); updateErr != nil {
-		return fmt.Errorf("updating document %s: %w", doc.ID, updateErr)
-	}
-
-	s.updateRecipientsFromResult(ctx, recipients, result.Recipients)
-
-	slog.InfoContext(ctx, "PENDING_PROVIDER document uploaded to signing provider",
-		slog.String("document_id", doc.ID),
-		slog.String("provider_doc_id", result.ProviderDocumentID),
-	)
-	return nil
-}
-
-// markDocError marks a document as ERROR and persists it (best-effort).
-func (s *DocumentService) markDocError(ctx context.Context, doc *entity.Document) {
-	_ = doc.MarkAsError()
-	_ = s.documentRepo.Update(ctx, doc)
-}
-
-// buildPendingProviderSignatureFields recreates signature field positions for a
-// stored PENDING_PROVIDER PDF before retrying the provider upload.
-func (s *DocumentService) buildPendingProviderSignatureFields(
-	ctx context.Context,
-	doc *entity.Document,
-	recipients []*entity.DocumentRecipient,
-) ([]port.SignatureFieldPosition, error) {
-	version, err := s.versionRepo.FindByID(ctx, doc.TemplateVersionID)
-	if err != nil {
-		return nil, fmt.Errorf("loading template version: %w", err)
-	}
-
-	portableDoc, err := parsePortableDocument(version.ContentStructure)
-	if err != nil {
-		return nil, fmt.Errorf("parsing document content: %w", err)
-	}
-	if portableDoc == nil {
-		return buildDefaultSignatureFieldPositions(recipients), nil
-	}
-
-	signerRoles, err := s.signerRoleRepo.FindByVersionID(ctx, doc.TemplateVersionID)
-	if err != nil {
-		return nil, fmt.Errorf("loading signer roles: %w", err)
-	}
-
-	signerRoleValues := buildSignerRoleValues(recipients, signerRoles, portableDoc.SignerRoles)
-
-	var injectables map[string]any
-	if doc.InjectedValuesSnapshot != nil {
-		_ = json.Unmarshal(doc.InjectedValuesSnapshot, &injectables)
-	}
-
-	renderResult, err := s.pdfRenderer.RenderPreview(ctx, &port.RenderPreviewRequest{
-		Document:         portableDoc,
-		Injectables:      injectables,
-		SignerRoleValues: signerRoleValues,
-		FieldResponses:   loadFieldResponseMap(ctx, s.fieldResponseRepo, doc.ID),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("rendering PDF for signature fields: %w", err)
-	}
-
-	fields := mapSignatureFieldPositions(renderResult.SignatureFields, signerRoles, portableDoc.SignerRoles)
-	if len(fields) == 0 {
-		return buildDefaultSignatureFieldPositions(recipients), nil
-	}
-
-	return fields, nil
-}
-
-// buildSigningRecipients converts entity recipients to signing provider DTOs.
-func buildSigningRecipients(recipients []*entity.DocumentRecipient) []port.SigningRecipient {
-	out := make([]port.SigningRecipient, len(recipients))
-	for i, r := range recipients {
-		out[i] = port.SigningRecipient{
-			Email:       r.Email,
-			Name:        r.Name,
-			RoleID:      r.TemplateVersionRoleID,
-			SignerOrder: i + 1,
-		}
-	}
-	return out
-}
-
-// updateRecipientsFromResult updates recipients with signing provider result data.
-func (s *DocumentService) updateRecipientsFromResult(ctx context.Context, recipients []*entity.DocumentRecipient, results []port.RecipientResult) {
-	byRoleID := make(map[string]port.RecipientResult, len(results))
-	for _, r := range results {
-		byRoleID[r.RoleID] = r
-	}
 	for _, recipient := range recipients {
-		pr, ok := byRoleID[recipient.TemplateVersionRoleID]
-		if !ok {
+		if recipient.ProviderRecipientID == nil || *recipient.ProviderRecipientID != providerRecipientID {
 			continue
 		}
-		recipient.SetSignerRecipientID(pr.ProviderRecipientID)
-		recipient.SetSigningURL(pr.SigningURL)
-		if err := s.recipientRepo.Update(ctx, recipient); err != nil {
-			slog.WarnContext(ctx, "failed to update recipient signing URL",
-				slog.String("recipient_id", recipient.ID),
-				slog.String("error", err.Error()),
-			)
+		recipient.Status = status.Normalize()
+		if recipient.Status == entity.RecipientStatusSigned {
+			now := time.Now().UTC()
+			recipient.SignedAt = &now
+		}
+		return s.attemptRepo.UpdateRecipient(ctx, recipient)
+	}
+	return entity.ErrRecordNotFound
+}
+
+func (s *DocumentService) markAttemptRecipientsSigned(ctx context.Context, attemptID string) error {
+	recipients, err := s.attemptRepo.FindRecipientsByAttemptID(ctx, attemptID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	for _, recipient := range recipients {
+		if err := s.markAttemptRecipientSigned(ctx, recipient, now); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func (s *DocumentService) markAttemptRecipientSigned(ctx context.Context, recipient *entity.SigningAttemptRecipient, signedAt time.Time) error {
+	if recipient.Status != entity.RecipientStatusSigned {
+		recipient.Status = entity.RecipientStatusSigned
+		recipient.SignedAt = &signedAt
+		if err := s.attemptRepo.UpdateRecipient(ctx, recipient); err != nil {
+			return err
+		}
+	}
+	if recipient.DocumentRecipientID == nil {
+		return nil
+	}
+	return s.markDocumentRecipientSigned(ctx, *recipient.DocumentRecipientID)
+}
+
+func (s *DocumentService) markDocumentRecipientSigned(ctx context.Context, recipientID string) error {
+	recipient, err := s.recipientRepo.FindByID(ctx, recipientID)
+	if err != nil {
+		return err
+	}
+	if recipient.Status == entity.RecipientStatusSigned {
+		return nil
+	}
+	if err := recipient.MarkAsSigned(); err != nil {
+		return err
+	}
+	return s.recipientRepo.Update(ctx, recipient)
 }
 
 // GetDocumentsByExternalRef finds documents by the client's external reference ID.
@@ -801,6 +560,9 @@ func (s *DocumentService) GetDocumentsByExternalRef(ctx context.Context, workspa
 
 // GetDocumentRecipients retrieves all recipients for a document with their role information.
 func (s *DocumentService) GetDocumentRecipients(ctx context.Context, documentID string) ([]*entity.DocumentRecipientWithRole, error) {
+	if _, err := s.documentRepo.FindByID(ctx, documentID); err != nil {
+		return nil, err
+	}
 	return s.recipientRepo.FindByDocumentIDWithRoles(ctx, documentID)
 }
 
@@ -811,12 +573,12 @@ func (s *DocumentService) GetDocumentStatistics(ctx context.Context, workspaceID
 		return nil, fmt.Errorf("counting documents: %w", err)
 	}
 
-	pending, err := s.documentRepo.CountByStatus(ctx, workspaceID, entity.DocumentStatusPending)
+	pending, err := s.documentRepo.CountByStatus(ctx, workspaceID, entity.DocumentStatusReadyToSign)
 	if err != nil {
 		return nil, fmt.Errorf("counting pending documents: %w", err)
 	}
 
-	inProgress, err := s.documentRepo.CountByStatus(ctx, workspaceID, entity.DocumentStatusInProgress)
+	inProgress, err := s.documentRepo.CountByStatus(ctx, workspaceID, entity.DocumentStatusSigning)
 	if err != nil {
 		return nil, fmt.Errorf("counting in-progress documents: %w", err)
 	}
@@ -838,57 +600,12 @@ func (s *DocumentService) GetDocumentStatistics(ctx context.Context, workspaceID
 		Completed:  completed,
 		Declined:   declined,
 		ByStatus: map[string]int{
-			entity.DocumentStatusPending.String():    pending,
-			entity.DocumentStatusInProgress.String(): inProgress,
-			entity.DocumentStatusCompleted.String():  completed,
-			entity.DocumentStatusDeclined.String():   declined,
+			entity.DocumentStatusReadyToSign.String(): pending,
+			entity.DocumentStatusSigning.String():     inProgress,
+			entity.DocumentStatusCompleted.String():   completed,
+			entity.DocumentStatusDeclined.String():    declined,
 		},
 	}, nil
-}
-
-// downloadAndStorePDF downloads the signed PDF from the provider and stores it locally.
-func (s *DocumentService) downloadAndStorePDF(ctx context.Context, doc *entity.Document) {
-	if !s.storageEnabled {
-		return
-	}
-	if !doc.HasSignerInfo() {
-		return
-	}
-	if hasStoredPDFPath(doc) {
-		return
-	}
-
-	pdfData, err := s.signingProvider.DownloadSignedPDF(ctx, &port.DownloadSignedPDFRequest{ProviderDocumentID: *doc.SignerDocumentID})
-	if err != nil {
-		slog.WarnContext(ctx, "failed to download signed PDF",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-
-	storageKey := fmt.Sprintf("documents/%s/%s/signed.pdf", doc.WorkspaceID, doc.ID)
-
-	if err := s.storageAdapter.Upload(ctx, &port.StorageUploadRequest{Key: storageKey, Data: pdfData, ContentType: "application/pdf"}); err != nil {
-		slog.WarnContext(ctx, "failed to store signed PDF",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-
-	doc.SetPDFPath(storageKey)
-	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		slog.WarnContext(ctx, "failed to update document PDF path",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-	}
-
-	slog.InfoContext(ctx, "signed PDF stored",
-		slog.String("document_id", doc.ID),
-		slog.String("storage_key", storageKey),
-	)
 }
 
 // GetDocumentPDF returns the signed PDF for a completed document.
@@ -897,30 +614,57 @@ func (s *DocumentService) GetDocumentPDF(ctx context.Context, documentID string)
 	if err != nil {
 		return nil, "", fmt.Errorf("finding document: %w", err)
 	}
-
 	if !s.storageEnabled {
-		if !doc.HasSignerInfo() {
+		return nil, "", fmt.Errorf("signed PDF storage is disabled")
+	}
+
+	storageKey := completedPDFStorageKey(doc.CompletedPDFURL)
+	var completedAttempt *entity.SigningAttempt
+	if storageKey == "" && doc.ActiveAttemptID != nil && *doc.ActiveAttemptID != "" {
+		attempt, err := s.attemptRepo.FindByID(ctx, *doc.ActiveAttemptID)
+		if err != nil {
+			return nil, "", fmt.Errorf("finding active completed attempt: %w", err)
+		}
+		completedAttempt = attempt
+		storageKey = completedPDFStorageKey(stringValueFromJSON(attempt.ProviderUploadPayload, "completedPdfUrl"))
+	}
+	if storageKey == "" {
+		if completedAttempt == nil {
 			return nil, "", fmt.Errorf("signed PDF not available for this document")
 		}
-		data, downloadErr := s.signingProvider.DownloadSignedPDF(ctx, &port.DownloadSignedPDFRequest{
-			ProviderDocumentID: *doc.SignerDocumentID,
-		})
-		if downloadErr != nil {
-			return nil, "", fmt.Errorf("downloading PDF from signing provider: %w", downloadErr)
+		result, err := s.downloadProviderCompletedPDF(ctx, completedAttempt)
+		if err != nil {
+			return nil, "", err
 		}
-		return data, signedDocumentFilename(doc), nil
+		return result.PDF, providerCompletedPDFFilename(result.Filename, doc), nil
 	}
 
-	if !hasStoredPDFPath(doc) {
-		return nil, "", fmt.Errorf("signed PDF not available for this document")
-	}
-
-	data, err := s.storageAdapter.Download(ctx, &port.StorageRequest{Key: *doc.PDFStoragePath})
+	data, err := s.storageAdapter.Download(ctx, &port.StorageRequest{Key: storageKey})
 	if err != nil {
 		return nil, "", fmt.Errorf("downloading PDF from storage: %w", err)
 	}
 
 	return data, signedDocumentFilename(doc), nil
+}
+
+func (s *DocumentService) downloadProviderCompletedPDF(ctx context.Context, attempt *entity.SigningAttempt) (*port.DownloadCompletedPDFResult, error) {
+	if s.signingProvider == nil || !s.signingProvider.ProviderCapabilities().CanDownloadCompletedPDF {
+		return nil, fmt.Errorf("signed PDF not available for this document")
+	}
+	if attempt.ProviderDocumentID == nil || *attempt.ProviderDocumentID == "" {
+		return nil, fmt.Errorf("signed PDF not available for this document")
+	}
+	result, err := s.signingProvider.DownloadCompletedPDF(ctx, &port.DownloadCompletedPDFRequest{
+		ProviderDocumentID: *attempt.ProviderDocumentID,
+		Environment:        entity.EnvironmentProd,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("downloading completed PDF from provider: %w", err)
+	}
+	if len(result.PDF) == 0 {
+		return nil, fmt.Errorf("signed PDF not available for this document")
+	}
+	return result, nil
 }
 
 // ExpireDocuments finds and expires documents that have passed their expiration time.
@@ -945,16 +689,24 @@ func (s *DocumentService) ExpireDocuments(ctx context.Context, limit int) error 
 func (s *DocumentService) expireSingleDocument(ctx context.Context, doc *entity.Document) {
 	oldStatus := string(doc.Status)
 
-	if doc.HasSignerInfo() {
-		if err := s.signingProvider.CancelDocument(ctx, &port.CancelDocumentRequest{ProviderDocumentID: *doc.SignerDocumentID}); err != nil {
-			slog.WarnContext(ctx, "failed to cancel expired document with provider",
+	if doc.ActiveAttemptID != nil && *doc.ActiveAttemptID != "" {
+		attempt, err := s.attemptRepo.FindByID(ctx, *doc.ActiveAttemptID)
+		if err != nil {
+			slog.WarnContext(ctx, "failed to load expired document attempt",
 				slog.String("document_id", doc.ID),
 				slog.String("error", err.Error()),
 			)
+			return
 		}
-	}
-
-	if err := doc.MarkAsExpired(); err != nil {
+		if err := s.signingUOW.TerminateActiveAttempt(ctx, attempt, entity.SigningAttemptStatusInvalidated, "document expired", "ATTEMPT_EXPIRED"); err != nil {
+			slog.WarnContext(ctx, "failed to invalidate expired attempt",
+				slog.String("document_id", doc.ID),
+				slog.String("attempt_id", attempt.ID),
+				slog.String("error", err.Error()),
+			)
+			return
+		}
+	} else if err := doc.MarkAsExpired(); err != nil {
 		slog.WarnContext(ctx, "failed to mark document as expired",
 			slog.String("document_id", doc.ID),
 			slog.String("error", err.Error()),
@@ -970,120 +722,12 @@ func (s *DocumentService) expireSingleDocument(ctx context.Context, doc *entity.
 		return
 	}
 
-	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventDocumentExpired, entity.ActorSystem, "", oldStatus, string(entity.DocumentStatusExpired), nil)
+	s.eventEmitter.EmitDocumentEvent(ctx, doc.ID, entity.EventDocumentExpired, entity.ActorSystem, "", oldStatus, string(entity.DocumentStatusInvalidated), nil)
 
 	slog.InfoContext(ctx, "document expired",
 		slog.String("document_id", doc.ID),
 		slog.String("previous_status", oldStatus),
 	)
-}
-
-// RetryErrorDocuments finds ERROR documents eligible for retry and attempts recovery.
-func (s *DocumentService) RetryErrorDocuments(ctx context.Context, maxRetries, limit int) error {
-	docs, err := s.documentRepo.FindErrorsForRetry(ctx, maxRetries, limit)
-	if err != nil {
-		return fmt.Errorf("finding error documents for retry: %w", err)
-	}
-
-	for _, doc := range docs {
-		s.retrySingleDocument(ctx, doc, maxRetries)
-	}
-
-	if len(docs) > 0 {
-		slog.InfoContext(ctx, "retried error documents", slog.Int("count", len(docs)))
-	}
-
-	return nil
-}
-
-// retrySingleDocument attempts to recover a single error document.
-func (s *DocumentService) retrySingleDocument(ctx context.Context, doc *entity.Document, maxRetries int) {
-	if !doc.ScheduleRetry(maxRetries) {
-		slog.WarnContext(ctx, "document exceeded max retries",
-			slog.String("document_id", doc.ID),
-			slog.Int("retry_count", doc.RetryCount),
-		)
-		return
-	}
-
-	if doc.HasSignerInfo() {
-		s.retryWithStatusPoll(ctx, doc)
-		return
-	}
-
-	if err := s.recoverPreProviderError(ctx, doc); err != nil {
-		slog.WarnContext(ctx, "retry recovery failed for document without provider reference",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-		if updateErr := s.documentRepo.Update(ctx, doc); updateErr != nil {
-			slog.WarnContext(ctx, "failed to persist retry state",
-				slog.String("document_id", doc.ID),
-				slog.String("error", updateErr.Error()),
-			)
-		}
-	}
-}
-
-func (s *DocumentService) recoverPreProviderError(ctx context.Context, doc *entity.Document) error {
-	target, clearStalePDFPath := resolvePreProviderRecoveryTarget(ctx, s.storageAdapter, s.storageEnabled, doc)
-	if clearStalePDFPath {
-		doc.PDFStoragePath = nil
-	}
-
-	var err error
-	if target == entity.DocumentStatusPendingProvider {
-		err = doc.RecoverToPendingProvider()
-	} else {
-		err = doc.RecoverToAwaitingInput()
-	}
-	if err != nil {
-		return err
-	}
-
-	doc.ResetRetry()
-	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		return fmt.Errorf("persisting recovered document: %w", err)
-	}
-
-	slog.InfoContext(ctx, "recovered pre-provider error document",
-		slog.String("document_id", doc.ID),
-		slog.String("status", target.String()),
-	)
-	return nil
-}
-
-// retryWithStatusPoll polls the signing provider for a document that already has a signer ID.
-func (s *DocumentService) retryWithStatusPoll(ctx context.Context, doc *entity.Document) {
-	statusResult, err := s.signingProvider.GetDocumentStatus(ctx, &port.GetDocumentStatusRequest{ProviderDocumentID: *doc.SignerDocumentID})
-	if err != nil {
-		slog.WarnContext(ctx, "retry status poll failed",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-		if updateErr := s.documentRepo.Update(ctx, doc); updateErr != nil {
-			slog.WarnContext(ctx, "failed to update document after retry", slog.String("error", updateErr.Error()))
-		}
-		return
-	}
-
-	if err := s.updateDocumentFromStatus(ctx, doc, statusResult); err != nil {
-		slog.WarnContext(ctx, "failed to update document from status poll",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-
-	if !doc.IsTerminal() {
-		doc.ResetRetry()
-	}
-	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		slog.WarnContext(ctx, "failed to update document after retry recovery",
-			slog.String("document_id", doc.ID),
-			slog.String("error", err.Error()),
-		)
-	}
 }
 
 // CreateDocumentsBatch creates multiple documents in a single batch.
@@ -1100,22 +744,6 @@ func (s *DocumentService) CreateDocumentsBatch(ctx context.Context, cmds []docum
 	}
 
 	return results, nil
-}
-
-// eventTypeFromDocumentStatus maps a document status to the corresponding event type.
-func eventTypeFromDocumentStatus(status entity.DocumentStatus) string {
-	switch status {
-	case entity.DocumentStatusCompleted:
-		return entity.EventDocumentCompleted
-	case entity.DocumentStatusVoided:
-		return entity.EventDocumentCancelled
-	case entity.DocumentStatusExpired:
-		return entity.EventDocumentExpired
-	case entity.DocumentStatusError:
-		return entity.EventDocumentError
-	default:
-		return entity.EventStatusRefreshed
-	}
 }
 
 // SendReminder sends reminder notifications to pending recipients of a document.

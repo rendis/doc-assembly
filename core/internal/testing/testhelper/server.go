@@ -29,6 +29,7 @@ import (
 	folderrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/folder_repo"
 	galleryassetrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/gallery_asset_repo"
 	injectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/injectable_repo"
+	signingattemptrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/signing_attempt_repo"
 	systeminjectablerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_injectable_repo"
 	systemrolerepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/system_role_repo"
 	tagrepo "github.com/rendis/doc-assembly/core/internal/adapters/secondary/database/postgres/tag_repo"
@@ -60,6 +61,7 @@ import (
 	automationuc "github.com/rendis/doc-assembly/core/internal/core/usecase/automation"
 	"github.com/rendis/doc-assembly/core/internal/infra/config"
 	"github.com/rendis/doc-assembly/core/internal/infra/registry"
+	"github.com/rendis/doc-assembly/core/internal/infra/riverqueue"
 )
 
 // TestInternalAPIKey is the API key used by integration tests for internal endpoints.
@@ -202,6 +204,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	// Access token repo + field response repo
 	docAccessTokenRepo := documentaccesstokenrepo.New(pool)
 	docFieldResponseRepo := documentfieldresponserepo.New(pool)
+	signingAttemptRepo := signingattemptrepo.New(pool)
 
 	// Event emitter + notification
 	eventEmitter := documentsvc.NewEventEmitter(docEventRepo)
@@ -210,10 +213,27 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	galleryService := gallerysvc.New(storageAdapter, galleryRepo, testPublicURL)
 	notificationSvc := documentsvc.NewNotificationService(noopNotifier, docRecipientRepo, docRepo, docAccessTokenRepo, testPublicURL)
 
+	// River attempt UoW in insert-only mode for integration helpers.
+	riverSvc, err := riverqueue.New(context.Background(), pool, config.WorkerConfig{Enabled: false}, riverqueue.Dependencies{
+		DocumentRepo:      docRepo,
+		RecipientRepo:     docRecipientRepo,
+		AttemptRepo:       signingAttemptRepo,
+		VersionRepo:       templateVersionRepo,
+		SignerRoleRepo:    templateVersionSignerRoleRepo,
+		FieldResponseRepo: docFieldResponseRepo,
+		PDFRenderer:       mockPDFRenderer,
+		SigningProvider:   mockSigningAdapter,
+		StorageAdapter:    storageAdapter,
+		StorageEnabled:    true,
+	})
+	require.NoError(t, err)
+
 	// Document service
 	documentService := documentsvc.NewDocumentService(
 		docRepo,
 		docRecipientRepo,
+		signingAttemptRepo,
+		riverSvc.SigningExecutionUOW(),
 		templateRepo,
 		templateVersionRepo,
 		templateVersionSignerRoleRepo,
@@ -231,7 +251,7 @@ func NewTestServerWithResolver(t *testing.T, pool *pgxpool.Pool, templateResolve
 	// Pre-signing service
 	preSigningService := documentsvc.NewPreSigningService(
 		docAccessTokenRepo, docFieldResponseRepo,
-		docRepo, docRecipientRepo, templateVersionRepo, templateVersionSignerRoleRepo,
+		docRepo, docRecipientRepo, signingAttemptRepo, riverSvc.SigningExecutionUOW(), templateVersionRepo, templateVersionSignerRoleRepo,
 		mockPDFRenderer, mockSigningAdapter, storageAdapter, true, eventEmitter,
 		testPublicURL,
 	)

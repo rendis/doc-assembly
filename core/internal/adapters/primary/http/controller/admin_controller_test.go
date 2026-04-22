@@ -160,7 +160,7 @@ func TestAdminController_Tenants(t *testing.T) {
 			defer testhelper.CleanupTenant(t, pool, tenant2ID)
 
 			resp, body := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/list")
+				GET("/api/v1/system/tenants")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -174,7 +174,7 @@ func TestAdminController_Tenants(t *testing.T) {
 
 		t.Run("success with custom limit and offset", func(t *testing.T) {
 			resp, body := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/list?limit=5&offset=0")
+				GET("/api/v1/system/tenants?perPage=5&page=1")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -188,14 +188,14 @@ func TestAdminController_Tenants(t *testing.T) {
 
 		t.Run("success with PLATFORM_ADMIN", func(t *testing.T) {
 			resp, _ := client.WithAuth(platformAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/list")
+				GET("/api/v1/system/tenants")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 		})
 
 		t.Run("forbidden without role", func(t *testing.T) {
 			resp, _ := client.WithAuth(regularUser.BearerHeader).
-				GET("/api/v1/system/tenants/list")
+				GET("/api/v1/system/tenants")
 
 			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 		})
@@ -211,15 +211,15 @@ func TestAdminController_Tenants(t *testing.T) {
 			defer testhelper.CleanupTenant(t, pool, tenant2ID)
 
 			resp, body := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/search?q=Search Test")
+				GET("/api/v1/system/tenants?q=Search%20Test")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-			var listResp dto.ListResponse[dto.TenantResponse]
+			var listResp dto.PaginatedTenantsResponse
 			err := json.Unmarshal(body, &listResp)
 			require.NoError(t, err)
 
-			assert.GreaterOrEqual(t, listResp.Count, 2)
+			assert.GreaterOrEqual(t, len(listResp.Data), 2)
 		})
 
 		t.Run("success search by code", func(t *testing.T) {
@@ -227,47 +227,47 @@ func TestAdminController_Tenants(t *testing.T) {
 			defer testhelper.CleanupTenant(t, pool, tenantID)
 
 			resp, body := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/search?q=CSRCH")
+				GET("/api/v1/system/tenants?q=CSRCH")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-			var listResp dto.ListResponse[dto.TenantResponse]
+			var listResp dto.PaginatedTenantsResponse
 			err := json.Unmarshal(body, &listResp)
 			require.NoError(t, err)
 
-			assert.GreaterOrEqual(t, listResp.Count, 1)
+			assert.GreaterOrEqual(t, len(listResp.Data), 1)
 		})
 
 		t.Run("empty results", func(t *testing.T) {
 			resp, body := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/search?q=ZZZZNONEXISTENT")
+				GET("/api/v1/system/tenants?q=ZZZZNONEXISTENT")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-			var listResp dto.ListResponse[dto.TenantResponse]
+			var listResp dto.PaginatedTenantsResponse
 			err := json.Unmarshal(body, &listResp)
 			require.NoError(t, err)
 
-			assert.Equal(t, 0, listResp.Count)
+			assert.Equal(t, 0, len(listResp.Data))
 		})
 
-		t.Run("validation query required", func(t *testing.T) {
+		t.Run("empty query returns paginated list", func(t *testing.T) {
 			resp, _ := client.WithAuth(superAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/search")
+				GET("/api/v1/system/tenants")
 
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
 		})
 
 		t.Run("success with PLATFORM_ADMIN", func(t *testing.T) {
 			resp, _ := client.WithAuth(platformAdmin.BearerHeader).
-				GET("/api/v1/system/tenants/search?q=Test")
+				GET("/api/v1/system/tenants?q=Test")
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 		})
 
 		t.Run("forbidden without role", func(t *testing.T) {
 			resp, _ := client.WithAuth(regularUser.BearerHeader).
-				GET("/api/v1/system/tenants/search?q=Test")
+				GET("/api/v1/system/tenants?q=Test")
 
 			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 		})
@@ -405,7 +405,7 @@ func TestAdminController_SystemRoles(t *testing.T) {
 			require.NoError(t, err)
 
 			// At least superAdmin and platformAdmin
-			assert.GreaterOrEqual(t, listResp.Count, 2)
+			assert.GreaterOrEqual(t, len(listResp.Data), 2)
 		})
 
 		t.Run("forbidden PLATFORM_ADMIN", func(t *testing.T) {

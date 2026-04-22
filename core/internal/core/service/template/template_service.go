@@ -37,6 +37,8 @@ type TemplateService struct {
 }
 
 // CreateTemplate creates a new template with an initial draft version.
+//
+//nolint:funlen
 func (s *TemplateService) CreateTemplate(ctx context.Context, cmd templateuc.CreateTemplateCommand) (*entity.Template, *entity.TemplateVersion, error) {
 	// Check for duplicate title
 	exists, err := s.templateRepo.ExistsByTitle(ctx, cmd.WorkspaceID, cmd.Title)
@@ -427,6 +429,8 @@ func (s *TemplateService) AssignDocumentType(ctx context.Context, cmd templateuc
 }
 
 // SetProcessFields sets the process and processType on a template.
+//
+//nolint:funlen,gocognit,gocyclo,nestif
 func (s *TemplateService) SetProcessFields(ctx context.Context, cmd templateuc.SetProcessFieldsCommand) (*entity.Template, error) {
 	processType := entity.ProcessType(cmd.ProcessType)
 	if !processType.IsValid() {

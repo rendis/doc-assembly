@@ -7,13 +7,13 @@ import { SigningDocumentStatus } from '../types'
 const ALL_STATUSES: { value: string; label: string }[] = [
   { value: SigningDocumentStatus.DRAFT, label: 'Draft' },
   { value: SigningDocumentStatus.AWAITING_INPUT, label: 'Awaiting Input' },
-  { value: SigningDocumentStatus.PENDING_PROVIDER, label: 'Processing' },
-  { value: SigningDocumentStatus.PENDING, label: 'Pending' },
-  { value: SigningDocumentStatus.IN_PROGRESS, label: 'In Progress' },
+  { value: SigningDocumentStatus.PREPARING_SIGNATURE, label: 'Processing' },
+  { value: SigningDocumentStatus.READY_TO_SIGN, label: 'Ready to Sign' },
+  { value: SigningDocumentStatus.SIGNING, label: 'Signing' },
   { value: SigningDocumentStatus.COMPLETED, label: 'Completed' },
   { value: SigningDocumentStatus.DECLINED, label: 'Declined' },
-  { value: SigningDocumentStatus.VOIDED, label: 'Voided' },
-  { value: SigningDocumentStatus.EXPIRED, label: 'Expired' },
+  { value: SigningDocumentStatus.CANCELLED, label: 'Cancelled' },
+  { value: SigningDocumentStatus.INVALIDATED, label: 'Invalidated' },
   { value: SigningDocumentStatus.ERROR, label: 'Error' },
 ]
 

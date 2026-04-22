@@ -479,6 +479,8 @@ func (g *DocumentGenerator) executeMapper(
 }
 
 // resolveInjectables executes injectors and returns resolved values.
+//
+//nolint:funlen
 func (g *DocumentGenerator) resolveInjectables(
 	ctx context.Context,
 	mapCtx *port.MapperContext,

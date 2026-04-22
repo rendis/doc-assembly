@@ -8,11 +8,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
@@ -161,6 +163,19 @@ func CreateTestSandboxWorkspace(t *testing.T, pool *pgxpool.Pool, parentWorkspac
 	now := time.Now().UTC()
 	code := "SBX_" + parentCode
 
+	var existingID string
+	err = pool.QueryRow(ctx, `
+		SELECT id
+		FROM tenancy.workspaces
+		WHERE sandbox_of_id = $1
+		LIMIT 1`,
+		parentWorkspaceID,
+	).Scan(&existingID)
+	if err == nil {
+		return existingID
+	}
+	require.True(t, errors.Is(err, pgx.ErrNoRows), "failed to check existing sandbox workspace: %v", err)
+
 	_, err = pool.Exec(ctx, `
 		INSERT INTO tenancy.workspaces (id, tenant_id, name, code, type, status, is_sandbox, sandbox_of_id, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -180,36 +195,143 @@ func CleanupWorkspace(t *testing.T, pool *pgxpool.Pool, workspaceID string) {
 	require.NoError(t, err, "failed to cleanup workspace members")
 
 	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
 		DELETE FROM execution.document_access_tokens
-		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+		WHERE document_id IN (SELECT id FROM related_documents)
 		   OR recipient_id IN (
 				SELECT r.id
 				FROM execution.document_recipients r
-				JOIN execution.documents d ON d.id = r.document_id
-				WHERE d.workspace_id = $1
+				WHERE r.document_id IN (SELECT id FROM related_documents)
 			)
 	`, workspaceID)
 	require.NoError(t, err, "failed to cleanup document access tokens")
 
 	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
+		DELETE FROM execution.signing_attempt_events
+		WHERE attempt_id IN (
+			SELECT id FROM execution.signing_attempts WHERE document_id IN (SELECT id FROM related_documents)
+		)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup signing attempt events")
+
+	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
+		DELETE FROM execution.signing_attempt_recipients
+		WHERE attempt_id IN (
+			SELECT id FROM execution.signing_attempts WHERE document_id IN (SELECT id FROM related_documents)
+		)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup signing attempt recipients")
+
+	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
+		DELETE FROM execution.signing_attempts
+		WHERE document_id IN (SELECT id FROM related_documents)
+	`, workspaceID)
+	require.NoError(t, err, "failed to cleanup signing attempts")
+
+	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
 		DELETE FROM execution.document_field_responses
-		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+		WHERE document_id IN (SELECT id FROM related_documents)
 	`, workspaceID)
 	require.NoError(t, err, "failed to cleanup document field responses")
 
 	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
 		DELETE FROM execution.document_events
-		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+		WHERE document_id IN (SELECT id FROM related_documents)
 	`, workspaceID)
 	require.NoError(t, err, "failed to cleanup document events")
 
 	_, err = pool.Exec(ctx, `
+		WITH related_documents AS (
+			SELECT d.id
+			FROM execution.documents d
+			WHERE d.workspace_id = $1
+			   OR d.template_version_id IN (
+					SELECT tv.id
+					FROM content.template_versions tv
+					JOIN content.templates t ON t.id = tv.template_id
+					WHERE t.workspace_id = $1
+				)
+		)
 		DELETE FROM execution.document_recipients
-		WHERE document_id IN (SELECT id FROM execution.documents WHERE workspace_id = $1)
+		WHERE document_id IN (SELECT id FROM related_documents)
 	`, workspaceID)
 	require.NoError(t, err, "failed to cleanup document recipients")
 
-	_, err = pool.Exec(ctx, "DELETE FROM execution.documents WHERE workspace_id = $1", workspaceID)
+	_, err = pool.Exec(ctx, `
+		DELETE FROM execution.documents d
+		WHERE d.workspace_id = $1
+		   OR d.template_version_id IN (
+				SELECT tv.id
+				FROM content.template_versions tv
+				JOIN content.templates t ON t.id = tv.template_id
+				WHERE t.workspace_id = $1
+			)
+	`, workspaceID)
 	require.NoError(t, err, "failed to cleanup documents")
 
 	_, err = pool.Exec(ctx, "DELETE FROM tenancy.workspaces WHERE id = $1", workspaceID)
@@ -431,9 +553,9 @@ func CreateTestTemplate(t *testing.T, pool *pgxpool.Pool,
 	now := time.Now().UTC()
 
 	_, err := pool.Exec(ctx, `
-		INSERT INTO content.templates (id, workspace_id, folder_id, title, is_public_library, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		templateID, workspaceID, folderID, title, false, now)
+		INSERT INTO content.templates (id, workspace_id, folder_id, title, is_public_library, process, process_type, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		templateID, workspaceID, folderID, title, false, entity.DefaultProcess, entity.DefaultProcessType, now)
 	require.NoError(t, err, "failed to create test template")
 
 	return templateID
@@ -461,11 +583,13 @@ func CreateTestTemplateVersion(t *testing.T, pool *pgxpool.Pool,
 	versionID := uuid.NewString()
 	now := time.Now().UTC()
 
+	content := []byte(`{"version":"1.1.0","meta":{"title":"Test Document","language":"en"},"pageConfig":{"formatId":"A4","width":595,"height":842,"margins":{"top":20,"bottom":20,"left":20,"right":20}},"variableIds":[],"signerRoles":[{"id":"role-001","label":"Signer","order":1,"name":{"type":"text","value":"Test Signer"},"email":{"type":"text","value":"signer@test.com"}}],"content":{"type":"doc","content":[{"type":"signature","attrs":{"count":1,"layout":"single-center","lineWidth":"md","signatures":[{"id":"sig-001","roleId":"role-001","label":"Signer"}]}}]},"exportInfo":{"exportedAt":"2026-01-01T00:00:00Z","sourceApp":"integration-test"}}`)
+
 	_, err := pool.Exec(ctx, `
 		INSERT INTO content.template_versions
 			(id, template_id, version_number, name, description, content_structure, status, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		versionID, templateID, versionNumber, name, nil, nil, status, now)
+		versionID, templateID, versionNumber, name, nil, content, status, now)
 	require.NoError(t, err, "failed to create test template version")
 
 	return versionID

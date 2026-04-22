@@ -73,7 +73,7 @@ func (a *TemplateVersionSearchAdapter) SearchTemplateVersions(ctx context.Contex
 	results := make([]port.TemplateVersionSearchItem, 0, len(params.WorkspaceCodes))
 	for _, workspaceCode := range params.WorkspaceCodes {
 		workspaceCode = strings.ToUpper(strings.TrimSpace(workspaceCode))
-		workspace, err := a.workspaceRepo.FindByCode(ctx, tenant.ID, workspaceCode)
+		workspace, err := a.workspaceRepo.FindByCodeIncludingSandbox(ctx, tenant.ID, workspaceCode)
 		if err != nil {
 			if err == entity.ErrWorkspaceNotFound {
 				continue

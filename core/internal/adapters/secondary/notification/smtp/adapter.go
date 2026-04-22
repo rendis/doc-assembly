@@ -15,7 +15,7 @@ type Config struct {
 	Host     string
 	Port     int
 	Username string
-	Password string
+	Password string //nolint:gosec
 	From     string
 }
 

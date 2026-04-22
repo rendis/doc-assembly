@@ -64,16 +64,15 @@ const (
 	queryCreateInternalDocument = `
 		INSERT INTO execution.documents (
 			workspace_id, template_version_id, document_type_id, title, client_external_reference_id,
-			transactional_id, operation_type, related_document_id,
-			signer_document_id, signer_provider, status, injected_values_snapshot,
-			pdf_storage_path, completed_pdf_url, is_active, superseded_at,
+			transactional_id, operation_type, related_document_id, active_attempt_id,
+			status, injected_values_snapshot, completed_pdf_url, is_active, superseded_at,
 			superseded_by_document_id, supersede_reason, expires_at, metadata, created_at
 		) VALUES (
 			$1, $2, $3, $4, $5,
 			$6, $7, $8,
 			$9, $10, $11, $12,
-			$13, $14, $15, $16,
-			$17, $18, $19, $20, $21
+			$13, $14, $15,
+			$16, $17, $18, $19
 		)
 		RETURNING id
 	`
@@ -81,8 +80,8 @@ const (
 	queryCreateInternalRecipient = `
 		INSERT INTO execution.document_recipients (
 			document_id, template_version_role_id, name, email,
-			signer_recipient_id, signing_url, status, signed_at, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			status, signed_at, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	queryFindByWorkspaceTransactional = `
@@ -205,11 +204,9 @@ func (r *Repository) internalCreateOrReplayTx(ctx context.Context, tx pgx.Tx, re
 		doc.TransactionalID,
 		doc.OperationType,
 		doc.RelatedDocumentID,
-		doc.SignerDocumentID,
-		doc.SignerProvider,
+		doc.ActiveAttemptID,
 		doc.Status,
 		doc.InjectedValuesSnapshot,
-		doc.PDFStoragePath,
 		doc.CompletedPDFURL,
 		doc.IsActive,
 		doc.SupersededAt,
@@ -239,8 +236,6 @@ func (r *Repository) internalCreateOrReplayTx(ctx context.Context, tx pgx.Tx, re
 			recipient.TemplateVersionRoleID,
 			recipient.Name,
 			recipient.Email,
-			recipient.SignerRecipientID,
-			recipient.SigningURL,
 			recipient.Status,
 			recipient.SignedAt,
 			recipient.CreatedAt,

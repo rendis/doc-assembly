@@ -73,7 +73,7 @@ func TestMeController_ListMyTenants(t *testing.T) {
 		testhelper.CreateTestTenantMember(t, pool, tenant3ID, user.ID, entity.TenantRoleAdmin, nil)
 
 		// Request with limit=2, offset=1
-		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants?limit=2&offset=1")
+		resp, body := client.WithAuth(user.BearerHeader).GET("/api/v1/me/tenants?perPage=2&page=1")
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -83,7 +83,7 @@ func TestMeController_ListMyTenants(t *testing.T) {
 
 		assert.Len(t, paginatedResp.Data, 2)
 		assert.Equal(t, int64(3), paginatedResp.Pagination.Total)
-		assert.Equal(t, 2, paginatedResp.Pagination.Page) // offset=1, limit=2 -> page 2
+		assert.Equal(t, 1, paginatedResp.Pagination.Page)
 		assert.Equal(t, 2, paginatedResp.Pagination.PerPage)
 	})
 

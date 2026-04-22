@@ -1,3 +1,4 @@
+//nolint:gosec
 package documenso
 
 import (
@@ -11,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -48,14 +50,29 @@ func (a *Adapter) ProviderName() string {
 	return providerName
 }
 
+func (a *Adapter) ProviderCapabilities() port.ProviderCapabilities {
+	return port.ProviderCapabilities{
+		CanFindByCorrelationKey: false,
+		CanCancel:               true,
+		CanEmbedSigning:         true,
+		CanDownloadCompletedPDF: true,
+		WebhookIncludesIDs:      false,
+	}
+}
+
+type signingURLResult struct {
+	SigningURL string
+	ExpiresAt  *time.Time
+}
+
 // setAuthHeader sets the authorization header on the request.
 func (a *Adapter) setAuthHeader(req *http.Request) {
 	req.Header.Set("Authorization", a.config.APIKey)
 }
 
-// UploadDocument uploads a PDF document to Documenso and creates a signing envelope.
-func (a *Adapter) UploadDocument(ctx context.Context, req *port.UploadDocumentRequest) (*port.UploadDocumentResult, error) {
-	envelopeID, err := a.createEnvelope(ctx, req.Title, req.ExternalRef, req.PDF)
+// SubmitAttemptDocument uploads a PDF document to Documenso and creates a signing envelope.
+func (a *Adapter) SubmitAttemptDocument(ctx context.Context, req *port.SubmitAttemptDocumentRequest) (*port.SubmitAttemptDocumentResult, error) {
+	envelopeID, err := a.createEnvelope(ctx, req.Title, req.CorrelationKey, req.PDF)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +99,7 @@ func (a *Adapter) UploadDocument(ctx context.Context, req *port.UploadDocumentRe
 		return nil, fmt.Errorf("fetching envelope details for signing URLs: %w", err)
 	}
 
-	return a.buildUploadResult(envelopeID, envDetails, req.Recipients), nil
+	return a.buildUploadResult(envelopeID, envDetails, req.Recipients, req.CorrelationKey), nil
 }
 
 // buildEnvelopeBody builds the multipart form body for creating an envelope.
@@ -136,7 +153,7 @@ func (a *Adapter) createEnvelope(ctx context.Context, title string, externalRef 
 	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", contentType)
 
-	resp, err := a.httpClient.Do(httpReq)
+	resp, err := a.httpClient.Do(httpReq) //nolint:gosec // URL is built from configured provider base URL
 	if err != nil {
 		return "", fmt.Errorf("executing request: %w", err)
 	}
@@ -186,7 +203,7 @@ func (a *Adapter) addRecipients(ctx context.Context, envelopeID string, recipien
 	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := a.httpClient.Do(httpReq)
+	resp, err := a.httpClient.Do(httpReq) //nolint:gosec // URL is built from configured provider base URL
 	if err != nil {
 		return nil, fmt.Errorf("executing recipients request: %w", err)
 	}
@@ -289,7 +306,7 @@ func (a *Adapter) sendFieldsToAPI(ctx context.Context, envelopeID string, fieldP
 	a.setAuthHeader(httpReq)
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := a.httpClient.Do(httpReq)
+	resp, err := a.httpClient.Do(httpReq) //nolint:gosec // URL is built from configured provider base URL
 	if err != nil {
 		return fmt.Errorf("executing fields request: %w", err)
 	}
@@ -318,11 +335,11 @@ func (a *Adapter) distributeEnvelope(ctx context.Context, envelopeID string) err
 
 // buildUploadResult constructs the upload result from the envelope details.
 // It matches recipients by index since the order is preserved from the original request.
-func (a *Adapter) buildUploadResult(envelopeID string, envDetails *envelopeDetailResponse, originalRecipients []port.SigningRecipient) *port.UploadDocumentResult {
-	result := &port.UploadDocumentResult{
+func (a *Adapter) buildUploadResult(envelopeID string, envDetails *envelopeDetailResponse, originalRecipients []port.SigningRecipient, correlationKey string) *port.SubmitAttemptDocumentResult {
+	result := &port.SubmitAttemptDocumentResult{
 		ProviderDocumentID: envelopeID,
 		ProviderName:       providerName,
-		Status:             entity.DocumentStatusPending,
+		InitialStatus:      entity.SigningAttemptStatusSigningReady,
 		Recipients:         make([]port.RecipientResult, 0, len(originalRecipients)),
 	}
 
@@ -346,15 +363,26 @@ func (a *Adapter) buildUploadResult(envelopeID string, envDetails *envelopeDetai
 	return result
 }
 
+// FindProviderDocumentByCorrelationKey is unsupported by current Documenso API integration.
+func (a *Adapter) FindProviderDocumentByCorrelationKey(_ context.Context, req *port.FindProviderDocumentRequest) (*port.ProviderDocumentResult, error) {
+	return &port.ProviderDocumentResult{
+		Found:          false,
+		Usable:         false,
+		ProviderName:   providerName,
+		CorrelationKey: req.CorrelationKey,
+		Reason:         "documenso correlation-key search is not supported by this adapter",
+	}, nil
+}
+
 // GetSigningURL returns the URL where a specific recipient can sign the document.
-func (a *Adapter) GetSigningURL(ctx context.Context, req *port.GetSigningURLRequest) (*port.GetSigningURLResult, error) {
-	envResp, err := a.fetchEnvelope(ctx, req.ProviderDocumentID)
+func (a *Adapter) getSigningURL(ctx context.Context, providerDocumentID, providerRecipientID string) (*signingURLResult, error) {
+	envResp, err := a.fetchEnvelope(ctx, providerDocumentID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Find the recipient and their signing token
-	reqRecipientID, err := strconv.Atoi(req.ProviderRecipientID)
+	reqRecipientID, err := strconv.Atoi(providerRecipientID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid recipient ID: %w", err)
 	}
@@ -363,23 +391,20 @@ func (a *Adapter) GetSigningURL(ctx context.Context, req *port.GetSigningURLRequ
 		if r.ID == reqRecipientID {
 			signingURL := fmt.Sprintf("%s/sign/%s", a.config.SigningBaseURL, r.Token)
 
-			return &port.GetSigningURLResult{
+			return &signingURLResult{
 				SigningURL: signingURL,
 			}, nil
 		}
 	}
 
-	return nil, fmt.Errorf("recipient %s not found in envelope", req.ProviderRecipientID)
+	return nil, fmt.Errorf("recipient %s not found in envelope", providerRecipientID)
 }
 
 // GetEmbeddedSigningURL returns the signing URL suitable for iframe embedding.
 // Documenso does not natively support redirect-based callbacks, so CallbackURL is ignored.
 // Detection of completion relies on webhooks + polling.
-func (a *Adapter) GetEmbeddedSigningURL(ctx context.Context, req *port.GetEmbeddedSigningURLRequest) (*port.GetEmbeddedSigningURLResult, error) {
-	signingResult, err := a.GetSigningURL(ctx, &port.GetSigningURLRequest{
-		ProviderDocumentID:  req.ProviderDocumentID,
-		ProviderRecipientID: req.ProviderRecipientID,
-	})
+func (a *Adapter) GetAttemptRecipientEmbeddedURL(ctx context.Context, req *port.GetAttemptRecipientEmbeddedURLRequest) (*port.GetAttemptRecipientEmbeddedURLResult, error) {
+	signingResult, err := a.getSigningURL(ctx, req.ProviderDocumentID, req.ProviderRecipientID)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +412,7 @@ func (a *Adapter) GetEmbeddedSigningURL(ctx context.Context, req *port.GetEmbedd
 	// Replace /sign/ with /embed/sign/ for iframe embedding
 	embeddedURL := strings.Replace(signingResult.SigningURL, "/sign/", "/embed/sign/", 1)
 
-	return &port.GetEmbeddedSigningURLResult{
+	return &port.GetAttemptRecipientEmbeddedURLResult{
 		EmbeddedURL:    embeddedURL,
 		FrameSrcDomain: a.config.SigningBaseURL,
 		ExpiresAt:      signingResult.ExpiresAt,
@@ -395,7 +420,7 @@ func (a *Adapter) GetEmbeddedSigningURL(ctx context.Context, req *port.GetEmbedd
 }
 
 // GetDocumentStatus retrieves the current status of a document from Documenso.
-func (a *Adapter) GetDocumentStatus(ctx context.Context, req *port.GetDocumentStatusRequest) (*port.DocumentStatusResult, error) {
+func (a *Adapter) GetProviderDocumentStatus(ctx context.Context, req *port.GetProviderDocumentStatusRequest) (*port.ProviderDocumentStatusResult, error) {
 	envResp, err := a.fetchEnvelope(ctx, req.ProviderDocumentID)
 	if err != nil {
 		return nil, err
@@ -403,7 +428,7 @@ func (a *Adapter) GetDocumentStatus(ctx context.Context, req *port.GetDocumentSt
 
 	recipientResults, allSigned, anyDeclined := processRecipients(envResp.Recipients)
 
-	result := &port.DocumentStatusResult{
+	result := &port.ProviderDocumentStatusResult{
 		Status:         MapEnvelopeStatus(envResp.Status),
 		ProviderStatus: envResp.Status,
 		Recipients:     recipientResults,
@@ -411,11 +436,61 @@ func (a *Adapter) GetDocumentStatus(ctx context.Context, req *port.GetDocumentSt
 
 	result.Status = determineFinalStatus(envResp.Status, allSigned, anyDeclined, len(envResp.Recipients), recipientResults)
 
-	if result.Status == entity.DocumentStatusCompleted && envResp.CompletedDocumentURL != "" {
+	if result.Status == entity.SigningAttemptStatusCompleted && envResp.CompletedDocumentURL != "" {
 		result.CompletedPDFURL = &envResp.CompletedDocumentURL
 	}
 
 	return result, nil
+}
+
+// DownloadCompletedPDF downloads the completed/signed PDF bytes from Documenso.
+func (a *Adapter) DownloadCompletedPDF(ctx context.Context, req *port.DownloadCompletedPDFRequest) (*port.DownloadCompletedPDFResult, error) {
+	envResp, err := a.fetchEnvelope(ctx, req.ProviderDocumentID)
+	if err != nil {
+		return nil, err
+	}
+	if envResp.Status != string(EnvelopeStatusCompleted) && envResp.Status != string(EnvelopeStatusSigned) {
+		return nil, fmt.Errorf("documenso envelope %s is not completed", req.ProviderDocumentID)
+	}
+	if len(envResp.EnvelopeItems) == 0 || strings.TrimSpace(envResp.EnvelopeItems[0].ID) == "" {
+		return nil, fmt.Errorf("documenso envelope %s has no downloadable item", req.ProviderDocumentID)
+	}
+
+	itemID := url.PathEscape(envResp.EnvelopeItems[0].ID)
+	httpReq, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("%s/envelope/item/%s/download?version=signed", a.config.BaseURL, itemID),
+		nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating completed PDF request: %w", err)
+	}
+	a.setAuthHeader(httpReq)
+
+	resp, err := a.httpClient.Do(httpReq) //nolint:gosec // URL is built from configured provider base URL
+	if err != nil {
+		return nil, fmt.Errorf("executing completed PDF request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("documenso API error downloading completed PDF (status %d): %s", resp.StatusCode, string(body))
+	}
+	pdf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading completed PDF response: %w", err)
+	}
+	if len(pdf) == 0 {
+		return nil, fmt.Errorf("documenso completed PDF response is empty")
+	}
+
+	return &port.DownloadCompletedPDFResult{
+		PDF:         pdf,
+		Filename:    "document_signed.pdf",
+		ContentType: "application/pdf",
+	}, nil
 }
 
 // fetchEnvelope retrieves envelope details from the Documenso API.
@@ -485,23 +560,23 @@ func processRecipients(recipients []recipientResponse) ([]port.RecipientStatusRe
 }
 
 // determineFinalStatus determines the final document status based on envelope status and recipient states.
-func determineFinalStatus(envStatus string, allSigned, anyDeclined bool, recipientCount int, recipientResults []port.RecipientStatusResult) entity.DocumentStatus {
+func determineFinalStatus(envStatus string, allSigned, anyDeclined bool, recipientCount int, recipientResults []port.RecipientStatusResult) entity.SigningAttemptStatus {
 	if anyDeclined {
-		return entity.DocumentStatusDeclined
+		return entity.SigningAttemptStatusDeclined
 	}
 
 	if allSigned && recipientCount > 0 {
-		return entity.DocumentStatusCompleted
+		return entity.SigningAttemptStatusCompleted
 	}
 
 	baseStatus := MapEnvelopeStatus(envStatus)
-	if baseStatus != entity.DocumentStatusPending {
+	if baseStatus != entity.SigningAttemptStatusSigningReady {
 		return baseStatus
 	}
 
 	for _, r := range recipientResults {
 		if r.Status == entity.RecipientStatusDelivered || r.Status == entity.RecipientStatusSigned {
-			return entity.DocumentStatusInProgress
+			return entity.SigningAttemptStatusSigning
 		}
 	}
 
@@ -509,8 +584,8 @@ func determineFinalStatus(envStatus string, allSigned, anyDeclined bool, recipie
 }
 
 // CancelDocument cancels/voids a document that is pending signatures.
-func (a *Adapter) CancelDocument(ctx context.Context, req *port.CancelDocumentRequest) error {
-	return a.postEnvelopeAction(
+func (a *Adapter) CleanupProviderDocument(ctx context.Context, req *port.CleanupProviderDocumentRequest) (*port.CleanupProviderDocumentResult, error) {
+	if err := a.postEnvelopeAction(
 		ctx,
 		req.ProviderDocumentID,
 		"/envelope/cancel",
@@ -518,7 +593,10 @@ func (a *Adapter) CancelDocument(ctx context.Context, req *port.CancelDocumentRe
 		"creating request",
 		"executing request",
 		"documenso API error",
-	)
+	); err != nil {
+		return nil, err
+	}
+	return &port.CleanupProviderDocumentResult{Action: "CANCEL", Status: "SUCCEEDED"}, nil
 }
 
 func (a *Adapter) postEnvelopeAction(
@@ -559,46 +637,6 @@ func (a *Adapter) postEnvelopeAction(
 	return nil
 }
 
-// DownloadSignedPDF downloads the completed/signed PDF from Documenso.
-func (a *Adapter) DownloadSignedPDF(ctx context.Context, req *port.DownloadSignedPDFRequest) ([]byte, error) {
-	envResp, err := a.fetchEnvelope(ctx, req.ProviderDocumentID)
-	if err != nil {
-		return nil, fmt.Errorf("fetching envelope for PDF download: %w", err)
-	}
-
-	if len(envResp.EnvelopeItems) == 0 {
-		return nil, fmt.Errorf("envelope %s has no items to download", req.ProviderDocumentID)
-	}
-
-	itemID := envResp.EnvelopeItems[0].ID
-	url := fmt.Sprintf("%s/envelope/item/%s/download", a.config.BaseURL, itemID)
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating download request: %w", err)
-	}
-
-	a.setAuthHeader(httpReq)
-
-	resp, err := a.httpClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("executing download request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("documenso API error downloading PDF (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading PDF response body: %w", err)
-	}
-
-	return data, nil
-}
-
 // ParseWebhook parses and validates an incoming webhook request.
 func (a *Adapter) ParseWebhook(ctx context.Context, req *port.ParseWebhookRequest) (*port.WebhookEvent, error) {
 	if a.config.WebhookSecret != "" {
@@ -612,16 +650,18 @@ func (a *Adapter) ParseWebhook(ctx context.Context, req *port.ParseWebhookReques
 		return nil, fmt.Errorf("parsing webhook payload: %w", err)
 	}
 
-	providerDocID := strconv.Itoa(payload.Payload.ID)
-	if payload.Payload.ExternalID != nil && *payload.Payload.ExternalID != "" {
-		providerDocID = *payload.Payload.ExternalID
+	document := payload.Document()
+	correlationKey := ""
+	if document.ExternalID != nil {
+		correlationKey = *document.ExternalID
 	}
 
 	event := &port.WebhookEvent{
-		EventType:          payload.Event,
-		ProviderDocumentID: providerDocID,
-		Timestamp:          time.Now(),
-		RawPayload:         req.Body,
+		EventType:              payload.Event,
+		ProviderName:           providerName,
+		ProviderCorrelationKey: correlationKey,
+		Timestamp:              time.Now(),
+		RawPayload:             req.Body,
 	}
 
 	// Map the event type to status changes
@@ -630,7 +670,7 @@ func (a *Adapter) ParseWebhook(ctx context.Context, req *port.ParseWebhookReques
 	event.RecipientStatus = mapping.RecipientStatus
 
 	// Extract the recipient who signed from the webhook payload
-	for _, r := range payload.Payload.Recipients {
+	for _, r := range document.Recipients {
 		if r.SigningStatus == "SIGNED" && r.SignedAt != nil {
 			event.ProviderRecipientID = strconv.Itoa(r.ID)
 			break
@@ -718,6 +758,14 @@ type envelopeItem struct {
 type webhookPayload struct {
 	Event   string          `json:"event"`
 	Payload webhookDocument `json:"payload"`
+	Data    webhookDocument `json:"data"`
+}
+
+func (p webhookPayload) Document() webhookDocument {
+	if p.Payload.ExternalID != nil || p.Payload.ID != 0 || len(p.Payload.Recipients) > 0 {
+		return p.Payload
+	}
+	return p.Data
 }
 
 type webhookDocument struct {

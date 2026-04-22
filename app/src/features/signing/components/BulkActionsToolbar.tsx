@@ -9,9 +9,9 @@ import { BulkCancelDialog } from './BulkCancelDialog'
 
 const CANCELLABLE_STATUSES: string[] = [
   SigningDocumentStatus.DRAFT,
-  SigningDocumentStatus.PENDING_PROVIDER,
-  SigningDocumentStatus.PENDING,
-  SigningDocumentStatus.IN_PROGRESS,
+  SigningDocumentStatus.PREPARING_SIGNATURE,
+  SigningDocumentStatus.READY_TO_SIGN,
+  SigningDocumentStatus.SIGNING,
 ]
 
 interface BulkActionsToolbarProps {
