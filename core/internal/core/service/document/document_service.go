@@ -277,10 +277,6 @@ func (s *DocumentService) createRecipients(ctx context.Context, docID string, cm
 	return recipients, nil
 }
 
-// signatureLineBottomRatio is the fraction of the signature box height placed above the anchor line.
-// The box is positioned so the signature line (anchor point) ends up near the bottom ~30% of the box.
-const signatureLineBottomRatio = 0.7
-
 // convertFieldToProviderPosition converts raw PDF coordinates to provider-specific
 // percentage positions (0-100, Y from top). Falls back to default percentages when
 // raw extraction data is absent.
@@ -295,8 +291,11 @@ func convertFieldToProviderPosition(f port.SignatureField) (posX, posY float64) 
 
 		// Flip Y: PDF bottom→top to provider top→bottom.
 		posY = 100 - ((f.PDFPointY / f.PDFPageH) * 100)
-		// Offset Y upward so signature line ends up at bottom of box.
-		posY -= f.Height * signatureLineBottomRatio
+		// Documenso positions fields by their top-left corner and vertically centers
+		// signature artwork within the field. Keep the provider field above the
+		// rendered signature line so the signature sits on that line instead of
+		// extending below it.
+		posY -= f.Height
 	}
 
 	// Clamp to valid range.
