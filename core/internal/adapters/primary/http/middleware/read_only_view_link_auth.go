@@ -11,7 +11,13 @@ import (
 	"github.com/rendis/doc-assembly/core/internal/core/port"
 )
 
-const readOnlyViewLinkClaimsKey = "read_only_view_link_auth_claims"
+const (
+	readOnlyViewLinkClaimsKey = "read_only_view_link_auth_claims"
+
+	// ReadOnlyViewLinkWorkspaceCodeHeader is the workspace business-code header
+	// required by external read-only link creation flows.
+	ReadOnlyViewLinkWorkspaceCodeHeader = "X-Workspace-Code"
+)
 
 // ReadOnlyViewLinkCustomAuth authenticates requests to
 // /api/v1/documents/:documentId/view-link using a custom authenticator.
@@ -27,11 +33,11 @@ func ReadOnlyViewLinkCustomAuth(auth port.ReadOnlyViewLinkAuthenticator) gin.Han
 		}
 
 		documentID := strings.TrimSpace(c.Param("documentId"))
-		workspaceID := strings.TrimSpace(c.GetHeader(WorkspaceIDHeader))
+		workspaceCode := strings.TrimSpace(c.GetHeader(ReadOnlyViewLinkWorkspaceCodeHeader))
 		claims, err := auth.Authenticate(c, &port.ReadOnlyViewLinkAuthenticateRequest{
-			DocumentID:  documentID,
-			WorkspaceID: workspaceID,
-			Environment: readOnlyViewLinkEnvironment(c),
+			DocumentID:    documentID,
+			WorkspaceCode: workspaceCode,
+			Environment:   readOnlyViewLinkEnvironment(c),
 		})
 		if c.IsAborted() {
 			return

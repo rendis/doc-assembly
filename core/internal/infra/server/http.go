@@ -245,7 +245,7 @@ func registerReadOnlyViewLinkRoute(
 	v1.POST(
 		"/documents/:documentId/view-link",
 		middleware.ReadOnlyViewLinkCustomAuth(auth),
-		documentController.CreateReadOnlyViewLink,
+		documentController.CreateReadOnlyViewLinkByWorkspaceCode,
 	)
 }
 

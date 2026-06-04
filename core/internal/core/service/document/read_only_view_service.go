@@ -61,15 +61,33 @@ func NewReadOnlyViewService(
 	}
 }
 
-// SetWorkspaceRepository allows read-only link creation to accept either the
-// internal workspace ID or the workspace business code used by external callers.
+// SetWorkspaceRepository enables workspace-code validation for external read-only link creation.
 func (s *ReadOnlyViewService) SetWorkspaceRepository(workspaceRepo port.WorkspaceRepository) *ReadOnlyViewService {
 	s.workspaceRepo = workspaceRepo
 	return s
 }
 
-// CreateReadOnlyViewLink creates a fresh expiring token for a public read-only view.
+// CreateReadOnlyViewLink creates a fresh expiring token for a public read-only
+// view using the internal workspace ID from authenticated panel context.
 func (s *ReadOnlyViewService) CreateReadOnlyViewLink(ctx context.Context, workspaceID, documentID string) (*documentuc.CreateReadOnlyViewLinkResult, error) {
+	return s.createReadOnlyViewLink(ctx, documentID, func(doc *entity.Document) (bool, error) {
+		return doc.WorkspaceID == strings.TrimSpace(workspaceID), nil
+	})
+}
+
+// CreateReadOnlyViewLinkByWorkspaceCode creates a fresh expiring token for a
+// public read-only view using the workspace business code from external callers.
+func (s *ReadOnlyViewService) CreateReadOnlyViewLinkByWorkspaceCode(ctx context.Context, workspaceCode, documentID string) (*documentuc.CreateReadOnlyViewLinkResult, error) {
+	return s.createReadOnlyViewLink(ctx, documentID, func(doc *entity.Document) (bool, error) {
+		return s.matchesDocumentWorkspaceCode(ctx, doc, workspaceCode)
+	})
+}
+
+func (s *ReadOnlyViewService) createReadOnlyViewLink(
+	ctx context.Context,
+	documentID string,
+	matchesWorkspace func(*entity.Document) (bool, error),
+) (*documentuc.CreateReadOnlyViewLinkResult, error) {
 	doc, err := s.documentRepo.FindByID(ctx, documentID)
 	if err != nil {
 		return nil, fmt.Errorf("find document: %w", err)
@@ -77,7 +95,7 @@ func (s *ReadOnlyViewService) CreateReadOnlyViewLink(ctx context.Context, worksp
 	if doc == nil {
 		return nil, entity.ErrDocumentNotFound
 	}
-	matches, err := s.matchesDocumentWorkspaceRef(ctx, doc, workspaceID)
+	matches, err := matchesWorkspace(doc)
 	if err != nil {
 		return nil, err
 	}
@@ -124,16 +142,13 @@ func (s *ReadOnlyViewService) CreateReadOnlyViewLink(ctx context.Context, worksp
 	}, nil
 }
 
-func (s *ReadOnlyViewService) matchesDocumentWorkspaceRef(
+func (s *ReadOnlyViewService) matchesDocumentWorkspaceCode(
 	ctx context.Context,
 	doc *entity.Document,
-	workspaceRef string,
+	workspaceCode string,
 ) (bool, error) {
-	workspaceRef = strings.TrimSpace(workspaceRef)
-	if doc.WorkspaceID == workspaceRef {
-		return true, nil
-	}
-	if workspaceRef == "" || s.workspaceRepo == nil {
+	workspaceCode = strings.TrimSpace(workspaceCode)
+	if workspaceCode == "" || s.workspaceRepo == nil {
 		return false, nil
 	}
 
@@ -147,7 +162,7 @@ func (s *ReadOnlyViewService) matchesDocumentWorkspaceRef(
 	if workspace == nil {
 		return false, nil
 	}
-	if strings.EqualFold(workspace.Code, workspaceRef) {
+	if strings.EqualFold(workspace.Code, workspaceCode) {
 		return true, nil
 	}
 	if workspace.SandboxOfID == nil {
@@ -161,7 +176,7 @@ func (s *ReadOnlyViewService) matchesDocumentWorkspaceRef(
 		}
 		return false, fmt.Errorf("find parent workspace: %w", err)
 	}
-	return parent != nil && strings.EqualFold(parent.Code, workspaceRef), nil
+	return parent != nil && strings.EqualFold(parent.Code, workspaceCode), nil
 }
 
 // GetReadOnlyView returns read-only metadata/content for a public token.

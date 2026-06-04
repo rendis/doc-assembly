@@ -9,9 +9,9 @@ import (
 // ReadOnlyViewLinkAuthenticateRequest contains data needed to authenticate
 // authenticated read-only view link creation requests.
 type ReadOnlyViewLinkAuthenticateRequest struct {
-	DocumentID  string
-	WorkspaceID string
-	Environment entity.Environment
+	DocumentID    string
+	WorkspaceCode string
+	Environment   entity.Environment
 }
 
 // ReadOnlyViewLinkAuthenticator defines custom authentication for

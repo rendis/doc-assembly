@@ -49,14 +49,14 @@ func TestReadOnlyViewLinkCustomAuthPassesRequestContext(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/documents/doc-1/view-link", nil)
-	req.Header.Set("X-Workspace-ID", "campus-code-1")
+	req.Header.Set("X-Workspace-Code", "campus-code-1")
 	req.Header.Set("X-Environment", "staging")
 	router.ServeHTTP(recorder, req)
 
 	require.Equal(t, http.StatusNoContent, recorder.Code, recorder.Body.String())
 	require.NotNil(t, auth.req)
 	assert.Equal(t, "doc-1", auth.req.DocumentID)
-	assert.Equal(t, "campus-code-1", auth.req.WorkspaceID)
+	assert.Equal(t, "campus-code-1", auth.req.WorkspaceCode)
 	assert.Equal(t, entity.EnvironmentDev, auth.req.Environment)
 }
 

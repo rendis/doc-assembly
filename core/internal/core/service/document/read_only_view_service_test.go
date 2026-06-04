@@ -82,7 +82,7 @@ func TestReadOnlyViewService_CreateReadOnlyViewLink_AcceptsDocumentWorkspaceCode
 		},
 	})
 
-	result, err := service.CreateReadOnlyViewLink(ctx, "2518500001", docID)
+	result, err := service.CreateReadOnlyViewLinkByWorkspaceCode(ctx, "2518500001", docID)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -122,7 +122,7 @@ func TestReadOnlyViewService_CreateReadOnlyViewLink_AcceptsParentWorkspaceCodeFo
 		},
 	})
 
-	result, err := service.CreateReadOnlyViewLink(ctx, "2518500001", docID)
+	result, err := service.CreateReadOnlyViewLinkByWorkspaceCode(ctx, "2518500001", docID)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -173,7 +173,7 @@ func TestReadOnlyViewService_CreateReadOnlyViewLink_WorkspaceMismatchDoesNotPers
 	assert.Empty(t, recipientRepo.findByDocumentID)
 }
 
-func TestReadOnlyViewService_CreateReadOnlyViewLink_WorkspaceCodeMismatchDoesNotPersistToken(t *testing.T) {
+func TestReadOnlyViewService_CreateReadOnlyViewLinkByWorkspaceCode_MismatchDoesNotPersistToken(t *testing.T) {
 	accessTokenRepo := &readOnlyViewAccessTokenRepoFake{}
 	recipientRepo := &readOnlyViewRecipientRepoFake{recipients: []*entity.DocumentRecipient{{ID: "recipient-1", DocumentID: "doc-123"}}}
 	service := NewReadOnlyViewService(
@@ -198,7 +198,41 @@ func TestReadOnlyViewService_CreateReadOnlyViewLink_WorkspaceCodeMismatchDoesNot
 		},
 	})
 
-	result, err := service.CreateReadOnlyViewLink(context.Background(), "9999999999", "doc-123")
+	result, err := service.CreateReadOnlyViewLinkByWorkspaceCode(context.Background(), "9999999999", "doc-123")
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, entity.ErrForbidden)
+	assert.Nil(t, accessTokenRepo.created)
+	assert.Empty(t, recipientRepo.findByDocumentID)
+}
+
+func TestReadOnlyViewService_CreateReadOnlyViewLinkByWorkspaceCode_DoesNotTreatWorkspaceIDAsCode(t *testing.T) {
+	accessTokenRepo := &readOnlyViewAccessTokenRepoFake{}
+	recipientRepo := &readOnlyViewRecipientRepoFake{recipients: []*entity.DocumentRecipient{{ID: "recipient-1", DocumentID: "doc-123"}}}
+	service := NewReadOnlyViewService(
+		&readOnlyViewDocumentRepoFake{doc: &entity.Document{
+			ID:          "doc-123",
+			WorkspaceID: "workspace-uuid",
+			Status:      entity.DocumentStatusReadyToSign,
+		}},
+		accessTokenRepo,
+		recipientRepo,
+		&readOnlyViewVersionRepoFake{},
+		nil,
+		nil,
+		nil,
+		nil,
+		false,
+		48,
+		"",
+	).SetWorkspaceRepository(&readOnlyViewWorkspaceRepoFake{
+		byID: map[string]*entity.Workspace{
+			"workspace-uuid": {ID: "workspace-uuid", Code: "2518500001"},
+		},
+	})
+
+	result, err := service.CreateReadOnlyViewLinkByWorkspaceCode(context.Background(), "workspace-uuid", "doc-123")
 
 	require.Error(t, err)
 	assert.Nil(t, result)
