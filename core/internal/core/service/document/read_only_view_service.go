@@ -17,6 +17,7 @@ import (
 // ReadOnlyViewService implements expiring public read-only document views.
 type ReadOnlyViewService struct {
 	documentRepo      port.DocumentRepository
+	workspaceRepo     port.WorkspaceRepository
 	accessTokenRepo   port.DocumentAccessTokenRepository
 	recipientRepo     port.DocumentRecipientRepository
 	versionRepo       port.TemplateVersionRepository
@@ -60,6 +61,13 @@ func NewReadOnlyViewService(
 	}
 }
 
+// SetWorkspaceRepository allows read-only link creation to accept either the
+// internal workspace ID or the workspace business code used by external callers.
+func (s *ReadOnlyViewService) SetWorkspaceRepository(workspaceRepo port.WorkspaceRepository) *ReadOnlyViewService {
+	s.workspaceRepo = workspaceRepo
+	return s
+}
+
 // CreateReadOnlyViewLink creates a fresh expiring token for a public read-only view.
 func (s *ReadOnlyViewService) CreateReadOnlyViewLink(ctx context.Context, workspaceID, documentID string) (*documentuc.CreateReadOnlyViewLinkResult, error) {
 	doc, err := s.documentRepo.FindByID(ctx, documentID)
@@ -69,7 +77,11 @@ func (s *ReadOnlyViewService) CreateReadOnlyViewLink(ctx context.Context, worksp
 	if doc == nil {
 		return nil, entity.ErrDocumentNotFound
 	}
-	if doc.WorkspaceID != workspaceID {
+	matches, err := s.matchesDocumentWorkspaceRef(ctx, doc, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if !matches {
 		return nil, entity.ErrForbidden
 	}
 	if doc.Status == entity.DocumentStatusInvalidated || doc.Status == entity.DocumentStatusCancelled || doc.IsExpired() {
@@ -110,6 +122,46 @@ func (s *ReadOnlyViewService) CreateReadOnlyViewLink(ctx context.Context, worksp
 		Token:     tokenStr,
 		ExpiresAt: accessToken.ExpiresAt,
 	}, nil
+}
+
+func (s *ReadOnlyViewService) matchesDocumentWorkspaceRef(
+	ctx context.Context,
+	doc *entity.Document,
+	workspaceRef string,
+) (bool, error) {
+	workspaceRef = strings.TrimSpace(workspaceRef)
+	if doc.WorkspaceID == workspaceRef {
+		return true, nil
+	}
+	if workspaceRef == "" || s.workspaceRepo == nil {
+		return false, nil
+	}
+
+	workspace, err := s.workspaceRepo.FindByID(ctx, doc.WorkspaceID)
+	if err != nil {
+		if errors.Is(err, entity.ErrWorkspaceNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("find document workspace: %w", err)
+	}
+	if workspace == nil {
+		return false, nil
+	}
+	if strings.EqualFold(workspace.Code, workspaceRef) {
+		return true, nil
+	}
+	if workspace.SandboxOfID == nil {
+		return false, nil
+	}
+
+	parent, err := s.workspaceRepo.FindByID(ctx, *workspace.SandboxOfID)
+	if err != nil {
+		if errors.Is(err, entity.ErrWorkspaceNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("find parent workspace: %w", err)
+	}
+	return parent != nil && strings.EqualFold(parent.Code, workspaceRef), nil
 }
 
 // GetReadOnlyView returns read-only metadata/content for a public token.
