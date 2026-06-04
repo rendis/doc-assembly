@@ -123,6 +123,25 @@ func TestDocumentController_CreateReadOnlyViewLink(t *testing.T) {
 		assert.Empty(t, uc.createCalledWith)
 		assert.Empty(t, uc.createWorkspace)
 	})
+
+	t.Run("external auth route uses workspace header", func(t *testing.T) {
+		uc := &readOnlyViewUCStub{createResult: &documentuc.CreateReadOnlyViewLinkResult{
+			URL:       "https://example.test/public/view/view-token",
+			Token:     "view-token",
+			ExpiresAt: expiresAt,
+		}}
+		router := gin.New()
+		router.POST("/api/v1/documents/:documentId/view-link", controller.NewDocumentController(nil, nil, uc, nil).CreateReadOnlyViewLink)
+
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/documents/doc-1/view-link", nil)
+		req.Header.Set("X-Workspace-ID", "workspace-from-header")
+		router.ServeHTTP(recorder, req)
+
+		require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+		assert.Equal(t, "doc-1", uc.createCalledWith)
+		assert.Equal(t, "workspace-from-header", uc.createWorkspace)
+	})
 }
 
 func TestPublicReadOnlyViewController(t *testing.T) {

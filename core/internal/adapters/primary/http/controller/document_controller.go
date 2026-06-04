@@ -27,6 +27,20 @@ type DocumentController struct {
 	eventEmitter   *documentsvc.EventEmitter
 }
 
+type documentRouteOptions struct {
+	skipReadOnlyViewLink bool
+}
+
+// DocumentRouteOption configures document route registration.
+type DocumentRouteOption func(*documentRouteOptions)
+
+// WithoutReadOnlyViewLinkRoute skips the authenticated panel read-only link route.
+func WithoutReadOnlyViewLinkRoute() DocumentRouteOption {
+	return func(opts *documentRouteOptions) {
+		opts.skipReadOnlyViewLink = true
+	}
+}
+
 // NewDocumentController creates a new document controller.
 func NewDocumentController(
 	documentUC documentuc.DocumentUseCase,
@@ -43,7 +57,14 @@ func NewDocumentController(
 }
 
 // RegisterRoutes registers all document routes.
-func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup) {
+func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup, opts ...DocumentRouteOption) {
+	routeOptions := documentRouteOptions{}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&routeOptions)
+		}
+	}
+
 	docs := api.Group("/documents")
 	{
 		// List documents in workspace
@@ -76,8 +97,10 @@ func (c *DocumentController) RegisterRoutes(api *gin.RouterGroup) {
 		// Download signed PDF
 		docs.GET("/:documentId/pdf", middleware.RequireViewer(), c.GetDocumentPDF)
 
-		// Create public read-only view link
-		docs.POST("/:documentId/view-link", middleware.RequireViewer(), c.CreateReadOnlyViewLink)
+		if !routeOptions.skipReadOnlyViewLink {
+			// Create public read-only view link
+			docs.POST("/:documentId/view-link", middleware.RequireViewer(), c.CreateReadOnlyViewLink)
+		}
 
 		// Refresh document status from provider
 		docs.POST("/:documentId/refresh", middleware.RequireOperator(), c.RefreshStatus)
@@ -176,8 +199,11 @@ func (c *DocumentController) CreateReadOnlyViewLink(ctx *gin.Context) {
 	documentID := ctx.Param("documentId")
 	workspaceID, ok := middleware.GetWorkspaceID(ctx)
 	if !ok {
-		HandleError(ctx, entity.ErrMissingWorkspaceID)
-		return
+		workspaceID = strings.TrimSpace(ctx.GetHeader(middleware.WorkspaceIDHeader))
+		if workspaceID == "" {
+			HandleError(ctx, entity.ErrMissingWorkspaceID)
+			return
+		}
 	}
 
 	result, err := c.readOnlyViewUC.CreateReadOnlyViewLink(ctx.Request.Context(), workspaceID, documentID)

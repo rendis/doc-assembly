@@ -415,6 +415,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		galleryCtrl,
 		publicDocAuth,
 		e.signingSessionAuth,
+		e.readOnlyViewAuth,
 		automationAPIKeyRepo,
 		frontendFS,
 	)
