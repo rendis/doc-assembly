@@ -419,6 +419,7 @@ func (e *Engine) initialize(ctx context.Context) (*appComponents, error) { //nol
 		e.legacyDocumentHandler,
 		automationAPIKeyRepo,
 		frontendFS,
+		e.globalMiddleware,
 	)
 
 	// --- Background Scheduler ---

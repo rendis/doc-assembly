@@ -92,6 +92,7 @@ func NewHTTPServer(
 	legacyDocumentHandler port.LegacyDocumentHandler,
 	keyRepo port.AutomationAPIKeyRepository,
 	frontendFS fs.FS,
+	globalMiddleware []gin.HandlerFunc,
 ) *HTTPServer {
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -101,6 +102,9 @@ func NewHTTPServer(
 	engine.Use(gin.Recovery())
 	engine.Use(gin.Logger())
 	engine.Use(corsMiddleware(cfg.Server.CORS))
+	for _, mw := range globalMiddleware {
+		engine.Use(mw)
+	}
 
 	// Base path group (e.g. "/doc-assembly" → all routes under /doc-assembly/*)
 	basePath := cfg.Server.NormalizedBasePath()
